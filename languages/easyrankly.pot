@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Enthony Sclafani
+# Copyright (C) 2026 EasyRankly
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
@@ -39,7 +39,7 @@ msgstr ""
 
 #. Author of the plugin
 #: easyrankly.php
-msgid "Enthony Sclafani"
+msgid "EasyRankly"
 msgstr ""
 
 #: admin/meta-box.php:126
