@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.0.0-beta
+ * Version:     2.0.0
  * Requires at least: 6.2.0
  * Requires PHP: 8.0
  * Author:      Enthony Sclafani
@@ -24,7 +24,7 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.0.0-beta' );
+define( 'ERANKLY_VERSION', '2.0.0' );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ERANKLY_URL', plugin_dir_url( __FILE__ ) );

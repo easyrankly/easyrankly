@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+
+# Logs and temp files
+*.log
+*.cache
+*.tmp
+
+# Dependencies and build artifacts (never commit these)
+/vendor/
+/node_modules/
+
+# Local environment
+.env
+.env.*

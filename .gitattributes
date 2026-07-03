@@ -1,0 +1,21 @@
+# Normalize line endings on checkin
+* text=auto
+
+# Exclude repo/dev-only files from `git archive` exports.
+# Runtime assets (including prompts/*.md) are intentionally NOT export-ignored.
+/.git            export-ignore
+/.github         export-ignore
+/.gitignore      export-ignore
+/.gitattributes  export-ignore
+/.distignore     export-ignore
+/.editorconfig   export-ignore
+/composer.json   export-ignore
+/composer.lock   export-ignore
+/package.json    export-ignore
+/package-lock.json export-ignore
+/phpcs.xml       export-ignore
+/phpcs.xml.dist  export-ignore
+/phpunit.xml     export-ignore
+/phpunit.xml.dist export-ignore
+/tests           export-ignore
+/bin             export-ignore
