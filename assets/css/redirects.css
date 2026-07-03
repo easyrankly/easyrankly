@@ -1,0 +1,114 @@
+.erankly-redirects-wrap {
+	max-width: 1280px;
+}
+
+/* Panels */
+.erankly-redirects-panel {
+	margin-top: 4px;
+}
+
+.erankly-redirects-panel h2 {
+	margin-top: 0;
+}
+
+.erankly-redirects-form-panel {
+	max-width: 680px;
+}
+
+/* Form */
+.erankly-redirects-form label {
+	display: block;
+	margin-bottom: 16px;
+}
+
+.erankly-redirects-form label > span {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.erankly-redirects-form input[type="text"],
+.erankly-redirects-form input[type="number"],
+.erankly-redirects-form select,
+.erankly-redirects-form textarea {
+	max-width: 100%;
+	width: 100%;
+}
+
+.erankly-redirects-form textarea {
+	min-height: 56px;
+	resize: vertical;
+}
+
+.erankly-redirects-grid {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.erankly-redirects-form label.erankly-redirects-checkbox {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	margin-bottom: 14px;
+}
+
+.erankly-redirects-form label.erankly-redirects-checkbox > span {
+	display: inline;
+	font-weight: normal;
+	margin-bottom: 0;
+}
+
+/* Role field (shown/hidden by JS) */
+.erankly-redirects-role-field label {
+	margin-bottom: 4px;
+}
+
+.erankly-redirects-role-field .description {
+	margin: 4px 0 16px;
+}
+
+/* Search bar */
+.erankly-redirects-search {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	margin: 18px 0 12px;
+}
+
+.erankly-redirects-search input[type="search"] {
+	min-width: 280px;
+}
+
+/* Redirect table */
+.erankly-redirects-table code {
+	white-space: normal;
+	word-break: break-word;
+}
+
+.erankly-redirects-table td[colspan] {
+	text-align: center;
+}
+
+.erankly-redirects-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+	.erankly-redirects-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.erankly-redirects-search {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.erankly-redirects-search input[type="search"] {
+		min-width: 0;
+		width: 100%;
+	}
+}

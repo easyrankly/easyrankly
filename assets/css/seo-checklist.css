@@ -1,0 +1,257 @@
+/* Floating SEO checklist popup. */
+
+.erankly-seo-checklist {
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	z-index: 99990;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 12px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.erankly-seo-checklist.is-snoozed {
+	visibility: hidden;
+	pointer-events: none;
+}
+
+/* Toggle row — the hide label sits to the left of the toggle and only
+   appears while the row is hovered or focused. */
+
+.erankly-seo-checklist-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.erankly-seo-checklist-hide {
+	padding: 6px 12px;
+	border: none;
+	border-radius: 999px;
+	background: #1d2327;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.4;
+	white-space: nowrap;
+	cursor: pointer;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	opacity: 0;
+	pointer-events: none;
+	transform: translateX(6px);
+	transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.erankly-seo-checklist-actions:hover .erankly-seo-checklist-hide,
+.erankly-seo-checklist-actions:focus-within .erankly-seo-checklist-hide {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateX(0);
+}
+
+.erankly-seo-checklist-hide:hover {
+	background: #2c3338;
+}
+
+.erankly-seo-checklist-hide:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
+}
+
+/* Toggle button — color reflects the checklist status. */
+
+.erankly-seo-checklist-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 52px;
+	height: 52px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	color: #fff;
+	cursor: pointer;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+	transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+}
+
+.erankly-seo-checklist-toggle:hover,
+.erankly-seo-checklist-toggle:focus {
+	transform: scale(1.06);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.24);
+	color: #fff;
+}
+
+.erankly-seo-checklist-toggle:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
+}
+
+.erankly-seo-checklist-toggle svg {
+	width: 24px;
+	height: 24px;
+}
+
+.erankly-seo-checklist.is-incomplete .erankly-seo-checklist-toggle {
+	background: #d63638;
+}
+
+.erankly-seo-checklist.is-partial .erankly-seo-checklist-toggle {
+	background: #f59e0b;
+}
+
+.erankly-seo-checklist.is-complete .erankly-seo-checklist-toggle {
+	background: #00a32a;
+}
+
+/* Panel. */
+
+.erankly-seo-checklist-panel {
+	width: 290px;
+	overflow: hidden;
+	background: #fff;
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	border-radius: 12px;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+	transform-origin: bottom right;
+	animation: erankly-seo-checklist-pop 0.16s ease;
+}
+
+@keyframes erankly-seo-checklist-pop {
+	from {
+		opacity: 0;
+		transform: translateY(6px) scale(0.97);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.erankly-seo-checklist-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 16px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.erankly-seo-checklist-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.erankly-seo-checklist-count {
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+	border-radius: 999px;
+	transition: background-color 0.2s ease;
+}
+
+.erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
+	background: #d63638;
+}
+
+.erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
+	background: #f59e0b;
+}
+
+.erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
+	background: #00a32a;
+}
+
+/* Items. */
+
+.erankly-seo-checklist-items {
+	margin: 0;
+	padding: 6px 0;
+	list-style: none;
+}
+
+.erankly-seo-checklist-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 16px;
+}
+
+.erankly-seo-checklist-check {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: #fff;
+	border: 2px solid #c3c4c7;
+	border-radius: 50%;
+	box-sizing: border-box;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.erankly-seo-checklist-check svg {
+	width: 10px;
+	height: 10px;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
+	background: #00a32a;
+	border-color: #00a32a;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
+	opacity: 1;
+}
+
+.erankly-seo-checklist-label {
+	font-size: 13px;
+	line-height: 1.4;
+	color: #1d2327;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
+	color: #787c82;
+}
+
+/* Documentation link. */
+
+.erankly-seo-checklist-docs {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 11px 16px;
+	font-size: 13px;
+	font-weight: 500;
+	color: #2271b1;
+	text-decoration: none;
+	background: #f6f7f7;
+	border-top: 1px solid #f0f0f1;
+	transition: background-color 0.15s ease;
+}
+
+.erankly-seo-checklist-docs:hover,
+.erankly-seo-checklist-docs:focus {
+	color: #135e96;
+	background: #f0f0f1;
+}
+
+@media (max-width: 600px) {
+	.erankly-seo-checklist {
+		right: 16px;
+		bottom: 16px;
+	}
+
+	.erankly-seo-checklist-panel {
+		width: calc(100vw - 32px);
+		max-width: 290px;
+	}
+}

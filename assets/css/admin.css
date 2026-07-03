@@ -1,0 +1,941 @@
+.erankly-settings form {
+	margin-top: 16px;
+	max-width: 1180px;
+}
+
+.erankly-settings-fields,
+.erankly-defaults-section,
+.erankly-schema-block,
+.erankly-schema-builder,
+.erankly-io {
+	max-width: 920px;
+}
+
+.erankly-field {
+	margin: 0 0 16px;
+	min-width: 0;
+}
+
+/*
+ * Shared admin UI classes. Several selectors below (erankly-section-divider,
+ * erankly-status-description, erankly-inline-status, erankly-error-text,
+ * erankly-option-list*, erankly-settings-table, is-success/is-error) are
+ * not referenced by the free plugin's own markup: they are consumed by the
+ * EasyRankly Pro add-on, which renders its panels inside this settings screen.
+ * Do not remove them as "unused".
+ */
+.erankly-section-divider {
+	margin: 24px 0;
+}
+
+.erankly-status-description {
+	margin: 2px 0 8px;
+}
+
+.erankly-inline-status {
+	align-items: center;
+	display: inline-flex;
+	font-size: 12px;
+	font-weight: 400;
+	gap: 3px;
+	line-height: 1.4;
+}
+
+.erankly-inline-status.is-success {
+	color: #1a7f37;
+}
+
+.erankly-inline-status.is-error,
+.erankly-error-text {
+	color: #b32d2e;
+}
+
+.erankly-inline-status .dashicons {
+	font-size: 14px;
+	height: 14px;
+	width: 14px;
+}
+
+.erankly-option-list {
+	gap: 4px 16px;
+}
+
+.erankly-option-list-inline {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.erankly-option-list-stacked {
+	display: grid;
+}
+
+.erankly-settings-table {
+	max-width: 900px;
+}
+
+.erankly-schema-identity-fields,
+.erankly-inline-fields {
+	column-gap: 16px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	row-gap: 6px;
+}
+
+.erankly-schema-identity-fields.is-person {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.erankly-schema-identity-fields .erankly-field select.widefat,
+.erankly-inline-fields .erankly-field input.widefat {
+	max-width: none;
+	width: 100%;
+}
+
+.erankly-schema-identity-fields .erankly-field,
+.erankly-inline-fields .erankly-field {
+	margin-bottom: 0;
+}
+
+.erankly-inline-fields {
+	margin: 8px 0 16px;
+}
+
+.erankly-inline-fields-two-columns {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.erankly-schema-person-reference-description {
+	display: block;
+	grid-column: 1 / -1;
+	margin: 0 0 16px;
+}
+
+/* Shared autocomplete used by Person references and multilingual links. */
+.erankly-autocomplete-control {
+	align-items: center;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.erankly-autocomplete-value,
+.erankly-autocomplete-search {
+	grid-column: 1;
+	min-width: 0;
+}
+
+.erankly-autocomplete-search {
+	position: relative;
+}
+
+.erankly-autocomplete-results {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 0 0 4px 4px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+	left: 0;
+	list-style: none;
+	margin: 0;
+	max-height: 240px;
+	overflow-y: auto;
+	padding: 0;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	z-index: 1000;
+}
+
+.erankly-autocomplete-results li {
+	border-bottom: 1px solid #f0f0f1;
+	margin: 0;
+	padding: 0;
+}
+
+.erankly-autocomplete-results li:last-child {
+	border-bottom: none;
+}
+
+.erankly-autocomplete-item {
+	background: none;
+	border: 0;
+	cursor: pointer;
+	display: block;
+	font-size: 13px;
+	line-height: 1.5;
+	padding: 8px 12px;
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-autocomplete-item:hover,
+.erankly-autocomplete-item:focus {
+	background: #f0f6fc;
+	color: #135e96;
+	outline: none;
+}
+
+.erankly-autocomplete-status {
+	color: #757575;
+	font-size: 13px;
+	padding: 8px 12px;
+}
+
+.erankly-field > label,
+.erankly-field > strong,
+.erankly-field > legend {
+	display: block;
+	margin: 0 0 4px;
+}
+
+.erankly-field select.widefat {
+	max-width: 360px;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-schema-identity-fields.is-person,
+	.erankly-inline-fields-two-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.erankly-settings textarea,
+.erankly-meta-box textarea {
+	resize: vertical;
+}
+
+.erankly-schema-block {
+	background: #fff;
+	border: 1px solid #949494;
+	border-radius: 4px;
+}
+
+.erankly-schema-builder {
+	margin: 16px 0;
+}
+
+.erankly-settings-details {
+	background: #fff;
+	border: 1px solid #949494;
+	border-radius: 4px;
+	margin: 0 0 16px;
+	overflow: hidden;
+}
+
+.erankly-settings-details > summary {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	font-weight: 600;
+	gap: 8px;
+	line-height: 1.4;
+	list-style: none;
+	padding: 12px 14px;
+}
+
+.erankly-settings-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.erankly-settings-details[open] > summary {
+	border-bottom: 1px solid #949494;
+}
+
+.erankly-settings-details > summary::after,
+.erankly-schema-block-header::after {
+	border-bottom: 2px solid;
+	border-right: 2px solid;
+	content: "";
+	display: block;
+	height: 7px;
+	transform: rotate(45deg);
+	transition: transform 0.15s;
+	width: 7px;
+}
+
+.erankly-settings-details > summary::after {
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.erankly-settings-details[open] > summary::after,
+.erankly-schema-block[open] > .erankly-schema-block-header::after {
+	transform: rotate(-135deg);
+}
+
+.erankly-settings-details-content {
+	padding: 16px 14px 1px;
+}
+
+.erankly-schema-panel {
+	padding: 16px 14px 1px;
+}
+
+.erankly-local-business-fields {
+	margin-top: 16px;
+}
+
+.erankly-opening-hours {
+	border-top: 1px solid #dcdcde;
+	margin: 16px 0;
+}
+
+.erankly-opening-hours-row {
+	align-items: center;
+	border-bottom: 1px solid #dcdcde;
+	display: grid;
+	gap: 12px;
+	grid-template-columns: 110px 90px minmax(0, 1fr);
+	padding: 10px 0;
+}
+
+.erankly-opening-intervals {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-opening-intervals > span {
+	align-items: center;
+	display: inline-flex;
+	gap: 5px;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-opening-hours-row {
+		align-items: start;
+		grid-template-columns: 1fr;
+	}
+}
+
+.erankly-defaults-section {
+	margin-top: 24px;
+}
+
+.erankly-defaults-section h3 {
+	font-size: 14px;
+	margin: 0 0 8px;
+}
+
+.erankly-default-tabs {
+	margin: 0 0 24px;
+}
+
+.erankly-default-tabs-bar {
+	align-items: flex-end;
+	display: flex;
+	gap: 8px;
+}
+
+.erankly-default-tabs-bar .erankly-tabs {
+	flex: 1 1 auto;
+}
+
+.erankly-linked-defaults-toggle {
+	flex: 0 0 auto;
+	margin: 0 4px 4px 0;
+	white-space: nowrap;
+}
+
+.erankly-default-linked-label,
+.erankly-default-tabs.is-linked .erankly-default-entity-label {
+	display: none;
+}
+
+.erankly-default-tabs.is-linked .erankly-default-linked-label {
+	display: inline;
+}
+
+/* The postbox .inside already pads the bottom; avoid doubling it up. */
+.erankly-meta-box .erankly-field:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-meta-box .description {
+	display: block;
+	margin-top: 4px;
+}
+
+.erankly-default-tabs.is-linked .erankly-tab,
+.erankly-tab:disabled {
+	color: #a7aaad;
+	cursor: default;
+	pointer-events: none;
+}
+
+.erankly-redirect-management {
+	margin-top: 16px;
+}
+
+.erankly-tab-panel {
+	margin-top: 16px;
+}
+
+/* Without JavaScript, expose every settings panel and hide inactive tab controls. */
+.no-js .erankly-settings .erankly-settings-tabs {
+	display: none;
+}
+
+.no-js .erankly-settings .erankly-tab-panel[hidden],
+.no-js .erankly-settings [data-erankly-advanced-panel][hidden] {
+	display: block !important;
+}
+
+.erankly-default-tab-panel {
+	margin-top: 0;
+	padding-top: 16px;
+}
+
+.erankly-global-meta-default > h4 {
+	margin: 0 0 12px;
+}
+
+.erankly-character-counter {
+	color: #646970;
+	display: block;
+	margin-top: 4px;
+}
+
+.erankly-character-counter.is-warning {
+	color: #b32d2e;
+}
+
+.erankly-media-preview {
+	margin: 0 0 8px;
+	min-height: 0;
+}
+
+.erankly-media-preview img {
+	display: block;
+	height: auto;
+	max-height: 120px;
+	max-width: 220px;
+}
+
+.erankly-media-url-field {
+	margin: 8px 0 0;
+}
+
+/* Flex-wrap keeps the buttons usable in narrow containers such as the
+   block editor sidebar meta boxes, without a dedicated media query. */
+.erankly-media-url-control {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-media-url-control .erankly-variable-field {
+	flex: 1 1 220px;
+	min-width: 0;
+}
+
+.erankly-media-url-preview {
+	margin-top: 8px;
+}
+
+.erankly-checkboxes {
+	border: 0;
+	padding: 0;
+}
+
+.erankly-checkboxes legend {
+	margin-bottom: 4px;
+}
+
+.erankly-visibility-defaults legend {
+	margin-bottom: 8px;
+}
+
+.erankly-checkbox-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 20px;
+}
+
+.erankly-visibility-defaults .erankly-checkbox-options label {
+	align-items: center;
+	display: inline-flex;
+	line-height: 1.4;
+	margin: 0;
+}
+
+.erankly-visibility-defaults .erankly-checkbox-options input[type="checkbox"] {
+	margin: 0 4px 0 0;
+}
+
+.erankly-variable-field {
+	position: relative;
+}
+
+.erankly-variable-field .widefat,
+.erankly-variable-field .regular-text,
+.erankly-variable-field .large-text {
+	padding-right: 36px;
+}
+
+.erankly-variable-trigger {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	display: flex;
+	height: 24px;
+	justify-content: center;
+	line-height: 1;
+	margin: 0;
+	padding: 0;
+	position: absolute;
+	right: 5px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 24px;
+	z-index: 2;
+}
+
+.erankly-variable-trigger svg {
+	display: block;
+	height: 16px;
+	width: 16px;
+}
+
+.erankly-variable-menu {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	box-sizing: border-box;
+	margin-top: 4px;
+	max-height: 360px;
+	overflow: auto;
+	padding: 8px;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	width: min(340px, 100%);
+	z-index: 10000;
+}
+
+.erankly-variable-search {
+	box-sizing: border-box;
+	margin: 0 0 8px;
+	width: 100%;
+}
+
+.erankly-variable-group + .erankly-variable-group {
+	margin-top: 8px;
+}
+
+.erankly-variable-group-title {
+	color: #646970;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0;
+	margin: 6px 0 4px;
+	text-transform: uppercase;
+}
+
+.erankly-variable-option {
+	background: transparent;
+	border: 0;
+	border-radius: 2px;
+	color: #1d2327;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	line-height: 1.4;
+	margin: 0;
+	padding: 6px 8px;
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-variable-option:hover,
+.erankly-variable-option:focus {
+	background: #f0f6fc;
+	color: #135e96;
+	outline: 0;
+}
+
+.erankly-variable-option code {
+	color: #646970;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.erankly-schema-blocks {
+	display: grid;
+	gap: 8px;
+}
+
+.erankly-schema-blocks.is-empty {
+	display: none;
+}
+
+.erankly-schema-block {
+	margin: 0;
+	overflow: hidden;
+}
+
+.erankly-schema-block-header {
+	align-items: center;
+	background: #fff;
+	cursor: pointer;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: minmax(0, 1fr) auto 16px;
+	padding: 0 8px 0 14px;
+}
+
+.erankly-schema-block-header::-webkit-details-marker {
+	display: none;
+}
+
+.erankly-schema-block[open] > .erankly-schema-block-header {
+	border-bottom: 1px solid #949494;
+}
+
+.erankly-schema-targeting {
+	margin: 0 0 16px;
+	padding: 0;
+}
+
+.erankly-schema-targeting legend {
+	font-weight: 600;
+	padding: 0 4px;
+}
+
+.erankly-schema-targeting label {
+	display: block;
+	margin: 4px 0;
+}
+
+.erankly-schema-targeting-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	margin-top: 12px;
+}
+
+.erankly-schema-title {
+	font-weight: 600;
+	line-height: 1.4;
+	padding: 12px 0;
+}
+
+.erankly-schema-row-actions {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.erankly-schema-panel {
+	background: #fff;
+}
+
+.erankly-schema-field {
+	display: block;
+	margin: 0;
+	min-width: 0;
+}
+
+.erankly-schema-field > span {
+	color: #3c434a;
+	display: block;
+	font-weight: 600;
+	line-height: 1.4;
+	margin-bottom: 4px;
+}
+
+.erankly-schema-field .widefat {
+	min-height: 32px;
+}
+
+.erankly-schema-field textarea,
+.erankly-schema-field .erankly-variable-field {
+	width: 100%;
+}
+
+.erankly-schema-field textarea.widefat {
+	min-height: 74px;
+}
+
+.erankly-schema-field textarea[rows="8"] {
+	min-height: 190px;
+}
+
+.erankly-schema-field textarea + .erankly-variable-trigger {
+	top: 16px;
+}
+
+.erankly-schema-actions {
+	margin: 16px 0;
+}
+
+.erankly-global-meta-default {
+	margin: 0 0 24px;
+	max-width: none;
+}
+
+.erankly-global-meta-default h4 {
+	font-size: 14px;
+	margin: 0 0 8px;
+}
+
+.erankly-additional-contexts {
+	border-top: 1px solid #dcdcde;
+	margin-top: 24px;
+	padding-top: 16px;
+}
+
+.erankly-additional-contexts h4 {
+	font-size: 14px;
+	margin: 0 0 8px;
+}
+
+.erankly-global-meta-default label {
+	display: block;
+	margin: 0 0 4px;
+}
+
+.erankly-term-meta-box {
+	max-width: 900px;
+}
+
+@media (max-width: 782px) {
+	.erankly-schema-block-header {
+		padding: 0 10px 0 14px;
+	}
+
+	.erankly-schema-row-actions {
+		align-self: start;
+	}
+
+	.erankly-schema-field > span {
+		padding-top: 0;
+	}
+}
+
+/* Import / Export */
+.erankly-io-section {
+	margin: 0 0 24px;
+}
+
+.erankly-io-section h3 {
+	font-size: 14px;
+	margin: 0 0 8px;
+}
+
+.erankly-io-section .description {
+	margin-top: 0;
+}
+
+.erankly-io-form input[type="file"] {
+	margin: 8px 12px 8px 0;
+}
+
+.erankly-io-third-party {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 40px;
+	margin-top: 12px;
+}
+
+.erankly-io-third-party form {
+	flex: 1 1 240px;
+}
+
+.erankly-io-third-party strong {
+	display: block;
+	margin-bottom: 8px;
+}
+
+.erankly-bloat-view-simple .erankly-field {
+	max-width: 640px;
+}
+
+/* First-run setup wizard */
+.erankly-setup {
+	margin: 48px auto 0;
+	max-width: 760px;
+}
+
+.erankly-setup-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 2px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+	overflow: hidden;
+}
+
+.erankly-setup-header,
+.erankly-setup-content {
+	padding: 24px 32px;
+}
+
+.erankly-setup-header {
+	border-bottom: 1px solid #dcdcde;
+}
+
+.erankly-setup-header h1,
+.erankly-setup-content h2 {
+	margin-top: 0;
+}
+
+.erankly-setup-header h1 {
+	margin-bottom: 8px;
+}
+
+.erankly-setup-content h2 {
+	margin-bottom: 12px;
+}
+
+.erankly-setup-header p {
+	color: #50575e;
+	font-size: 14px;
+	margin-bottom: 0;
+}
+
+.erankly-setup-steps {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.erankly-setup-steps li {
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	color: #646970;
+	margin: 0;
+	padding: 12px 16px;
+	text-align: center;
+}
+
+.erankly-setup-steps li + li {
+	border-left: 1px solid #dcdcde;
+}
+
+.erankly-setup-steps li.is-current {
+	background: #fff;
+	border-bottom-color: #2271b1;
+	box-shadow: inset 0 -3px #2271b1;
+	color: #1d2327;
+	font-weight: 600;
+}
+
+.erankly-setup-steps li.is-complete {
+	color: #50575e;
+}
+
+.erankly-setup-steps li.is-complete::before {
+	color: #2271b1;
+	content: "\f147";
+	display: inline-block;
+	font: normal 18px/1 dashicons;
+	margin-right: 4px;
+	vertical-align: -3px;
+}
+
+.erankly-setup-section {
+	border: 0;
+	margin: 0 0 24px;
+	padding: 0;
+}
+
+.erankly-setup-section legend {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 12px;
+}
+
+.erankly-setup-section > label:not(.erankly-setup-choice) {
+	display: block;
+	margin-bottom: 6px;
+}
+
+.erankly-setup-choice {
+	align-items: flex-start;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	margin-bottom: 8px;
+	padding: 14px;
+	transition: background-color .1s ease-in-out, border-color .1s ease-in-out;
+}
+
+.erankly-setup-choice:hover {
+	border-color: #8c8f94;
+}
+
+.erankly-setup-choice:has(input:checked) {
+	background: #f0f6fc;
+	border-color: #2271b1;
+	box-shadow: inset 0 0 0 1px #2271b1;
+}
+
+.erankly-setup-choice:focus-within {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.erankly-setup-choice input {
+	margin-top: 3px;
+}
+
+.erankly-setup-choice strong,
+.erankly-setup-choice small {
+	display: block;
+}
+
+.erankly-setup-choice small {
+	color: #646970;
+	line-height: 1.5;
+	margin-top: 4px;
+}
+
+.erankly-setup-summary {
+	background: #f0f6fc;
+	border-left: 4px solid #2271b1;
+	margin: 20px 0 24px;
+	padding: 12px 16px;
+}
+
+.erankly-setup-summary p {
+	margin: 6px 0;
+}
+
+.erankly-setup-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 24px;
+}
+
+.erankly-setup-actions form {
+	margin: 0;
+}
+
+.erankly-setup-actions .button-link {
+	padding: 0 10px;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-setup {
+		margin: 16px 10px 0 0;
+	}
+
+	.erankly-setup-header,
+	.erankly-setup-content {
+		padding: 20px;
+	}
+
+	.erankly-setup-steps li {
+		padding: 10px 6px;
+	}
+}

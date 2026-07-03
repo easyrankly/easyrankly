@@ -1,0 +1,2285 @@
+# Copyright (C) 2026 Enthony Sclafani
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: EasyRankly 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easyrankly\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-06-12T13:40:49+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: easyrankly\n"
+
+#. Plugin Name of the plugin
+#: easyrankly.php
+#: admin/meta-box.php:32
+#: admin/meta-box.php:329
+#: admin/meta-box.php:344
+#: admin/settings-page.php:446
+#: includes/admin.php:63
+#: includes/admin.php:64
+#: includes/admin.php:79
+#: includes/admin.php:80
+msgid "EasyRankly"
+msgstr ""
+
+#. Plugin URI of the plugin
+#. Author URI of the plugin
+#: easyrankly.php
+msgid "https://easyrankly.com"
+msgstr ""
+
+#. Description of the plugin
+#: easyrankly.php
+msgid "Lightweight, modular, developer-first SEO essentials for WordPress."
+msgstr ""
+
+#. Author of the plugin
+#: easyrankly.php
+msgid "Enthony Sclafani"
+msgstr ""
+
+#: admin/meta-box.php:126
+#: admin/meta-box.php:391
+#: admin/settings-page.php:1309
+#: admin/settings-page.php:1561
+#: includes/seo-checklist.php:236
+#: assets/js/editor.js:266
+msgid "Meta title"
+msgstr ""
+
+#: admin/meta-box.php:128
+#: admin/meta-box.php:136
+#: admin/meta-box.php:182
+#: admin/meta-box.php:190
+#: admin/meta-box.php:198
+#: admin/meta-box.php:206
+#: admin/meta-box.php:393
+#: admin/meta-box.php:401
+#: admin/meta-box.php:421
+#: admin/meta-box.php:429
+#: admin/meta-box.php:437
+#: admin/meta-box.php:445
+msgid "recommended max"
+msgstr ""
+
+#: admin/meta-box.php:134
+#: admin/meta-box.php:399
+#: admin/meta-box.php:531
+#: admin/settings-page.php:1316
+#: admin/settings-page.php:1568
+#: includes/seo-checklist.php:240
+#: assets/js/editor.js:273
+msgid "Meta description"
+msgstr ""
+
+#: admin/meta-box.php:143
+#: admin/meta-box.php:408
+#: admin/meta-box.php:532
+#: assets/js/editor.js:281
+msgid "Canonical URL"
+msgstr ""
+
+#: admin/meta-box.php:152
+#: assets/js/editor.js:287
+msgid "Breadcrumb name"
+msgstr ""
+
+#: admin/meta-box.php:154
+#: assets/js/editor.js:286
+msgid "Optional short name used in visible breadcrumbs and BreadcrumbList schema."
+msgstr ""
+
+#: admin/meta-box.php:180
+#: admin/meta-box.php:419
+msgid "Open Graph Title"
+msgstr ""
+
+#: admin/meta-box.php:188
+#: admin/meta-box.php:427
+msgid "Open Graph Description"
+msgstr ""
+
+#: admin/meta-box.php:196
+#: admin/meta-box.php:435
+msgid "X (Twitter) Title"
+msgstr ""
+
+#: admin/meta-box.php:204
+#: admin/meta-box.php:443
+msgid "X (Twitter) Description"
+msgstr ""
+
+#: admin/meta-box.php:212
+#: admin/meta-box.php:451
+msgid "X (Twitter) Card Type"
+msgstr ""
+
+#: admin/meta-box.php:214
+#: admin/meta-box.php:453
+#: assets/js/editor.js:367
+msgid "Default (summary_large_image)"
+msgstr ""
+
+#: admin/meta-box.php:219
+#: admin/meta-box.php:458
+msgid "Social Image URL"
+msgstr ""
+
+#: admin/meta-box.php:251
+#: admin/meta-box.php:473
+#: admin/settings-page.php:1640
+#: assets/js/editor.js:395
+msgid "Hide from search results"
+msgstr ""
+
+#: admin/meta-box.php:252
+msgid "Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive — use Advanced settings to control those separately."
+msgstr ""
+
+#: admin/meta-box.php:254
+#: admin/meta-box.php:476
+#: admin/settings-page.php:1642
+#: assets/js/editor.js:406
+msgid "Noindex"
+msgstr ""
+
+#: admin/meta-box.php:255
+#: admin/meta-box.php:477
+#: admin/settings-page.php:1643
+#: assets/js/editor.js:411
+msgid "Nofollow"
+msgstr ""
+
+#: admin/meta-box.php:256
+#: admin/meta-box.php:478
+#: admin/settings-page.php:1644
+#: assets/js/editor.js:416
+msgid "Noarchive"
+msgstr ""
+
+#: admin/meta-box.php:257
+#: admin/meta-box.php:479
+#: admin/settings-page.php:1645
+#: assets/js/editor.js:421
+msgid "Disable sitemap"
+msgstr ""
+
+#: admin/meta-box.php:261
+msgid "Archive Settings"
+msgstr ""
+
+#: admin/meta-box.php:262
+msgid "Exclude this page from all search queries on this site"
+msgstr ""
+
+#: admin/meta-box.php:263
+msgid "Exclude this page from all archive queries on this site."
+msgstr ""
+
+#: admin/meta-box.php:267
+msgid "Google News Settings"
+msgstr ""
+
+#: admin/meta-box.php:268
+msgid "Exclude this page from Google News sitemap"
+msgstr ""
+
+#: admin/meta-box.php:285
+#: admin/meta-box.php:380
+msgid "SEO settings"
+msgstr ""
+
+#: admin/meta-box.php:286
+#: admin/meta-box.php:381
+#: assets/js/editor.js:262
+msgid "Search appearance"
+msgstr ""
+
+#: admin/meta-box.php:288
+#: admin/meta-box.php:382
+#: assets/js/editor.js:331
+msgid "Social sharing"
+msgstr ""
+
+#: admin/meta-box.php:290
+#: admin/meta-box.php:383
+#: assets/js/editor.js:389
+msgid "Search visibility"
+msgstr ""
+
+#: admin/meta-box.php:292
+#: admin/meta-box.php:385
+#: assets/js/editor.js:557
+msgid "Translations"
+msgstr ""
+
+#: admin/meta-box.php:474
+msgid "Sets noindex and removes this term from the sitemap. Does not affect nofollow or noarchive."
+msgstr ""
+
+#: admin/meta-box.php:503
+msgid "Content"
+msgstr ""
+
+#: admin/meta-box.php:505
+msgid "Post title"
+msgstr ""
+
+#: admin/meta-box.php:506
+msgid "Post excerpt"
+msgstr ""
+
+#: admin/meta-box.php:507
+msgid "Post content"
+msgstr ""
+
+#: admin/meta-box.php:508
+msgid "Post URL"
+msgstr ""
+
+#: admin/meta-box.php:509
+msgid "Post date"
+msgstr ""
+
+#: admin/meta-box.php:510
+msgid "Post modified date"
+msgstr ""
+
+#: admin/meta-box.php:511
+msgid "Post author"
+msgstr ""
+
+#: admin/meta-box.php:512
+msgid "Post categories"
+msgstr ""
+
+#: admin/meta-box.php:513
+msgid "Featured image URL"
+msgstr ""
+
+#: admin/meta-box.php:514
+msgid "Post type name"
+msgstr ""
+
+#: admin/meta-box.php:518
+msgid "Taxonomy"
+msgstr ""
+
+#: admin/meta-box.php:520
+msgid "Term name"
+msgstr ""
+
+#: admin/meta-box.php:521
+msgid "Term description"
+msgstr ""
+
+#: admin/meta-box.php:522
+msgid "Term slug"
+msgstr ""
+
+#: admin/meta-box.php:523
+msgid "Term URL"
+msgstr ""
+
+#: admin/meta-box.php:524
+msgid "Taxonomy name"
+msgstr ""
+
+#: admin/meta-box.php:528
+msgid "SEO"
+msgstr ""
+
+#: admin/meta-box.php:530
+msgid "SEO title"
+msgstr ""
+
+#: admin/meta-box.php:533
+msgid "Search query"
+msgstr ""
+
+#: admin/meta-box.php:537
+#: admin/settings-page.php:879
+msgid "Pagination"
+msgstr ""
+
+#: admin/meta-box.php:539
+msgid "Current page number"
+msgstr ""
+
+#: admin/meta-box.php:540
+msgid "Total pages"
+msgstr ""
+
+#: admin/meta-box.php:544
+#: includes/multilingual/class-erankly-ml-admin.php:765
+msgid "Site"
+msgstr ""
+
+#: admin/meta-box.php:546
+msgid "Site name"
+msgstr ""
+
+#: admin/meta-box.php:547
+msgid "Site description"
+msgstr ""
+
+#: admin/meta-box.php:548
+msgid "Site URL"
+msgstr ""
+
+#: admin/meta-box.php:549
+msgid "Site language"
+msgstr ""
+
+#: admin/meta-box.php:550
+msgid "Organization name"
+msgstr ""
+
+#: admin/meta-box.php:551
+msgid "Organization logo URL"
+msgstr ""
+
+#: admin/meta-box.php:552
+msgid "Site icon URL"
+msgstr ""
+
+#: admin/meta-box.php:553
+msgid "Schema identity ID"
+msgstr ""
+
+#: admin/meta-box.php:566
+#: admin/meta-box.php:570
+#: assets/js/editor.js:51
+msgid "Insert variable"
+msgstr ""
+
+#: admin/meta-box.php:573
+msgid "Search variables..."
+msgstr ""
+
+#: admin/meta-box.php:573
+msgid "Search variables"
+msgstr ""
+
+#: admin/meta-box.php:608
+msgid "JSON-LD schema"
+msgstr ""
+
+#: admin/meta-box.php:610
+#: includes/redirects/class-erankly-redirects-admin.php:347
+msgid "Delete"
+msgstr ""
+
+#: admin/meta-box.php:619
+msgid "JSON-LD code"
+msgstr ""
+
+#: admin/meta-box.php:620
+msgid "Paste one JSON-LD object or use a top-level @graph array for multiple schemas. Supports {{variables}}."
+msgstr ""
+
+#: admin/meta-box.php:641
+msgid "Front page"
+msgstr ""
+
+#: admin/meta-box.php:642
+msgid "Posts page"
+msgstr ""
+
+#: admin/meta-box.php:643
+msgid "Singular content"
+msgstr ""
+
+#: admin/meta-box.php:644
+msgid "Post type archives"
+msgstr ""
+
+#: admin/meta-box.php:645
+#: includes/helpers.php:198
+msgid "Search results"
+msgstr ""
+
+#: admin/meta-box.php:649
+msgid "Global application rules"
+msgstr ""
+
+#: admin/meta-box.php:652
+msgid "Enable this schema block"
+msgstr ""
+
+#: admin/meta-box.php:657
+msgid "Apply on"
+msgstr ""
+
+#: admin/meta-box.php:667
+msgid "Post types"
+msgstr ""
+
+#: admin/meta-box.php:679
+msgid "Include IDs or slugs"
+msgstr ""
+
+#: admin/meta-box.php:683
+msgid "Exclude IDs or slugs"
+msgstr ""
+
+#: admin/meta-box.php:739
+#: assets/js/editor.js:306
+msgid "Select image"
+msgstr ""
+
+#: admin/meta-box.php:740
+#: admin/settings-page.php:586
+#: includes/admin.php:297
+#: includes/admin.php:363
+#: includes/multilingual/class-erankly-ml-admin.php:699
+#: assets/js/editor.js:313
+#: assets/js/editor.js:509
+msgid "Remove"
+msgstr ""
+
+#: admin/settings-page.php:272
+#: admin/setup-wizard.php:121
+#: admin/setup-wizard.php:147
+#: admin/setup-wizard.php:163
+#: includes/multilingual/class-erankly-ml-admin.php:498
+msgid "Permission denied."
+msgstr ""
+
+#: admin/settings-page.php:450
+msgid "Settings saved."
+msgstr ""
+
+#. translators: %s: Network Admin settings URL.
+#: admin/settings-page.php:462
+#, php-format
+msgid "Global SEO settings are managed from the %s."
+msgstr ""
+
+#: admin/settings-page.php:463
+msgid "Network Admin"
+msgstr ""
+
+#: admin/settings-page.php:477
+msgid "Plugin settings"
+msgstr ""
+
+#: admin/settings-page.php:479
+#: admin/settings-page.php:544
+msgid "General"
+msgstr ""
+
+#: admin/settings-page.php:480
+#: admin/settings-page.php:514
+#: admin/settings-page.php:961
+msgid "Features"
+msgstr ""
+
+#: admin/settings-page.php:481
+#: admin/settings-page.php:630
+msgid "Social"
+msgstr ""
+
+#: admin/settings-page.php:482
+#: admin/settings-page.php:695
+msgid "Schema"
+msgstr ""
+
+#: admin/settings-page.php:484
+#: admin/settings-page.php:522
+#: admin/settings-page.php:729
+msgid "Sitemap"
+msgstr ""
+
+#: admin/settings-page.php:487
+#: admin/settings-page.php:532
+#: admin/settings-page.php:983
+msgid "Multilingual"
+msgstr ""
+
+#: admin/settings-page.php:491
+#: admin/settings-page.php:527
+#: includes/health.php:815
+msgid "Health"
+msgstr ""
+
+#: admin/settings-page.php:494
+#: admin/settings-page.php:817
+#: includes/admin.php:203
+#: includes/admin.php:226
+msgid "Settings"
+msgstr ""
+
+#: admin/settings-page.php:495
+#: admin/settings-page.php:846
+#: admin/setup-wizard.php:238
+msgid "Advanced"
+msgstr ""
+
+#: admin/settings-page.php:496
+#: admin/settings-page.php:913
+msgid "Bloat"
+msgstr ""
+
+#: admin/settings-page.php:498
+#: admin/settings-page.php:989
+msgid "Import / Export"
+msgstr ""
+
+#: admin/settings-page.php:500
+#: admin/settings-page.php:837
+msgid "Redirects"
+msgstr ""
+
+#: admin/settings-page.php:517
+msgid "Redirect management"
+msgstr ""
+
+#: admin/settings-page.php:518
+msgid "Enable the redirect manager"
+msgstr ""
+
+#: admin/settings-page.php:519
+msgid "When enabled, EasyRankly loads its redirect engine and stores rules in a dedicated database table. While disabled, no redirect code runs on the front end. Save changes to apply, then manage your redirects from the Redirects tab."
+msgstr ""
+
+#: admin/settings-page.php:523
+msgid "Enable the sitemap module"
+msgstr ""
+
+#: admin/settings-page.php:524
+msgid "When enabled, EasyRankly loads its XML sitemap generator, disables WordPress core sitemaps, and exposes sitemap settings. While disabled, no sitemap code runs on the front end. Save changes to apply."
+msgstr ""
+
+#: admin/settings-page.php:528
+msgid "Enable Health monitoring"
+msgstr ""
+
+#: admin/settings-page.php:529
+msgid "When enabled, EasyRankly loads the Health module and continuously monitors selected site signals. This can have a small performance impact because lightweight counters are updated while requests are handled. While disabled, no Health module or scanner code is loaded. Save changes to apply, then review findings from the Health tab."
+msgstr ""
+
+#: admin/settings-page.php:534
+msgid "Enable multilingual"
+msgstr ""
+
+#: admin/settings-page.php:535
+msgid "Requires WordPress Multisite."
+msgstr ""
+
+#: admin/settings-page.php:535
+msgid "Enables cross-site language alternates for translated content. After saving, configure site language codes and link translations from the Multilingual tab (Network Admin only)."
+msgstr ""
+
+#: admin/settings-page.php:537
+msgid "This feature cannot be enabled because the site is not running WordPress Multisite."
+msgstr ""
+
+#: admin/settings-page.php:547
+msgid "Organization or person name"
+msgstr ""
+
+#: admin/settings-page.php:555
+msgid "Identity type"
+msgstr ""
+
+#: admin/settings-page.php:557
+msgid "Organization"
+msgstr ""
+
+#: admin/settings-page.php:558
+msgid "Person"
+msgstr ""
+
+#: admin/settings-page.php:562
+msgid "Person reference user"
+msgstr ""
+
+#. translators: 1: User display name, 2: User ID.
+#: admin/settings-page.php:573
+#: easyrankly.php:445
+#, php-format
+msgid "%1$s (ID: %2$d)"
+msgstr ""
+
+#: admin/settings-page.php:579
+msgid "Search users…"
+msgstr ""
+
+#: admin/settings-page.php:582
+msgid "Search users"
+msgstr ""
+
+#: admin/settings-page.php:590
+msgid "Uses the selected WordPress profile for the global Person JSON-LD schema."
+msgstr ""
+
+#: admin/settings-page.php:594
+msgid "Organization description"
+msgstr ""
+
+#: admin/settings-page.php:599
+msgid "Business email"
+msgstr ""
+
+#: admin/settings-page.php:603
+msgid "Business telephone"
+msgstr ""
+
+#: admin/settings-page.php:605
+msgid "Include country and area codes."
+msgstr ""
+
+#: admin/settings-page.php:613
+msgid "Post type defaults"
+msgstr ""
+
+#: admin/settings-page.php:618
+msgid "Taxonomy defaults"
+msgstr ""
+
+#: admin/settings-page.php:623
+msgid "Special pages and archives"
+msgstr ""
+
+#: admin/settings-page.php:624
+msgid "Configure SEO defaults for detected theme templates and WordPress-generated contexts such as search results, the 404 page, and archive views. Block themes list Site Editor templates first; classic themes follow the standard PHP template hierarchy."
+msgstr ""
+
+#: admin/settings-page.php:633
+msgid "Organization logo"
+msgstr ""
+
+#: admin/settings-page.php:658
+msgid "Default social image URL"
+msgstr ""
+
+#: admin/settings-page.php:672
+msgid "Social defaults"
+msgstr ""
+
+#: admin/settings-page.php:676
+#: admin/setup-wizard.php:224
+msgid "X (Twitter) Site"
+msgstr ""
+
+#: admin/settings-page.php:678
+msgid "Used for the twitter:site meta tag."
+msgstr ""
+
+#: admin/settings-page.php:681
+msgid "Social profiles"
+msgstr ""
+
+#: admin/settings-page.php:683
+msgid "One absolute URL per line."
+msgstr ""
+
+#: admin/settings-page.php:687
+msgid "oEmbed JSON"
+msgstr ""
+
+#: admin/settings-page.php:688
+msgid "Active by default on every public page. EasyRankly outputs an oEmbed JSON discovery link (e.g. for LinkedIn) so platforms can fetch rich link-preview data. To disable it, enable \"Remove oEmbed discovery links\" in the Bloat tab."
+msgstr ""
+
+#: admin/settings-page.php:698
+#: includes/breadcrumbs.php:37
+msgid "Breadcrumbs"
+msgstr ""
+
+#: admin/settings-page.php:699
+msgid "Enable breadcrumbs function"
+msgstr ""
+
+#: admin/settings-page.php:702
+msgid "Post Date Settings"
+msgstr ""
+
+#: admin/settings-page.php:703
+msgid "Active by default on every page of the site. EasyRankly includes published and modified dates in automatic post schema when post data is available."
+msgstr ""
+
+#: admin/settings-page.php:710
+msgid "Custom JSON-LD Schema"
+msgstr ""
+
+#: admin/settings-page.php:723
+msgid "Add Schema"
+msgstr ""
+
+#: admin/settings-page.php:732
+msgid "XML sitemap"
+msgstr ""
+
+#: admin/settings-page.php:734
+msgid "Open wp-sitemap.xml"
+msgstr ""
+
+#: admin/settings-page.php:736
+msgid "Author sitemap: included only when at least two authors have sitemap-eligible published content. On single-author sites it is disabled to avoid duplicate archive URLs for SEO."
+msgstr ""
+
+#: admin/settings-page.php:737
+msgid "Image, Video and News sitemaps are integrated directly into the core wp-sitemap.xml index when enabled."
+msgstr ""
+
+#: admin/settings-page.php:740
+msgid "Additional sitemap"
+msgstr ""
+
+#: admin/settings-page.php:743
+msgid "Additional sitemap settings"
+msgstr ""
+
+#: admin/settings-page.php:744
+#: admin/settings-page.php:752
+msgid "Google News sitemap"
+msgstr ""
+
+#: admin/settings-page.php:745
+#: admin/settings-page.php:791
+msgid "Image sitemap"
+msgstr ""
+
+#: admin/settings-page.php:746
+#: admin/settings-page.php:802
+msgid "Video sitemap"
+msgstr ""
+
+#: admin/settings-page.php:753
+msgid "Generate Google News sitemap"
+msgstr ""
+
+#: admin/settings-page.php:755
+msgid "Open sitemap-news-1.xml"
+msgstr ""
+
+#: admin/settings-page.php:757
+msgid "Includes only posts (post type: post) published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News — editorial review by Google is still required."
+msgstr ""
+
+#: admin/settings-page.php:759
+msgid "Included post types"
+msgstr ""
+
+#: admin/settings-page.php:773
+msgid "News publication name"
+msgstr ""
+
+#: admin/settings-page.php:783
+msgid "The publication name to include in the Google News sitemap. Leave blank to use the organization name or the site title. An empty name will prevent the sitemap from being generated."
+msgstr ""
+
+#: admin/settings-page.php:792
+msgid "Generate image sitemap"
+msgstr ""
+
+#: admin/settings-page.php:794
+msgid "Open sitemap-image-1.xml"
+msgstr ""
+
+#: admin/settings-page.php:796
+msgid "Associates images with the public pages that contain them. Images are extracted from post content (featured image, embedded images, Gutenberg image/gallery blocks). Attachment pages are not used as page URLs."
+msgstr ""
+
+#: admin/settings-page.php:803
+msgid "Generate video sitemap"
+msgstr ""
+
+#: admin/settings-page.php:805
+msgid "Open sitemap-video-1.xml"
+msgstr ""
+
+#: admin/settings-page.php:807
+msgid "Includes published posts that contain YouTube, Vimeo or self-hosted HTML5 videos. Multiple videos on the same page are each included. Submitting a Video sitemap does not guarantee Google indexing; the embedded player must also be crawlable."
+msgstr ""
+
+#: admin/settings-page.php:820
+#: admin/setup-wizard.php:206
+msgid "Interface mode"
+msgstr ""
+
+#: admin/settings-page.php:821
+#: admin/setup-wizard.php:210
+msgid "Simplified mode"
+msgstr ""
+
+#: admin/settings-page.php:822
+msgid "When enabled, Noindex and Disable sitemap are shown as one Hide from search results control."
+msgstr ""
+
+#: admin/settings-page.php:823
+msgid "Run the setup wizard again"
+msgstr ""
+
+#: admin/settings-page.php:826
+#: includes/seo-checklist.php:280
+#: includes/seo-checklist.php:302
+msgid "SEO checklist"
+msgstr ""
+
+#: admin/settings-page.php:827
+msgid "Show the SEO checklist on posts and pages"
+msgstr ""
+
+#: admin/settings-page.php:828
+msgid "Adds a small floating checklist (meta title, meta description, featured image) to the post editor and to the frontend for users who can edit the content. Available only while Simplified mode is active."
+msgstr ""
+
+#: admin/settings-page.php:831
+msgid "Page source"
+msgstr ""
+
+#: admin/settings-page.php:832
+msgid "Add the \"optimized with EasyRankly\" comment to the page source"
+msgstr ""
+
+#: admin/settings-page.php:833
+msgid "EasyRankly wraps its <head> output in an HTML comment that identifies the plugin in the page source. Disable this to remove that comment."
+msgstr ""
+
+#: admin/settings-page.php:838
+msgid "Do not apply any redirect to administrators"
+msgstr ""
+
+#: admin/settings-page.php:839
+msgid "When enabled, users with the \"manage_options\" capability (typically Administrators) will never be redirected, making it easier to manage redirects without being affected by them."
+msgstr ""
+
+#: admin/settings-page.php:848
+msgid "Noindex for search results, the 404 page, and WordPress author/date archive contexts is now configured per page under General → Special pages and archives."
+msgstr ""
+
+#: admin/settings-page.php:850
+msgid "Robots preview directives"
+msgstr ""
+
+#: admin/settings-page.php:851
+msgid "Allow max-image-preview:large"
+msgstr ""
+
+#: admin/settings-page.php:854
+msgid "max-snippet"
+msgstr ""
+
+#: admin/settings-page.php:858
+msgid "max-video-preview"
+msgstr ""
+
+#: admin/settings-page.php:863
+msgid "Add nosnippet"
+msgstr ""
+
+#: admin/settings-page.php:864
+msgid "Add indexifembedded when noindex is active"
+msgstr ""
+
+#: admin/settings-page.php:868
+msgid "Attachment pages"
+msgstr ""
+
+#: admin/settings-page.php:870
+msgid "Redirect attachment pages"
+msgstr ""
+
+#: admin/settings-page.php:872
+msgid "Redirect to parent post (fallback: media file)"
+msgstr ""
+
+#: admin/settings-page.php:873
+msgid "Redirect to media file"
+msgstr ""
+
+#: admin/settings-page.php:874
+msgid "Leave attachment pages unchanged"
+msgstr ""
+
+#: admin/settings-page.php:876
+msgid "Attachment pages are thin-content pages WordPress generates for each uploaded file. Redirecting them is the recommended SEO practice."
+msgstr ""
+
+#: admin/settings-page.php:881
+msgid "Paginated archive pages"
+msgstr ""
+
+#: admin/settings-page.php:883
+msgid "Noindex page 2, 3, … of archives"
+msgstr ""
+
+#: admin/settings-page.php:885
+msgid "When enabled, pages beyond the first of any archive (category, tag, author, date, blog) receive a noindex directive. Canonical URLs are already self-referencing; leave this off unless you have a specific reason to block crawling of deep pagination."
+msgstr ""
+
+#: admin/settings-page.php:888
+msgid "Paginated title suffix"
+msgstr ""
+
+#: admin/settings-page.php:890
+msgid "e.g. Page {{page_number}} of {{max_pages}}"
+msgstr ""
+
+#: admin/settings-page.php:893
+msgid "Appended to the SEO title on page 2, 3, … — separated by a dash. Leave empty to keep the base title unchanged. Available variables: {{page_number}}, {{max_pages}}."
+msgstr ""
+
+#: admin/settings-page.php:896
+msgid "Tools"
+msgstr ""
+
+#: admin/settings-page.php:898
+msgid "robots.txt — custom rules"
+msgstr ""
+
+#: admin/settings-page.php:900
+msgid "Extra directives appended to the virtual robots.txt after the auto-generated rules (User-agent, Disallow, Sitemap). One directive per line."
+msgstr ""
+
+#: admin/settings-page.php:903
+#: admin/settings-page.php:904
+msgid "robots.txt preview"
+msgstr ""
+
+#: admin/settings-page.php:906
+msgid "Open robots.txt"
+msgstr ""
+
+#: admin/settings-page.php:918
+msgid "WordPress optimization"
+msgstr ""
+
+#: admin/settings-page.php:919
+msgid "Lighten WordPress"
+msgstr ""
+
+#: admin/settings-page.php:920
+msgid "Removes safe WordPress bloat in one click: emojis, WP Generator meta tag, RSD link, Windows Live Writer link, shortlink, REST API discovery link, and self-pingbacks. Cleanups that can affect functionality (RSS feed links, oEmbed, jQuery Migrate, Dashicons, frontend Heartbeat, XML-RPC) are available individually when Simplified mode is off."
+msgstr ""
+
+#: admin/settings-page.php:929
+msgid "Emojis"
+msgstr ""
+
+#: admin/settings-page.php:930
+msgid "Remove WordPress emojis"
+msgstr ""
+
+#: admin/settings-page.php:931
+msgid "Removes the emoji detection script, emoji CSS, DNS prefetch for s.w.org, and the TinyMCE emoji plugin."
+msgstr ""
+
+#: admin/settings-page.php:935
+msgid "Head tags"
+msgstr ""
+
+#: admin/settings-page.php:936
+msgid "Remove WP Generator meta tag"
+msgstr ""
+
+#: admin/settings-page.php:937
+msgid "Hides the WordPress version number from the HTML source."
+msgstr ""
+
+#: admin/settings-page.php:938
+msgid "Remove RSS feed links"
+msgstr ""
+
+#: admin/settings-page.php:939
+msgid "Removes the auto-discovery &lt;link&gt; tags for post and comment RSS feeds."
+msgstr ""
+
+#: admin/settings-page.php:940
+msgid "Remove Really Simple Discovery link"
+msgstr ""
+
+#: admin/settings-page.php:941
+msgid "Removes the RSD &lt;link&gt; tag used by legacy XML-RPC clients."
+msgstr ""
+
+#: admin/settings-page.php:942
+msgid "Remove Windows Live Writer manifest link"
+msgstr ""
+
+#: admin/settings-page.php:943
+msgid "Removes the wlwmanifest.xml &lt;link&gt; tag used by Windows Live Writer."
+msgstr ""
+
+#: admin/settings-page.php:944
+msgid "Remove shortlink"
+msgstr ""
+
+#: admin/settings-page.php:945
+msgid "Removes the &lt;link rel=\"shortlink\"&gt; tag and the Link HTTP header."
+msgstr ""
+
+#: admin/settings-page.php:946
+msgid "Remove REST API discovery link"
+msgstr ""
+
+#: admin/settings-page.php:947
+msgid "Removes the &lt;link rel=\"https://api.w.org/\"&gt; auto-discovery tag and the Link HTTP header."
+msgstr ""
+
+#: admin/settings-page.php:948
+msgid "Remove oEmbed discovery links"
+msgstr ""
+
+#: admin/settings-page.php:949
+msgid "Removes oEmbed &lt;link&gt; tags, the oEmbed REST endpoint, and the embed.min.js script."
+msgstr ""
+
+#: admin/settings-page.php:953
+msgid "Scripts"
+msgstr ""
+
+#: admin/settings-page.php:954
+msgid "Remove jQuery Migrate"
+msgstr ""
+
+#: admin/settings-page.php:955
+msgid "Removes jQuery Migrate from the frontend. Only disable if your theme and plugins do not rely on deprecated jQuery APIs."
+msgstr ""
+
+#: admin/settings-page.php:956
+msgid "Remove Dashicons for guests"
+msgstr ""
+
+#: admin/settings-page.php:957
+msgid "Deregisters the Dashicons stylesheet for non-logged-in visitors. Logged-in users (e.g. admins with the toolbar) are unaffected."
+msgstr ""
+
+#: admin/settings-page.php:962
+msgid "Disable self-pingbacks"
+msgstr ""
+
+#: admin/settings-page.php:963
+msgid "Prevents WordPress from sending a pingback to itself when you link to your own posts."
+msgstr ""
+
+#: admin/settings-page.php:964
+msgid "Disable Heartbeat on frontend"
+msgstr ""
+
+#: admin/settings-page.php:965
+msgid "Deregisters the WordPress Heartbeat script on the frontend. The Heartbeat API in the admin (autosave, post locking) remains unaffected."
+msgstr ""
+
+#: admin/settings-page.php:966
+msgid "Disable XML-RPC"
+msgstr ""
+
+#: admin/settings-page.php:967
+msgid "Disables XML-RPC authenticated methods, removes the pingback endpoints, and strips the X-Pingback header. Leave enabled if you use the WordPress mobile app, Jetpack, or remote publishing tools."
+msgstr ""
+
+#: admin/settings-page.php:1041
+msgid "Legal information and address"
+msgstr ""
+
+#: admin/settings-page.php:1044
+msgid "Legal name"
+msgstr ""
+
+#: admin/settings-page.php:1046
+msgid "Use this only when the registered name differs from the public organization name."
+msgstr ""
+
+#: admin/settings-page.php:1050
+msgid "VAT ID"
+msgstr ""
+
+#: admin/settings-page.php:1054
+msgid "Tax ID"
+msgstr ""
+
+#: admin/settings-page.php:1059
+msgid "Street address"
+msgstr ""
+
+#: admin/settings-page.php:1064
+msgid "City / locality"
+msgstr ""
+
+#: admin/settings-page.php:1068
+msgid "Region / state"
+msgstr ""
+
+#: admin/settings-page.php:1072
+msgid "Postal code"
+msgstr ""
+
+#: admin/settings-page.php:1076
+msgid "Country code"
+msgstr ""
+
+#: admin/settings-page.php:1078
+msgid "Two-letter ISO 3166-1 code."
+msgstr ""
+
+#: admin/settings-page.php:1115
+#: includes/helpers.php:790
+msgid "Local business"
+msgstr ""
+
+#: admin/settings-page.php:1116
+msgid "Add LocalBusiness schema for one physical location"
+msgstr ""
+
+#: admin/settings-page.php:1117
+msgid "Use only when the selected page visibly contains the same business details. Keep them consistent with your Google Business Profile."
+msgstr ""
+
+#: admin/settings-page.php:1121
+msgid "Business type"
+msgstr ""
+
+#: admin/settings-page.php:1129
+msgid "Location page"
+msgstr ""
+
+#: admin/settings-page.php:1131
+msgid "Select a published page"
+msgstr ""
+
+#. translators: %s: saved relative page path.
+#: admin/settings-page.php:1133
+#, php-format
+msgid "Saved path unavailable on this site (%s)"
+msgstr ""
+
+#: admin/settings-page.php:1139
+msgid "The relative path is shared across Multisite sites."
+msgstr ""
+
+#: admin/settings-page.php:1143
+msgid "Location details and opening hours"
+msgstr ""
+
+#: admin/settings-page.php:1147
+msgid "Price range"
+msgstr ""
+
+#: admin/settings-page.php:1151
+msgid "Latitude"
+msgstr ""
+
+#: admin/settings-page.php:1155
+msgid "Longitude"
+msgstr ""
+
+#: admin/settings-page.php:1162
+msgid "Menu URL"
+msgstr ""
+
+#: admin/settings-page.php:1166
+msgid "Cuisine served"
+msgstr ""
+
+#: admin/settings-page.php:1167
+msgid "Italian, Mediterranean"
+msgstr ""
+
+#: admin/settings-page.php:1171
+msgid "Opening hours"
+msgstr ""
+
+#: admin/settings-page.php:1172
+msgid "Leave both intervals empty when no hours should be published. Overnight intervals are supported."
+msgstr ""
+
+#: admin/settings-page.php:1189
+msgid "Monday"
+msgstr ""
+
+#: admin/settings-page.php:1190
+msgid "Tuesday"
+msgstr ""
+
+#: admin/settings-page.php:1191
+msgid "Wednesday"
+msgstr ""
+
+#: admin/settings-page.php:1192
+msgid "Thursday"
+msgstr ""
+
+#: admin/settings-page.php:1193
+msgid "Friday"
+msgstr ""
+
+#: admin/settings-page.php:1194
+msgid "Saturday"
+msgstr ""
+
+#: admin/settings-page.php:1195
+msgid "Sunday"
+msgstr ""
+
+#: admin/settings-page.php:1207
+msgid "Closed"
+msgstr ""
+
+#. translators: 1: day, 2: interval number.
+#: admin/settings-page.php:1217
+#, php-format
+msgid "%1$s interval %2$d opens"
+msgstr ""
+
+#. translators: 1: day, 2: interval number.
+#: admin/settings-page.php:1222
+#, php-format
+msgid "%1$s interval %2$d closes"
+msgstr ""
+
+#: admin/settings-page.php:1249
+msgid "No public items available."
+msgstr ""
+
+#: admin/settings-page.php:1255
+msgid "Taxonomy metadata templates are linked"
+msgstr ""
+
+#: admin/settings-page.php:1255
+msgid "Post type metadata templates are linked"
+msgstr ""
+
+#: admin/settings-page.php:1256
+msgid "Taxonomy metadata templates are separate"
+msgstr ""
+
+#: admin/settings-page.php:1256
+msgid "Post type metadata templates are separate"
+msgstr ""
+
+#: admin/settings-page.php:1257
+msgid "Link taxonomy templates"
+msgstr ""
+
+#: admin/settings-page.php:1257
+msgid "Link post type templates"
+msgstr ""
+
+#: admin/settings-page.php:1258
+msgid "Separate taxonomy templates"
+msgstr ""
+
+#: admin/settings-page.php:1258
+msgid "Separate post type templates"
+msgstr ""
+
+#: admin/settings-page.php:1259
+msgid "All taxonomies"
+msgstr ""
+
+#: admin/settings-page.php:1259
+msgid "All post types"
+msgstr ""
+
+#: admin/settings-page.php:1263
+msgid "Default metadata by content type"
+msgstr ""
+
+#: admin/settings-page.php:1345
+msgid "Open Graph"
+msgstr ""
+
+#: admin/settings-page.php:1351
+msgid "X (Twitter)"
+msgstr ""
+
+#: admin/settings-page.php:1370
+msgid "Social templates are linked"
+msgstr ""
+
+#: admin/settings-page.php:1371
+msgid "Social templates are separate"
+msgstr ""
+
+#: admin/settings-page.php:1372
+msgid "Link social templates"
+msgstr ""
+
+#: admin/settings-page.php:1373
+msgid "Separate social templates"
+msgstr ""
+
+#: admin/settings-page.php:1374
+msgid "Open Graph & X (Twitter)"
+msgstr ""
+
+#: admin/settings-page.php:1378
+msgid "Default social metadata by network"
+msgstr ""
+
+#: admin/settings-page.php:1416
+msgid "Default title"
+msgstr ""
+
+#: admin/settings-page.php:1423
+msgid "Default description"
+msgstr ""
+
+#: admin/settings-page.php:1487
+msgid "Default metadata by detected template"
+msgstr ""
+
+#: admin/settings-page.php:1490
+msgid "No matching Site Editor templates were detected for these SEO defaults."
+msgstr ""
+
+#: admin/settings-page.php:1497
+msgid "Additional WordPress archive contexts"
+msgstr ""
+
+#: admin/settings-page.php:1498
+msgid "These contexts can be generated by WordPress even when the block theme does not expose a dedicated Site Editor template."
+msgstr ""
+
+#: admin/settings-page.php:1499
+msgid "Default metadata by WordPress archive context"
+msgstr ""
+
+#: admin/settings-page.php:1637
+msgid "Visibility defaults"
+msgstr ""
+
+#: admin/setup-wizard.php:60
+#: admin/setup-wizard.php:61
+#: admin/setup-wizard.php:177
+msgid "EasyRankly setup"
+msgstr ""
+
+#: admin/setup-wizard.php:178
+msgid "Configure the few preferences that EasyRankly cannot determine automatically."
+msgstr ""
+
+#: admin/setup-wizard.php:181
+msgid "Setup progress"
+msgstr ""
+
+#: admin/setup-wizard.php:182
+msgid "Welcome"
+msgstr ""
+
+#: admin/setup-wizard.php:183
+msgid "Preferences"
+msgstr ""
+
+#: admin/setup-wizard.php:184
+msgid "Ready"
+msgstr ""
+
+#: admin/setup-wizard.php:189
+msgid "Welcome to EasyRankly"
+msgstr ""
+
+#: admin/setup-wizard.php:190
+msgid "This short wizard asks for your preferred interface mode and, if available, the X account associated with the site."
+msgstr ""
+
+#: admin/setup-wizard.php:191
+msgid "You can change both choices later from the EasyRankly settings."
+msgstr ""
+
+#: admin/setup-wizard.php:193
+msgid "Start setup"
+msgstr ""
+
+#: admin/setup-wizard.php:197
+msgid "Skip for now"
+msgstr ""
+
+#: admin/setup-wizard.php:211
+msgid "Recommended. Shows the essential controls and automates advanced SEO defaults."
+msgstr ""
+
+#: admin/setup-wizard.php:217
+msgid "Advanced mode"
+msgstr ""
+
+#: admin/setup-wizard.php:218
+msgid "Shows every available control for manual configuration."
+msgstr ""
+
+#: admin/setup-wizard.php:226
+msgid "Optional. Enter an @handle or an x.com profile URL. It is used for the twitter:site meta tag."
+msgstr ""
+
+#: admin/setup-wizard.php:230
+msgid "Save and continue"
+msgstr ""
+
+#: admin/setup-wizard.php:231
+msgid "Back"
+msgstr ""
+
+#: admin/setup-wizard.php:235
+msgid "EasyRankly is ready"
+msgstr ""
+
+#: admin/setup-wizard.php:236
+msgid "Your preferences have been saved. You can now review the complete plugin settings or return to the dashboard."
+msgstr ""
+
+#: admin/setup-wizard.php:238
+msgid "Interface mode:"
+msgstr ""
+
+#: admin/setup-wizard.php:238
+msgid "Simplified"
+msgstr ""
+
+#: admin/setup-wizard.php:239
+msgid "X (Twitter) Site:"
+msgstr ""
+
+#: admin/setup-wizard.php:239
+msgid "Not configured"
+msgstr ""
+
+#: admin/setup-wizard.php:242
+msgid "Open EasyRankly settings"
+msgstr ""
+
+#: admin/setup-wizard.php:243
+msgid "Return to dashboard"
+msgstr ""
+
+#: includes/admin.php:208
+#: includes/admin.php:231
+msgid "Setup wizard"
+msgstr ""
+
+#: includes/admin.php:295
+#: includes/admin.php:361
+msgid "Searching…"
+msgstr ""
+
+#: includes/admin.php:296
+#: includes/admin.php:362
+msgid "No matches found."
+msgstr ""
+
+#: includes/admin.php:298
+msgid "No user selected"
+msgstr ""
+
+#: includes/admin.php:324
+msgid "Delete this redirect?"
+msgstr ""
+
+#: includes/breadcrumbs.php:115
+msgid "Home"
+msgstr ""
+
+#: includes/breadcrumbs.php:212
+#: includes/meta.php:570
+msgid "Page not found"
+msgstr ""
+
+#: includes/compatibility.php:182
+msgid "EasyRankly: another SEO plugin is active. Head metadata (title, meta description, canonical, Open Graph, Schema.org) and sitemap output are disabled to avoid conflicts. Redirects, health monitor, and breadcrumbs continue to work."
+msgstr ""
+
+#: includes/health.php:453
+msgid "Sorry, you are not allowed to clear Health data."
+msgstr ""
+
+#: includes/health.php:785
+msgid "Sorry, you are not allowed to run Health scans."
+msgstr ""
+
+#: includes/health.php:818
+msgid "Frequent 404 scanner data cleared."
+msgstr ""
+
+#: includes/health.php:823
+msgid "Content insights scan completed."
+msgstr ""
+
+#: includes/health.php:828
+msgid "Frequent 404 scanner"
+msgstr ""
+
+#. translators: 1: 404 threshold. 2: Monitoring window in hours.
+#: includes/health.php:833
+#, php-format
+msgid "The scanner lists only paths that reach at least %1$d estimated 404 hits within %2$d hours. Lower-volume 404s are sampled into short-lived aggregate counters and are not listed individually."
+msgstr ""
+
+#. translators: %d: Retention period in days.
+#: includes/health.php:843
+#, php-format
+msgid "Privacy: paths are anonymized before storage — emails, UUIDs, long numbers, and tokens are replaced with neutral placeholders. Data is automatically purged after %d days."
+msgstr ""
+
+#: includes/health.php:850
+msgid "No frequent 404s detected in the current monitoring window."
+msgstr ""
+
+#: includes/health.php:855
+msgid "Path"
+msgstr ""
+
+#: includes/health.php:856
+msgid "Estimated hits"
+msgstr ""
+
+#: includes/health.php:857
+msgid "First seen"
+msgstr ""
+
+#: includes/health.php:858
+msgid "Last seen"
+msgstr ""
+
+#: includes/health.php:876
+msgid "Clear 404 scanner data"
+msgstr ""
+
+#: includes/health.php:880
+msgid "Content insights (heuristic)"
+msgstr ""
+
+#. translators: 1: Minimum character threshold.
+#: includes/health.php:885
+#, php-format
+msgid "This is a heuristic, not a definitive SEO diagnosis. Pages are flagged as potentially thin when they meet at least 2 of these 3 conditions: fewer than %1$d characters of visible text, no internal inbound links (no other page on this site links to it), no internal outbound links (it does not link to any other page on this site). Results are cached — run the scan again to refresh."
+msgstr ""
+
+#: includes/health.php:891
+msgid "Pages built with Elementor, Divi, or WPBakery are automatically excluded — their content lives in post meta, not the post body, which would otherwise cause false positives. Gutenberg block content is analysed correctly."
+msgstr ""
+
+#: includes/health.php:895
+msgid "No scan has been run yet. Click the button below to start."
+msgstr ""
+
+#: includes/health.php:897
+msgid "No heuristically thin content detected."
+msgstr ""
+
+#: includes/health.php:902
+msgid "Page"
+msgstr ""
+
+#: includes/health.php:903
+msgid "Characters"
+msgstr ""
+
+#: includes/health.php:904
+msgid "Inbound links"
+msgstr ""
+
+#: includes/health.php:905
+msgid "Outbound links"
+msgstr ""
+
+#: includes/health.php:921
+#: includes/health.php:928
+#: includes/redirects/class-erankly-redirects-admin.php:340
+msgid "Yes"
+msgstr ""
+
+#: includes/health.php:923
+#: includes/health.php:930
+#: includes/redirects/class-erankly-redirects-admin.php:340
+msgid "No"
+msgstr ""
+
+#. translators: 1: Number of pages analysed. 2: Formatted date/time of last scan.
+#: includes/health.php:943
+#, php-format
+msgid "Last scan: %2$s — %1$d pages analysed."
+msgstr ""
+
+#: includes/health.php:953
+msgid "Run content insights scan"
+msgstr ""
+
+#: includes/helpers.php:194
+msgid "Homepage"
+msgstr ""
+
+#: includes/helpers.php:195
+msgid "Blog page"
+msgstr ""
+
+#: includes/helpers.php:196
+msgid "Author archive"
+msgstr ""
+
+#: includes/helpers.php:197
+msgid "Date archive"
+msgstr ""
+
+#: includes/helpers.php:199
+msgid "404 page"
+msgstr ""
+
+#: includes/helpers.php:791
+msgid "Store"
+msgstr ""
+
+#: includes/helpers.php:792
+msgid "Restaurant"
+msgstr ""
+
+#: includes/helpers.php:793
+msgid "Cafe or coffee shop"
+msgstr ""
+
+#: includes/helpers.php:794
+msgid "Bar or pub"
+msgstr ""
+
+#: includes/helpers.php:795
+msgid "Bakery"
+msgstr ""
+
+#: includes/helpers.php:796
+msgid "Food establishment"
+msgstr ""
+
+#: includes/helpers.php:797
+msgid "Dentist"
+msgstr ""
+
+#: includes/helpers.php:798
+msgid "Medical clinic"
+msgstr ""
+
+#: includes/helpers.php:799
+msgid "Pharmacy"
+msgstr ""
+
+#: includes/helpers.php:800
+msgid "Legal service"
+msgstr ""
+
+#: includes/helpers.php:801
+msgid "Real estate agent"
+msgstr ""
+
+#: includes/helpers.php:802
+msgid "Auto repair"
+msgstr ""
+
+#: includes/helpers.php:803
+msgid "Beauty salon"
+msgstr ""
+
+#: includes/helpers.php:804
+msgid "Hair salon"
+msgstr ""
+
+#: includes/helpers.php:805
+msgid "Nail salon"
+msgstr ""
+
+#: includes/helpers.php:806
+msgid "Health club"
+msgstr ""
+
+#: includes/helpers.php:807
+msgid "Hotel"
+msgstr ""
+
+#: includes/helpers.php:808
+msgid "Bed and breakfast"
+msgstr ""
+
+#: includes/helpers.php:809
+msgid "Lodging business"
+msgstr ""
+
+#. translators: 1: owner post type label, 2: taxonomy label.
+#: includes/helpers.php:1554
+#, php-format
+msgid "%1$s: %2$s"
+msgstr ""
+
+#: includes/helpers.php:1678
+msgid "WordPress Multisite: Detected"
+msgstr ""
+
+#: includes/helpers.php:1685
+msgid "WordPress Multisite: Not detected"
+msgstr ""
+
+#: includes/import-export.php:842
+msgid "Export"
+msgstr ""
+
+#: includes/import-export.php:843
+msgid "Download a single JSON file containing all EasyRankly data: settings, redirects, and the SEO metadata for posts and terms. Keep it as a backup or import it on another site."
+msgstr ""
+
+#: includes/import-export.php:844
+msgid "Export all data"
+msgstr ""
+
+#: includes/import-export.php:848
+msgid "Import"
+msgstr ""
+
+#: includes/import-export.php:849
+msgid "Upload a JSON file previously exported by EasyRankly. Settings and redirects are replaced; post and term metadata is matched by ID and overwritten."
+msgstr ""
+
+#: includes/import-export.php:854
+msgid "Import file"
+msgstr ""
+
+#: includes/import-export.php:859
+msgid "Import from other plugins"
+msgstr ""
+
+#: includes/import-export.php:860
+msgid "Copy the useful SEO metadata (titles, descriptions, canonical URLs, social tags, robots flags and breadcrumb labels) from another plugin into EasyRankly. Existing EasyRankly values are never overwritten, and irrelevant data is ignored."
+msgstr ""
+
+#: includes/import-export.php:866
+#: includes/import-export.php:931
+msgid "Yoast SEO"
+msgstr ""
+
+#: includes/import-export.php:868
+msgid "Import from Yoast SEO"
+msgstr ""
+
+#: includes/import-export.php:870
+msgid "No Yoast SEO data found."
+msgstr ""
+
+#: includes/import-export.php:877
+#: includes/import-export.php:931
+msgid "Rank Math"
+msgstr ""
+
+#: includes/import-export.php:879
+msgid "Import from Rank Math"
+msgstr ""
+
+#: includes/import-export.php:881
+msgid "No Rank Math data found."
+msgstr ""
+
+#: includes/import-export.php:903
+#: includes/redirects/class-erankly-redirects-admin.php:145
+msgid "Security check failed. Please try again."
+msgstr ""
+
+#: includes/import-export.php:908
+msgid "The file could not be imported. Please upload a valid EasyRankly export file."
+msgstr ""
+
+#. translators: 1: settings count, 2: redirects count, 3: post meta count, 4: term meta count.
+#: includes/import-export.php:920
+#, php-format
+msgid "Import complete. Settings: %1$d. Redirects: %2$d. Post metadata: %3$d. Term metadata: %4$d."
+msgstr ""
+
+#. translators: 1: source plugin name, 2: post meta count, 3: term meta count.
+#: includes/import-export.php:934
+#, php-format
+msgid "Imported from %1$s. Post metadata: %2$d. Term metadata: %3$d."
+msgstr ""
+
+#: includes/meta.php:262
+msgid "Custom JSON-LD was not saved because it is not valid. Use one JSON-LD object, an array of objects, or an object with @graph."
+msgstr ""
+
+#. translators: %s: Search query.
+#: includes/meta.php:560
+#, php-format
+msgid "Search results for %s"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:77
+msgid "EasyRankly multilingual post relations."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:154
+msgid "You are not allowed to edit these translations."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:158
+msgid "Invalid translation data."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:643
+msgid "Link this content to its equivalent on other sites in the network. Linked items are exposed to search engines as alternate language versions."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:688
+msgid "Search posts, pages, or terms…"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:719
+msgid "No translatable sites yet"
+msgstr ""
+
+#. translators: %s: opening and closing anchor tags for the Network Admin settings link.
+#: includes/multilingual/class-erankly-ml-admin.php:725
+#, php-format
+msgid "Enable one or more sites in %1$sNetwork Admin → Settings → EasyRankly → Multilingual%2$s, then return here to link translations."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:730
+msgid "Ask a network administrator to enable sites in the EasyRankly network settings, then return here to link translations."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:756
+msgid "Assign a language to each site, choose which sites take part in multilingual output, and pick the default (x-default) site search engines should fall back to. Codes are BCP-47 (for example it, en; add a region like en-US only to target a specific country)."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:766
+msgid "Language code"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:767
+#: includes/multilingual/class-erankly-ml-admin.php:803
+msgid "Enabled"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:768
+#: includes/multilingual/class-erankly-ml-admin.php:930
+#: includes/multilingual/class-erankly-ml-admin.php:964
+msgid "Default"
+msgstr ""
+
+#. translators: %s: site name.
+#: includes/multilingual/class-erankly-ml-admin.php:795
+#, php-format
+msgid "Language code for %s"
+msgstr ""
+
+#. translators: %s: site name.
+#: includes/multilingual/class-erankly-ml-admin.php:796
+msgid "Code derived from the site locale (used when left blank)."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:797
+msgid "auto:"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:809
+msgid "Default (x-default)"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:823
+#: includes/multilingual/class-erankly-ml-admin.php:829
+msgid "Translation Notice texts"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:825
+msgid "Write the text of the [erankly_translation_notice] banner once per language. A visitor reading an article in another language sees the banner only when a version exists in their own language, written in their own language with the text from the matching site below. Use the {language} token to insert the native language name (e.g. \"Italiano\"). Leave a site blank to never show the banner for that language."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:873
+msgid "Title"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:880
+msgid "e.g. This article is also available in your language"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:884
+msgid "Text"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:891
+msgid "e.g. Read this content in {language}."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:895
+msgid "Link label"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:902
+msgid "e.g. Read the {language} version"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:911
+msgid "Save Changes"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:916
+msgid "Frontend Shortcodes"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:918
+msgid "Drop either shortcode into your single-post templates or post content to give readers a language-switching UI."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:921
+msgid "1. Language Switcher"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:923
+msgid "Renders a <select> listing all linked translation languages. Selecting one navigates the visitor to that version of the article."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:929
+#: includes/multilingual/class-erankly-ml-admin.php:963
+msgid "Attribute"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:931
+#: includes/multilingual/class-erankly-ml-admin.php:965
+msgid "Description"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:937
+#: includes/multilingual/class-erankly-ml-admin.php:981
+msgid "none"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:938
+msgid "Extra CSS class(es) added to the <form> wrapper."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:942
+#: includes/multilingual/class-erankly-ml-shortcodes.php:102
+msgid "Choose a language"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:943
+msgid "Accessible (screen-reader) label for the <select>. Visible to assistive technology only."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:948
+msgid "Example:"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:952
+msgid "2. Translation Notice"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:954
+msgid "Renders a dismissible notice <div>. It stays hidden server-side and is revealed by JavaScript only when the visitor's browser language matches an available translation, then displays the text configured for that language in the \"Translation Notice texts\" section above. When no version exists in the reader's language the card stays completely invisible. Dismissals are remembered in localStorage."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:958
+msgid "The notice texts are no longer passed as attributes: they are managed globally per language in the section above, so the banner always appears in the reader's own language. Only presentation attributes remain:"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:972
+msgid "HTML tag for the heading. Allowed: h1 h2 h3 h4 h5 h6 p span div."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:977
+msgid "HTML tag for the paragraph. Allowed: p span div."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:982
+msgid "Extra CSS class(es) added to the <div> wrapper."
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-admin.php:988
+msgid "The {language} token (inside the global texts) is replaced client-side with the matched translation's native language name (e.g. \"Italiano\"). Example:"
+msgstr ""
+
+#: includes/multilingual/class-erankly-ml-shortcodes.php:259
+msgid "Dismiss"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:110
+msgid "Edit Redirect"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:110
+#: includes/redirects/class-erankly-redirects-admin.php:272
+msgid "Add Redirect"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:119
+#: includes/redirects/class-erankly-redirects-admin.php:120
+msgid "Search source path"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:121
+msgid "Search"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:123
+msgid "Clear"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:144
+msgid "Please check the redirect fields and try again."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:146
+msgid "The redirect could not be saved. A duplicate source may already exist."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:147
+msgid "The redirect could not be deleted."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:148
+msgid "The redirect status could not be changed."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:150
+msgid "An error occurred."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:160
+msgid "Redirect created."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:161
+msgid "Redirect updated."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:162
+msgid "Redirect deleted."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:163
+msgid "Redirect status updated."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:206
+msgid "Source URL"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:211
+msgid "Target URL"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:217
+msgid "HTTP Code"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:228
+msgid "Apply to"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:230
+#: includes/redirects/class-erankly-redirects-admin.php:386
+msgid "Everyone"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:231
+msgid "Logged-out users only"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:232
+msgid "Logged-in users only"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:239
+msgid "Required role"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:241
+msgid "— Any logged-in user —"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:249
+msgid "Only applies when \"Apply to\" is set to logged-in users."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:253
+msgid "Match type"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:255
+#: includes/redirects/class-erankly-redirects-admin.php:404
+msgid "Exact"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:256
+msgid "Wildcard  (*)"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:257
+#: includes/redirects/class-erankly-redirects-admin.php:401
+msgid "Regex"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:259
+msgid "Exact: literal path. Wildcard: use * in source and target (e.g. /old/* → /new/*). Regex: full regular expression."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:263
+msgid "Note"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:263
+msgid "(optional)"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:269
+#: includes/redirects/class-erankly-redirects-admin.php:294
+msgid "Active"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:272
+msgid "Update Redirect"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:274
+msgid "Cancel"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:290
+msgid "Source"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:291
+msgid "Target"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:292
+msgid "Code"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:293
+msgid "Type"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:295
+msgid "Condition"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:296
+msgid "Estimated Hits"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:297
+msgid "Last Sampled Hit"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:298
+msgid "Actions"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:303
+msgid "No redirects found."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:343
+msgid "Never"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:345
+msgid "Edit"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:346
+msgid "Disable"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:346
+msgid "Enable"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:368
+msgid "Logged-out only"
+msgstr ""
+
+#. translators: %s: role name.
+#: includes/redirects/class-erankly-redirects-admin.php:378
+#, php-format
+msgid "Logged-in (%s)"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:383
+msgid "Logged-in only"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:397
+msgid "Wildcard"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:434
+msgid "&laquo;"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:435
+msgid "&raquo;"
+msgstr ""
+
+#: includes/seo-checklist.php:244
+msgid "Featured image"
+msgstr ""
+
+#: includes/seo-checklist.php:294
+msgid "How to do it"
+msgstr ""
+
+#: includes/seo-checklist.php:300
+msgid "Hide for 10 seconds"
+msgstr ""
+
+#. translators: 1: current character count, 2: maximum character count.
+#: assets/js/editor.js:97
+#, js-format
+msgid "%1$d of %2$d characters."
+msgstr ""
+
+#: assets/js/editor.js:217
+msgid "Add a meta description to control this text in search results."
+msgstr ""
+
+#: assets/js/editor.js:316
+msgid "Social image URL"
+msgstr ""
+
+#: assets/js/editor.js:334
+msgid "Open Graph title"
+msgstr ""
+
+#: assets/js/editor.js:341
+msgid "Open Graph description"
+msgstr ""
+
+#: assets/js/editor.js:349
+msgid "X (Twitter) title"
+msgstr ""
+
+#: assets/js/editor.js:356
+msgid "X (Twitter) description"
+msgstr ""
+
+#: assets/js/editor.js:364
+msgid "X (Twitter) card type"
+msgstr ""
+
+#: assets/js/editor.js:394
+msgid "Sets noindex and removes this page from the sitemap."
+msgstr ""
+
+#: assets/js/editor.js:427
+msgid "Exclude from site search queries"
+msgstr ""
+
+#: assets/js/editor.js:432
+msgid "Exclude from archive queries"
+msgstr ""
+
+#: assets/js/editor.js:437
+msgid "Exclude from Google News sitemap"
+msgstr ""
+
+#: assets/js/editor.js:532
+msgid "Search posts or pages…"
+msgstr ""
+
+#: assets/js/editor.js:566
+msgid "Link this content to its equivalents on other network sites."
+msgstr ""
+
+#: assets/js/editor.js:577
+msgid "No other sites are enabled for multilingual links."
+msgstr ""

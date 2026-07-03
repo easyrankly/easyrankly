@@ -1,0 +1,108 @@
+/* EasyRankly — Multilingual / hreflang admin styles */
+
+/* Editor — Translations panel */
+
+.erankly-ml-translations {
+	margin-top: 4px;
+}
+
+.erankly-ml-intro {
+	margin: 0 0 12px;
+}
+
+.erankly-ml-field {
+	margin: 0 0 16px;
+}
+
+.erankly-ml-field:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-ml-label {
+	display: block;
+	margin: 0 0 6px;
+}
+
+/* Network Admin — Site language map */
+
+.erankly-ml-network-intro {
+	max-width: 720px;
+}
+
+.erankly-ml-sites-form {
+	margin-top: 16px;
+	max-width: 760px;
+}
+
+.erankly-ml-sites-table {
+	margin-top: 4px;
+}
+
+.erankly-ml-sites-table th,
+.erankly-ml-sites-table td {
+	vertical-align: middle;
+}
+
+.erankly-ml-col-toggle {
+	text-align: center;
+	width: 90px;
+}
+
+.erankly-ml-col-code {
+	width: 220px;
+}
+
+.erankly-ml-site-title {
+	display: block;
+	font-weight: 600;
+}
+
+.erankly-ml-site-host {
+	color: #646970;
+	display: block;
+	font-size: 12px;
+}
+
+.erankly-ml-code-input {
+	width: 90px;
+}
+
+.erankly-ml-derived {
+	color: #646970;
+	display: inline-block;
+	font-size: 12px;
+	margin-left: 8px;
+}
+
+.erankly-ml-derived code {
+	font-size: 11px;
+	padding: 1px 5px;
+}
+
+.erankly-ml-toggle {
+	display: inline-flex;
+	margin: 0;
+}
+
+.erankly-ml-notice-texts {
+	margin-top: 32px;
+}
+
+.erankly-ml-notice-tabs {
+	margin-top: 16px;
+}
+
+.erankly-ml-notice-tabs .erankly-tabs {
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+}
+
+.erankly-ml-notice-site h4 {
+	font-size: 14px;
+	margin: 0 0 12px;
+}
+
+.erankly-ml-notice-site .erankly-field:last-child {
+	margin-bottom: 0;
+}
