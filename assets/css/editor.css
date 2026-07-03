@@ -1,0 +1,324 @@
+/**
+ * EasyRankly block editor sidebar styling.
+ *
+ * Gives the document setting panels consistent spacing and full-width / evenly
+ * split action buttons. Everything is scoped to .erankly-panel so the rest
+ * of the editor is left untouched.
+ */
+
+/* Uniform spacing between every control in a panel. */
+.erankly-panel .components-base-control,
+.erankly-panel .erankly-field {
+	margin-bottom: 24px;
+}
+
+/* The field wrapper owns the spacing, so its inner control must not add its own. */
+.erankly-field .components-base-control {
+	margin-bottom: 0;
+}
+
+.erankly-editor-variable-field {
+	position: relative;
+}
+
+.erankly-editor-variable-control .components-base-control__label {
+	display: block;
+	margin-bottom: 8px;
+}
+
+.erankly-editor-variable-field .components-text-control__input,
+.erankly-editor-variable-field .components-textarea-control__input {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.erankly-editor-variable-field .components-textarea-control__input {
+	resize: vertical;
+}
+
+/* Inline suggestion popover — mirrors the Redirect rules search filter menu. */
+.erankly-editor-variable-popover .components-popover__content {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+	padding: 0;
+}
+
+.erankly-editor-variable-menu {
+	box-sizing: border-box;
+	max-height: 260px;
+	min-width: 280px;
+	overflow-y: auto;
+	width: min(340px, calc(100vw - 32px));
+}
+
+.erankly-editor-variable-menu .erankly-variable-option {
+	align-items: baseline;
+	background: none;
+	border: 0;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	margin: 0;
+	padding: 6px 10px;
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-editor-variable-menu .erankly-variable-option:hover,
+.erankly-editor-variable-menu .erankly-variable-option.is-active {
+	background: #f0f0f1;
+}
+
+.erankly-editor-variable-menu .erankly-variable-option-primary {
+	color: #1d2327;
+	flex-shrink: 0;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 12px;
+}
+
+.erankly-editor-variable-menu .erankly-variable-option-secondary {
+	color: #646970;
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Toggle rows can sit a little tighter than full text fields. */
+.erankly-panel .components-toggle-control {
+	margin-bottom: 16px;
+}
+
+/* Align the switch with the top of its label, even when the label wraps. */
+.erankly-panel .components-toggle-control .components-base-control__field,
+.erankly-panel .components-toggle-control .components-flex,
+.erankly-panel .components-toggle-control .components-h-stack {
+	align-items: flex-start;
+}
+
+/* Action button rows: spaced away from the field, full width, evenly split. */
+.erankly-field__actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.erankly-field__actions > * {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+.erankly-field__actions .components-dropdown,
+.erankly-field__actions .components-button {
+	width: 100%;
+}
+
+.erankly-field__actions .components-button {
+	justify-content: center;
+}
+
+/*
+ * Translations search fields.
+ *
+ * The Translations panel uses ComboboxControl for its async post search, while
+ * the rest of the sidebar (Meta title, etc.) uses TextControl. Out of the box
+ * the combobox renders with a heavier container border, so its inputs look
+ * different from the plain text fields. These rules give the combobox the same
+ * chrome as a standard text input without touching its search behaviour.
+ */
+.erankly-panel--translations .components-combobox-control__suggestions-container {
+	display: block;
+	min-height: 40px;
+	padding: 0;
+	position: relative;
+	border: 0;
+	border-radius: 2px;
+	background: transparent;
+	box-shadow: none;
+}
+
+.erankly-panel--translations .components-combobox-control__suggestions-container:focus,
+.erankly-panel--translations .components-combobox-control__suggestions-container:focus-within {
+	border-color: transparent;
+	box-shadow: none;
+	outline: none;
+}
+
+.erankly-panel--translations .components-combobox-control__suggestions-container > :first-child {
+	align-items: center;
+	box-sizing: border-box;
+	height: 40px;
+	min-height: 40px;
+	padding: 0 8px;
+	border: 1px solid #949494;
+	border-radius: 2px;
+	background: #fff;
+	box-shadow: none;
+}
+
+.erankly-panel--translations .components-combobox-control__suggestions-container:focus-within > :first-child {
+	border-color: var(--wp-admin-theme-color, #3858e9);
+	box-shadow: 0 0 0 0.5px var(--wp-admin-theme-color, #3858e9);
+}
+
+.erankly-panel--translations .components-combobox-control__input,
+.erankly-panel--translations .components-combobox-control__suggestions-container .components-input-control__input {
+	height: 38px;
+	min-height: 38px;
+	margin: 0;
+	padding: 0 8px;
+	font-size: 13px;
+	line-height: 38px;
+	border: none;
+	box-shadow: none !important;
+}
+
+.erankly-panel--translations .components-form-token-field__suggestions-list {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	left: 0;
+	z-index: 1000;
+	box-sizing: border-box;
+	width: auto;
+	min-width: 0;
+	max-height: 220px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+	border: 1px solid #949494;
+	border-radius: 2px;
+	background: #fff;
+	box-shadow: none;
+}
+
+/*
+ * Simplified-mode SERP preview.
+ *
+ * A static, Google-like snippet above the Meta title field so users see what
+ * the title/description/breadcrumb fields control. Pure CSS, no images or
+ * animations, scoped to its own block.
+ */
+.erankly-serp-preview {
+	margin-bottom: 24px;
+	padding: 12px;
+	border: 1px solid #ddd;
+	border-radius: 2px;
+	background: #fff;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+.erankly-serp-preview__source {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.erankly-serp-preview__favicon {
+	flex: none;
+	width: 26px;
+	height: 26px;
+	border: 1px solid #ecedef;
+	border-radius: 50%;
+	background: #f1f3f4;
+	object-fit: contain;
+}
+
+.erankly-serp-preview__origin {
+	min-width: 0;
+}
+
+.erankly-serp-preview__site {
+	font-size: 13px;
+	line-height: 1.3;
+	color: #202124;
+}
+
+.erankly-serp-preview__site,
+.erankly-serp-preview__breadcrumb,
+.erankly-serp-preview__title {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.erankly-serp-preview__breadcrumb {
+	font-size: 11px;
+	line-height: 1.3;
+	color: #4d5156;
+}
+
+.erankly-serp-preview__body {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.erankly-serp-preview__text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.erankly-serp-preview__thumbnail {
+	flex: none;
+	width: 64px;
+	min-width: 64px;
+	max-width: 64px;
+	height: 64px;
+	min-height: 64px;
+	max-height: 64px;
+	aspect-ratio: 1 / 1;
+	border: 1px solid #ecedef;
+	border-radius: 2px;
+	object-fit: cover;
+}
+
+.erankly-serp-preview__title {
+	font-size: 16px;
+	line-height: 1.3;
+	color: #1a0dab;
+}
+
+.erankly-serp-preview__description {
+	display: -webkit-box;
+	overflow: hidden;
+	margin-top: 2px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #4d5156;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+/* AI meta generation */
+.erankly-ai-field {
+	margin-top: 12px;
+}
+
+.erankly-ai-field .components-button {
+	width: 100%;
+	justify-content: center;
+}
+
+.erankly-ai-improve {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+}
+
+.erankly-ai-improve .components-base-control {
+	margin-bottom: 8px;
+}
+
+.erankly-ai-improve .components-textarea-control__input {
+	min-height: 84px;
+}
+
+.erankly-ai-field .erankly-ai-notice {
+	margin: 8px 0 0;
+}
