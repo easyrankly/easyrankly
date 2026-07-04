@@ -105,6 +105,8 @@ function erankly_reset_site_data(): void {
 	delete_option( 'erankly_health_404_frequent' );
 	delete_option( 'erankly_health_404_states' );
 	delete_option( 'erankly_health_thin_content' );
+	delete_option( 'erankly_health_bl_state' );
+	delete_option( 'erankly_health_bl_results' );
 
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the plugin-owned redirects table; it is recreated on demand next time the module boots.
 
@@ -198,7 +200,7 @@ function erankly_reset_render_panel(): void {
 		<section class="erankly-io-section erankly-card">
 			<p class="description"><?php esc_html_e( 'Restore EasyRankly to a clean install. This permanently deletes settings, redirects and SEO metadata; export a backup first if you want to keep a copy.', 'easyrankly' ); ?></p>
 			<?php if ( $is_network ) : ?>
-				<p class="description"><?php esc_html_e( 'Use the local reset for a granular cleanup of just the primary site this Network Admin runs on. Use the network reset for a complete cleanup of the network-wide settings and every site.', 'easyrankly' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Local reset cleans up only this Network Admin\'s primary site; network reset wipes the network-wide settings and every site.', 'easyrankly' ); ?></p>
 			<?php endif; ?>
 			<?php
 			/*
@@ -224,9 +226,9 @@ function erankly_reset_render_panel(): void {
 				><?php echo esc_html( $local_label ); ?></button>
 				<?php if ( $is_network ) : ?>
 					<?php
-					$global_label    = __( 'Reset entire network', 'easyrankly' );
-					$title_global    = __( 'Reset the entire network?', 'easyrankly' );
-					$confirm_global  = __( 'This will permanently delete the network-wide EasyRankly settings and every site\'s redirects, SEO metadata and special page defaults across the whole network. This action cannot be undone.', 'easyrankly' );
+					$global_label   = __( 'Reset entire network', 'easyrankly' );
+					$title_global   = __( 'Reset the entire network?', 'easyrankly' );
+					$confirm_global = __( 'This will permanently delete the network-wide EasyRankly settings and every site\'s redirects, SEO metadata and special page defaults across the whole network. This action cannot be undone.', 'easyrankly' );
 					?>
 					<button
 						type="button"

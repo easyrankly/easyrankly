@@ -1116,7 +1116,7 @@ function erankly_ai_render_settings_panel( string $active_panel ): void {
 			<div class="erankly-settings-fields erankly-card">
 				<div class="erankly-field">
 					<label for="erankly-ai-prompt"><strong><?php esc_html_e( 'Prompt template', 'easyrankly' ); ?></strong></label>
-					<p class="description"><?php esc_html_e( 'Instructions sent to the AI when generating the meta title and description. Edit to customise the tone and rules. Empty the field (or leave it identical to the default) to keep using the built-in prompt and receive future updates.', 'easyrankly' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Instructions the AI uses to generate the meta title and description; edit to customise tone and rules. Leave empty or unchanged to keep the built-in prompt and its future updates.', 'easyrankly' ); ?></p>
 					<textarea id="erankly-ai-prompt" class="widefat code" rows="22" spellcheck="false" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_prompt_template]"><?php echo esc_textarea( $value ); ?></textarea>
 					<p class="description">
 						<?php esc_html_e( 'Keep the "## System" and "## User" section headings. Available placeholders:', 'easyrankly' ); ?>

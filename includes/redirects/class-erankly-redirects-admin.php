@@ -121,10 +121,10 @@ final class ERankly_Redirects_Admin {
 				</section>
 			</div>
 
-			<div class="erankly-settings-section" id="erankly-redirects-table-wrap">
+			<div class="erankly-settings-section erankly-panel-expandable" id="erankly-redirects-table-wrap" data-erankly-expandable>
 				<h3 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h3>
 				<section class="erankly-card">
-				<div class="erankly-redirects-toolbar">
+				<div class="erankly-panel-toolbar erankly-redirects-toolbar">
 					<form method="get" class="erankly-redirects-search">
 						<input type="hidden" name="page" value="<?php echo esc_attr( self::SLUG ); ?>">
 						<input type="hidden" name="erankly_tab" value="redirects">
@@ -143,21 +143,7 @@ final class ERankly_Redirects_Admin {
 							<a class="button" href="<?php echo esc_url( $this->admin_url() ); ?>"><?php esc_html_e( 'Clear', 'easyrankly' ); ?></a>
 						<?php endif; ?>
 					</form>
-					<button type="button" id="erankly-redirects-expand-toggle" class="button erankly-redirects-expand-toggle" aria-pressed="false" aria-controls="erankly-redirects-table-wrap" title="<?php esc_attr_e( 'Expand table', 'easyrankly' ); ?>">
-						<svg class="erankly-redirects-expand-icon-expand" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-							<path d="M8 3H5a2 2 0 0 0-2 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M21 8V5a2 2 0 0 0-2-2h-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M16 21h3a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-						<svg class="erankly-redirects-expand-icon-collapse" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-							<path d="M8 3v3a2 2 0 0 1-2 2H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M21 8h-3a2 2 0 0 1-2-2V3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M3 16h3a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M16 21v-3a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-						<span class="screen-reader-text"><?php esc_html_e( 'Expand table', 'easyrankly' ); ?></span>
-					</button>
+					<?php erankly_admin_render_panel_expand_toggle( 'erankly-redirects-table-wrap' ); ?>
 				</div>
 
 				<?php $this->render_redirect_table( $redirects, $orderby, $order, $search ); ?>
@@ -373,7 +359,7 @@ final class ERankly_Redirects_Admin {
 	 */
 	private function render_redirect_table( array $redirects, string $orderby, string $order, string $search ): void {
 		?>
-		<table class="widefat fixed striped erankly-redirects-table">
+		<table class="widefat fixed striped erankly-panel-table erankly-redirects-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Source', 'easyrankly' ); ?></th>

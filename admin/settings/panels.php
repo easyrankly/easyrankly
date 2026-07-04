@@ -276,7 +276,7 @@ function erankly_render_settings_panel_social( array $settings ): void {
 					<div class="erankly-settings-section" data-erankly-oembed-json-section <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 						<h3 class="erankly-section-title"><?php esc_html_e( 'oEmbed JSON', 'easyrankly' ); ?></h3>
 						<div class="erankly-card">
-							<p class="description"><?php esc_html_e( 'Active by default on every public page. EasyRankly outputs an oEmbed JSON discovery link (e.g. for LinkedIn) so platforms can fetch rich link-preview data. To disable it, enable "Remove oEmbed discovery links" in the Bloat tab.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Active by default on public pages: outputs an oEmbed JSON discovery link (e.g. for LinkedIn) so platforms can fetch rich previews. Disable via "Remove oEmbed discovery links" in the Bloat tab.', 'easyrankly' ); ?></p>
 						</div>
 					</div>
 					<?php endif; ?>
@@ -377,7 +377,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 							<p class="description">
 								<a href="<?php echo esc_url( erankly_get_sitemap_url( '/sitemap-news-1.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open sitemap-news-1.xml', 'easyrankly' ); ?></a>
 							</p>
-							<p class="description"><?php esc_html_e( 'Includes only posts (post type: post) published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News — editorial review by Google is still required.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News — editorial review by Google is still required.', 'easyrankly' ); ?></p>
 							<div class="erankly-field erankly-visibility-defaults">
 								<p><strong><?php esc_html_e( 'Included post types', 'easyrankly' ); ?></strong></p>
 								<div class="erankly-checkbox-options">
@@ -403,7 +403,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 									maxlength="200"
 								>
 								<p class="description">
-									<?php esc_html_e( 'The publication name to include in the Google News sitemap. Leave blank to use the organization name or the site title. An empty name will prevent the sitemap from being generated.', 'easyrankly' ); ?>
+									<?php esc_html_e( 'Publication name for the Google News sitemap. Leave blank to use the organization name or site title; without a name the sitemap is not generated.', 'easyrankly' ); ?>
 								</p>
 							</div>
 							</fieldset>
@@ -418,7 +418,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 							<p class="description">
 								<a href="<?php echo esc_url( erankly_get_sitemap_url( '/sitemap-image-1.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open sitemap-image-1.xml', 'easyrankly' ); ?></a>
 							</p>
-							<p class="description"><?php esc_html_e( 'Associates images with the public pages that contain them. Images are extracted from post content (featured image, embedded images, Gutenberg image/gallery blocks). Attachment pages are not used as page URLs.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Links images to the pages that contain them, extracted from post content (featured, embedded, and Gutenberg image/gallery blocks). Attachment pages are not used as URLs.', 'easyrankly' ); ?></p>
 							</fieldset>
 						</div>
 					</div>
@@ -431,7 +431,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 							<p class="description">
 								<a href="<?php echo esc_url( erankly_get_sitemap_url( '/sitemap-video-1.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open sitemap-video-1.xml', 'easyrankly' ); ?></a>
 							</p>
-							<p class="description"><?php esc_html_e( 'Includes published posts that contain YouTube, Vimeo or self-hosted HTML5 videos. Multiple videos on the same page are each included. Submitting a Video sitemap does not guarantee Google indexing; the embedded player must also be crawlable.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing — the player must also be crawlable.', 'easyrankly' ); ?></p>
 							</fieldset>
 						</div>
 					</div>
@@ -514,7 +514,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Indexing & robots directives', 'easyrankly' ); ?></h3>
 						<div class="erankly-card">
 							<?php if ( is_multisite() ) : ?>
-							<p class="description"><?php esc_html_e( 'Noindex for search results, the 404 page, and WordPress author/date archive contexts is configured per site: in the Site Editor for block themes on WordPress 6.6 or later, or under Settings → EasyRankly otherwise.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Noindex for search results, the 404 page and author/date archives is set per site: in the Site Editor for block themes on WordPress 6.6+, or under Settings → EasyRankly otherwise.', 'easyrankly' ); ?></p>
 							<?php elseif ( erankly_use_site_editor_special_page_panels() ) : ?>
 							<p class="description"><?php esc_html_e( 'Noindex for search results, the 404 page, and WordPress author/date archive contexts is configured in the corresponding Site Editor template.', 'easyrankly' ); ?></p>
 							<?php else : ?>
@@ -567,7 +567,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						<div class="erankly-checkbox-options">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[noindex_paginated]" value="1" <?php checked( $settings['noindex_paginated'], 1 ); ?>> <?php esc_html_e( 'Noindex page 2, 3, … of archives', 'easyrankly' ); ?></label>
 						</div>
-						<p class="description"><?php esc_html_e( 'When enabled, pages beyond the first of any archive (category, tag, author, date, blog) receive a noindex directive. Canonical URLs are already self-referencing; leave this off unless you have a specific reason to block crawling of deep pagination.', 'easyrankly' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Adds noindex to pages beyond the first of any archive (category, tag, author, date, blog). Canonicals are already self-referencing, so leave off unless you must block deep pagination.', 'easyrankly' ); ?></p>
 						</fieldset>
 						<div class="erankly-field">
 						<label for="erankly-paginated-title-format"><strong><?php esc_html_e( 'Paginated title suffix', 'easyrankly' ); ?></strong></label>
@@ -659,7 +659,7 @@ function erankly_render_settings_panel_bloat( array $settings, bool $safe_bloat_
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_heartbeat]" value="1" <?php checked( $settings['bloat_disable_heartbeat'], 1 ); ?> data-erankly-bloat-item> <strong><?php esc_html_e( 'Disable Heartbeat on frontend', 'easyrankly' ); ?></strong></label>
 								<p class="description"><?php esc_html_e( 'Stops the background script that repeatedly pings the server on public pages, lowering server load. Admin autosave and post-locking are unaffected.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_xmlrpc]" value="1" <?php checked( $settings['bloat_disable_xmlrpc'], 1 ); ?> data-erankly-bloat-item> <strong><?php esc_html_e( 'Disable XML-RPC', 'easyrankly' ); ?></strong></label>
-								<p class="description"><?php esc_html_e( 'Turns off the legacy remote-access interface, a common target for brute-force and pingback-spam attacks. Leave on if you use the WordPress mobile app, Jetpack, or remote publishing tools.', 'easyrankly' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Turns off the legacy remote-access interface, a common brute-force and pingback-spam target. Leave on if you use the WordPress mobile app, Jetpack or remote publishing tools.', 'easyrankly' ); ?></p>
 							</fieldset>
 
 							</div>

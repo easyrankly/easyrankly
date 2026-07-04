@@ -302,6 +302,34 @@ function erankly_add_plugin_action_links( array $links, string $settings_url ): 
 }
 
 /**
+ * Renders the shared expand/collapse toggle button for an expandable table
+ * panel (see .erankly-panel-* in admin.css and bindExpandablePanel() in
+ * admin.js). Used by the Redirects, Broken-Link, and Frequent 404 sections.
+ *
+ * @param string $target_id ID of the [data-erankly-expandable] section it controls.
+ * @return void
+ */
+function erankly_admin_render_panel_expand_toggle( string $target_id ): void {
+	?>
+	<button type="button" class="button erankly-panel-expand-toggle" data-erankly-expand-toggle aria-pressed="false" aria-controls="<?php echo esc_attr( $target_id ); ?>" title="<?php esc_attr_e( 'Expand table', 'easyrankly' ); ?>">
+		<svg class="erankly-panel-expand-icon-expand" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			<path d="M8 3H5a2 2 0 0 0-2 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d="M21 8V5a2 2 0 0 0-2-2h-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d="M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d="M16 21h3a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+		</svg>
+		<svg class="erankly-panel-expand-icon-collapse" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			<path d="M8 3v3a2 2 0 0 1-2 2H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d="M21 8h-3a2 2 0 0 1-2-2V3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d="M3 16h3a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+			<path d="M16 21v-3a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+		</svg>
+		<span class="screen-reader-text"><?php esc_html_e( 'Expand table', 'easyrankly' ); ?></span>
+	</button>
+	<?php
+}
+
+/**
  * Enqueues admin assets only where needed.
  *
  * @param string $hook_suffix Admin hook.
@@ -399,6 +427,49 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	// forms. The block editor wires its own button through editor.js.
 	if ( ( $is_editor || $is_taxonomy ) && function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) {
 		erankly_ai_enqueue_assets();
+	}
+
+	// The Health tab's Broken-Link Candidates crawler runs in batches over REST,
+	// driven by this script (see erankly_health_bl_render_section()).
+	if ( $is_settings && function_exists( 'erankly_health_bl_get_results' ) ) {
+		wp_enqueue_script(
+			'erankly-health-broken-links',
+			ERANKLY_URL . 'assets/js/health-broken-links.js',
+			array(),
+			ERANKLY_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'erankly-health-broken-links',
+			'eranklyHealthBrokenLinks',
+			array(
+				'i18n' => array(
+					'starting' => __( 'Starting…', 'easyrankly' ),
+					'crawling' => __( 'Crawling pages:', 'easyrankly' ),
+					'queued'   => __( 'queued', 'easyrankly' ),
+					'checking' => __( 'Checking links:', 'easyrankly' ),
+					'broken'   => __( 'broken', 'easyrankly' ),
+					'complete' => __( 'Scan complete. Reloading…', 'easyrankly' ),
+					'stopping' => __( 'Stopping…', 'easyrankly' ),
+					'stopped'  => __( 'Scan stopped.', 'easyrankly' ),
+					'error'    => __( 'The scan failed. Please try again.', 'easyrankly' ),
+				),
+			)
+		);
+	}
+
+	// Strings for the shared expandable table panel (bindExpandablePanel), used
+	// on the Redirects, Broken-Link, and Frequent 404 sections.
+	if ( $is_settings ) {
+		wp_localize_script(
+			'erankly-admin',
+			'eranklyPanels',
+			array(
+				'expand'   => __( 'Expand table', 'easyrankly' ),
+				'collapse' => __( 'Collapse table', 'easyrankly' ),
+			)
+		);
 	}
 
 	// Panels autosave via REST as they're wired up (see
@@ -562,8 +633,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
 				'deleteConfirm' => __( 'Delete this redirect?', 'easyrankly' ),
-				'expandTable'   => __( 'Expand table', 'easyrankly' ),
-				'collapseTable' => __( 'Collapse table', 'easyrankly' ),
 				'enableLabel'   => __( 'Enable', 'easyrankly' ),
 				'disableLabel'  => __( 'Disable', 'easyrankly' ),
 				'activeYes'     => __( 'Yes', 'easyrankly' ),

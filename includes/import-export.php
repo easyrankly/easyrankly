@@ -1044,7 +1044,7 @@ function erankly_import_export_render_panel(): void {
 			<section class="erankly-io-section erankly-card">
 				<p class="description"><?php esc_html_e( 'Download a JSON backup of your EasyRankly settings, redirects and SEO metadata. Keep it as a backup or import it on another site.', 'easyrankly' ); ?></p>
 				<?php if ( is_multisite() ) : ?>
-					<p class="description"><?php esc_html_e( 'On this network the file contains the network-wide global settings plus the content (redirects, post and term metadata, special page defaults) of the primary site this Network Admin runs on. It is not a whole-network export covering every site.', 'easyrankly' ); ?></p>
+					<p class="description"><?php esc_html_e( 'On this network the file holds the network-wide settings plus this primary site\'s content (redirects, post/term metadata, special page defaults) — not a whole-network export of every site.', 'easyrankly' ); ?></p>
 				<?php endif; ?>
 				<p><a class="button button-primary" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export data', 'easyrankly' ); ?></a></p>
 			</section>
@@ -1078,7 +1078,7 @@ function erankly_import_export_render_panel(): void {
 		<div class="erankly-settings-section">
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h3>
 			<section class="erankly-io-section erankly-card">
-				<p class="description"><?php esc_html_e( 'Copy useful SEO metadata (titles, descriptions, canonical URLs, social tags and robots flags) from another plugin into EasyRankly. Existing EasyRankly values are never overwritten.', 'easyrankly' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Copy SEO metadata (titles, descriptions, canonical URLs, social tags, robots flags) from another plugin into EasyRankly. Existing EasyRankly values are never overwritten.', 'easyrankly' ); ?></p>
 
 			<?php if ( $has_any_source ) : ?>
 				<form method="post" action="<?php echo esc_url( $action_url ); ?>" class="erankly-io-third-party">

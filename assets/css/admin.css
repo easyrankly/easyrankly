@@ -4,9 +4,18 @@
 	--erankly-radius-compact: 5px;
 	--erankly-color-border: #dcdcde;
 	--erankly-color-border-strong: #949494;
+	--erankly-color-info: var(--wp-admin-theme-color, #3858e9);
+	--erankly-color-info-surface: color-mix(in srgb, var(--erankly-color-info) 8%, #fff);
+	--erankly-color-info-border: color-mix(in srgb, var(--erankly-color-info) 28%, var(--erankly-color-border));
 	--erankly-color-success: #1a7f37;
-	--erankly-color-error: #b32d2e;
+	--erankly-color-success-surface: #eef8f1;
+	--erankly-color-success-border: #b8d7c2;
 	--erankly-color-warning: #9a6700;
+	--erankly-color-warning-surface: #f8f3e8;
+	--erankly-color-warning-border: #d0bc98;
+	--erankly-color-error: #b32d2e;
+	--erankly-color-error-surface: #fcf0f1;
+	--erankly-color-error-border: #e7b7bd;
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
 
@@ -158,7 +167,7 @@
 }
 
 .erankly-autosave-status.is-visible {
-	background: color-mix(in srgb, var(--erankly-color-success) 10%, transparent);
+	background: var(--erankly-color-success-surface);
 	margin-top: 6px;
 	max-height: 34px;
 	opacity: 1;
@@ -167,10 +176,12 @@
 }
 
 .erankly-autosave-status.is-error {
+	background: var(--erankly-color-error-surface);
 	color: var(--erankly-color-error);
 }
 
 .erankly-autosave-status.is-warning {
+	background: var(--erankly-color-warning-surface);
 	color: var(--erankly-color-warning);
 }
 
@@ -292,9 +303,142 @@
 	color: var(--erankly-color-success);
 }
 
+.erankly-inline-status.is-warning {
+	color: var(--erankly-color-warning);
+}
+
 .erankly-inline-status.is-error,
 .erankly-error-text {
 	color: var(--erankly-color-error);
+}
+
+/*
+ * Shared plugin alerts.
+ *
+ * WordPress admin notices emitted inside the EasyRankly screen are restyled to
+ * match the plugin's custom callout pattern: soft surface, full border, rounded
+ * corners and a state icon.
+ */
+.erankly-alert,
+.erankly-panel-callout,
+.erankly-settings .notice.notice-info,
+.erankly-settings .notice.notice-success,
+.erankly-settings .notice.notice-warning,
+.erankly-settings .notice.notice-error {
+	--erankly-alert-color: var(--erankly-color-warning);
+	--erankly-alert-surface: var(--erankly-color-warning-surface);
+	--erankly-alert-border: var(--erankly-color-warning-border);
+	align-items: flex-start;
+	background: var(--erankly-alert-surface);
+	border: 1px solid var(--erankly-alert-border);
+	border-radius: var(--erankly-radius-surface);
+	box-shadow: none;
+	box-sizing: border-box;
+	color: #3c434a;
+	display: flex;
+	gap: 14px;
+	line-height: 1.45;
+	margin: 0 0 16px;
+	max-width: 100%;
+	min-width: 0;
+	padding: 20px 24px;
+	width: 100%;
+}
+
+.erankly-alert--info,
+.erankly-settings .notice.notice-info {
+	--erankly-alert-color: var(--erankly-color-info);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27M12%2011v5%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%208h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-info-surface);
+	--erankly-alert-border: var(--erankly-color-info-border);
+}
+
+.erankly-alert--success,
+.erankly-settings .notice.notice-success {
+	--erankly-alert-color: var(--erankly-color-success);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M22%2011.08V12a10%2010%200%201%201-5.93-9.14%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%2011%203%203L22%204%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-success-surface);
+	--erankly-alert-border: var(--erankly-color-success-border);
+}
+
+.erankly-alert--warning,
+.erankly-panel-callout,
+.erankly-settings .notice.notice-warning {
+	--erankly-alert-color: var(--erankly-color-warning);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M10.29%203.86%201.82%2018a2%202%200%200%200%201.71%203h16.94a2%202%200%200%200%201.71-3L13.71%203.86a2%202%200%200%200-3.42%200Z%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%209v4%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%2017h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-warning-surface);
+	--erankly-alert-border: var(--erankly-color-warning-border);
+}
+
+.erankly-alert--error,
+.erankly-settings .notice.notice-error {
+	--erankly-alert-color: var(--erankly-color-error);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27m15%209-6%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%209%206%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-error-surface);
+	--erankly-alert-border: var(--erankly-color-error-border);
+}
+
+.erankly-settings .notice.notice-info,
+.erankly-settings .notice.notice-success,
+.erankly-settings .notice.notice-warning,
+.erankly-settings .notice.notice-error {
+	border-left: 1px solid var(--erankly-alert-border);
+	min-height: 0;
+	position: relative;
+}
+
+.erankly-settings .notice.notice-info::before,
+.erankly-settings .notice.notice-success::before,
+.erankly-settings .notice.notice-warning::before,
+.erankly-settings .notice.notice-error::before {
+	background-color: var(--erankly-alert-color);
+	content: "";
+	display: block;
+	flex: 0 0 auto;
+	height: 24px;
+	line-height: 1;
+	mask: var(--erankly-alert-icon) center / contain no-repeat;
+	-webkit-mask: var(--erankly-alert-icon) center / contain no-repeat;
+	width: 24px;
+}
+
+.erankly-alert p,
+.erankly-panel-callout p,
+.erankly-settings .notice.notice-info p,
+.erankly-settings .notice.notice-success p,
+.erankly-settings .notice.notice-warning p,
+.erankly-settings .notice.notice-error p {
+	flex: 1 1 auto;
+	margin: 0;
+	max-width: 100%;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	padding: 0;
+	white-space: normal;
+}
+
+.erankly-alert__icon,
+.erankly-panel-callout-icon {
+	color: var(--erankly-alert-color);
+	flex: 0 0 auto;
+	height: 24px;
+	margin-top: 0;
+	width: 24px;
+}
+
+.erankly-settings .notice.notice-info.is-dismissible,
+.erankly-settings .notice.notice-success.is-dismissible,
+.erankly-settings .notice.notice-warning.is-dismissible,
+.erankly-settings .notice.notice-error.is-dismissible {
+	padding-right: 44px;
+}
+
+.erankly-settings .notice.notice-info .notice-dismiss,
+.erankly-settings .notice.notice-success .notice-dismiss,
+.erankly-settings .notice.notice-warning .notice-dismiss,
+.erankly-settings .notice.notice-error .notice-dismiss {
+	top: 50%;
+	transform: translateY(-50%);
 }
 
 .erankly-inline-status .dashicons {
@@ -803,6 +947,20 @@
 	display: none;
 }
 
+.erankly-special-page-default-tabs > .erankly-default-tabs-bar {
+	width: 100%;
+}
+
+.erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+	flex: 1 1 100%;
+	max-width: 100%;
+	width: 100%;
+}
+
+.erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+	flex: 1 0 var(--erankly-entity-tab-width);
+}
+
 .erankly-default-tabs .erankly-linked-tabs-summary {
 	display: none;
 }
@@ -912,7 +1070,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-character-counter.is-warning {
-	color: var(--erankly-color-error);
+	color: var(--erankly-color-warning);
 }
 
 .erankly-media-preview {
@@ -1742,4 +1900,141 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-ai-status.erankly-ai-error {
 	color: var(--erankly-color-error);
+}
+
+/*
+ * Reusable expandable table panel.
+ *
+ * Shared chrome for the Redirects, Broken-Link Candidates, and Frequent 404
+ * sections: a white card with a toolbar (controls + expand toggle) above a
+ * bordered table. Behavior is wired by bindExpandablePanel() in admin.js.
+ */
+.erankly-panel-expandable {
+	max-width: 720px;
+	transition: max-width 0.15s ease;
+}
+
+.erankly-panel-expandable.erankly-panel-expanded {
+	max-width: none;
+}
+
+/* Consistent vertical rhythm between the card's stacked children (intro text,
+   toolbar, table, notices, summary, action button) so every gap matches. */
+.erankly-panel-expandable > .erankly-card > * {
+	margin-top: 0;
+	margin-bottom: 12px;
+}
+
+.erankly-panel-expandable > .erankly-card > *:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-panel-toolbar {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	margin: 0 0 12px;
+}
+
+.erankly-panel-controls {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+}
+
+.erankly-panel-filter {
+	min-width: 240px;
+}
+
+.button.erankly-panel-expand-toggle {
+	align-items: center;
+	box-sizing: border-box;
+	display: inline-flex;
+	flex-shrink: 0;
+	height: 40px;
+	justify-content: center;
+	line-height: 1;
+	min-height: 40px;
+	min-width: 40px;
+	padding: 0;
+	width: 40px;
+}
+
+.erankly-panel-expand-toggle svg {
+	display: block;
+	flex: 0 0 auto;
+	height: 16px;
+	width: 16px;
+}
+
+.erankly-panel-expand-toggle .erankly-panel-expand-icon-collapse {
+	display: none;
+}
+
+.erankly-panel-expand-toggle[aria-pressed="true"] .erankly-panel-expand-icon-expand {
+	display: none;
+}
+
+.erankly-panel-expand-toggle[aria-pressed="true"] .erankly-panel-expand-icon-collapse {
+	display: block;
+}
+
+.erankly-panel-table {
+	border-radius: var(--erankly-radius-surface, 8px);
+	overflow: hidden;
+}
+
+.erankly-panel-table code {
+	white-space: normal;
+	word-break: break-word;
+}
+
+.erankly-panel-table td.erankly-panel-empty {
+	color: #646970;
+	padding: 16px;
+	text-align: center;
+}
+
+/* Panel callouts use the shared plugin alert styles above. */
+
+@media screen and (max-width: 960px) {
+	.erankly-panel-toolbar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.erankly-panel-controls {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.erankly-panel-filter {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.erankly-panel-expand-toggle {
+		align-self: flex-end;
+	}
+}
+
+/* Broken-Link Candidates: section-specific bits only. */
+.erankly-bl-progress {
+	font-style: italic;
+	margin: 0 0 12px;
+}
+
+.erankly-bl-occ {
+	margin-bottom: 4px;
+}
+
+.erankly-bl-anchor {
+	font-weight: 600;
+}
+
+.erankly-bl-suggestion {
+	margin-bottom: 6px;
 }

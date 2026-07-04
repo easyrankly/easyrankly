@@ -1444,7 +1444,7 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 	$tabs_id   = 'erankly-' . sanitize_key( $setting_key . '-' . $group_key ) . '-tabs';
 	$is_simple = (bool) erankly_get_setting( 'simplified_mode', 1 );
 	?>
-	<div class="erankly-default-tabs erankly-entity-default-tabs" data-erankly-tabs-root>
+	<div class="erankly-default-tabs erankly-entity-default-tabs erankly-special-page-default-tabs" data-erankly-tabs-root>
 		<div class="erankly-default-tabs-bar">
 			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="<?php echo esc_attr( $tabs_id ); ?>" role="tablist" aria-label="<?php echo esc_attr( $aria_label ); ?>">
 				<?php

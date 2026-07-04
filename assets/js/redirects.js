@@ -182,42 +182,8 @@
 		statusSel.addEventListener('change', syncTargetField);
 	}
 
-	// Expand/collapse the redirect rules table to full viewport width. The
-	// preference is persisted so it survives the full-page reloads triggered by
-	// sorting, searching, and pagination (the table itself is server-rendered).
-	var expandToggle = document.getElementById('erankly-redirects-expand-toggle');
-	var expandWrap = document.getElementById('erankly-redirects-table-wrap');
-	var EXPAND_STORAGE_KEY = 'erankly_redirects_expanded';
-
-	function setExpanded(expanded) {
-		expandWrap.classList.toggle('erankly-redirects-expanded', expanded);
-		expandToggle.setAttribute('aria-pressed', expanded ? 'true' : 'false');
-		expandToggle.title = expanded
-			? (window.eranklyRedirects && window.eranklyRedirects.collapseTable ? window.eranklyRedirects.collapseTable : 'Collapse table')
-			: (window.eranklyRedirects && window.eranklyRedirects.expandTable ? window.eranklyRedirects.expandTable : 'Expand table');
-	}
-
-	if (expandToggle && expandWrap) {
-		try {
-			if (window.localStorage.getItem(EXPAND_STORAGE_KEY) === '1') {
-				setExpanded(true);
-			}
-		} catch (e) {
-			// localStorage unavailable (privacy mode, etc.) — fall back to default collapsed state.
-		}
-
-		expandToggle.addEventListener('click', function () {
-			var expanded = !expandWrap.classList.contains('erankly-redirects-expanded');
-
-			setExpanded(expanded);
-
-			try {
-				window.localStorage.setItem(EXPAND_STORAGE_KEY, expanded ? '1' : '0');
-			} catch (e) {
-				// localStorage unavailable — preference just won't persist across reloads.
-			}
-		});
-	}
+	// Expand/collapse is handled by the shared bindExpandablePanel() in admin.js
+	// (data-erankly-* attributes on the section wrapper and toggle button).
 
 	// Search filter suggestions: clicking/focusing the search field opens a menu of
 	// filter keys (status, code, type, visibility...). Picking one inserts "key:"

@@ -71,6 +71,10 @@ Yes. Open Settings > EasyRankly > Import/Export. You can export and re-import yo
 
 == Changelog ==
 
+= 2.1.0 =
+**New**
+* Health → Broken-Link Candidates: an on-demand crawler that spiders your indexable pages, checks the HTTP status of every distinct link found (internal and external), and lists those returning 4xx/5xx with their anchor text and the page they were found on. Internal broken links reuse the 404 workflow (301 redirect with an optional AI-suggested target); external broken links link back to the page to edit. The scan runs in batches so it stays within PHP time limits, and per-URL status results are cached briefly to keep re-scans fast.
+
 = 2.0.0 =
 Major release: the admin interface has been rebuilt from the ground up, with AI-assisted meta generation and a smarter redirect manager.
 

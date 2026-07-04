@@ -983,7 +983,7 @@ final class ERankly_ML_Admin {
 					<h3 class="erankly-section-title"><?php esc_html_e( 'Site language mapping', 'easyrankly' ); ?></h3>
 					<div class="erankly-card">
 						<p class="description erankly-ml-network-intro">
-							<?php esc_html_e( 'Set a language for each site, choose which sites should appear as translations, and pick the default one to fall back to. Use a short code like "it" or "en" (add a region, like "en-US", only if you need to target a specific country).', 'easyrankly' ); ?>
+							<?php esc_html_e( 'Set a language per site, choose which appear as translations, and pick the default fallback. Use a short code like "it" or "en" (add a region like "en-US" only to target a specific country).', 'easyrankly' ); ?>
 						</p>
 
 				<table class="widefat striped erankly-ml-sites-table">
@@ -1052,7 +1052,7 @@ final class ERankly_ML_Admin {
 					<h3 class="erankly-section-title"><?php esc_html_e( 'Translation Notice texts', 'easyrankly' ); ?></h3>
 					<div class="erankly-ml-notice-texts erankly-card">
 						<p class="description">
-							<?php esc_html_e( 'Write one banner message per language for the [erankly_translation_notice] shortcode. It only shows up when a translation exists, using the text you write for that language. Use {language} to insert the language name automatically (e.g. "Italiano"). Leave a field blank to hide the banner for that language.', 'easyrankly' ); ?>
+							<?php esc_html_e( 'One banner message per language for the [erankly_translation_notice] shortcode, shown only when a translation exists. Use {language} to insert the language name (e.g. "Italiano"); leave a field blank to hide that language\'s banner.', 'easyrankly' ); ?>
 						</p>
 
 						<div class="erankly-default-tabs erankly-ml-notice-tabs" data-erankly-tabs-root>
@@ -1180,11 +1180,11 @@ final class ERankly_ML_Admin {
 
 				<h4 style="margin-top:1.5rem;"><?php esc_html_e( '2. Translation Notice', 'easyrankly' ); ?></h4>
 				<p class="description">
-					<?php esc_html_e( 'Renders a dismissible notice <div>. It stays hidden server-side and is revealed by JavaScript only when the visitor\'s browser language matches an available translation, then displays the text configured for that language in the "Translation Notice texts" section above. When no version exists in the reader\'s language the card stays completely invisible. Dismissals are remembered in localStorage.', 'easyrankly' ); ?>
+					<?php esc_html_e( 'Renders a dismissible notice <div>. Hidden server-side, it is shown by JavaScript only when the visitor\'s browser language matches an available translation, using the text set in "Translation Notice texts" above. Dismissals are remembered in localStorage.', 'easyrankly' ); ?>
 				</p>
 				<p><code><?php echo esc_html( '[erankly_translation_notice]' ); ?></code></p>
 				<p class="description">
-					<?php esc_html_e( 'The notice texts are no longer passed as attributes: they are managed globally per language in the section above, so the banner always appears in the reader\'s own language. Only presentation attributes remain:', 'easyrankly' ); ?>
+					<?php esc_html_e( 'Notice texts are no longer passed as attributes; they are managed globally per language above, so the banner always appears in the reader\'s own language. Only presentation attributes remain:', 'easyrankly' ); ?>
 				</p>
 				<table class="widefat striped" style="max-width:640px;margin-top:.5rem;">
 					<thead>

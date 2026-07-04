@@ -33,6 +33,8 @@ function erankly_uninstall_site(): void {
 	delete_option( 'erankly_health_404_frequent' );
 	delete_option( 'erankly_health_404_states' );
 	delete_option( 'erankly_health_thin_content' );
+	delete_option( 'erankly_health_bl_state' );
+	delete_option( 'erankly_health_bl_results' );
 
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall cleanup removes the plugin-owned redirects table.
 

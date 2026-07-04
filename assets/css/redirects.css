@@ -65,15 +65,8 @@
 	margin: 4px 0 16px;
 }
 
-/* Toolbar: search form + expand toggle, inside the white card */
-.erankly-redirects-toolbar {
-	align-items: center;
-	display: flex;
-	gap: 8px;
-	justify-content: space-between;
-	margin: 0 0 12px;
-}
-
+/* Toolbar layout comes from the shared .erankly-panel-toolbar; the inner
+   search form keeps its own alignment. */
 .erankly-redirects-search {
 	align-items: center;
 	display: flex;
@@ -110,82 +103,32 @@
  * which is always loaded before this stylesheet.
  */
 
-/* Section width + expand toggle */
-#erankly-redirects-table-wrap.erankly-settings-section {
-	max-width: 720px;
-	transition: max-width 0.15s ease;
-}
-
-.button.erankly-redirects-expand-toggle {
-	align-items: center;
-	box-sizing: border-box;
-	display: inline-flex;
-	flex-shrink: 0;
-	height: 40px;
-	justify-content: center;
-	line-height: 1;
-	min-height: 40px;
-	min-width: 40px;
-	padding: 0;
-	width: 40px;
-}
-
-.erankly-redirects-expand-toggle svg {
-	display: block;
-	flex: 0 0 auto;
-	height: 16px;
-	width: 16px;
-}
-
-.erankly-redirects-expand-toggle .erankly-redirects-expand-icon-collapse {
-	display: none;
-}
-
-.erankly-redirects-expand-toggle[aria-pressed="true"] .erankly-redirects-expand-icon-expand {
-	display: none;
-}
-
-.erankly-redirects-expand-toggle[aria-pressed="true"] .erankly-redirects-expand-icon-collapse {
-	display: block;
-}
-
-/* Expanded: let the section grow to the full width of the page content
-   instead of the default 720px settings-section column. */
-#erankly-redirects-table-wrap.erankly-redirects-expanded {
-	max-width: none;
-}
+/*
+ * Section width, expand toggle, and table borders come from the shared
+ * .erankly-panel-* component (admin.css). Only redirects-specific tweaks remain.
+ */
 
 /* Expanded: widen the search field ~25% (280px -> 360px) since the extra
    room is available and the field now needs to fit filter tokens like
    "code:301 status:on" alongside free text. */
-#erankly-redirects-table-wrap.erankly-redirects-expanded .erankly-redirects-search input[type="search"] {
+#erankly-redirects-table-wrap.erankly-panel-expanded .erankly-redirects-search input[type="search"] {
 	min-width: 360px;
 }
 
 /* Collapsed: hide the lower-priority columns so the table fits the 720px column.
    table-layout switches to auto too, since the "fixed" widefat class locks column
    widths to the full 9-column layout and leaves a gap once columns are hidden. */
-#erankly-redirects-table-wrap:not(.erankly-redirects-expanded) .erankly-redirects-col-optional,
-#erankly-redirects-table-wrap:not(.erankly-redirects-expanded) .erankly-redirects-note {
+#erankly-redirects-table-wrap:not(.erankly-panel-expanded) .erankly-redirects-col-optional,
+#erankly-redirects-table-wrap:not(.erankly-panel-expanded) .erankly-redirects-note {
 	display: none;
 }
 
-#erankly-redirects-table-wrap:not(.erankly-redirects-expanded) .erankly-redirects-table {
+#erankly-redirects-table-wrap:not(.erankly-panel-expanded) .erankly-redirects-table {
 	table-layout: auto;
 	width: 100%;
 }
 
 /* Redirect table */
-.erankly-redirects-table {
-	border-radius: var(--erankly-radius-surface, 8px);
-	overflow: hidden;
-}
-
-.erankly-redirects-table code {
-	white-space: normal;
-	word-break: break-word;
-}
-
 .erankly-redirects-table td[colspan] {
 	text-align: center;
 	width: auto;
@@ -227,11 +170,6 @@
 		grid-template-columns: 1fr;
 	}
 
-	.erankly-redirects-toolbar {
-		align-items: stretch;
-		flex-direction: column;
-	}
-
 	.erankly-redirects-search {
 		align-items: stretch;
 		flex-direction: column;
@@ -240,9 +178,5 @@
 	.erankly-redirects-search input[type="search"] {
 		min-width: 0;
 		width: 100%;
-	}
-
-	.erankly-redirects-expand-toggle {
-		align-self: flex-end;
 	}
 }
