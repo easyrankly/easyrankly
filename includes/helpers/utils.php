@@ -263,3 +263,29 @@ function erankly_render_connectors_status(): void {
 		esc_html__( 'Connectors API (WordPress 7.0): Not detected', 'easyrankly' )
 	);
 }
+
+/**
+ * Renders an inline "AI provider: Connected / Not connected" status badge,
+ * mirroring erankly_render_multisite_status().
+ *
+ * The AI features also require at least one AI provider connector to be
+ * configured (not just the Connectors API to exist). This surfaces that
+ * requirement the same way, so an admin who enabled AI features without
+ * connecting a provider immediately sees why nothing works.
+ *
+ * @return void
+ */
+function erankly_render_ai_provider_status(): void {
+	if ( erankly_ai_available() ) {
+		printf(
+			'<span class="erankly-ai-requirement-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#1a7f37;"><span class="dashicons dashicons-yes" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
+			esc_html__( 'AI provider: Connected', 'easyrankly' )
+		);
+		return;
+	}
+
+	printf(
+		'<span class="erankly-ai-requirement-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#b32d2e;"><span class="dashicons dashicons-no-alt" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
+		esc_html__( 'AI provider: Not connected', 'easyrankly' )
+	);
+}

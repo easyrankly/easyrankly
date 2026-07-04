@@ -95,10 +95,7 @@ function erankly_ai_available(): bool {
 				continue;
 			}
 
-			$auth   = is_array( $connector['authentication'] ?? null ) ? $connector['authentication'] : array();
-			$method = (string) ( $auth['method'] ?? '' );
-
-			if ( 'none' === $method || ( 'api_key' === $method && erankly_ai_connector_has_key( $auth ) ) ) {
+			if ( erankly_ai_connector_is_connected( $connector ) ) {
 				$available = true;
 				break;
 			}
@@ -116,6 +113,66 @@ function erankly_ai_available(): bool {
 }
 
 /**
+ * Whether a single connector entry from `wp_get_connectors()` is actually
+ * connected, i.e. safe to treat as "AI provider: Connected" in the UI.
+ *
+ * Prefers an explicit status the Connectors API itself may report (core is
+ * the authority on whether a connector is really wired up) and only falls
+ * back to inferring it from credential presence when no such status is
+ * exposed. The fallback is a heuristic — a leftover env var, constant, or DB
+ * option from a connector that was since removed or reset would still read
+ * as "present" — so callers that hit false positives from it should fix the
+ * root cause (clear the stale value) or use the filter below rather than
+ * relying on this being airtight.
+ *
+ * @param array<string,mixed> $connector Single entry from `wp_get_connectors()`.
+ * @return bool
+ */
+function erankly_ai_connector_is_connected( array $connector ): bool {
+	$plugin    = is_array( $connector['plugin'] ?? null ) ? $connector['plugin'] : array();
+	$is_active = $plugin['is_active'] ?? null;
+
+	if ( is_callable( $is_active ) && ! call_user_func( $is_active ) ) {
+		// The connector's own provider plugin isn't installed/active, so a
+		// leftover credential (env var, constant, or a DB option from a
+		// previous install) must not count as "connected".
+		/** This filter is documented below. */
+		return (bool) apply_filters( 'erankly_ai_connector_is_connected', false, $connector );
+	}
+
+	foreach ( array( 'is_connected', 'connected', 'authenticated' ) as $status_key ) {
+		if ( isset( $connector[ $status_key ] ) ) {
+			$connected = (bool) $connector[ $status_key ];
+			/** This filter is documented below. */
+			return (bool) apply_filters( 'erankly_ai_connector_is_connected', $connected, $connector );
+		}
+	}
+
+	if ( isset( $connector['status'] ) && is_string( $connector['status'] ) ) {
+		$connected = in_array( strtolower( $connector['status'] ), array( 'connected', 'active', 'authenticated' ), true );
+		/** This filter is documented below. */
+		return (bool) apply_filters( 'erankly_ai_connector_is_connected', $connected, $connector );
+	}
+
+	$auth   = is_array( $connector['authentication'] ?? null ) ? $connector['authentication'] : array();
+	$method = (string) ( $auth['method'] ?? '' );
+
+	$connected = 'none' === $method || ( 'api_key' === $method && erankly_ai_connector_has_key( $auth ) );
+
+	/**
+	 * Filters whether a specific connector counts as connected.
+	 *
+	 * Use this to correct a false positive/negative for a particular
+	 * connector (e.g. a stale credential left in the database) without
+	 * having to override the plugin-wide `erankly_ai_available` filter.
+	 *
+	 * @param bool                 $connected Detected connection state.
+	 * @param array<string,mixed>  $connector The connector entry being evaluated.
+	 */
+	return (bool) apply_filters( 'erankly_ai_connector_is_connected', $connected, $connector );
+}
+
+/**
  * Whether an `api_key` connector has a usable credential.
  *
  * Mirrors the core Connectors resolution order (environment variable, PHP
@@ -124,6 +181,11 @@ function erankly_ai_available(): bool {
  * exactly like core (_wp_connectors_get_api_key_source()), which on Multisite
  * means the per-site option; get_site_option() is also tried as a fallback in
  * case a network-level key is used.
+ *
+ * This is a presence check, not a validity check: it cannot tell a live key
+ * apart from a stale one left behind after the connector was reset or
+ * removed outside of core's own flow. `erankly_ai_connector_is_connected()`
+ * only falls back to this when core doesn't report its own status.
  *
  * @param array<string,mixed> $auth Connector `authentication` array.
  * @return bool
@@ -135,12 +197,12 @@ function erankly_ai_connector_has_key( array $auth ): bool {
 
 	if ( '' !== $env_var ) {
 		$env = getenv( $env_var );
-		if ( is_string( $env ) && '' !== $env ) {
+		if ( is_string( $env ) && '' !== trim( $env ) ) {
 			return true;
 		}
 	}
 
-	if ( '' !== $constant && defined( $constant ) && '' !== (string) constant( $constant ) ) {
+	if ( '' !== $constant && defined( $constant ) && '' !== trim( (string) constant( $constant ) ) ) {
 		return true;
 	}
 
@@ -148,11 +210,11 @@ function erankly_ai_connector_has_key( array $auth ): bool {
 		return false;
 	}
 
-	if ( '' !== (string) get_option( $setting, '' ) ) {
+	if ( '' !== trim( (string) get_option( $setting, '' ) ) ) {
 		return true;
 	}
 
-	return is_multisite() && '' !== (string) get_site_option( $setting, '' );
+	return is_multisite() && '' !== trim( (string) get_site_option( $setting, '' ) );
 }
 
 /**
@@ -1005,17 +1067,20 @@ function erankly_ai_render_settings_field(): void {
 			</label>
 			<?php
 			if ( ! $has_api ) {
-				erankly_render_connectors_status(); }
+				erankly_render_connectors_status();
+			} else {
+				erankly_render_ai_provider_status();
+			}
 			?>
 		</span>
 		<p class="description">
 			<?php
-			esc_html_e( 'Turns on the plugin\'s AI features, configurable from the AI tab.', 'easyrankly' );
+			esc_html_e( 'Turns on the plugin\'s AI features.', 'easyrankly' );
 			if ( $has_api && ! $available ) {
 				echo ' ';
 				printf(
 					/* translators: %s: link to the WordPress Connectors settings screen. */
-					esc_html__( 'Connect an AI provider on the %s screen to enable it.', 'easyrankly' ),
+					esc_html__( 'Connect a provider on the %s screen to enable.', 'easyrankly' ),
 					'<a href="' . esc_url( erankly_ai_connectors_screen_url() ) . '">' . esc_html__( 'Connectors', 'easyrankly' ) . '</a>'
 				);
 			}
