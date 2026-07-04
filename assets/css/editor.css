@@ -12,6 +12,12 @@
 	margin-bottom: 24px;
 }
 
+/* The "Search appearance" panel already sits under a bordered sibling, so its
+   own .components-panel__body border-top creates a visible double border. */
+.erankly-panel--appearance.components-panel__body {
+	border-top: none;
+}
+
 /* The field wrapper owns the spacing, so its inner control must not add its own. */
 .erankly-field .components-base-control {
 	margin-bottom: 0;
