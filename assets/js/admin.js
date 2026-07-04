@@ -512,6 +512,9 @@
 
   function bindSimplifiedMode(root) {
     var simplifiedMode = root.querySelector('input[name$="[simplified_mode]"]');
+    var seoChecklist = root.querySelector(
+      'input[name$="[enable_seo_checklist]"]',
+    );
     var advancedTab = root.querySelector("[data-erankly-advanced-tab]");
     var advancedPanel = root.querySelector("[data-erankly-advanced-panel]");
     var customSchemaSection = root.querySelector(
@@ -526,6 +529,21 @@
     var postDateSettingsSection = root.querySelector(
       "[data-erankly-post-date-settings-section]",
     );
+
+    if (simplifiedMode && seoChecklist) {
+      var syncSeoChecklist = function () {
+        seoChecklist.disabled = !simplifiedMode.checked;
+
+        if (!simplifiedMode.checked && seoChecklist.checked) {
+          seoChecklist.checked = false;
+          seoChecklist.dispatchEvent(new Event("input", { bubbles: true }));
+          seoChecklist.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      };
+
+      simplifiedMode.addEventListener("change", syncSeoChecklist);
+      syncSeoChecklist();
+    }
 
     if (!simplifiedMode || !advancedTab || !advancedPanel) {
       return;

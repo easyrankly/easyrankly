@@ -991,16 +991,16 @@ input[type="checkbox"].erankly-toggle::before {
 
 input[type="checkbox"].erankly-toggle:checked {
 	animation: erankly-toggle-pulse 0.4s ease-out;
-	background: var(--wp-admin-theme-color, #3858e9);
+	background: var(--erankly-color-success);
 }
 
 @keyframes erankly-toggle-pulse {
 	0% {
-		box-shadow: 0 0 0 0 color-mix(in srgb, var(--wp-admin-theme-color, #3858e9) 50%, transparent);
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--erankly-color-success) 50%, transparent);
 	}
 
 	100% {
-		box-shadow: 0 0 0 6px color-mix(in srgb, var(--wp-admin-theme-color, #3858e9) 0%, transparent);
+		box-shadow: 0 0 0 6px color-mix(in srgb, var(--erankly-color-success) 0%, transparent);
 	}
 }
 
@@ -1551,6 +1551,26 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	padding: 0;
 }
 
+.erankly-setup-row {
+	display: grid;
+	gap: 24px;
+	grid-template-columns: 1fr 1fr;
+}
+
+.erankly-setup-row .erankly-setup-section {
+	margin: 0 0 24px;
+}
+
+.erankly-setup-row .regular-text {
+	width: 100%;
+}
+
+@media (max-width: 782px) {
+	.erankly-setup-row {
+		grid-template-columns: 1fr;
+	}
+}
+
 .erankly-setup-section legend {
 	font-size: 16px;
 	font-weight: 600;
@@ -1605,16 +1625,55 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	margin-top: 4px;
 }
 
-.erankly-setup-summary {
-	background: #f0f6fc;
-	border-left: 4px solid #2271b1;
-	border-radius: var(--erankly-radius-control);
-	margin: 20px 0 24px;
-	padding: 12px 16px;
+.erankly-setup-ready-title {
+	align-items: center;
+	display: flex;
+	gap: 8px;
 }
 
-.erankly-setup-summary p {
-	margin: 6px 0;
+.erankly-setup-ready-icon {
+	color: var(--erankly-color-success);
+	display: inline-flex;
+	line-height: 1;
+}
+
+.erankly-setup-ready-icon .dashicons {
+	height: 24px;
+	width: 24px;
+	font-size: 24px;
+}
+
+.erankly-setup-summary {
+	background: #fff;
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-surface);
+	margin: 20px 0 24px;
+	max-width: 720px;
+	padding: 4px 20px;
+}
+
+.erankly-setup-summary-row {
+	align-items: baseline;
+	border-top: 1px solid var(--erankly-color-border);
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+	padding: 14px 0;
+}
+
+.erankly-setup-summary-row:first-child {
+	border-top: 0;
+}
+
+.erankly-setup-summary-row dt {
+	color: #646970;
+	font-weight: 500;
+}
+
+.erankly-setup-summary-row dd {
+	font-weight: 600;
+	margin: 0;
+	text-align: right;
 }
 
 .erankly-setup-actions {

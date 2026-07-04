@@ -342,18 +342,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		ERANKLY_VERSION
 	);
 
-	if ( $is_setup ) {
-		wp_enqueue_script(
-			'erankly-setup',
-			ERANKLY_URL . 'assets/js/setup-wizard.js',
-			array(),
-			ERANKLY_VERSION,
-			true
-		);
-		return;
-	}
-
-	wp_enqueue_media();
 	wp_enqueue_script(
 		'erankly-admin',
 		ERANKLY_URL . 'assets/js/admin.js',
@@ -361,6 +349,37 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		ERANKLY_VERSION,
 		true
 	);
+
+	// The wizard's "Person reference user" field reuses the searchable
+	// user-search widget from the General settings panel (see bindUserSearch()
+	// in admin.js), so it needs the same restUrl/nonce localized here.
+	wp_localize_script(
+		'erankly-admin',
+		'eranklyUserSearch',
+		array(
+			'restUrl' => esc_url_raw( rest_url( 'erankly/v1/users/search' ) ),
+			'nonce'   => wp_create_nonce( 'wp_rest' ),
+			'i18n'    => array(
+				'searching'  => __( 'Searching…', 'easyrankly' ),
+				'noResults'  => __( 'No matches found.', 'easyrankly' ),
+				'remove'     => __( 'Remove', 'easyrankly' ),
+				'noSelected' => __( 'No user selected', 'easyrankly' ),
+			),
+		)
+	);
+
+	if ( $is_setup ) {
+		wp_enqueue_script(
+			'erankly-setup',
+			ERANKLY_URL . 'assets/js/setup-wizard.js',
+			array( 'erankly-admin' ),
+			ERANKLY_VERSION,
+			true
+		);
+		return;
+	}
+
+	wp_enqueue_media();
 
 	// Drives the "show resolved value, revert to raw {{token}} on focus"
 	// behavior for every plain PHP-rendered {{variable}} field (settings
@@ -380,23 +399,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	// forms. The block editor wires its own button through editor.js.
 	if ( ( $is_editor || $is_taxonomy ) && function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) {
 		erankly_ai_enqueue_assets();
-	}
-
-	if ( $is_settings ) {
-		wp_localize_script(
-			'erankly-admin',
-			'eranklyUserSearch',
-			array(
-				'restUrl' => esc_url_raw( rest_url( 'erankly/v1/users/search' ) ),
-				'nonce'   => wp_create_nonce( 'wp_rest' ),
-				'i18n'    => array(
-					'searching'  => __( 'Searching…', 'easyrankly' ),
-					'noResults'  => __( 'No matches found.', 'easyrankly' ),
-					'remove'     => __( 'Remove', 'easyrankly' ),
-					'noSelected' => __( 'No user selected', 'easyrankly' ),
-				),
-			)
-		);
 	}
 
 	// Panels autosave via REST as they're wired up (see
