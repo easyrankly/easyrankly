@@ -685,6 +685,40 @@
 	margin: 0 0 4px;
 }
 
+.erankly-segment-control.erankly-tabs {
+	display: flex;
+	flex-wrap: nowrap;
+	width: 100%;
+}
+
+.erankly-segment-control .erankly-tab {
+	cursor: pointer;
+	flex: 1 1 0;
+	font-variant-numeric: tabular-nums;
+	min-width: 0;
+	position: relative;
+}
+
+.erankly-segment-control .erankly-tab input[type="radio"] {
+	height: 0;
+	margin: 0;
+	opacity: 0;
+	position: absolute;
+	width: 0;
+}
+
+.erankly-segment-control .erankly-tab:has(input:focus-visible) {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--erankly-tab-color);
+	outline: 2px solid transparent;
+}
+
+/* wp-clearfix ::after becomes a flex item and picks up gap after the last tab. */
+.nav-tab-wrapper.erankly-tabs::after,
+button.erankly-linked-defaults-toggle.erankly-tabs::after {
+	content: none;
+	display: none;
+}
+
 .erankly-field select.widefat {
 	max-width: 360px;
 }

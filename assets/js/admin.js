@@ -1619,6 +1619,9 @@
     root
       .querySelectorAll("[data-erankly-file-dropzone]")
       .forEach(bindFileDropzone);
+    root
+      .querySelectorAll("[data-erankly-segment-control]")
+      .forEach(bindSegmentControl);
 
     var bloatPanel = root.querySelector("#erankly-settings-panel-bloat");
     if (bloatPanel) {
@@ -2030,6 +2033,32 @@
     }
   }
 
+  /**
+   * Keeps segment-control pill labels in sync with their radios.
+   *
+   * @param {HTMLElement} control Segment control wrapper.
+   * @return void
+   */
+  function bindSegmentControl(control) {
+    var radios = control.querySelectorAll('input[type="radio"]');
+
+    function syncActive() {
+      radios.forEach(function (radio) {
+        var label = radio.closest(".erankly-tab");
+
+        if (label) {
+          label.classList.toggle("is-active", radio.checked);
+          label.classList.toggle("nav-tab-active", radio.checked);
+        }
+      });
+    }
+
+    radios.forEach(function (radio) {
+      radio.addEventListener("change", syncActive);
+    });
+    syncActive();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".erankly-meta-box").forEach(bindTabs);
     document
@@ -2063,6 +2092,9 @@
     document
       .querySelectorAll("[data-erankly-file-dropzone]")
       .forEach(bindFileDropzone);
+    document
+      .querySelectorAll("[data-erankly-segment-control]")
+      .forEach(bindSegmentControl);
     var bloatPanel = document.getElementById("erankly-settings-panel-bloat");
     if (bloatPanel) {
       bindBloatToggle(bloatPanel);

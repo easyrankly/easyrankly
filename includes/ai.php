@@ -20,11 +20,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/** Default characters from the body sent to the model. */
+const ERANKLY_AI_CONTENT_LIMIT_DEFAULT = 4000;
+
+/** Minimum configurable body limit (characters). */
+const ERANKLY_AI_CONTENT_LIMIT_MIN = 4000;
+
+/** Maximum configurable body limit (characters). */
+const ERANKLY_AI_CONTENT_LIMIT_MAX = 64000;
+
 /**
- * Characters from the body sent to the model. Enough for good context without
- * blowing up the token count on long posts.
+ * Characters from the body sent to the model when no admin override is stored.
+ *
+ * @deprecated 2.1.0 Use ERANKLY_AI_CONTENT_LIMIT_DEFAULT or erankly_ai_get_content_limit().
  */
-const ERANKLY_AI_CONTENT_LIMIT = 4000;
+const ERANKLY_AI_CONTENT_LIMIT = ERANKLY_AI_CONTENT_LIMIT_DEFAULT;
 
 /** Recommended maximum lengths, matching the editor field counters. */
 const ERANKLY_AI_TITLE_LIMIT        = 65;
@@ -224,6 +234,93 @@ function erankly_ai_connector_has_key( array $auth ): bool {
  */
 function erankly_ai_enabled(): bool {
 	return erankly_ai_available() && (bool) erankly_get_setting( 'ai_enabled', 0 );
+}
+
+/**
+ * Discrete body-limit presets shown in the settings stepped slider.
+ *
+ * @return int[] Character limits, ascending.
+ */
+function erankly_ai_get_content_limit_steps(): array {
+	return array( 4000, 16000, 64000 );
+}
+
+/**
+ * Snaps a body limit to the nearest configured step preset.
+ *
+ * @param int $value Raw character limit.
+ * @return int
+ */
+function erankly_ai_snap_content_limit_to_step( int $value ): int {
+	$steps   = erankly_ai_get_content_limit_steps();
+	$nearest = $steps[0];
+	$min_diff = PHP_INT_MAX;
+
+	foreach ( $steps as $step ) {
+		$diff = abs( $value - $step );
+
+		if ( $diff < $min_diff ) {
+			$min_diff = $diff;
+			$nearest  = $step;
+		}
+	}
+
+	return $nearest;
+}
+
+/**
+ * Returns the step index for a body limit, or -1 when unknown.
+ *
+ * @param int $value Character limit.
+ * @return int
+ */
+function erankly_ai_get_content_limit_step_index( int $value ): int {
+	$index = array_search( erankly_ai_snap_content_limit_to_step( $value ), erankly_ai_get_content_limit_steps(), true );
+
+	return false === $index ? 0 : (int) $index;
+}
+
+/**
+ * Returns the effective plain-text body limit sent to the model.
+ *
+ * @return int Positive character limit.
+ */
+function erankly_ai_get_content_limit(): int {
+	$stored = absint( erankly_get_setting( 'ai_content_limit', ERANKLY_AI_CONTENT_LIMIT_DEFAULT ) );
+	$limit  = $stored > 0 ? $stored : ERANKLY_AI_CONTENT_LIMIT_DEFAULT;
+
+	if ( $limit < ERANKLY_AI_CONTENT_LIMIT_MIN ) {
+		$limit = ERANKLY_AI_CONTENT_LIMIT_MIN;
+	} elseif ( $limit > ERANKLY_AI_CONTENT_LIMIT_MAX ) {
+		$limit = ERANKLY_AI_CONTENT_LIMIT_MAX;
+	}
+
+	/**
+	 * Filters the maximum plain-text body characters sent to the AI provider.
+	 *
+	 * @param int $limit Character limit after settings sanitization.
+	 */
+	return erankly_ai_snap_content_limit_to_step( (int) apply_filters( 'erankly_ai_content_limit', $limit ) );
+}
+
+/**
+ * Sanitizes the admin-configured body character limit.
+ *
+ * @param mixed $value Raw setting value.
+ * @return int
+ */
+function erankly_ai_sanitize_content_limit( mixed $value ): int {
+	$limit = absint( $value );
+
+	if ( $limit < ERANKLY_AI_CONTENT_LIMIT_MIN ) {
+		return ERANKLY_AI_CONTENT_LIMIT_MIN;
+	}
+
+	if ( $limit > ERANKLY_AI_CONTENT_LIMIT_MAX ) {
+		return ERANKLY_AI_CONTENT_LIMIT_MAX;
+	}
+
+	return erankly_ai_snap_content_limit_to_step( $limit );
 }
 
 /**
@@ -504,7 +601,7 @@ function erankly_ai_build_context( int $object_id, string $object_type ) {
 		$body       = $post->post_content;
 	}
 
-	$content = erankly_trim_text( strip_shortcodes( (string) $body ), ERANKLY_AI_CONTENT_LIMIT );
+	$content = erankly_trim_text( strip_shortcodes( (string) $body ), erankly_ai_get_content_limit() );
 
 	$context = array(
 		'object_id'   => $object_id,
@@ -543,7 +640,7 @@ function erankly_ai_build_special_context( string $special_context ) {
 		'object_type'     => 'special',
 		'special_context' => $special_context,
 		'post_title'      => erankly_normalize_seo_text( (string) $labels[ $special_context ] ),
-		'content'         => erankly_trim_text( erankly_ai_special_context_body( $special_context ), ERANKLY_AI_CONTENT_LIMIT ),
+		'content'         => erankly_trim_text( erankly_ai_special_context_body( $special_context ), erankly_ai_get_content_limit() ),
 		'site_name'       => get_bloginfo( 'name' ),
 		'lang'            => erankly_ai_language_label(),
 		'max_title'       => ERANKLY_AI_TITLE_LIMIT,
@@ -1030,6 +1127,74 @@ function erankly_ai_call_model( string $system, string $user ) {
 }
 
 /**
+ * Renders a compact privacy notice next to editor "Generate with AI" controls.
+ *
+ * @return void
+ */
+function erankly_ai_render_editor_privacy_notice(): void {
+	$limit = erankly_ai_get_content_limit();
+	?>
+	<p class="description erankly-ai-privacy">
+		<?php
+		printf(
+			/* translators: %d: maximum plain-text body characters sent to the provider. */
+			esc_html__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
+			$limit
+		);
+		?>
+	</p>
+	<?php
+}
+
+/**
+ * Renders the AI data-privacy notice on the settings AI tab.
+ *
+ * @return void
+ */
+function erankly_ai_render_settings_privacy_notice(): void {
+	$limit           = erankly_ai_get_content_limit();
+	$connectors_link = sprintf(
+		'<a href="%1$s">%2$s</a>',
+		esc_url( erankly_ai_connectors_screen_url() ),
+		esc_html__( 'Connectors', 'easyrankly' )
+	);
+	?>
+	<div class="notice notice-info inline erankly-ai-privacy-notice">
+		<div class="erankly-ai-privacy-notice__content">
+			<p><strong><?php esc_html_e( 'Data sent to your AI provider', 'easyrankly' ); ?></strong></p>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: link to the WordPress Connectors settings screen. */
+					esc_html__( 'When an editor clicks Generate with AI or Improve results, EasyRankly sends context to the AI provider configured on the %s screen. EasyRankly does not operate that service and does not receive a copy of the content.', 'easyrankly' ),
+					wp_kses( $connectors_link, array( 'a' => array( 'href' => array() ) ) )
+				);
+				?>
+			</p>
+			<p><?php esc_html_e( 'Meta generation may include:', 'easyrankly' ); ?></p>
+			<ul class="ul-disc">
+				<li><?php esc_html_e( 'Site name and language (locale).', 'easyrankly' ); ?></li>
+				<li><?php esc_html_e( 'Post, term, or special-page title.', 'easyrankly' ); ?></li>
+				<li>
+					<?php
+					printf(
+						/* translators: %d: maximum plain-text body characters sent to the provider. */
+						esc_html__( 'Plain-text body or description, truncated to %1$d characters (shortcodes removed).', 'easyrankly' ),
+						$limit
+					);
+					?>
+				</li>
+				<li><?php esc_html_e( 'When improving: the current title and description, plus your instructions.', 'easyrankly' ); ?></li>
+			</ul>
+			<p>
+				<?php esc_html_e( 'Health redirect suggestions (when enabled) send only the broken URL slug words and a numbered list of existing page titles and paths from your site — never full post bodies.', 'easyrankly' ); ?>
+			</p>
+		</div>
+	</div>
+	<?php
+}
+
+/**
  * URL of the core Connectors settings screen. Filterable because the exact
  * screen slug is owned by core and may move between releases.
  *
@@ -1112,8 +1277,49 @@ function erankly_ai_render_settings_panel( string $active_panel ): void {
 		<?php if ( $autosave_active ) : ?>
 		<?php endif; ?>
 		<div class="erankly-settings-section">
+			<?php erankly_ai_render_settings_privacy_notice(); ?>
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Meta generation prompt', 'easyrankly' ); ?></h3>
 			<div class="erankly-settings-fields erankly-card">
+				<?php
+				$content_limit       = erankly_ai_snap_content_limit_to_step( erankly_ai_get_content_limit() );
+				$content_limit_steps = erankly_ai_get_content_limit_steps();
+				?>
+				<div class="erankly-field">
+					<span id="erankly-ai-content-limit-label"><strong><?php esc_html_e( 'Body character limit', 'easyrankly' ); ?></strong></span>
+					<p class="description">
+						<?php
+						printf(
+							/* translators: 1: minimum characters. 2: maximum characters. */
+							esc_html__( 'Maximum plain-text body or description characters sent to the model (%1$d–%2$d). Lower values reduce token usage; higher values give the model more context.', 'easyrankly' ),
+							ERANKLY_AI_CONTENT_LIMIT_MIN,
+							ERANKLY_AI_CONTENT_LIMIT_MAX
+						);
+						?>
+					</p>
+					<div
+						class="nav-tab-wrapper wp-clearfix erankly-tabs erankly-segment-control"
+						role="radiogroup"
+						aria-labelledby="erankly-ai-content-limit-label"
+						data-erankly-segment-control
+					>
+						<?php foreach ( $content_limit_steps as $step_value ) : ?>
+							<?php $input_id = 'erankly-ai-content-limit-' . $step_value; ?>
+							<label
+								class="nav-tab erankly-tab<?php echo $content_limit === $step_value ? ' nav-tab-active is-active' : ''; ?>"
+								for="<?php echo esc_attr( $input_id ); ?>"
+							>
+								<input
+									type="radio"
+									id="<?php echo esc_attr( $input_id ); ?>"
+									name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_content_limit]"
+									value="<?php echo esc_attr( (string) $step_value ); ?>"
+									<?php checked( $content_limit, $step_value ); ?>
+								>
+								<?php echo esc_html( number_format_i18n( $step_value ) ); ?>
+							</label>
+						<?php endforeach; ?>
+					</div>
+				</div>
 				<div class="erankly-field">
 					<label for="erankly-ai-prompt"><strong><?php esc_html_e( 'Prompt template', 'easyrankly' ); ?></strong></label>
 					<p class="description"><?php esc_html_e( 'Instructions the AI uses to generate the meta title and description; edit to customise tone and rules. Leave empty or unchanged to keep the built-in prompt and its future updates.', 'easyrankly' ); ?></p>

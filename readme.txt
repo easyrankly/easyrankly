@@ -57,6 +57,20 @@ No analytics, tracking, telemetry, or EasyRankly phone-home calls are added. The
 
 If you enable AI meta generation, EasyRankly sends page context to the AI provider connected in WordPress only when an editor clicks the Generate with AI button. EasyRankly does not provide its own AI service or receive that content.
 
+= What data does EasyRankly send to the AI provider? =
+
+Only when someone explicitly triggers an AI action — never automatically on page views.
+
+**Meta generation (editor):** when Generate with AI or Improve results is clicked, EasyRankly may send the site name, the site language (locale), the post/term/special-page title, plain-text body or description truncated to your configured character limit (shortcodes removed), and — when improving — the current title, description, and your instructions. Nothing is sent until the button is clicked.
+
+**Health redirect suggestions (optional):** when Suggest with AI is used for a 404, EasyRankly sends only the broken URL slug words and a numbered list of existing page titles and paths from your site. Full post bodies are never included. Anonymized 404 paths (containing privacy placeholders) are skipped.
+
+All AI requests go through the provider configured on Settings → Connectors in WordPress. Review that provider's terms and data processing policy for retention and training use.
+
+= What is the body character limit for AI meta generation? =
+
+In Advanced mode, Settings → EasyRankly → AI lets you set how many plain-text characters of body or description are included in the prompt (4,000–64,000 in ×4 steps; default 4,000). Lower values use fewer tokens; higher values give the model more context.
+
 = What do I need for AI meta generation to work? =
 
 AI meta generation relies on WordPress' native AI and Connectors APIs, which are available in WordPress 7.0 and later. On earlier WordPress versions, or when no AI provider is connected, the feature stays completely inactive and EasyRankly falls back to its built-in, non-AI title and description logic — nothing else changes. Even where the APIs are available, the feature is off until you enable it under Settings > EasyRankly > AI and connect a provider on the WordPress Connectors screen.
@@ -91,7 +105,6 @@ Major release: the admin interface has been rebuilt from the ground up, with AI-
 * Reorganized the Advanced settings tab into clearer, consistently titled sections (Indexing & robots directives, robots.txt, Pagination, Attachment pages).
 * Saving settings now keeps you on the active tab instead of returning to General.
 * EasyRankly document panels now appear after the default WordPress editor panels.
-* The floating SEO checklist is isolated from frontend theme button styles for a consistent appearance.
 * On Multisite block-theme sites, the per-site menu is hidden when no local panel (Health or Redirects) is available.
 * Removed a redundant notice on the multilingual setting when the site is not running WordPress Multisite.
 
