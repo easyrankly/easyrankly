@@ -171,8 +171,6 @@ function erankly_bootstrap(): void {
 		erankly_admin_bootstrap();
 	}
 
-	erankly_seo_checklist_boot();
-
 	if ( erankly_is_frontend_html_request() ) {
 		add_action( 'wp', 'erankly_bootstrap_frontend_modules', 1 );
 	}

@@ -20,11 +20,13 @@
 		ToggleControl,
 	} = wp.components;
 	const { createElement: el, useEffect, useRef, useState } = wp.element;
+	const { useSelect } = wp.data;
 	const { __, sprintf } = wp.i18n;
 	const PANEL_ORDER = [
 		'erankly-panel--appearance',
 		'erankly-panel--social',
 		'erankly-panel--visibility',
+		'erankly-panel--checklist',
 		'erankly-panel--translations',
 	];
 
@@ -789,16 +791,99 @@
 		return fields;
 	}
 
+	const SEO_CHECKLIST_ITEMS = [
+		{ key: 'title', label: __( 'Meta title', 'easyrankly' ) },
+		{ key: 'description', label: __( 'Meta description', 'easyrankly' ) },
+		{ key: 'featured_image', label: __( 'Featured image', 'easyrankly' ) },
+	];
+
+	function SeoChecklistView( { items } ) {
+		const done = items.filter( ( item ) => item.done ).length;
+		let status = 'is-partial';
+
+		if ( 0 === done ) {
+			status = 'is-incomplete';
+		} else if ( done === items.length ) {
+			status = 'is-complete';
+		}
+
+		return el(
+			'div',
+			{ className: 'erankly-seo-checklist ' + status },
+			el(
+				'div',
+				{ className: 'erankly-seo-checklist-intro' },
+				el(
+					'p',
+					{ className: 'description erankly-seo-checklist-help' },
+					__( 'Complete these items to improve this page\'s search appearance.', 'easyrankly' )
+				),
+				el( 'span', { className: 'erankly-seo-checklist-count' }, done + '/' + items.length )
+			),
+			el(
+				'ul',
+				{ className: 'erankly-seo-checklist-items' },
+				items.map( ( item ) => el(
+					'li',
+					{
+						className: 'erankly-seo-checklist-item' + ( item.done ? ' is-done' : '' ),
+						key: item.key,
+					},
+					el(
+						'span',
+						{ 'aria-hidden': true, className: 'erankly-seo-checklist-check' },
+						el( 'svg', {
+							fill: 'none',
+							stroke: 'currentColor',
+							strokeLinecap: 'round',
+							strokeLinejoin: 'round',
+							strokeWidth: 3,
+							viewBox: '0 0 24 24',
+						}, el( 'path', { d: 'M5 12.5l4.5 4.5L19 7.5' } ) )
+					),
+					el( 'span', { className: 'erankly-seo-checklist-label' }, item.label )
+				) )
+			)
+		);
+	}
+
+	function usePostSeoChecklistItems() {
+		const state = useSelect( ( select ) => {
+			const editor = select( 'core/editor' );
+			const meta = editor.getEditedPostAttribute( 'meta' ) || {};
+
+			return {
+				title: '' !== String( meta._erankly_title || '' ).trim(),
+				description: '' !== String( meta._erankly_description || '' ).trim(),
+				featured_image: ( editor.getEditedPostAttribute( 'featured_media' ) || 0 ) > 0,
+			};
+		}, [] );
+
+		return SEO_CHECKLIST_ITEMS.map( ( item ) => ( {
+			...item,
+			done: Boolean( state[ item.key ] ),
+		} ) );
+	}
+
+	function seoChecklistFields() {
+		const items = usePostSeoChecklistItems();
+
+		return [ el( SeoChecklistView, { items, key: 'checklist' } ) ];
+	}
+
 	window.eranklyShared = {
+		SeoChecklistView,
 		SerpPreviewView,
 		SocialImageControl,
 		VariableControl,
 		searchAppearanceFields,
+		seoChecklistFields,
 		serpBreadcrumb,
 		serpFirstContentImage,
 		serpResolveVariables,
 		socialFields,
 		usePanelsAfterDefaults,
+		usePostSeoChecklistItems,
 		visibilityFields,
 	};
 }() );

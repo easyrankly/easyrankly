@@ -467,10 +467,6 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 						<p class="description"><?php esc_html_e( 'Shows the essential controls and automates advanced SEO defaults.', 'easyrankly' ); ?></p>
 					</fieldset>
 					<fieldset class="erankly-field erankly-checkboxes">
-						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_seo_checklist]" value="1" <?php checked( erankly_seo_checklist_preference_enabled() ); ?>> <strong><?php esc_html_e( 'Show the SEO checklist', 'easyrankly' ); ?></strong></label>
-						<p class="description"><?php esc_html_e( 'Shows a floating checklist (meta title, meta description, featured image) in the editor and frontend. Requires Simplified mode.', 'easyrankly' ); ?></p>
-					</fieldset>
-					<fieldset class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[add_head_credit]" value="1" <?php checked( empty( $settings['hide_head_credit'] ) ); ?>> <strong><?php esc_html_e( 'Add the "optimized with EasyRankly" comment to the page source', 'easyrankly' ); ?></strong></label>
 						<p class="description"><?php esc_html_e( 'Wraps the plugin\'s <head> output in an HTML comment that identifies EasyRankly in the page source.', 'easyrankly' ); ?></p>
 					</fieldset>

@@ -744,6 +744,7 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 			'translationSearchPath'         => '/erankly/v1/ml/search',
 			'aiEnabled'                     => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
 			'aiGeneratePath'                => '/erankly/v1/ai/generate',
+			'aiContentLimit'                => function_exists( 'erankly_ai_get_content_limit' ) ? erankly_ai_get_content_limit() : 4000,
 		)
 	);
 }
@@ -830,6 +831,7 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'contextLabels'                  => erankly_special_page_keys(),
 			'aiEnabled'                      => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
 			'aiGeneratePath'                 => '/erankly/v1/ai/generate',
+			'aiContentLimit'                 => function_exists( 'erankly_ai_get_content_limit' ) ? erankly_ai_get_content_limit() : 4000,
 			'descriptionPlaceholder'         => '',
 			'homeUrl'                        => home_url( '/' ),
 			'ogDescriptionPlaceholder'       => (string) erankly_get_setting( 'default_og_description', '' ),

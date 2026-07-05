@@ -119,7 +119,9 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'ai_prompt_template'             => isset( $input['ai_prompt_template'] ) && function_exists( 'erankly_ai_sanitize_prompt_template' )
 			? erankly_ai_sanitize_prompt_template( $input['ai_prompt_template'] )
 			: (string) erankly_get_setting( 'ai_prompt_template', '' ),
-		'enable_seo_checklist'           => ! empty( $input['enable_seo_checklist'] ) ? 1 : 0,
+		'ai_content_limit'               => isset( $input['ai_content_limit'] ) && function_exists( 'erankly_ai_sanitize_content_limit' )
+			? erankly_ai_sanitize_content_limit( $input['ai_content_limit'] )
+			: (int) erankly_get_setting( 'ai_content_limit', 4000 ),
 		'enable_sitemap'                 => ! empty( $input['enable_sitemap'] ) ? 1 : 0,
 		'enable_health'                  => ! empty( $input['enable_health'] ) ? 1 : 0,
 		'enable_news_sitemap'            => ! empty( $input['enable_news_sitemap'] ) ? 1 : 0,
@@ -228,7 +230,7 @@ function erankly_general_panel_setting_keys(): array {
 function erankly_settings_autosave_panels(): array {
 	return array(
 		'general'  => array( 'keys' => erankly_general_panel_setting_keys() ),
-		'ai'       => array( 'keys' => array( 'ai_prompt_template' ) ),
+		'ai'       => array( 'keys' => array( 'ai_prompt_template', 'ai_content_limit' ) ),
 		'advanced' => array(
 			'keys' => array(
 				'robots_max_image_preview_large',
@@ -280,7 +282,6 @@ function erankly_settings_autosave_panels(): array {
 		'settings' => array(
 			'keys'      => array(
 				'simplified_mode',
-				'enable_seo_checklist',
 				'add_head_credit',
 				'resolve_placeholders',
 				'redirect_exclude_admins',

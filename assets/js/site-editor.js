@@ -25,7 +25,7 @@
 	const { Button, Notice, SelectControl, Spinner, TextareaControl } = wp.components;
 	const { useDispatch, useSelect } = wp.data;
 	const { createElement: el, Fragment, useState } = wp.element;
-	const { __ } = wp.i18n;
+	const { __, sprintf } = wp.i18n;
 	const { registerPlugin } = wp.plugins;
 	const specialMetaSetting = config.specialMetaSetting;
 
@@ -212,6 +212,15 @@
 		return el(
 			'div',
 			{ className: 'erankly-ai-field' },
+			el(
+				'p',
+				{ className: 'description erankly-ai-privacy' },
+				sprintf(
+					/* translators: %d: maximum plain-text body characters sent to the provider. */
+					__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
+					config.aiContentLimit || 4000
+				)
+			),
 			el(
 				Button,
 				{ variant: 'secondary', isBusy: busy, disabled: busy, onClick: () => generate( false ) },

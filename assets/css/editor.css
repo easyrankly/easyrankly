@@ -306,6 +306,13 @@
 	margin-top: 12px;
 }
 
+.erankly-ai-privacy {
+	margin: 0 0 10px;
+	color: #646970;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
 .erankly-ai-field .components-button {
 	width: 100%;
 	justify-content: center;
@@ -327,4 +334,95 @@
 
 .erankly-ai-field .erankly-ai-notice {
 	margin: 8px 0 0;
+}
+
+/* SEO checklist */
+.erankly-panel--checklist .erankly-seo-checklist {
+	margin-top: 0;
+}
+
+.erankly-seo-checklist-intro {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.erankly-seo-checklist-help {
+	flex: 1;
+	margin: 0;
+}
+
+.erankly-seo-checklist-count {
+	flex-shrink: 0;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: #fff;
+	border-radius: 999px;
+}
+
+.erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
+	background: #d63638;
+}
+
+.erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
+	background: #f59e0b;
+}
+
+.erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
+	background: #00a32a;
+}
+
+.erankly-seo-checklist-items {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.erankly-seo-checklist-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 6px 0;
+}
+
+.erankly-seo-checklist-check {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: #fff;
+	border: 2px solid #c3c4c7;
+	border-radius: 50%;
+	box-sizing: border-box;
+}
+
+.erankly-seo-checklist-check svg {
+	width: 10px;
+	height: 10px;
+	opacity: 0;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
+	background: #00a32a;
+	border-color: #00a32a;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
+	opacity: 1;
+}
+
+.erankly-seo-checklist-label {
+	font-size: 13px;
+	line-height: 1.4;
+	color: #1d2327;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
+	color: #787c82;
 }

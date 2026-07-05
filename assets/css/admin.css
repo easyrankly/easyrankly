@@ -40,7 +40,7 @@
 	display: flex;
 	flex: 0 0 220px;
 	flex-direction: column;
-	padding: 0 8px 8px;
+	padding: 0;
 	position: sticky;
 	top: 42px;
 }
@@ -1082,6 +1082,93 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	margin-top: 16px;
 }
 
+/* SEO checklist (classic meta box) */
+.erankly-meta-box .erankly-seo-checklist-intro {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.erankly-meta-box .erankly-seo-checklist-help {
+	flex: 1;
+	margin: 0;
+}
+
+.erankly-meta-box .erankly-seo-checklist-count {
+	flex-shrink: 0;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: #fff;
+	border-radius: 999px;
+}
+
+.erankly-meta-box .erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
+	background: #d63638;
+}
+
+.erankly-meta-box .erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
+	background: #f59e0b;
+}
+
+.erankly-meta-box .erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
+	background: #00a32a;
+}
+
+.erankly-meta-box .erankly-seo-checklist-items {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.erankly-meta-box .erankly-seo-checklist-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 6px 0;
+}
+
+.erankly-meta-box .erankly-seo-checklist-check {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: #fff;
+	border: 2px solid #c3c4c7;
+	border-radius: 50%;
+	box-sizing: border-box;
+}
+
+.erankly-meta-box .erankly-seo-checklist-check svg {
+	width: 10px;
+	height: 10px;
+	opacity: 0;
+}
+
+.erankly-meta-box .erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
+	background: #00a32a;
+	border-color: #00a32a;
+}
+
+.erankly-meta-box .erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
+	opacity: 1;
+}
+
+.erankly-meta-box .erankly-seo-checklist-label {
+	font-size: 13px;
+	line-height: 1.4;
+	color: #1d2327;
+}
+
+.erankly-meta-box .erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
+	color: #787c82;
+}
+
 /* Without JavaScript, expose every settings panel and hide inactive tab controls. */
 .no-js .erankly-settings .erankly-settings-sidebar-nav {
 	display: none;
@@ -1903,6 +1990,11 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	gap: 6px;
 }
 
+.erankly-ai-privacy {
+	margin: 0;
+	max-width: 52em;
+}
+
 .erankly-ai-field .button {
 	width: 100%;
 	text-align: center;
@@ -1934,6 +2026,35 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-ai-status.erankly-ai-error {
 	color: var(--erankly-color-error);
+}
+
+.erankly-ai-privacy-notice {
+	margin: 0 0 20px;
+	max-width: 52em;
+}
+
+.erankly-ai-privacy-notice__content {
+	flex: 1 1 auto;
+	max-width: 100%;
+	min-width: 0;
+}
+
+.erankly-ai-privacy-notice__content p {
+	flex: none;
+	margin: 0 0 0.75em;
+}
+
+.erankly-ai-privacy-notice__content ul {
+	flex: none;
+	margin: 0 0 0.75em 1.5em;
+}
+
+.erankly-ai-privacy-notice__content > :last-child {
+	margin-bottom: 0;
+}
+
+.erankly-ai-privacy-notice .ul-disc {
+	list-style: disc;
 }
 
 /*

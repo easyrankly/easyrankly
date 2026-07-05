@@ -46,7 +46,6 @@ msgstr ""
 #: admin/meta-box.php:391
 #: admin/settings-page.php:860
 #: admin/settings-page.php:1069
-#: includes/seo-checklist.php:234
 msgid "Meta title"
 msgstr ""
 
@@ -70,7 +69,6 @@ msgstr ""
 #: admin/meta-box.php:531
 #: admin/settings-page.php:867
 #: admin/settings-page.php:1076
-#: includes/seo-checklist.php:238
 msgid "Meta description"
 msgstr ""
 
@@ -1059,20 +1057,6 @@ msgstr ""
 
 #: admin/settings/panels.php:448
 msgid "Shows the essential controls and automates advanced SEO defaults."
-msgstr ""
-
-#: admin/settings/panels.php:406
-#: includes/seo-checklist.php:278
-#: includes/seo-checklist.php:300
-msgid "SEO checklist"
-msgstr ""
-
-#: admin/settings/panels.php:407
-msgid "Show the SEO checklist"
-msgstr ""
-
-#: admin/settings/panels.php:408
-msgid "Adds a small floating checklist (meta title, meta description, featured image) to the post editor and to the frontend for users who can edit the content. Available only while Simplified mode is active."
 msgstr ""
 
 #: admin/settings/panels.php:411
@@ -2222,18 +2206,6 @@ msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:435
 msgid "&raquo;"
-msgstr ""
-
-#: includes/seo-checklist.php:242
-msgid "Featured image"
-msgstr ""
-
-#: includes/seo-checklist.php:292
-msgid "How to do it"
-msgstr ""
-
-#: includes/seo-checklist.php:298
-msgid "Hide for 10 seconds"
 msgstr ""
 
 #. translators: %s: Search query.

@@ -93,6 +93,104 @@
     });
   }
 
+  function bindSeoChecklist(root) {
+    var checklist = root.querySelector("[data-erankly-seo-checklist]");
+
+    if (!checklist) {
+      return;
+    }
+
+    var count = checklist.querySelector("[data-erankly-seo-checklist-count]");
+    var statusClasses = ["is-incomplete", "is-partial", "is-complete"];
+    var state = {};
+
+    checklist
+      .querySelectorAll("[data-erankly-seo-checklist-item]")
+      .forEach(function (item) {
+        state[item.getAttribute("data-erankly-seo-checklist-item")] =
+          item.classList.contains("is-done");
+      });
+
+    function apply() {
+      var keys = Object.keys(state);
+      var done = keys.filter(function (key) {
+        return state[key];
+      }).length;
+      var status = "is-partial";
+
+      if (done === 0) {
+        status = "is-incomplete";
+      } else if (done === keys.length) {
+        status = "is-complete";
+      }
+
+      keys.forEach(function (key) {
+        var item = checklist.querySelector(
+          '[data-erankly-seo-checklist-item="' + key + '"]',
+        );
+
+        if (item) {
+          item.classList.toggle("is-done", state[key]);
+        }
+      });
+
+      statusClasses.forEach(function (statusClass) {
+        checklist.classList.toggle(statusClass, statusClass === status);
+      });
+
+      if (count) {
+        count.textContent = done + "/" + keys.length;
+      }
+    }
+
+    function update(key, done) {
+      if (!(key in state) || state[key] === done) {
+        return;
+      }
+
+      state[key] = done;
+      apply();
+    }
+
+    var titleField = document.getElementById("erankly-title");
+    var descriptionField = document.getElementById("erankly-description");
+
+    if (titleField) {
+      titleField.addEventListener("input", function () {
+        update("title", "" !== titleField.value.trim());
+      });
+    }
+
+    if (descriptionField) {
+      descriptionField.addEventListener("input", function () {
+        update("description", "" !== descriptionField.value.trim());
+      });
+    }
+
+    var imageBox = document.getElementById("postimagediv");
+
+    if (imageBox && window.MutationObserver) {
+      var lastId = null;
+
+      function checkFeaturedImage() {
+        var input = document.getElementById("_thumbnail_id");
+        var id = input ? parseInt(input.value, 10) : 0;
+
+        if (id === lastId) {
+          return;
+        }
+
+        lastId = id;
+        update("featured_image", id > 0);
+      }
+
+      new MutationObserver(checkFeaturedImage).observe(imageBox, {
+        childList: true,
+        subtree: true,
+      });
+    }
+  }
+
   function bindTabs(container) {
     var tabLists = Array.prototype.slice.call(
       container.querySelectorAll(".erankly-tabs"),
@@ -512,9 +610,6 @@
 
   function bindSimplifiedMode(root) {
     var simplifiedMode = root.querySelector('input[name$="[simplified_mode]"]');
-    var seoChecklist = root.querySelector(
-      'input[name$="[enable_seo_checklist]"]',
-    );
     var advancedTab = root.querySelector("[data-erankly-advanced-tab]");
     var advancedPanel = root.querySelector("[data-erankly-advanced-panel]");
     var customSchemaSection = root.querySelector(
@@ -529,21 +624,6 @@
     var postDateSettingsSection = root.querySelector(
       "[data-erankly-post-date-settings-section]",
     );
-
-    if (simplifiedMode && seoChecklist) {
-      var syncSeoChecklist = function () {
-        seoChecklist.disabled = !simplifiedMode.checked;
-
-        if (!simplifiedMode.checked && seoChecklist.checked) {
-          seoChecklist.checked = false;
-          seoChecklist.dispatchEvent(new Event("input", { bubbles: true }));
-          seoChecklist.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      };
-
-      simplifiedMode.addEventListener("change", syncSeoChecklist);
-      syncSeoChecklist();
-    }
 
     if (!simplifiedMode || !advancedTab || !advancedPanel) {
       return;
@@ -2061,6 +2141,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".erankly-meta-box").forEach(bindTabs);
+    document.querySelectorAll(".erankly-meta-box").forEach(bindSeoChecklist);
     document
       .querySelectorAll("[data-erankly-expandable]")
       .forEach(bindExpandablePanel);

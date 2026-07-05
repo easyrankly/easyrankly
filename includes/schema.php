@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once ERANKLY_PATH . 'includes/schema-content.php';
+
 /**
  * Renders JSON-LD schema.
  *
@@ -86,6 +88,28 @@ function erankly_get_schema_graph(): array {
 			}
 
 			$graph[] = $local_business;
+		}
+
+		$howto = erankly_schema_howto( $post_id );
+
+		if ( ! empty( $howto ) ) {
+			$graph[] = $howto;
+		}
+
+		$event = erankly_schema_event( $post_id );
+
+		if ( ! empty( $event ) ) {
+			$graph[] = $event;
+		}
+
+		$service = erankly_schema_service_for_page( $post_id );
+
+		if ( ! empty( $service ) ) {
+			$graph[] = $service;
+		}
+
+		foreach ( erankly_schema_video_objects( $post_id ) as $video_object ) {
+			$graph[] = $video_object;
 		}
 	} elseif ( ! is_404() ) {
 		$graph[] = erankly_schema_webpage( 0, $breadcrumb_id );

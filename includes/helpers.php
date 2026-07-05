@@ -19,3 +19,4 @@ require_once ERANKLY_PATH . 'includes/helpers/sanitization.php';
 require_once ERANKLY_PATH . 'includes/helpers/global-meta.php';
 require_once ERANKLY_PATH . 'includes/helpers/template-variables.php';
 require_once ERANKLY_PATH . 'includes/helpers/utils.php';
+require_once ERANKLY_PATH . 'includes/helpers/video.php';

@@ -13,7 +13,7 @@
 		( wp.editor && wp.editor.PluginDocumentSettingPanel ) ||
 		( wp.editPost && wp.editPost.PluginDocumentSettingPanel );
 	const { createElement: el, Fragment, useEffect, useState } = wp.element;
-	const { __ } = wp.i18n;
+	const { __, sprintf } = wp.i18n;
 	const { registerPlugin } = wp.plugins;
 	const config = eranklyEditor;
 
@@ -172,6 +172,15 @@
 			'div',
 			{ className: 'erankly-ai-field' },
 			el(
+				'p',
+				{ className: 'description erankly-ai-privacy' },
+				sprintf(
+					/* translators: %d: maximum plain-text body characters sent to the provider. */
+					__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
+					config.aiContentLimit || 4000
+				)
+			),
+			el(
 				Button,
 				{ variant: 'secondary', isBusy: busy, disabled: busy, onClick: () => generate( false ) },
 				'generate' === busyAction ? __( 'Generating…', 'easyrankly' ) : __( 'Generate with AI', 'easyrankly' )
@@ -265,6 +274,18 @@
 				title: __( 'Search visibility', 'easyrankly' ),
 			},
 			...shared.visibilityFields( { config, data, features: FEATURES } )
+		);
+	}
+
+	function SeoChecklistPanel() {
+		return el(
+			PluginDocumentSettingPanel,
+			{
+				className: 'erankly-panel erankly-panel--checklist',
+				name: 'erankly-checklist',
+				title: __( 'SEO checklist', 'easyrankly' ),
+			},
+			...shared.seoChecklistFields()
 		);
 	}
 
@@ -423,6 +444,7 @@
 			el( GeneralPanel ),
 			! config.simplifiedMode && el( SocialPanel ),
 			el( VisibilityPanel ),
+			el( SeoChecklistPanel ),
 			config.multilingual && el( TranslationsPanel )
 		);
 	}
