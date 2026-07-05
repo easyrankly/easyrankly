@@ -1152,7 +1152,7 @@ final class ERankly_ML_Admin {
 					<?php esc_html_e( 'Renders a <select> listing all linked translation languages. Selecting one navigates the visitor to that version of the article.', 'easyrankly' ); ?>
 				</p>
 				<p><code><?php echo esc_html( '[erankly_language_switcher]' ); ?></code></p>
-				<table class="widefat striped" style="max-width:640px;margin-top:.5rem;">
+				<table class="widefat striped erankly-table-compact">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Attribute', 'easyrankly' ); ?></th>
@@ -1173,12 +1173,12 @@ final class ERankly_ML_Admin {
 						</tr>
 					</tbody>
 				</table>
-				<p class="description" style="margin-top:.5rem;">
+				<p class="description erankly-mt-sm">
 					<?php esc_html_e( 'Example:', 'easyrankly' ); ?>
 					<code><?php echo esc_html( '[erankly_language_switcher class="my-switcher" label="Select language"]' ); ?></code>
 				</p>
 
-				<h4 style="margin-top:1.5rem;"><?php esc_html_e( '2. Translation Notice', 'easyrankly' ); ?></h4>
+				<h4 class="erankly-mt-lg"><?php esc_html_e( '2. Translation Notice', 'easyrankly' ); ?></h4>
 				<p class="description">
 					<?php esc_html_e( 'Renders a dismissible notice <div>. Hidden server-side, it is shown by JavaScript only when the visitor\'s browser language matches an available translation, using the text set in "Translation Notice texts" above. Dismissals are remembered in localStorage.', 'easyrankly' ); ?>
 				</p>
@@ -1186,7 +1186,7 @@ final class ERankly_ML_Admin {
 				<p class="description">
 					<?php esc_html_e( 'Notice texts are no longer passed as attributes; they are managed globally per language above, so the banner always appears in the reader\'s own language. Only presentation attributes remain:', 'easyrankly' ); ?>
 				</p>
-				<table class="widefat striped" style="max-width:640px;margin-top:.5rem;">
+				<table class="widefat striped erankly-table-compact">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Attribute', 'easyrankly' ); ?></th>
@@ -1212,7 +1212,7 @@ final class ERankly_ML_Admin {
 						</tr>
 					</tbody>
 				</table>
-				<p class="description" style="margin-top:.5rem;">
+				<p class="description erankly-mt-sm">
 					<?php
 					esc_html_e( 'The {language} token (inside the global texts) is replaced client-side with the matched translation\'s native language name (e.g. "Italiano"). Example:', 'easyrankly' );
 					?>

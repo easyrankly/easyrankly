@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: EasyRankly 2.0.0\n"
+"Project-Id-Version: EasyRankly 2.1.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easyrankly\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2224,6 +2224,18 @@ msgstr ""
 msgid "Add a meta description to control this text in search results."
 msgstr ""
 
+#: assets/js/accordion-faq-schema.js:55
+msgid "EasyRankly"
+msgstr ""
+
+#: assets/js/accordion-faq-schema.js:59
+msgid "Generate FAQ schema"
+msgstr ""
+
+#: assets/js/accordion-faq-schema.js:60
+msgid "Output FAQPage JSON-LD from accordion titles and panel content."
+msgstr ""
+
 #: assets/js/site-editor.js:171
 msgid "EasyRankly settings are not available in the Site Editor."
 msgstr ""
@@ -2274,4 +2286,49 @@ msgstr ""
 
 #: assets/js/editor-shared.js:460
 msgid "X (Twitter) card type"
+msgstr ""
+
+#: includes/seo-checklist.php:23
+#: assets/js/editor-shared.js:799
+msgid "Search appearance"
+msgstr ""
+
+#: includes/seo-checklist.php:24
+#: assets/js/editor-shared.js:800
+msgid "Indexing"
+msgstr ""
+
+#: includes/seo-checklist.php:207
+#: assets/js/editor-shared.js:808
+msgid "SEO title within recommended length"
+msgstr ""
+
+#: includes/seo-checklist.php:212
+#: assets/js/editor-shared.js:813
+msgid "Meta description within recommended length"
+msgstr ""
+
+#: includes/seo-checklist.php:217
+#: assets/js/editor-shared.js:818
+msgid "Preview image available"
+msgstr ""
+
+#: includes/seo-checklist.php:222
+#: assets/js/editor-shared.js:823
+msgid "Indexable by search engines"
+msgstr ""
+
+#: includes/seo-checklist.php:227
+#: assets/js/editor-shared.js:828
+msgid "Minimum content length"
+msgstr ""
+
+#: includes/seo-checklist.php:235
+#: assets/js/editor-shared.js:837
+msgid "Custom social image"
+msgstr ""
+
+#: includes/seo-checklist.php:240
+#: assets/js/editor-shared.js:842
+msgid "Canonical URL set"
 msgstr ""

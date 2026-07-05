@@ -21,10 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param bool                $sitemap_enabled      Whether the sitemap module is enabled.
  * @param bool                $health_enabled       Whether the Health module is enabled.
  * @param bool                $multilingual_enabled Whether the multilingual feature is enabled.
+ * @param bool                $ai_provider_available Whether an AI provider is available.
  * @param string              $active_panel         Active panel ID.
  * @return void
  */
-function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $health_enabled, bool $multilingual_enabled, string $active_panel ): void {
+function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $health_enabled, bool $multilingual_enabled, bool $ai_provider_available, string $active_panel ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the
 	// only place autosave applies.
@@ -48,11 +49,37 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_health]" value="1" <?php checked( $health_enabled ); ?>> <strong><?php esc_html_e( 'Enable Health monitoring', 'easyrankly' ); ?></strong></label>
 							<p class="description"><?php esc_html_e( 'Activates site health monitoring. Review findings from the Health tab.', 'easyrankly' ); ?></p>
 						</fieldset>
-						<?php if ( function_exists( 'erankly_ai_render_settings_field' ) ) : ?>
-							<?php erankly_ai_render_settings_field(); ?>
-						<?php endif; ?>
 						<fieldset class="erankly-field erankly-checkboxes">
-							<span style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
+							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_link_building]" value="1" <?php checked( erankly_link_building_enabled() ); ?>> <strong><?php esc_html_e( 'Enable internal link suggestions', 'easyrankly' ); ?></strong></label>
+							<p class="description"><?php esc_html_e( 'AI-powered inbound and outbound link suggestions in the post editor. Requires AI features to be enabled. Manage the link graph from the Internal links tab.', 'easyrankly' ); ?></p>
+						</fieldset>
+						<fieldset class="erankly-field erankly-checkboxes">
+							<span class="erankly-inline-row">
+								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_enabled]" value="1" <?php checked( ! empty( $settings['ai_enabled'] ) ); ?> <?php disabled( ! $ai_provider_available ); ?>> <strong><?php esc_html_e( 'Enable AI features', 'easyrankly' ); ?></strong></label>
+								<?php
+								if ( ! function_exists( 'wp_get_connectors' ) ) {
+									erankly_render_connectors_status();
+								} else {
+									erankly_render_ai_provider_status();
+								}
+								?>
+							</span>
+							<p class="description">
+								<?php
+								esc_html_e( 'Turns on the plugin\'s AI features.', 'easyrankly' );
+								if ( function_exists( 'wp_get_connectors' ) && ! $ai_provider_available ) {
+									echo ' ';
+									printf(
+										/* translators: %s: link to the WordPress Connectors settings screen. */
+										esc_html__( 'Connect a provider on the %s screen to enable.', 'easyrankly' ),
+										'<a href="' . esc_url( erankly_ai_connectors_admin_url() ) . '">' . esc_html__( 'Connectors', 'easyrankly' ) . '</a>'
+									);
+								}
+								?>
+							</p>
+						</fieldset>
+						<fieldset class="erankly-field erankly-checkboxes">
+							<span class="erankly-inline-row">
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_multilingual]" value="1" <?php checked( $multilingual_enabled ); ?> <?php disabled( ! is_multisite() ); ?>> <strong><?php esc_html_e( 'Enable multilingual', 'easyrankly' ); ?></strong></label>
 								<?php
 								if ( ! is_multisite() ) {

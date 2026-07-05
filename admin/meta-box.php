@@ -317,6 +317,9 @@ function erankly_render_meta_box( WP_Post $post ): void {
 			<?php endif; ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-visibility" role="tab" aria-selected="false" aria-controls="erankly-panel-visibility" data-erankly-tab="visibility"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-checklist" role="tab" aria-selected="false" aria-controls="erankly-panel-checklist" data-erankly-tab="checklist"><?php esc_html_e( 'SEO checklist', 'easyrankly' ); ?></button>
+			<?php if ( erankly_internal_links_available() && erankly_ai_module_enabled() ) : ?>
+			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-internal-links" role="tab" aria-selected="false" aria-controls="erankly-panel-internal-links" data-erankly-tab="internal-links"><?php esc_html_e( 'Internal links', 'easyrankly' ); ?></button>
+			<?php endif; ?>
 			<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() ) : ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-translations" role="tab" aria-selected="false" aria-controls="erankly-panel-translations" data-erankly-tab="translations"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
 			<?php endif; ?>
@@ -339,6 +342,12 @@ function erankly_render_meta_box( WP_Post $post ): void {
 		<div class="erankly-tab-panel" id="erankly-panel-checklist" role="tabpanel" aria-labelledby="erankly-tab-checklist" data-erankly-panel="checklist" hidden>
 			<?php erankly_render_post_seo_checklist( $post ); ?>
 		</div>
+
+		<?php if ( erankly_internal_links_available() && erankly_ai_module_enabled() && function_exists( 'erankly_render_post_internal_links_panel' ) ) : ?>
+		<div class="erankly-tab-panel" id="erankly-panel-internal-links" role="tabpanel" aria-labelledby="erankly-tab-internal-links" data-erankly-panel="internal-links" hidden>
+			<?php erankly_render_post_internal_links_panel( $post ); ?>
+		</div>
+		<?php endif; ?>
 
 		<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() && function_exists( 'erankly_ml_render_post_translations' ) ) : ?>
 		<div class="erankly-tab-panel" id="erankly-panel-translations" role="tabpanel" aria-labelledby="erankly-tab-translations" data-erankly-panel="translations" hidden>

@@ -4,7 +4,7 @@ Tags: seo, schema, sitemap, redirects, ai
 Requires at least: 6.2.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.0.0
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,12 +24,13 @@ Here's what it does:
 * **Smart redirects built in.** An optional redirect manager with exact, wildcard, and regex matching, with per-pattern safeguards that keep even complex regex rules fast and safe.
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
 * **Optional AI meta generation.** Generate or improve SEO titles and descriptions right from the editor when WordPress has a connected AI provider. It's off by default and uses WordPress' native AI/Connectors APIs (available in WordPress 7.0 and later); on earlier versions it stays inactive and EasyRankly uses its built-in, non-AI logic instead.
+* **Optional internal linking assistant.** Build a site-wide link graph, find orphan pages, get rule-based suggestions, and optionally refine with AI when AI features are enabled.
 * **Private health monitoring.** Optional 404 tracking that stays on your server — request paths are anonymized and cleaned up automatically, and no visitor data is ever collected.
 * **Dynamic variables** for filling in titles, social tags, and schema fields automatically.
 
 All of it lives in a redesigned, streamlined admin interface with a short setup wizard to get you configured in minutes.
 
-And what it leaves out, on purpose: no keyword scoring, no readability nags, no analytics or tracking, no internal-linking suggestions, no marketing widgets, and no upsells.
+And what it leaves out, on purpose: no keyword scoring, no readability nags, no analytics or tracking, no marketing widgets, and no upsells.
 
 == Installation ==
 
@@ -64,6 +65,8 @@ Only when someone explicitly triggers an AI action — never automatically on pa
 **Meta generation (editor):** when Generate with AI or Improve results is clicked, EasyRankly may send the site name, the site language (locale), the post/term/special-page title, plain-text body or description truncated to your configured character limit (shortcodes removed), and — when improving — the current title, description, and your instructions. Nothing is sent until the button is clicked.
 
 **Health redirect suggestions (optional):** when Suggest with AI is used for a 404, EasyRankly sends only the broken URL slug words and a numbered list of existing page titles and paths from your site. Full post bodies are never included. Anonymized 404 paths (containing privacy placeholders) are skipped.
+
+**Link Building suggestions (optional):** when Suggest with AI is used on the Links tab, EasyRankly sends the target page title and path plus a numbered list of candidate source page titles and paths (rule-based matches only). Full post bodies are never included.
 
 All AI requests go through the provider configured on Settings → Connectors in WordPress. Review that provider's terms and data processing policy for retention and training use.
 
@@ -119,6 +122,9 @@ Major release: the admin interface has been rebuilt from the ground up, with AI-
 * First public release.
 
 == Upgrade Notice ==
+
+= 2.1.0 =
+Adds Health → Broken-Link Candidates: an on-demand crawler that finds internal and external links returning 4xx/5xx across your indexable pages.
 
 = 2.0.0 =
 Major update: a rebuilt admin interface, optional AI-assisted meta generation, and a smarter redirect manager. Review your settings after updating.

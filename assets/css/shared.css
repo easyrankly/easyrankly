@@ -1,0 +1,236 @@
+/**
+ * EasyRankly — shared design tokens and cross-surface components.
+ *
+ * Loaded before admin.css and editor.css so both contexts share the same
+ * palette, suggestion menus, and SEO checklist styling.
+ */
+
+:root {
+	--erankly-radius-surface: 8px;
+	--erankly-radius-control: 6px;
+	--erankly-radius-compact: 5px;
+	--erankly-radius-popover: 4px;
+	--erankly-color-border: #dcdcde;
+	--erankly-color-border-strong: #949494;
+	--erankly-color-text: #1d2327;
+	--erankly-color-text-muted: #787c82;
+	--erankly-color-muted: #646970;
+	--erankly-color-surface: #fff;
+	--erankly-color-surface-hover: #f0f0f1;
+	--erankly-color-surface-subtle: #f6f7f7;
+	--erankly-color-control-border: #c3c4c7;
+	--erankly-color-info: var(--wp-admin-theme-color, #3858e9);
+	--erankly-color-info-surface: color-mix(in srgb, var(--erankly-color-info) 8%, #fff);
+	--erankly-color-info-border: color-mix(in srgb, var(--erankly-color-info) 28%, var(--erankly-color-border));
+	--erankly-color-success: #1a7f37;
+	--erankly-color-success-surface: #eef8f1;
+	--erankly-color-success-border: #b8d7c2;
+	--erankly-color-warning: #9a6700;
+	--erankly-color-warning-surface: #f8f3e8;
+	--erankly-color-warning-border: #d0bc98;
+	--erankly-color-error: #b32d2e;
+	--erankly-color-error-surface: #fcf0f1;
+	--erankly-color-error-border: #e7b7bd;
+	--erankly-color-danger: #d63638;
+	--erankly-color-checklist-partial: #f59e0b;
+	--erankly-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12);
+	--erankly-font-mono: Consolas, Monaco, monospace;
+}
+
+/* Layout utilities — replace one-off inline styles in PHP templates. */
+
+.erankly-inline-row {
+	align-items: center;
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-inline-form {
+	display: inline-block;
+	margin: 0 0 0 6px;
+}
+
+.erankly-mt-sm {
+	margin-top: 0.5rem;
+}
+
+.erankly-mt-lg {
+	margin-top: 1.5rem;
+}
+
+.erankly-table-compact {
+	margin-top: 0.5rem;
+	max-width: 640px;
+}
+
+/* Popover / suggestion menu surfaces. */
+
+.erankly-popover-surface,
+.erankly-editor-variable-popover .components-popover__content {
+	background: var(--erankly-color-surface);
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-popover);
+	box-shadow: var(--erankly-shadow-popover);
+}
+
+.erankly-suggest-menu,
+.erankly-variable-menu,
+.erankly-redirects-search-suggest,
+.erankly-editor-variable-menu {
+	background: var(--erankly-color-surface);
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-popover);
+	box-shadow: var(--erankly-shadow-popover);
+	box-sizing: border-box;
+	max-height: 260px;
+	overflow-y: auto;
+}
+
+.erankly-suggest-option,
+.erankly-variable-option,
+.erankly-redirects-suggest-option {
+	align-items: baseline;
+	background: none;
+	border: 0;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	margin: 0;
+	padding: 6px 10px;
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-suggest-option:hover,
+.erankly-suggest-option.is-active,
+.erankly-variable-option:hover,
+.erankly-variable-option.is-active,
+.erankly-redirects-suggest-option:hover,
+.erankly-redirects-suggest-option.is-active {
+	background: var(--erankly-color-surface-hover);
+}
+
+.erankly-suggest-option-primary,
+.erankly-variable-option-primary,
+.erankly-redirects-suggest-primary {
+	color: var(--erankly-color-text);
+	flex-shrink: 0;
+	font-family: var(--erankly-font-mono);
+	font-size: 12px;
+}
+
+.erankly-suggest-option-secondary,
+.erankly-variable-option-secondary,
+.erankly-redirects-suggest-secondary {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* SEO checklist — classic meta box and block editor sidebar. */
+
+.erankly-panel--checklist .erankly-seo-checklist {
+	margin-top: 0;
+}
+
+.erankly-seo-checklist-intro {
+	align-items: flex-start;
+	display: flex;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.erankly-seo-checklist-help {
+	flex: 1;
+	margin: 0;
+}
+
+.erankly-seo-checklist-count {
+	border-radius: 999px;
+	color: var(--erankly-color-surface);
+	flex-shrink: 0;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.4;
+	padding: 2px 8px;
+}
+
+.erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
+	background: var(--erankly-color-danger);
+}
+
+.erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
+	background: var(--erankly-color-checklist-partial);
+}
+
+.erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
+	background: var(--erankly-color-success);
+}
+
+.erankly-seo-checklist-items {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.erankly-seo-checklist-group + .erankly-seo-checklist-group {
+	margin-top: 14px;
+}
+
+.erankly-seo-checklist-group-label {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	margin: 0 0 8px;
+	text-transform: uppercase;
+}
+
+.erankly-seo-checklist-item {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+	margin: 0;
+	padding: 6px 0;
+}
+
+.erankly-seo-checklist-check {
+	align-items: center;
+	border: 2px solid var(--erankly-color-control-border);
+	border-radius: 50%;
+	box-sizing: border-box;
+	color: var(--erankly-color-surface);
+	display: flex;
+	flex: 0 0 auto;
+	height: 18px;
+	justify-content: center;
+	width: 18px;
+}
+
+.erankly-seo-checklist-check svg {
+	height: 10px;
+	opacity: 0;
+	width: 10px;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
+	background: var(--erankly-color-success);
+	border-color: var(--erankly-color-success);
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
+	opacity: 1;
+}
+
+.erankly-seo-checklist-label {
+	color: var(--erankly-color-text);
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
+	color: var(--erankly-color-text-muted);
+}

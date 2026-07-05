@@ -97,7 +97,7 @@ function erankly_reset_site_data(): void {
 	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
 
 	delete_option( ERANKLY_SPECIAL_META_OPTION );
-	delete_option( ERANKLY_REDIRECTS_DB_VERSION_OPTION );
+	delete_option( 'erankly_redirects_db_version' );
 	delete_option( 'erankly_redirects_runtime_rules' );
 	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
 	delete_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION );
@@ -107,6 +107,7 @@ function erankly_reset_site_data(): void {
 	delete_option( 'erankly_health_thin_content' );
 	delete_option( 'erankly_health_bl_state' );
 	delete_option( 'erankly_health_bl_results' );
+	delete_option( 'erankly_lb_graph' );
 
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the plugin-owned redirects table; it is recreated on demand next time the module boots.
 

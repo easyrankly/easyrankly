@@ -2,12 +2,11 @@
 /**
  * AI-assisted SEO and social title / description generation.
  *
- * Uses the WordPress 7.0 Connectors API to discover whether an AI provider is
- * configured, and the WordPress 7.0 AI Client to run the generation. The whole
- * feature is conditional: when those core APIs are absent (WordPress < 7.0) or
- * no AI provider is connected, nothing is registered and the plugin behaves
- * exactly as before, falling back to the mechanical title/description logic in
- * includes/title-description.php.
+ * This file is required only when AI features are enabled in settings. Uses the
+ * WordPress 7.0 Connectors API to discover whether an AI provider is configured,
+ * and the WordPress 7.0 AI Client to run the generation. When those core APIs
+ * are absent (WordPress < 7.0) or no AI provider is connected, hooks stay
+ * registered but generation endpoints return errors and the editor UI is hidden.
  *
  * Generation happens on demand from the editor (a "Generate with AI" button),
  * never while rendering the front end, and only writes into the existing SEO
@@ -43,13 +42,27 @@ const ERANKLY_AI_INSTRUCTIONS_LIMIT = 600;
 const ERANKLY_AI_SOCIAL_TITLE_LIMIT = 60;
 const ERANKLY_AI_SOCIAL_DESC_LIMIT  = 200;
 
+/** Per-user AI rate-limit window in seconds (default: 15 minutes). */
+const ERANKLY_AI_RATE_LIMIT_WINDOW = 900;
+
+/** Default max meta-generation model calls per user per window. */
+const ERANKLY_AI_RATE_LIMIT_MAX_GENERATE = 20;
+
+/** Default max link-suggestion model calls per user per window. */
+const ERANKLY_AI_RATE_LIMIT_MAX_LINK_SUGGESTIONS = 10;
+
+/** Default max Health AI suggestion model calls per user per window. */
+const ERANKLY_AI_RATE_LIMIT_MAX_HEALTH_SUGGEST = 20;
+
+/** Transient prefix for per-user AI rate-limit counters. */
+const ERANKLY_AI_RATE_LIMIT_PREFIX = 'erankly_ai_rl_';
+
 /**
- * Registers the AI feature hooks. Called unconditionally on load; the REST
- * route's own availability/permission checks keep it inert when unsupported.
+ * Registers the AI feature hooks.
  *
  * @return void
  */
-function erankly_ai_init(): void {
+function erankly_ai_boot(): void {
 	add_action( 'rest_api_init', 'erankly_ai_register_rest_routes' );
 }
 
@@ -487,7 +500,12 @@ function erankly_ai_rest_generate( WP_REST_Request $request ) {
 	$result = erankly_ai_generate( $context );
 
 	if ( is_wp_error( $result ) ) {
-		$result->add_data( array( 'status' => 502 ) );
+		$data = $result->get_error_data();
+
+		if ( ! is_array( $data ) || ! isset( $data['status'] ) ) {
+			$result->add_data( array( 'status' => 502 ) );
+		}
+
 		return $result;
 	}
 
@@ -1081,11 +1099,22 @@ function erankly_ai_decode_result( string $raw ) {
  * returning a non-null value short-circuits the built-in call (handy for tests
  * or to pin a specific provider/model).
  *
- * @param string $system System instruction.
- * @param string $user   User prompt.
+ * @param string $system              System instruction.
+ * @param string $user                User prompt.
+ * @param string $rate_limit_bucket   Rate-limit bucket ('generate', 'link_suggestions', 'health_suggest').
  * @return string|WP_Error
  */
-function erankly_ai_call_model( string $system, string $user ) {
+function erankly_ai_call_model( string $system, string $user, string $rate_limit_bucket = 'generate' ) {
+	if ( ! erankly_ai_module_enabled() ) {
+		return new WP_Error( 'erankly_ai_disabled', __( 'AI features are not enabled.', 'easyrankly' ), array( 'status' => 403 ) );
+	}
+
+	$limited = erankly_ai_consume_rate_limit( $rate_limit_bucket );
+
+	if ( is_wp_error( $limited ) ) {
+		return $limited;
+	}
+
 	/**
 	 * Short-circuits the AI call. Return a string (raw model output) or a
 	 * WP_Error to bypass the built-in client.
@@ -1124,6 +1153,88 @@ function erankly_ai_call_model( string $system, string $user ) {
 	}
 
 	return new WP_Error( 'erankly_ai_empty', __( 'The AI returned an empty result.', 'easyrankly' ) );
+}
+
+/**
+ * Checks and records one AI model call against the per-user rate limit.
+ *
+ * @param string $bucket Rate-limit bucket.
+ * @return true|WP_Error
+ */
+function erankly_ai_consume_rate_limit( string $bucket ) {
+	$user_id = get_current_user_id();
+
+	if ( $user_id < 1 ) {
+		return new WP_Error(
+			'erankly_ai_rate_unauthenticated',
+			__( 'You must be signed in to use AI features.', 'easyrankly' ),
+			array( 'status' => 401 )
+		);
+	}
+
+	$bucket = sanitize_key( $bucket );
+
+	if ( '' === $bucket ) {
+		return true;
+	}
+
+	$defaults = array(
+		'generate'         => array(
+			'window' => ERANKLY_AI_RATE_LIMIT_WINDOW,
+			'max'    => ERANKLY_AI_RATE_LIMIT_MAX_GENERATE,
+		),
+		'link_suggestions' => array(
+			'window' => ERANKLY_AI_RATE_LIMIT_WINDOW,
+			'max'    => ERANKLY_AI_RATE_LIMIT_MAX_LINK_SUGGESTIONS,
+		),
+		'health_suggest'   => array(
+			'window' => ERANKLY_AI_RATE_LIMIT_WINDOW,
+			'max'    => ERANKLY_AI_RATE_LIMIT_MAX_HEALTH_SUGGEST,
+		),
+	);
+
+	$config = $defaults[ $bucket ] ?? array(
+		'window' => ERANKLY_AI_RATE_LIMIT_WINDOW,
+		'max'    => ERANKLY_AI_RATE_LIMIT_MAX_GENERATE,
+	);
+
+	/**
+	 * Filters rate-limit settings for an AI bucket.
+	 *
+	 * Return `max => 0` to disable limiting for a bucket. Keys: `window` (seconds),
+	 * `max` (requests per window, per user, per site).
+	 *
+	 * @param array{window:int,max:int} $config  Bucket configuration.
+	 * @param string                    $bucket  Bucket name.
+	 * @param int                       $user_id Current user ID.
+	 */
+	$config = apply_filters( 'erankly_ai_rate_limit', $config, $bucket, $user_id );
+
+	$window = max( 1, (int) ( $config['window'] ?? ERANKLY_AI_RATE_LIMIT_WINDOW ) );
+	$max    = max( 0, (int) ( $config['max'] ?? ERANKLY_AI_RATE_LIMIT_MAX_GENERATE ) );
+
+	if ( 0 === $max ) {
+		return true;
+	}
+
+	$blog_id = is_multisite() ? get_current_blog_id() : 0;
+	$key     = ERANKLY_AI_RATE_LIMIT_PREFIX . md5( $bucket . ':' . $user_id . ':' . $blog_id );
+	$count   = (int) get_transient( $key );
+
+	if ( $count >= $max ) {
+		return new WP_Error(
+			'erankly_ai_rate_limited',
+			__( 'Too many AI requests. Please wait a few minutes and try again.', 'easyrankly' ),
+			array(
+				'status'      => 429,
+				'retry_after' => $window,
+			)
+		);
+	}
+
+	set_transient( $key, $count + 1, $window );
+
+	return true;
 }
 
 /**
@@ -1201,58 +1312,7 @@ function erankly_ai_render_settings_privacy_notice(): void {
  * @return string
  */
 function erankly_ai_connectors_screen_url(): string {
-	// Core's Connectors screen (Settings → Connectors) is a per-site admin page
-	// requiring manage_options — on Multisite each site configures its own
-	// provider key here, so admin_url() is correct on single site and subsites.
-	$url = admin_url( 'options-connectors.php' );
-
-	/**
-	 * Filters the URL to the core Connectors settings screen.
-	 *
-	 * @param string $url Connectors screen URL.
-	 */
-	return (string) apply_filters( 'erankly_ai_connectors_url', $url );
-}
-
-/**
- * Renders the AI generation toggle + provider status inside the Features panel.
- *
- * @return void
- */
-function erankly_ai_render_settings_field(): void {
-	$has_api   = function_exists( 'wp_get_connectors' );
-	$available = erankly_ai_available();
-	$enabled   = (bool) erankly_get_setting( 'ai_enabled', 0 );
-	?>
-	<fieldset class="erankly-field erankly-checkboxes">
-		<span style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;">
-			<label>
-				<input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_enabled]" value="1" <?php checked( $enabled ); ?> <?php disabled( ! $available ); ?>>
-				<strong><?php esc_html_e( 'Enable AI features', 'easyrankly' ); ?></strong>
-			</label>
-			<?php
-			if ( ! $has_api ) {
-				erankly_render_connectors_status();
-			} else {
-				erankly_render_ai_provider_status();
-			}
-			?>
-		</span>
-		<p class="description">
-			<?php
-			esc_html_e( 'Turns on the plugin\'s AI features.', 'easyrankly' );
-			if ( $has_api && ! $available ) {
-				echo ' ';
-				printf(
-					/* translators: %s: link to the WordPress Connectors settings screen. */
-					esc_html__( 'Connect a provider on the %s screen to enable.', 'easyrankly' ),
-					'<a href="' . esc_url( erankly_ai_connectors_screen_url() ) . '">' . esc_html__( 'Connectors', 'easyrankly' ) . '</a>'
-				);
-			}
-			?>
-		</p>
-	</fieldset>
-	<?php
+	return erankly_ai_connectors_admin_url();
 }
 
 /**
@@ -1327,12 +1387,13 @@ function erankly_ai_render_settings_panel( string $active_panel ): void {
 					<p class="description">
 						<?php esc_html_e( 'Keep the "## System" and "## User" section headings. Available placeholders:', 'easyrankly' ); ?>
 						<code>{{lang}}</code> <code>{{site_name}}</code> <code>{{post_title}}</code> <code>{{content}}</code> <code>{{max_title}}</code> <code>{{max_desc}}</code>
-				</p>
+					</p>
+				</div>
 			</div>
 		</div>
-	</div>
+		<?php if ( function_exists( 'erankly_lb_render_ai_prompt_settings' ) ) : ?>
+			<?php erankly_lb_render_ai_prompt_settings(); ?>
+		<?php endif; ?>
 	</div>
 	<?php
 }
-
-erankly_ai_init();

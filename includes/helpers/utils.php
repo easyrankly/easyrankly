@@ -214,6 +214,25 @@ function erankly_send_response( string $body, string $content_type ) {
 }
 
 /**
+ * Renders a compact inline success/error status badge with a dashicon.
+ *
+ * @param string $message Status label.
+ * @param bool   $success Whether the requirement is met.
+ * @return void
+ */
+function erankly_render_inline_status_badge( string $message, bool $success ): void {
+	$class = $success ? 'is-success' : 'is-error';
+	$icon  = $success ? 'dashicons-yes' : 'dashicons-no-alt';
+
+	printf(
+		'<span class="erankly-inline-status %1$s"><span class="dashicons %2$s" aria-hidden="true"></span>%3$s</span>',
+		esc_attr( $class ),
+		esc_attr( $icon ),
+		esc_html( $message )
+	);
+}
+
+/**
  * Renders an inline "WordPress Multisite: Detected / Not detected" status badge.
  *
  * Features that require a WordPress network (e.g. the multilingual module) use this
@@ -224,17 +243,11 @@ function erankly_send_response( string $body, string $content_type ) {
  * @return void
  */
 function erankly_render_multisite_status(): void {
-	if ( is_multisite() ) {
-		printf(
-			'<span class="erankly-ms-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#1a7f37;"><span class="dashicons dashicons-yes" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
-			esc_html__( 'WordPress Multisite: Detected', 'easyrankly' )
-		);
-		return;
-	}
-
-	printf(
-		'<span class="erankly-ms-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#b32d2e;"><span class="dashicons dashicons-no-alt" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
-		esc_html__( 'WordPress Multisite: Not detected', 'easyrankly' )
+	erankly_render_inline_status_badge(
+		is_multisite()
+			? __( 'WordPress Multisite: Detected', 'easyrankly' )
+			: __( 'WordPress Multisite: Not detected', 'easyrankly' ),
+		is_multisite()
 	);
 }
 
@@ -250,17 +263,11 @@ function erankly_render_multisite_status(): void {
  * @return void
  */
 function erankly_render_connectors_status(): void {
-	if ( function_exists( 'wp_get_connectors' ) ) {
-		printf(
-			'<span class="erankly-ai-requirement-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#1a7f37;"><span class="dashicons dashicons-yes" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
-			esc_html__( 'Connectors API (WordPress 7.0): Detected', 'easyrankly' )
-		);
-		return;
-	}
-
-	printf(
-		'<span class="erankly-ai-requirement-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#b32d2e;"><span class="dashicons dashicons-no-alt" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
-		esc_html__( 'Connectors API (WordPress 7.0): Not detected', 'easyrankly' )
+	erankly_render_inline_status_badge(
+		function_exists( 'wp_get_connectors' )
+			? __( 'Connectors API (WordPress 7.0): Detected', 'easyrankly' )
+			: __( 'Connectors API (WordPress 7.0): Not detected', 'easyrankly' ),
+		function_exists( 'wp_get_connectors' )
 	);
 }
 
@@ -276,16 +283,117 @@ function erankly_render_connectors_status(): void {
  * @return void
  */
 function erankly_render_ai_provider_status(): void {
-	if ( erankly_ai_available() ) {
-		printf(
-			'<span class="erankly-ai-requirement-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#1a7f37;"><span class="dashicons dashicons-yes" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
-			esc_html__( 'AI provider: Connected', 'easyrankly' )
-		);
-		return;
+	erankly_render_inline_status_badge(
+		erankly_ai_provider_available()
+			? __( 'AI provider: Connected', 'easyrankly' )
+			: __( 'AI provider: Not connected', 'easyrankly' ),
+		erankly_ai_provider_available()
+	);
+}
+
+/**
+ * Whether an AI provider appears configured for the Features panel.
+ *
+ * When the AI module is loaded, delegates to erankly_ai_available(). Otherwise
+ * runs a lightweight Connectors API scan so the Features toggle can show
+ * provider status without parsing includes/ai.php.
+ *
+ * @return bool
+ */
+function erankly_ai_provider_available(): bool {
+	if ( function_exists( 'erankly_ai_available' ) ) {
+		return erankly_ai_available();
 	}
 
-	printf(
-		'<span class="erankly-ai-requirement-status" style="display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:400;line-height:1.4;color:#b32d2e;"><span class="dashicons dashicons-no-alt" style="font-size:14px;width:14px;height:14px;"></span>%s</span>',
-		esc_html__( 'AI provider: Not connected', 'easyrankly' )
-	);
+	static $cache = array();
+
+	$blog_id = is_multisite() ? get_current_blog_id() : 0;
+
+	if ( isset( $cache[ $blog_id ] ) ) {
+		return $cache[ $blog_id ];
+	}
+
+	$available = false;
+
+	if ( function_exists( 'wp_get_connectors' ) ) {
+		foreach ( (array) wp_get_connectors() as $connector ) {
+			if ( ! is_array( $connector ) || ( $connector['type'] ?? '' ) !== 'ai_provider' ) {
+				continue;
+			}
+
+			foreach ( array( 'is_connected', 'connected', 'authenticated' ) as $status_key ) {
+				if ( isset( $connector[ $status_key ] ) && (bool) $connector[ $status_key ] ) {
+					$available = true;
+					break 2;
+				}
+			}
+
+			if ( isset( $connector['status'] ) && is_string( $connector['status'] ) ) {
+				if ( in_array( strtolower( $connector['status'] ), array( 'connected', 'active', 'authenticated' ), true ) ) {
+					$available = true;
+					break;
+				}
+			}
+
+			$auth   = is_array( $connector['authentication'] ?? null ) ? $connector['authentication'] : array();
+			$method = (string) ( $auth['method'] ?? '' );
+
+			if ( 'none' === $method ) {
+				$available = true;
+				break;
+			}
+
+			if ( 'api_key' === $method ) {
+				$setting  = (string) ( $auth['setting_name'] ?? '' );
+				$env_var  = (string) ( $auth['env_var_name'] ?? '' );
+				$constant = (string) ( $auth['constant_name'] ?? '' );
+
+				if ( '' !== $env_var ) {
+					$env = getenv( $env_var );
+					if ( is_string( $env ) && '' !== trim( $env ) ) {
+						$available = true;
+						break;
+					}
+				}
+
+				if ( '' !== $constant && defined( $constant ) && '' !== trim( (string) constant( $constant ) ) ) {
+					$available = true;
+					break;
+				}
+
+				if ( '' !== $setting && '' !== trim( (string) get_option( $setting, '' ) ) ) {
+					$available = true;
+					break;
+				}
+
+				if ( is_multisite() && '' !== $setting && '' !== trim( (string) get_site_option( $setting, '' ) ) ) {
+					$available = true;
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Filters whether AI features are considered available.
+	 *
+	 * @param bool $available Detected availability.
+	 */
+	$cache[ $blog_id ] = (bool) apply_filters( 'erankly_ai_available', $available );
+
+	return $cache[ $blog_id ];
+}
+
+/**
+ * URL of the core Connectors settings screen.
+ *
+ * @return string
+ */
+function erankly_ai_connectors_admin_url(): string {
+	/**
+	 * Filters the URL to the core Connectors settings screen.
+	 *
+	 * @param string $url Connectors screen URL.
+	 */
+	return (string) apply_filters( 'erankly_ai_connectors_url', admin_url( 'options-connectors.php' ) );
 }

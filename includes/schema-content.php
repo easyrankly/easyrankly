@@ -101,7 +101,168 @@ function erankly_extract_faq_items_from_blocks( string $content ): array {
 		}
 	}
 
+	return array_merge( $items, erankly_extract_faq_items_from_accordion_blocks( $content ) );
+}
+
+/**
+ * Extracts FAQ items from core accordion blocks when FAQ schema is enabled.
+ *
+ * @param string $content Raw post content.
+ * @return array<int,array<string,string>>
+ */
+function erankly_extract_faq_items_from_accordion_blocks( string $content ): array {
+	if ( ! function_exists( 'parse_blocks' ) ) {
+		return array();
+	}
+
+	$items      = array();
+	$accordions = erankly_find_blocks_by_names(
+		parse_blocks( $content ),
+		array( 'core/accordion' )
+	);
+
+	foreach ( $accordions as $accordion ) {
+		$attrs = isset( $accordion['attrs'] ) && is_array( $accordion['attrs'] ) ? $accordion['attrs'] : array();
+
+		if ( empty( $attrs['eranklyGenerateFaqSchema'] ) ) {
+			continue;
+		}
+
+		$item_blocks = erankly_find_blocks_by_names(
+			isset( $accordion['innerBlocks'] ) && is_array( $accordion['innerBlocks'] ) ? $accordion['innerBlocks'] : array(),
+			array( 'core/accordion-item' )
+		);
+
+		foreach ( $item_blocks as $item_block ) {
+			$question = erankly_extract_accordion_item_question( $item_block );
+			$answer   = erankly_extract_accordion_item_answer( $item_block );
+
+			if ( '' !== $question && '' !== $answer ) {
+				$items[] = array(
+					'question' => $question,
+					'answer'   => $answer,
+				);
+			}
+		}
+	}
+
 	return $items;
+}
+
+/**
+ * Returns the question text from a core accordion item block.
+ *
+ * @param array<string,mixed> $item_block Accordion item block.
+ * @return string
+ */
+function erankly_extract_accordion_item_question( array $item_block ): string {
+	$inner_blocks = isset( $item_block['innerBlocks'] ) && is_array( $item_block['innerBlocks'] )
+		? $item_block['innerBlocks']
+		: array();
+	$headings     = erankly_find_blocks_by_names( $inner_blocks, array( 'core/accordion-heading' ) );
+
+	if ( empty( $headings ) ) {
+		return '';
+	}
+
+	$heading = $headings[0];
+	$attrs   = isset( $heading['attrs'] ) && is_array( $heading['attrs'] ) ? $heading['attrs'] : array();
+
+	if ( isset( $attrs['title'] ) && is_string( $attrs['title'] ) ) {
+		$text = erankly_schema_plain_text_from_html( $attrs['title'] );
+
+		if ( '' !== $text ) {
+			return $text;
+		}
+	}
+
+	if ( isset( $heading['innerHTML'] ) && is_string( $heading['innerHTML'] ) ) {
+		if ( preg_match(
+			'#class="[^"]*wp-block-accordion-heading__toggle-title[^"]*"[^>]*>(.*?)</span>#is',
+			$heading['innerHTML'],
+			$match
+		) ) {
+			return erankly_schema_plain_text_from_html( (string) $match[1] );
+		}
+	}
+
+	return '';
+}
+
+/**
+ * Returns the answer text from a core accordion item block.
+ *
+ * @param array<string,mixed> $item_block Accordion item block.
+ * @return string
+ */
+function erankly_extract_accordion_item_answer( array $item_block ): string {
+	$inner_blocks = isset( $item_block['innerBlocks'] ) && is_array( $item_block['innerBlocks'] )
+		? $item_block['innerBlocks']
+		: array();
+	$panels       = erankly_find_blocks_by_names( $inner_blocks, array( 'core/accordion-panel' ) );
+
+	if ( empty( $panels ) ) {
+		return '';
+	}
+
+	$panel = $panels[0];
+
+	if ( function_exists( 'render_block' ) ) {
+		return erankly_schema_plain_text_from_html( (string) render_block( $panel ) );
+	}
+
+	$panel_inner = isset( $panel['innerBlocks'] ) && is_array( $panel['innerBlocks'] ) ? $panel['innerBlocks'] : array();
+
+	return erankly_schema_plain_text_from_inner_blocks( $panel_inner );
+}
+
+/**
+ * Collects plain text from nested Gutenberg blocks.
+ *
+ * @param array<int,array<string,mixed>> $blocks Block tree.
+ * @return string
+ */
+function erankly_schema_plain_text_from_inner_blocks( array $blocks ): string {
+	$parts = array();
+
+	foreach ( $blocks as $block ) {
+		if ( ! is_array( $block ) ) {
+			continue;
+		}
+
+		$attrs = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
+
+		foreach ( array( 'content', 'text', 'title', 'caption' ) as $key ) {
+			if ( ! isset( $attrs[ $key ] ) || ! is_string( $attrs[ $key ] ) ) {
+				continue;
+			}
+
+			$text = erankly_schema_plain_text_from_html( $attrs[ $key ] );
+
+			if ( '' !== $text ) {
+				$parts[] = $text;
+				continue 2;
+			}
+		}
+
+		if ( isset( $block['innerHTML'] ) && is_string( $block['innerHTML'] ) ) {
+			$text = erankly_schema_plain_text_from_html( $block['innerHTML'] );
+
+			if ( '' !== $text ) {
+				$parts[] = $text;
+			}
+		}
+
+		if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+			$nested = erankly_schema_plain_text_from_inner_blocks( $block['innerBlocks'] );
+
+			if ( '' !== $nested ) {
+				$parts[] = $nested;
+			}
+		}
+	}
+
+	return trim( implode( ' ', $parts ) );
 }
 
 /**

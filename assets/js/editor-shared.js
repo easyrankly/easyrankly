@@ -26,6 +26,7 @@
 		'erankly-panel--appearance',
 		'erankly-panel--social',
 		'erankly-panel--visibility',
+		'erankly-panel--internal-links',
 		'erankly-panel--checklist',
 		'erankly-panel--translations',
 	];
@@ -791,11 +792,158 @@
 		return fields;
 	}
 
-	const SEO_CHECKLIST_ITEMS = [
-		{ key: 'title', label: __( 'Meta title', 'easyrankly' ) },
-		{ key: 'description', label: __( 'Meta description', 'easyrankly' ) },
-		{ key: 'featured_image', label: __( 'Featured image', 'easyrankly' ) },
-	];
+	const SEO_CHECKLIST_TITLE_LIMIT = 65;
+	const SEO_CHECKLIST_DESCRIPTION_LIMIT = 160;
+	const SEO_CHECKLIST_MIN_CONTENT_LENGTH = 300;
+
+	const SEO_CHECKLIST_GROUP_LABELS = {
+		appearance: __( 'Search appearance', 'easyrankly' ),
+		indexing: __( 'Indexing', 'easyrankly' ),
+	};
+
+	function getSeoChecklistItemDefinitions( simplifiedMode ) {
+		const items = [
+			{
+				group: 'appearance',
+				key: 'title',
+				label: __( 'SEO title within recommended length', 'easyrankly' ),
+			},
+			{
+				group: 'appearance',
+				key: 'description',
+				label: __( 'Meta description within recommended length', 'easyrankly' ),
+			},
+			{
+				group: 'appearance',
+				key: 'preview_image',
+				label: __( 'Preview image available', 'easyrankly' ),
+			},
+			{
+				group: 'indexing',
+				key: 'indexable',
+				label: __( 'Indexable by search engines', 'easyrankly' ),
+			},
+			{
+				group: 'indexing',
+				key: 'content',
+				label: __( 'Minimum content length', 'easyrankly' ),
+			},
+		];
+
+		if ( ! simplifiedMode ) {
+			items.push(
+				{
+					group: 'appearance',
+					key: 'social_image',
+					label: __( 'Custom social image', 'easyrankly' ),
+				},
+				{
+					group: 'appearance',
+					key: 'canonical',
+					label: __( 'Canonical URL set', 'easyrankly' ),
+				}
+			);
+		}
+
+		return items;
+	}
+
+	function checklistTextWithinLimit( text, limit ) {
+		const normalized = String( text || '' ).replace( /\s+/g, ' ' ).trim();
+
+		if ( '' === normalized ) {
+			return false;
+		}
+
+		return normalized.length <= limit;
+	}
+
+	function checklistStripContent( content ) {
+		const document = new window.DOMParser().parseFromString( String( content || '' ), 'text/html' );
+
+		return ( document.body.textContent || '' ).replace( /\s+/g, ' ' ).trim();
+	}
+
+	function checklistEffectiveTitle( customTitle, postTitle, config ) {
+		const resolved = serpResolveVariables( customTitle, postTitle, config.siteName || '' );
+
+		return resolved
+			|| config.titlePlaceholder
+			|| postTitle
+			|| config.siteName
+			|| '';
+	}
+
+	function checklistEffectiveDescription( customDescription, postTitle, config, content, excerpt ) {
+		const resolved = serpResolveVariables( customDescription, postTitle, config.siteName || '' );
+
+		if ( resolved ) {
+			return resolved;
+		}
+
+		if ( config.descriptionPlaceholder ) {
+			return config.descriptionPlaceholder;
+		}
+
+		const source = String( excerpt || '' ).trim() || checklistStripContent( content );
+
+		return source.slice( 0, config.descriptionLimit || SEO_CHECKLIST_DESCRIPTION_LIMIT );
+	}
+
+	function evaluateSeoChecklistState( state, config ) {
+		const titleLimit = config.titleLimit || SEO_CHECKLIST_TITLE_LIMIT;
+		const descriptionLimit = config.descriptionLimit || SEO_CHECKLIST_DESCRIPTION_LIMIT;
+		const minContentLength = config.minContentLength || SEO_CHECKLIST_MIN_CONTENT_LENGTH;
+		const title = checklistEffectiveTitle( state.customTitle, state.postTitle, config );
+		const description = checklistEffectiveDescription(
+			state.customDescription,
+			state.postTitle,
+			config,
+			state.content,
+			state.excerpt
+		);
+		const contentText = String( state.excerpt || '' ).trim() || checklistStripContent( state.content );
+
+		return {
+			title: checklistTextWithinLimit( title, titleLimit ),
+			description: checklistTextWithinLimit( description, descriptionLimit ),
+			preview_image: state.featuredMedia > 0
+				|| '' !== serpFirstContentImage( state.content )
+				|| Boolean( config.hasDefaultPreviewImage ),
+			indexable: ! state.noindex,
+			content: contentText.length >= minContentLength,
+			social_image: state.ogImageId > 0 || '' !== String( state.socialImageUrl || '' ).trim(),
+			canonical: '' !== String( state.canonical || '' ).trim(),
+		};
+	}
+
+	function buildSeoChecklistItems( definitions, doneState ) {
+		return definitions.map( ( item ) => ( {
+			...item,
+			done: Boolean( doneState[ item.key ] ),
+		} ) );
+	}
+
+	function groupSeoChecklistItems( items ) {
+		const groups = [];
+
+		items.forEach( ( item ) => {
+			let group = groups.find( ( entry ) => entry.key === item.group );
+
+			if ( ! group ) {
+				group = {
+					items: [],
+					key: item.group,
+					label: SEO_CHECKLIST_GROUP_LABELS[ item.group ] || item.group,
+				};
+				groups.push( group );
+			}
+
+			group.items.push( item );
+		} );
+
+		return groups;
+	}
 
 	function SeoChecklistView( { items } ) {
 		const done = items.filter( ( item ) => item.done ).length;
@@ -806,6 +954,8 @@
 		} else if ( done === items.length ) {
 			status = 'is-complete';
 		}
+
+		const groups = groupSeoChecklistItems( items );
 
 		return el(
 			'div',
@@ -820,53 +970,65 @@
 				),
 				el( 'span', { className: 'erankly-seo-checklist-count' }, done + '/' + items.length )
 			),
-			el(
-				'ul',
-				{ className: 'erankly-seo-checklist-items' },
-				items.map( ( item ) => el(
-					'li',
-					{
-						className: 'erankly-seo-checklist-item' + ( item.done ? ' is-done' : '' ),
-						key: item.key,
-					},
-					el(
-						'span',
-						{ 'aria-hidden': true, className: 'erankly-seo-checklist-check' },
-						el( 'svg', {
-							fill: 'none',
-							stroke: 'currentColor',
-							strokeLinecap: 'round',
-							strokeLinejoin: 'round',
-							strokeWidth: 3,
-							viewBox: '0 0 24 24',
-						}, el( 'path', { d: 'M5 12.5l4.5 4.5L19 7.5' } ) )
-					),
-					el( 'span', { className: 'erankly-seo-checklist-label' }, item.label )
-				) )
-			)
+			groups.map( ( group ) => el(
+				'div',
+				{ className: 'erankly-seo-checklist-group', key: group.key },
+				el( 'p', { className: 'erankly-seo-checklist-group-label' }, group.label ),
+				el(
+					'ul',
+					{ className: 'erankly-seo-checklist-items' },
+					group.items.map( ( item ) => el(
+						'li',
+						{
+							className: 'erankly-seo-checklist-item' + ( item.done ? ' is-done' : '' ),
+							key: item.key,
+						},
+						el(
+							'span',
+							{ 'aria-hidden': true, className: 'erankly-seo-checklist-check' },
+							el( 'svg', {
+								fill: 'none',
+								stroke: 'currentColor',
+								strokeLinecap: 'round',
+								strokeLinejoin: 'round',
+								strokeWidth: 3,
+								viewBox: '0 0 24 24',
+							}, el( 'path', { d: 'M5 12.5l4.5 4.5L19 7.5' } ) )
+						),
+						el( 'span', { className: 'erankly-seo-checklist-label' }, item.label )
+					) )
+				)
+			) )
 		);
 	}
 
-	function usePostSeoChecklistItems() {
+	function usePostSeoChecklistItems( config = window.eranklyEditor || {} ) {
 		const state = useSelect( ( select ) => {
 			const editor = select( 'core/editor' );
 			const meta = editor.getEditedPostAttribute( 'meta' ) || {};
 
 			return {
-				title: '' !== String( meta._erankly_title || '' ).trim(),
-				description: '' !== String( meta._erankly_description || '' ).trim(),
-				featured_image: ( editor.getEditedPostAttribute( 'featured_media' ) || 0 ) > 0,
+				canonical: String( meta._erankly_canonical || '' ),
+				content: editor.getEditedPostAttribute( 'content' ) || '',
+				customDescription: String( meta._erankly_description || '' ),
+				customTitle: String( meta._erankly_title || '' ),
+				excerpt: editor.getEditedPostAttribute( 'excerpt' ) || '',
+				featuredMedia: editor.getEditedPostAttribute( 'featured_media' ) || 0,
+				noindex: Boolean( meta._erankly_noindex ),
+				ogImageId: parseInt( meta._erankly_og_image_id, 10 ) || 0,
+				postTitle: editor.getEditedPostAttribute( 'title' ) || '',
+				socialImageUrl: String( meta._erankly_social_image_url || '' ),
 			};
 		}, [] );
 
-		return SEO_CHECKLIST_ITEMS.map( ( item ) => ( {
-			...item,
-			done: Boolean( state[ item.key ] ),
-		} ) );
+		const definitions = getSeoChecklistItemDefinitions( Boolean( config.simplifiedMode ) );
+		const doneState = evaluateSeoChecklistState( state, config );
+
+		return buildSeoChecklistItems( definitions, doneState );
 	}
 
 	function seoChecklistFields() {
-		const items = usePostSeoChecklistItems();
+		const items = usePostSeoChecklistItems( window.eranklyEditor || {} );
 
 		return [ el( SeoChecklistView, { items, key: 'checklist' } ) ];
 	}
@@ -876,6 +1038,9 @@
 		SerpPreviewView,
 		SocialImageControl,
 		VariableControl,
+		buildSeoChecklistItems,
+		evaluateSeoChecklistState,
+		getSeoChecklistItemDefinitions,
 		searchAppearanceFields,
 		seoChecklistFields,
 		serpBreadcrumb,

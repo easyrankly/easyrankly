@@ -46,24 +46,6 @@ function erankly_get_sitemap_stylesheet_url(): string {
 }
 
 /**
- * Determines whether the sitemap feature is enabled.
- *
- * @return bool
- */
-function erankly_sitemap_enabled(): bool {
-	return (bool) erankly_get_setting( 'enable_sitemap', 0 );
-}
-
-/**
- * Determines whether the Health feature is enabled.
- *
- * @return bool
- */
-function erankly_health_enabled(): bool {
-	return (bool) erankly_get_setting( 'enable_health', 0 );
-}
-
-/**
  * Clears sitemap transients.
  *
  * @param mixed ...$hook_args Hook arguments (not used, hook may pass any number of args).

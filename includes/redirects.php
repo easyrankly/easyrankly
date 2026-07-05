@@ -1,10 +1,8 @@
 <?php
 /**
- * Redirect module loader.
+ * Redirect module.
  *
- * The redirect feature is opt-in: its classes are only required, and its hooks
- * only registered when the "Features" tab toggle (enable_redirects) is on.
- * When disabled, none of the redirect code below the gate is loaded.
+ * This file is required only when the redirect manager feature is enabled.
  *
  * @package EasyRankly
  */
@@ -24,28 +22,11 @@ define( 'ERANKLY_REDIRECTS_DB_VERSION', '1.0.0' );
 define( 'ERANKLY_REDIRECTS_DB_VERSION_OPTION', 'erankly_redirects_db_version' );
 
 /**
- * Whether the redirect feature is enabled in settings.
- *
- * @return bool
- */
-function erankly_redirects_enabled(): bool {
-	return ! empty( erankly_get_setting( 'enable_redirects' ) );
-}
-
-/**
- * Boots the redirect module when enabled.
- *
- * Loads the redirect classes, ensures the custom table exists/upgrades, and
- * registers the frontend runner plus the admin action handler. Runs on
- * plugins_loaded so the frontend runner can hook parse_request early.
+ * Boots the redirect module.
  *
  * @return void
  */
 function erankly_redirects_boot(): void {
-	if ( ! erankly_redirects_enabled() ) {
-		return;
-	}
-
 	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-normalizer.php';
 	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-activator.php';
 	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-repository.php';
@@ -75,7 +56,6 @@ function erankly_redirects_boot(): void {
 		$GLOBALS['erankly_redirects_admin'] = $admin;
 	}
 }
-add_action( 'plugins_loaded', 'erankly_redirects_boot', 5 );
 
 /**
  * Creates the redirects table on first use and ensures the schema is current.
@@ -172,10 +152,6 @@ function erankly_redirects_flush_external_caches(): void {
  * @return void
  */
 function erankly_redirects_render_panel(): void {
-	if ( ! erankly_redirects_enabled() ) {
-		return;
-	}
-
 	$admin = $GLOBALS['erankly_redirects_admin'] ?? null;
 
 	if ( $admin instanceof ERankly_Redirects_Admin ) {

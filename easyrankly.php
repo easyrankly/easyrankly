@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.0.0
+ * Version:     2.1.0
  * Requires at least: 6.2.0
  * Requires PHP: 8.0
  * Author:      EasyRankly
@@ -25,7 +25,7 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.0.0' );
+define( 'ERANKLY_VERSION', '2.1.0' );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ERANKLY_URL', plugin_dir_url( __FILE__ ) );
@@ -73,13 +73,8 @@ function erankly_update_plugin_option( string $key, mixed $value ): void {
 require_once ERANKLY_PATH . 'includes/compatibility.php';
 require_once ERANKLY_PATH . 'includes/meta.php';
 require_once ERANKLY_PATH . 'includes/robots.php';
-require_once ERANKLY_PATH . 'includes/redirects.php';
 require_once ERANKLY_PATH . 'includes/seo-checklist.php';
 require_once ERANKLY_PATH . 'includes/special-meta.php';
-// Loaded unconditionally so the AI generation REST route is registered on the
-// front-end rest_api_init too. The feature self-disables when the WordPress 7.0
-// Connectors/AI Client APIs are absent or no provider is connected.
-require_once ERANKLY_PATH . 'includes/ai.php';
 
 if ( is_admin() ) {
 	require_once ERANKLY_PATH . 'includes/admin.php';
@@ -96,11 +91,9 @@ function erankly_bootstrap(): void {
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
 
-	if ( is_multisite() ) {
+	if ( is_multisite() && erankly_multilingual_enabled() ) {
 		require_once ERANKLY_PATH . 'includes/multilingual.php';
-		if ( erankly_multilingual_enabled() ) {
-			erankly_ml_boot();
-		}
+		erankly_ml_boot();
 	}
 
 	if ( erankly_bloat_enabled() ) {
@@ -108,9 +101,12 @@ function erankly_bootstrap(): void {
 		erankly_bloat_bootstrap();
 	}
 
-	// These core sitemap filters run unless another SEO plugin owns sitemaps, so per-post
-	// "Hide from search results" still applies in /wp-sitemap.xml even when our Sitemap module is off.
-	if ( ! erankly_should_suppress_sitemaps() ) {
+	if ( erankly_redirects_enabled() ) {
+		require_once ERANKLY_PATH . 'includes/redirects.php';
+		erankly_redirects_boot();
+	}
+
+	if ( erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps() ) {
 		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
 		add_filter( 'wp_sitemaps_posts_query_args', 'erankly_filter_core_sitemap_posts_query_args', 20, 2 );
 		add_filter( 'wp_sitemaps_taxonomies_query_args', 'erankly_filter_core_sitemap_terms_query_args', 20, 2 );
@@ -118,36 +114,31 @@ function erankly_bootstrap(): void {
 		add_filter( 'wp_sitemaps_taxonomies', 'erankly_filter_core_sitemap_taxonomies', 20 );
 		add_filter( 'wp_sitemaps_add_provider', 'erankly_filter_core_sitemap_add_provider', 20, 2 );
 
-		if ( erankly_sitemap_enabled() ) {
-			// Specialised sitemaps (image, video, news) that require non-standard XML
-			// namespaces are still served as EasyRankly virtual files. Each implementation
-			// file is parsed only when its feature is enabled, so unused sitemap types add
-			// no per-request cost.
-			if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) {
-				require_once ERANKLY_PATH . 'includes/sitemap/news.php';
-			}
-
-			if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
-				require_once ERANKLY_PATH . 'includes/sitemap/image.php';
-			}
-
-			if ( (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) ) {
-				require_once ERANKLY_PATH . 'includes/sitemap/video.php';
-			}
-
-			require_once ERANKLY_PATH . 'includes/class-erankly-specialist-sitemaps-provider.php';
-			add_action(
-				'init',
-				function () {
-					wp_register_sitemap_provider( 'erankly', new ERankly_Specialist_Sitemaps_Provider() );
-				}
-			);
-			add_action( 'template_redirect', 'erankly_maybe_render_virtual_files', 0 );
+		// Specialised sitemaps (image, video, news) that require non-standard XML
+		// namespaces are still served as EasyRankly virtual files. Each implementation
+		// file is parsed only when its feature is enabled, so unused sitemap types add
+		// no per-request cost.
+		if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) {
+			require_once ERANKLY_PATH . 'includes/sitemap/news.php';
 		}
-	}
 
-	if ( erankly_sitemap_enabled() ) {
-		// Cache invalidation for specialised sitemaps (image / video / news).
+		if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
+			require_once ERANKLY_PATH . 'includes/sitemap/image.php';
+		}
+
+		if ( (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) ) {
+			require_once ERANKLY_PATH . 'includes/sitemap/video.php';
+		}
+
+		require_once ERANKLY_PATH . 'includes/class-erankly-specialist-sitemaps-provider.php';
+		add_action(
+			'init',
+			function () {
+				wp_register_sitemap_provider( 'erankly', new ERankly_Specialist_Sitemaps_Provider() );
+			}
+		);
+		add_action( 'template_redirect', 'erankly_maybe_render_virtual_files', 0 );
+
 		add_action( 'save_post', 'erankly_flush_sitemap_cache_for_post' );
 		add_action( 'deleted_post', 'erankly_flush_sitemap_cache_for_deleted_post' );
 		add_action( 'transition_post_status', 'erankly_flush_sitemap_cache_for_status', 10, 3 );
@@ -162,9 +153,23 @@ function erankly_bootstrap(): void {
 		add_action( 'deleted_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
 	}
 
+	if ( erankly_ai_module_enabled() || erankly_link_building_enabled() ) {
+		require_once ERANKLY_PATH . 'includes/ai.php';
+		if ( erankly_ai_module_enabled() ) {
+			erankly_ai_boot();
+		}
+	}
+
 	if ( erankly_health_enabled() ) {
 		require_once ERANKLY_PATH . 'includes/health.php';
 		erankly_health_boot();
+	}
+
+	if ( erankly_link_building_enabled() || ( is_admin() && erankly_ai_module_enabled() ) ) {
+		require_once ERANKLY_PATH . 'includes/link-building.php';
+		if ( erankly_link_building_enabled() ) {
+			erankly_lb_boot();
+		}
 	}
 
 	if ( is_admin() ) {

@@ -83,14 +83,8 @@
 }
 
 .erankly-redirects-search-suggest {
-	background: #fff;
-	border: 1px solid var(--erankly-color-border);
-	border-radius: 4px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 	left: 0;
 	margin-top: 4px;
-	max-height: 260px;
-	overflow-y: auto;
 	position: absolute;
 	right: 0;
 	top: 100%;
@@ -98,9 +92,8 @@
 }
 
 /*
- * The suggestion rows (.erankly-redirects-suggest-option / -primary /
- * -secondary) are styled together with the variable-token menu in admin.css,
- * which is always loaded before this stylesheet.
+ * Suggestion rows (.erankly-redirects-suggest-option / -primary / -secondary)
+ * are styled in shared.css together with the variable-token menu.
  */
 
 /*

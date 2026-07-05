@@ -1,24 +1,3 @@
-:root {
-	--erankly-radius-surface: 8px;
-	--erankly-radius-control: 6px;
-	--erankly-radius-compact: 5px;
-	--erankly-color-border: #dcdcde;
-	--erankly-color-border-strong: #949494;
-	--erankly-color-info: var(--wp-admin-theme-color, #3858e9);
-	--erankly-color-info-surface: color-mix(in srgb, var(--erankly-color-info) 8%, #fff);
-	--erankly-color-info-border: color-mix(in srgb, var(--erankly-color-info) 28%, var(--erankly-color-border));
-	--erankly-color-success: #1a7f37;
-	--erankly-color-success-surface: #eef8f1;
-	--erankly-color-success-border: #b8d7c2;
-	--erankly-color-warning: #9a6700;
-	--erankly-color-warning-surface: #f8f3e8;
-	--erankly-color-warning-border: #d0bc98;
-	--erankly-color-error: #b32d2e;
-	--erankly-color-error-surface: #fcf0f1;
-	--erankly-color-error-border: #e7b7bd;
-	--erankly-font-mono: Consolas, Monaco, monospace;
-}
-
 .erankly-settings form {
 	margin-top: 0;
 	max-width: 920px;
@@ -87,7 +66,7 @@
 	border: none;
 	border-left: 3px solid transparent;
 	border-radius: var(--erankly-radius-control);
-	color: #1d2327;
+	color: var(--erankly-color-text);
 	cursor: pointer;
 	font-size: 14px;
 	line-height: 1.4;
@@ -98,8 +77,8 @@
 }
 
 .erankly-settings-nav-item:hover {
-	background: #f0f0f1;
-	color: #1d2327;
+	background: var(--erankly-color-surface-hover);
+	color: var(--erankly-color-text);
 }
 
 .erankly-settings-nav-item:disabled,
@@ -594,7 +573,7 @@
 }
 
 .erankly-autocomplete-results li + li {
-	border-top: 1px solid #f0f0f1;
+	border-top: 1px solid var(--erankly-color-surface-hover);
 }
 
 .erankly-autocomplete-item {
@@ -603,7 +582,7 @@
 	border: 0;
 	border-radius: 0;
 	box-sizing: border-box;
-	color: #1d2327;
+	color: var(--erankly-color-text);
 	cursor: pointer;
 	display: block;
 	font-family: inherit;
@@ -617,8 +596,8 @@
 
 .erankly-autocomplete-item:hover,
 .erankly-autocomplete-item:focus {
-	background: #f6f7f7;
-	color: #1d2327;
+	background: var(--erankly-color-surface-subtle);
+	color: var(--erankly-color-text);
 	outline: none;
 }
 
@@ -650,7 +629,7 @@
 }
 
 .erankly-user-result-name {
-	color: #1d2327;
+	color: var(--erankly-color-text);
 	font-weight: 500;
 	line-height: 1.35;
 	overflow: hidden;
@@ -659,7 +638,7 @@
 }
 
 .erankly-user-result-meta {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	font-size: 12px;
 	line-height: 1.35;
 	overflow: hidden;
@@ -669,7 +648,7 @@
 
 .erankly-autocomplete-item:hover .erankly-user-result-meta,
 .erankly-autocomplete-item:focus .erankly-user-result-meta {
-	color: #646970;
+	color: var(--erankly-color-muted);
 }
 
 .erankly-autocomplete-status {
@@ -895,7 +874,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	border-radius: var(--erankly-tabs-item-radius);
 	box-shadow: none;
 	box-sizing: border-box;
-	color: color-mix(in srgb, var(--erankly-tab-color) 38%, #646970);
+	color: color-mix(in srgb, var(--erankly-tab-color) 38%, var(--erankly-color-muted));
 	cursor: pointer;
 	display: inline-flex;
 	font-size: 14px;
@@ -1082,91 +1061,16 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	margin-top: 16px;
 }
 
-/* SEO checklist (classic meta box) */
-.erankly-meta-box .erankly-seo-checklist-intro {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	margin-bottom: 12px;
+.erankly-meta-box .erankly-internal-links-panel .hidden {
+	display: none !important;
 }
 
-.erankly-meta-box .erankly-seo-checklist-help {
-	flex: 1;
-	margin: 0;
+.erankly-meta-box .erankly-internal-links-status.is-error {
+	color: var(--erankly-color-error);
 }
 
-.erankly-meta-box .erankly-seo-checklist-count {
-	flex-shrink: 0;
-	padding: 2px 8px;
-	font-size: 12px;
-	font-weight: 600;
-	line-height: 1.4;
-	color: #fff;
-	border-radius: 999px;
-}
-
-.erankly-meta-box .erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
-	background: #d63638;
-}
-
-.erankly-meta-box .erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
-	background: #f59e0b;
-}
-
-.erankly-meta-box .erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
-	background: #00a32a;
-}
-
-.erankly-meta-box .erankly-seo-checklist-items {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.erankly-meta-box .erankly-seo-checklist-item {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin: 0;
-	padding: 6px 0;
-}
-
-.erankly-meta-box .erankly-seo-checklist-check {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	color: #fff;
-	border: 2px solid #c3c4c7;
-	border-radius: 50%;
-	box-sizing: border-box;
-}
-
-.erankly-meta-box .erankly-seo-checklist-check svg {
-	width: 10px;
-	height: 10px;
-	opacity: 0;
-}
-
-.erankly-meta-box .erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
-	background: #00a32a;
-	border-color: #00a32a;
-}
-
-.erankly-meta-box .erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
-	opacity: 1;
-}
-
-.erankly-meta-box .erankly-seo-checklist-label {
-	font-size: 13px;
-	line-height: 1.4;
-	color: #1d2327;
-}
-
-.erankly-meta-box .erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
-	color: #787c82;
+.erankly-meta-box .erankly-internal-links-status.is-success {
+	color: var(--erankly-color-success);
 }
 
 /* Without JavaScript, expose every settings panel and hide inactive tab controls. */
@@ -1185,7 +1089,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-character-counter {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	display: block;
 	margin-top: 4px;
 }
@@ -1368,7 +1272,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 .erankly-variable-preview {
 	align-items: center;
 	box-sizing: border-box;
-	color: #1d2327;
+	color: var(--erankly-color-text);
 	display: none;
 	font: inherit;
 	inset: 0;
@@ -1397,64 +1301,14 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	white-space: pre-wrap;
 }
 
-/* Suggestion dropdown — mirrors the Redirect rules search filter menu. */
+/* Suggestion dropdown positioning — surface/row styles live in shared.css. */
 .erankly-variable-menu {
-	background: #fff;
-	border: 1px solid var(--erankly-color-border);
-	border-radius: 4px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-	box-sizing: border-box;
 	left: 0;
 	margin-top: 4px;
-	max-height: 260px;
-	overflow-y: auto;
 	position: absolute;
 	right: 0;
 	top: 100%;
 	z-index: 10000;
-}
-
-/*
- * Shared suggestion row — used both by the variable-token menu above and by
- * the Redirect rules search filter menu (.erankly-redirects-suggest-*), which
- * is loaded on top of this stylesheet. One rule styles both.
- */
-.erankly-variable-option,
-.erankly-redirects-suggest-option {
-	align-items: baseline;
-	background: none;
-	border: 0;
-	cursor: pointer;
-	display: flex;
-	gap: 8px;
-	margin: 0;
-	padding: 6px 10px;
-	text-align: left;
-	width: 100%;
-}
-
-.erankly-variable-option:hover,
-.erankly-variable-option.is-active,
-.erankly-redirects-suggest-option:hover,
-.erankly-redirects-suggest-option.is-active {
-	background: #f0f0f1;
-}
-
-.erankly-variable-option-primary,
-.erankly-redirects-suggest-primary {
-	color: #1d2327;
-	flex-shrink: 0;
-	font-family: var(--erankly-font-mono);
-	font-size: 12px;
-}
-
-.erankly-variable-option-secondary,
-.erankly-redirects-suggest-secondary {
-	color: #646970;
-	font-size: 12px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .erankly-schema-blocks {
@@ -1662,14 +1516,14 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-dropzone-text strong {
 	font-size: 14px;
-	color: #1d2327;
+	color: var(--erankly-color-text);
 }
 
 .erankly-dropzone-filename {
 	display: block;
 	margin-top: 2px;
 	font-style: italic;
-	color: #1d2327;
+	color: var(--erankly-color-text);
 }
 
 .erankly-io-third-party {
@@ -1692,20 +1546,20 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-btn-danger.button {
-	background: #d63638;
-	border-color: #d63638;
-	color: #fff;
+	background: var(--erankly-color-danger);
+	border-color: var(--erankly-color-danger);
+	color: var(--erankly-color-surface);
 }
 
 .erankly-btn-danger.button:hover,
 .erankly-btn-danger.button:focus {
-	background: #b32d2e;
-	border-color: #b32d2e;
-	color: #fff;
+	background: var(--erankly-color-error);
+	border-color: var(--erankly-color-error);
+	color: var(--erankly-color-surface);
 }
 
 .erankly-btn-danger.button:focus {
-	box-shadow: 0 0 0 1px #fff, 0 0 0 3px #d63638;
+	box-shadow: 0 0 0 1px var(--erankly-color-surface), 0 0 0 3px var(--erankly-color-danger);
 }
 
 /* display: flex below beats the UA stylesheet's [hidden] { display: none },
@@ -1899,7 +1753,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-setup-choice small {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	line-height: 1.5;
 	margin-top: 4px;
 }
@@ -1945,7 +1799,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-setup-summary-row dt {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	font-weight: 500;
 }
 
@@ -2148,7 +2002,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-panel-table td.erankly-panel-empty {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	padding: 16px;
 	text-align: center;
 }
@@ -2192,4 +2046,10 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-bl-suggestion {
 	margin-bottom: 6px;
+}
+
+/* Link graph maintenance (Features panel) */
+.erankly-lb-stats {
+	margin: 0 0 12px;
+	padding-left: 1.2em;
 }

@@ -42,54 +42,14 @@
 	resize: vertical;
 }
 
-/* Inline suggestion popover — mirrors the Redirect rules search filter menu. */
+/* Inline suggestion popover — surface styles live in shared.css. */
 .erankly-editor-variable-popover .components-popover__content {
-	background: #fff;
-	border: 1px solid #dcdcde;
-	border-radius: 4px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 	padding: 0;
 }
 
 .erankly-editor-variable-menu {
-	box-sizing: border-box;
-	max-height: 260px;
 	min-width: 280px;
-	overflow-y: auto;
 	width: min(340px, calc(100vw - 32px));
-}
-
-.erankly-editor-variable-menu .erankly-variable-option {
-	align-items: baseline;
-	background: none;
-	border: 0;
-	cursor: pointer;
-	display: flex;
-	gap: 8px;
-	margin: 0;
-	padding: 6px 10px;
-	text-align: left;
-	width: 100%;
-}
-
-.erankly-editor-variable-menu .erankly-variable-option:hover,
-.erankly-editor-variable-menu .erankly-variable-option.is-active {
-	background: #f0f0f1;
-}
-
-.erankly-editor-variable-menu .erankly-variable-option-primary {
-	color: #1d2327;
-	flex-shrink: 0;
-	font-family: Consolas, Monaco, monospace;
-	font-size: 12px;
-}
-
-.erankly-editor-variable-menu .erankly-variable-option-secondary {
-	color: #646970;
-	font-size: 12px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 /* Toggle rows can sit a little tighter than full text fields. */
@@ -308,7 +268,7 @@
 
 .erankly-ai-privacy {
 	margin: 0 0 10px;
-	color: #646970;
+	color: var(--erankly-color-muted);
 	font-size: 12px;
 	line-height: 1.5;
 }
@@ -321,7 +281,7 @@
 .erankly-ai-improve {
 	margin-top: 10px;
 	padding-top: 10px;
-	border-top: 1px solid #dcdcde;
+	border-top: 1px solid var(--erankly-color-border);
 }
 
 .erankly-ai-improve .components-base-control {
@@ -336,93 +296,143 @@
 	margin: 8px 0 0;
 }
 
-/* SEO checklist */
-.erankly-panel--checklist .erankly-seo-checklist {
-	margin-top: 0;
-}
-
-.erankly-seo-checklist-intro {
+/* Internal link suggestions — flat Gutenberg-style list, no nested cards. */
+.erankly-panel--internal-links .erankly-internal-links-stack {
 	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	margin-bottom: 12px;
+	flex-direction: column;
+	gap: 16px;
 }
 
-.erankly-seo-checklist-help {
-	flex: 1;
+.erankly-panel--internal-links .components-button.is-secondary {
+	width: 100%;
+	justify-content: center;
+}
+
+.erankly-panel--internal-links .erankly-internal-links-status-line {
 	margin: 0;
-}
-
-.erankly-seo-checklist-count {
-	flex-shrink: 0;
-	padding: 2px 8px;
 	font-size: 12px;
-	font-weight: 600;
 	line-height: 1.4;
-	color: #fff;
-	border-radius: 999px;
+	color: #757575;
 }
 
-.erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
-	background: #d63638;
+.erankly-panel--internal-links .erankly-internal-links-status-line.is-success {
+	color: var(--erankly-color-success);
 }
 
-.erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
-	background: #f59e0b;
+.erankly-panel--internal-links .erankly-internal-links-section-label,
+.erankly-internal-links-section-label {
+	margin: 0 0 8px;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	color: var(--erankly-color-text);
 }
 
-.erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
-	background: #00a32a;
+.erankly-panel--internal-links .erankly-internal-links-empty,
+.erankly-internal-links-empty {
+	margin: 0 0 4px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #757575;
 }
 
-.erankly-seo-checklist-items {
+.erankly-panel--internal-links .erankly-internal-links-list,
+.erankly-internal-links-list {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
-.erankly-seo-checklist-item {
-	display: flex;
-	align-items: center;
-	gap: 10px;
+.erankly-panel--internal-links .erankly-internal-links-item,
+.erankly-internal-links-item {
 	margin: 0;
-	padding: 6px 0;
+	padding: 12px 0;
+	border-bottom: 1px solid rgba( 0, 0, 0, 0.08 );
 }
 
-.erankly-seo-checklist-check {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	color: #fff;
-	border: 2px solid #c3c4c7;
-	border-radius: 50%;
-	box-sizing: border-box;
+.erankly-panel--internal-links .erankly-internal-links-item:last-child,
+.erankly-internal-links-item:last-child {
+	border-bottom: 0;
+	padding-bottom: 0;
 }
 
-.erankly-seo-checklist-check svg {
-	width: 10px;
-	height: 10px;
-	opacity: 0;
+.erankly-panel--internal-links .erankly-internal-links-item:first-child,
+.erankly-internal-links-item:first-child {
+	padding-top: 0;
 }
 
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
-	background: #00a32a;
-	border-color: #00a32a;
-}
-
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
-	opacity: 1;
-}
-
-.erankly-seo-checklist-label {
+.erankly-panel--internal-links .erankly-internal-links-item .components-external-link,
+.erankly-internal-links-item__title {
+	display: inline;
 	font-size: 13px;
+	font-weight: 500;
 	line-height: 1.4;
-	color: #1d2327;
+	color: var( --wp-admin-theme-color, #3858e9 );
+	text-decoration: none;
+	word-break: break-word;
 }
 
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
-	color: #787c82;
+.erankly-panel--internal-links .erankly-internal-links-item .components-external-link:hover,
+.erankly-internal-links-item__title:hover {
+	color: var( --wp-admin-theme-color-darker-10, #2145e6 );
+}
+
+.erankly-panel--internal-links .erankly-internal-links-item__meta,
+.erankly-internal-links-item__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.erankly-panel--internal-links .erankly-internal-links-item__anchor,
+.erankly-internal-links-item__anchor {
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--erankly-color-text);
+}
+
+.erankly-panel--internal-links .erankly-internal-links-item__detail,
+.erankly-internal-links-item__detail {
+	font-size: 12px;
+	line-height: 1.45;
+	color: #757575;
+}
+
+.erankly-panel--internal-links .erankly-internal-links-item__badge,
+.erankly-internal-links-item__badge {
+	flex-shrink: 0;
+}
+
+.erankly-panel--internal-links .erankly-internal-links-item__row,
+.erankly-internal-links-item__row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.erankly-panel--internal-links .erankly-internal-links-item__main,
+.erankly-internal-links-item__main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.erankly-panel--internal-links .erankly-internal-links-badge,
+.erankly-internal-links-badge {
+	display: inline-block;
+	padding: 0 6px;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 18px;
+	color: var(--erankly-color-text);
+	background: var(--erankly-color-surface-hover);
+	border-radius: 2px;
+}
+
+.erankly-panel--internal-links .components-divider,
+.erankly-internal-links-divider {
+	margin: 4px 0;
+	border: 0;
+	border-top: 1px solid rgba( 0, 0, 0, 0.08 );
 }

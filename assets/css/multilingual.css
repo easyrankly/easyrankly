@@ -58,7 +58,7 @@
 }
 
 .erankly-ml-site-host {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	display: block;
 	font-size: 12px;
 }
@@ -68,7 +68,7 @@
 }
 
 .erankly-ml-derived {
-	color: #646970;
+	color: var(--erankly-color-muted);
 	display: inline-block;
 	font-size: 12px;
 	margin-left: 8px;

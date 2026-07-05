@@ -289,6 +289,17 @@
 		);
 	}
 
+	function InternalLinksPanel() {
+		const postId = useSelect( ( select ) => select( 'core/editor' ).getCurrentPostId(), [] );
+		const linksUi = window.eranklyLinkSuggestionsUi;
+
+		if ( ! linksUi || ! config.internalLinksEnabled || ! config.aiEnabled ) {
+			return null;
+		}
+
+		return linksUi.internalLinksPanel( PluginDocumentSettingPanel, postId );
+	}
+
 	function TranslationControl( { onChange, row } ) {
 		const [ options, setOptions ] = useState(
 			row.object_id && row.title
@@ -444,6 +455,7 @@
 			el( GeneralPanel ),
 			! config.simplifiedMode && el( SocialPanel ),
 			el( VisibilityPanel ),
+			config.internalLinksEnabled && config.aiEnabled && el( InternalLinksPanel ),
 			el( SeoChecklistPanel ),
 			config.multilingual && el( TranslationsPanel )
 		);

@@ -1,11 +1,8 @@
 <?php
 /**
- * Multilingual (hreflang) module loader.
+ * Multilingual (hreflang) module.
  *
- * Opt-in via the enable_multilingual setting. Only loaded on Multisite.
- * Hooks into the existing `erankly_hreflang_alternates` filter so that
- * the standard renderer in meta.php outputs the network-aware alternates
- * without any changes to the output pipeline.
+ * This file is required only when the multilingual feature is enabled on Multisite.
  *
  * @package EasyRankly
  */
@@ -25,18 +22,7 @@ define( 'ERANKLY_ML_DB_VERSION', '1.0.0' );
 define( 'ERANKLY_ML_DB_VERSION_OPTION', 'erankly_ml_db_version' );
 
 /**
- * Whether the multilingual feature is enabled in settings.
- *
- * @return bool
- */
-function erankly_multilingual_enabled(): bool {
-	return ! empty( erankly_get_setting( 'enable_multilingual' ) );
-}
-
-/**
  * Boots the multilingual module.
- *
- * Called from erankly_bootstrap() when is_multisite() and the feature is on.
  * Idempotent: repeated calls (e.g. via erankly_ml_admin()) are no-ops so
  * runtime hooks are never registered twice.
  *
@@ -108,11 +94,6 @@ function erankly_ml_admin(): ?ERankly_ML_Admin {
 	}
 
 	$admin = $GLOBALS['erankly_ml_admin'] ?? null;
-
-	if ( ! $admin instanceof ERankly_ML_Admin ) {
-		erankly_ml_boot();
-		$admin = $GLOBALS['erankly_ml_admin'] ?? null;
-	}
 
 	return $admin instanceof ERankly_ML_Admin ? $admin : null;
 }
