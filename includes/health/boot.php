@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health module bootstrap.
+ *
  * @package EasyRankly
  */
 
@@ -34,3 +36,4 @@ function erankly_health_boot(): void {
 		add_action( 'admin_post_erankly_health_bl_ai_suggest', 'erankly_health_bl_handle_ai_suggest' );
 		add_action( 'admin_post_erankly_health_bl_clear', 'erankly_health_bl_handle_clear' );
 	}
+}

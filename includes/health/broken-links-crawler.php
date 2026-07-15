@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health broken-link crawler functions.
+ *
  * @package EasyRankly
  */
 

@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health settings panel rendering functions.
+ *
  * @package EasyRankly
  */
 

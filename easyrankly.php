@@ -4,7 +4,7 @@
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
  * Version:     2.1.0
- * Requires at least: 6.2.0
+ * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:      EasyRankly
  * Author URI:  https://easyrankly.com/
@@ -37,6 +37,15 @@ define( 'ERANKLY_SETUP_STATUS_OPTION', 'erankly_setup_wizard_status' );
 define( 'ERANKLY_REWRITE_FLUSH_OPTION', 'erankly_flush_rewrite_rules' );
 define( 'ERANKLY_SITEMAP_TRANSIENT_PREFIX', 'erankly_sitemap_' );
 define( 'ERANKLY_SITEMAP_CACHE_VERSION_OPTION', 'erankly_sitemap_cache_version' );
+define( 'ERANKLY_REWRITE_SIGNATURE_OPTION', 'erankly_rewrite_signature' );
+define( 'ERANKLY_REWRITE_GENERATION_OPTION', 'erankly_rewrite_generation' );
+define( 'ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION', 'erankly_redirects_cache_generation' );
+define( 'ERANKLY_NETWORK_SITE_BATCH_SIZE', 100 );
+define( 'ERANKLY_NETWORK_RESET_JOB_OPTION', 'erankly_network_reset_job' );
+define( 'ERANKLY_NETWORK_RESET_CRON_HOOK', 'erankly_network_reset_batch' );
+define( 'ERANKLY_NETWORK_RESET_BATCH_SIZE', 10 );
+define( 'ERANKLY_NETWORK_WEB_LIFECYCLE_LIMIT', 100 );
+define( 'ERANKLY_ML_CACHE_GENERATION_OPTION', 'erankly_ml_cache_generation' );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
 
@@ -90,6 +99,21 @@ function erankly_bootstrap(): void {
 	add_action( 'init', 'erankly_register_rewrites' );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
+
+	// WP-CLI defines DOING_CRON only when it dispatches an event, after plugins
+	// have booted, so register the worker for CLI requests explicitly.
+	if (
+		is_multisite()
+		&& (
+			wp_doing_cron()
+			|| is_network_admin()
+			|| ( defined( 'WP_CLI' ) && WP_CLI )
+		)
+	) {
+		require_once ERANKLY_PATH . 'includes/network-reset.php';
+		add_action( ERANKLY_NETWORK_RESET_CRON_HOOK, 'erankly_process_network_reset_batch' );
+		add_action( 'network_admin_notices', 'erankly_render_network_reset_status_notice' );
+	}
 
 	if ( is_multisite() && erankly_multilingual_enabled() ) {
 		require_once ERANKLY_PATH . 'includes/multilingual.php';
@@ -193,7 +217,6 @@ function erankly_bootstrap(): void {
 
 	if ( is_multisite() ) {
 		add_action( 'update_site_option_' . ERANKLY_OPTION, 'erankly_handle_network_settings_updated', 10, 3 );
-		add_action( 'wp_initialize_site', 'erankly_on_new_blog_site' );
 	} else {
 		add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_handle_settings_updated', 10, 2 );
 	}
@@ -260,6 +283,26 @@ function erankly_bootstrap_frontend_modules(): void {
 }
 
 /**
+ * Rotates the network-wide generation used by per-site rewrite signatures.
+ *
+ * A fresh generation on every activation guarantees that sites skipped by a
+ * bounded network deactivation rebuild their rules after reactivation, even if
+ * another component flushed the rules while EasyRankly was inactive.
+ *
+ * @return void
+ * @throws RuntimeException When the generation cannot be persisted.
+ */
+function erankly_rotate_rewrite_generation(): void {
+	$generation = wp_generate_uuid4();
+
+	erankly_update_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, $generation );
+
+	if ( (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '' ) !== $generation ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not initialize its rewrite generation.', 'easyrankly' ) );
+	}
+}
+
+/**
  * Runs on plugin activation.
  *
  * @return void
@@ -285,45 +328,109 @@ function erankly_activate(): void {
 		erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'pending' );
 	}
 
+	erankly_rotate_rewrite_generation();
 	erankly_register_rewrites();
-	flush_rewrite_rules();
+	flush_rewrite_rules( false );
+	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
+	update_option( ERANKLY_REWRITE_SIGNATURE_OPTION, erankly_get_rewrite_signature(), true );
 }
 register_activation_hook( ERANKLY_FILE, 'erankly_activate' );
 
 /**
- * Schedules a rewrite-rules flush whenever the plugin version changes.
+ * Returns a keyset-paginated batch of site IDs for the current network.
  *
- * Runs on every init but exits immediately when the stored version matches.
- * On a version mismatch (i.e. after a plugin update) it updates the stored
- * version and sets the flush flag so erankly_maybe_flush_rewrite_rules()
- * rebuilds the rules on the same request.
+ * @param int $after_site_id Return sites whose ID is greater than this value.
+ * @param int $limit         Maximum IDs to return.
+ * @return int[]
+ * @throws RuntimeException When the site batch cannot be read.
+ */
+function erankly_get_network_site_ids_batch(
+	int $after_site_id = 0,
+	int $limit = ERANKLY_NETWORK_SITE_BATCH_SIZE
+): array {
+	global $wpdb;
+
+	$site_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination keeps lifecycle and reset sweeps bounded.
+		$wpdb->prepare(
+			'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d ORDER BY blog_id ASC LIMIT %d',
+			$wpdb->blogs,
+			(int) get_current_network_id(),
+			max( 0, $after_site_id ),
+			max( 1, $limit )
+		)
+	);
+
+	if ( $wpdb->last_error ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not retrieve the next network site batch.', 'easyrankly' ) );
+	}
+
+	return array_map( 'intval', (array) $site_ids );
+}
+
+/**
+ * Counts sites in the current network.
+ *
+ * @return int
+ * @throws RuntimeException When the site count cannot be read.
+ */
+function erankly_get_current_network_site_count(): int {
+	global $wpdb;
+
+	$count = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The count selects the safe lifecycle execution path.
+		$wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE site_id = %d',
+			$wpdb->blogs,
+			(int) get_current_network_id()
+		)
+	);
+
+	if ( $wpdb->last_error ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not count the current network sites.', 'easyrankly' ) );
+	}
+
+	return (int) $count;
+}
+
+/**
+ * Returns whether a network lifecycle sweep must run through WP-CLI.
+ *
+ * @return bool
+ */
+function erankly_network_lifecycle_requires_cli(): bool {
+	$limit = (int) apply_filters( 'erankly_network_web_lifecycle_limit', ERANKLY_NETWORK_WEB_LIFECYCLE_LIMIT );
+
+	return erankly_get_current_network_site_count() > max( 1, $limit );
+}
+
+/**
+ * Returns the rewrite configuration currently expected by this site.
+ *
+ * Every site stores the last signature it applied. An activation, plugin
+ * upgrade, or network-wide sitemap setting change alters this value
+ * automatically, so the next request to each site can rebuild its own rules
+ * without scanning the network or coordinating a background job.
+ *
+ * @return string
+ */
+function erankly_get_rewrite_signature(): string {
+	$generation = (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '0' );
+
+	return ERANKLY_VERSION . ':' . $generation . ':' . ( erankly_sitemap_enabled() ? '1' : '0' );
+}
+
+/**
+ * Records the plugin version after an upgrade.
+ *
+ * Per-site rewrite updates are handled independently by
+ * erankly_maybe_flush_rewrite_rules() through the lazy rewrite signature.
  *
  * @return void
  */
 function erankly_maybe_flush_after_upgrade(): void {
 	$stored = (string) erankly_get_plugin_option( ERANKLY_VERSION_OPTION, '' );
 
-	if ( ERANKLY_VERSION === $stored ) {
-		return;
-	}
-
-	erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
-
-	if ( is_multisite() ) {
-		foreach (
-			get_sites(
-				array(
-					'fields' => 'ids',
-					'number' => 0,
-				)
-			) as $site_id
-		) {
-			switch_to_blog( (int) $site_id );
-			update_option( ERANKLY_REWRITE_FLUSH_OPTION, 1, false );
-			restore_current_blog();
-		}
-	} else {
-		update_option( ERANKLY_REWRITE_FLUSH_OPTION, 1, false );
+	if ( ERANKLY_VERSION !== $stored ) {
+		erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 	}
 }
 
@@ -337,27 +444,6 @@ function erankly_maybe_flush_after_upgrade(): void {
  */
 function erankly_handle_network_settings_updated( string $option, mixed $value, mixed $old_value ): void {
 	erankly_handle_settings_updated( $old_value, $value );
-}
-
-/**
- * Initialises rewrite rules for a newly created network site.
- *
- * @param WP_Site $new_site The newly created site object.
- * @return void
- */
-function erankly_on_new_blog_site( WP_Site $new_site ): void {
-	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-	}
-
-	if ( ! is_plugin_active_for_network( plugin_basename( ERANKLY_FILE ) ) ) {
-		return;
-	}
-
-	switch_to_blog( (int) $new_site->blog_id );
-	erankly_register_rewrites();
-	flush_rewrite_rules( false );
-	restore_current_blog();
 }
 
 /**
@@ -375,24 +461,6 @@ function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void
 
 	if ( $old_sitemap_enabled !== $new_sitemap_enabled ) {
 		erankly_flush_sitemap_cache();
-
-		if ( is_multisite() ) {
-			foreach (
-				get_sites(
-					array(
-						'fields' => 'ids',
-						'number' => 0,
-					)
-				) as $site_id
-			) {
-				switch_to_blog( (int) $site_id );
-				update_option( ERANKLY_REWRITE_FLUSH_OPTION, 1, false );
-				restore_current_blog();
-			}
-		} else {
-			update_option( ERANKLY_REWRITE_FLUSH_OPTION, 1, false );
-		}
-
 		return;
 	}
 
@@ -402,46 +470,121 @@ function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void
 }
 
 /**
- * Flushes rewrite rules after feature settings have changed.
+ * Lazily applies the current rewrite signature to this site.
  *
  * @return void
  */
 function erankly_maybe_flush_rewrite_rules(): void {
-	if ( ! (bool) get_option( ERANKLY_REWRITE_FLUSH_OPTION, 0 ) ) {
+	$signature      = erankly_get_rewrite_signature();
+	$last_signature = (string) get_option( ERANKLY_REWRITE_SIGNATURE_OPTION, '' );
+
+	if ( $signature === $last_signature ) {
 		return;
 	}
 
-	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
+	erankly_flush_sitemap_cache();
 	flush_rewrite_rules( false );
+	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
+	update_option( ERANKLY_REWRITE_SIGNATURE_OPTION, $signature, true );
+}
+
+/**
+ * Removes deactivation-only state from the current site.
+ *
+ * @return void
+ * @throws RuntimeException When a scheduled task cannot be removed.
+ */
+function erankly_deactivate_current_site(): void {
+	foreach ( array( ERANKLY_NETWORK_RESET_CRON_HOOK, 'erankly_health_prune_404_cron' ) as $hook ) {
+		$result = wp_unschedule_hook( $hook, true );
+
+		if ( false === $result || is_wp_error( $result ) ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not remove its scheduled tasks during deactivation.', 'easyrankly' ) );
+		}
+	}
+
+	erankly_flush_sitemap_cache();
+	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
+	delete_option( ERANKLY_REWRITE_SIGNATURE_OPTION );
+	// Invalidate the stored rules. Core rebuilds them without EasyRankly on the
+	// site's next request; no costly hard flush is needed here.
+	delete_option( 'rewrite_rules' );
+}
+
+/**
+ * Cancels and verifies removal of the current network reset job.
+ *
+ * A stale active job must never survive deactivation: the Network Admin
+ * self-healing notice would otherwise schedule it again after reactivation.
+ *
+ * @return void
+ * @throws RuntimeException When the reset state cannot be removed.
+ */
+function erankly_cancel_network_reset_job(): void {
+	$missing = 'erankly-reset-missing-' . wp_generate_uuid4();
+
+	delete_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION );
+
+	if ( get_site_option( ERANKLY_NETWORK_RESET_JOB_OPTION, $missing ) !== $missing ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not cancel the active network reset during deactivation.', 'easyrankly' ) );
+	}
 }
 
 /**
  * Runs on plugin deactivation.
  *
+ * @param bool $network_deactivating Whether this is a network deactivation.
  * @return void
  */
-function erankly_deactivate(): void {
-	// Clear the daily 404-retention cron; erankly_health_boot() reschedules it when active.
-	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
-
-	if ( is_multisite() ) {
-		foreach (
-			get_sites(
-				array(
-					'fields' => 'ids',
-					'number' => 0,
-				)
-			) as $erankly_site_id
+function erankly_deactivate( bool $network_deactivating = false ): void {
+	if ( is_multisite() && $network_deactivating ) {
+		if (
+			! ( defined( 'WP_CLI' ) && WP_CLI )
+			&& erankly_network_lifecycle_requires_cli()
 		) {
-			switch_to_blog( (int) $erankly_site_id );
-			erankly_flush_sitemap_cache();
-			flush_rewrite_rules();
-			restore_current_blog();
+			$plugin_slug = dirname( plugin_basename( ERANKLY_FILE ) );
+			$command     = sprintf( 'wp plugin deactivate %s --network', $plugin_slug );
+			$message     = '<p>' . esc_html__( 'This network is too large to deactivate EasyRankly safely in one web request.', 'easyrankly' ) . '</p>';
+			$message    .= '<p>' . esc_html__( 'Run the following WP-CLI command so every site can remove its scheduled tasks and rewrite rules:', 'easyrankly' ) . '</p>';
+			$message    .= '<p><code>' . esc_html( $command ) . '</code></p>';
+
+			wp_die(
+				$message, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Markup contains only escaped translated text and command output.
+				esc_html__( 'EasyRankly network cleanup required', 'easyrankly' ),
+				array(
+					'response'  => 409,
+					'back_link' => true,
+				)
+			);
 		}
-	} else {
-		erankly_flush_sitemap_cache();
-		flush_rewrite_rules();
+
+		erankly_cancel_network_reset_job();
+
+		$last_site_id = 0;
+
+		do {
+			$site_ids   = erankly_get_network_site_ids_batch( $last_site_id );
+			$site_count = count( $site_ids );
+
+			foreach ( $site_ids as $site_id ) {
+				switch_to_blog( $site_id );
+
+				try {
+					erankly_deactivate_current_site();
+				} finally {
+					restore_current_blog();
+				}
+			}
+
+			if ( $site_ids ) {
+				$last_site_id = (int) end( $site_ids );
+			}
+		} while ( ERANKLY_NETWORK_SITE_BATCH_SIZE === $site_count );
+
+		return;
 	}
+
+	erankly_deactivate_current_site();
 }
 register_deactivation_hook( ERANKLY_FILE, 'erankly_deactivate' );
 

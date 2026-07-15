@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health redirect suggestion functions.
+ *
  * @package EasyRankly
  */
 
@@ -7,6 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Computes a redirect suggestion using the available local matching strategies.
+ *
+ * @param array<string,mixed> $entry Recorded 404 entry.
+ * @param string              $path  Normalized request path.
+ * @return array<string,string>|null Suggestion payload, or null when none is found.
+ */
 function erankly_health_compute_redirect_suggestion( array $entry, string $path ): ?array {
 	$slug = erankly_health_404_slug_from_path( $path );
 

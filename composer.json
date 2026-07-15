@@ -21,7 +21,7 @@
 	"scripts": {
 		"lint": "phpcs",
 		"lint:fix": "phpcbf",
-		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.0-"
+		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- ."
 	},
 	"scripts-descriptions": {
 		"lint": "Check the plugin against the EasyRankly coding standards (phpcs.xml).",

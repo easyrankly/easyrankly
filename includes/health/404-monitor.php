@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health 404 monitoring and aggregation functions.
+ *
  * @package EasyRankly
  */
 

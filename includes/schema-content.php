@@ -650,7 +650,7 @@ function erankly_schema_event_from_tec( int $post_id ): array {
  * @param string $post_type Post type slug.
  * @return array<string,mixed>
  */
-function erankly_schema_event_generic( int $post_id, string $post_type ): array {
+function erankly_schema_event_generic( int $post_id, string $post_type ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Keeps the event-builder signature consistent across adapters.
 	$start_keys = array( '_EventStartDate', '_event_start', 'event_start_date', 'event_start', 'start_date' );
 	$end_keys   = array( '_EventEndDate', '_event_end', 'event_end_date', 'event_end', 'end_date' );
 	$start      = erankly_schema_event_meta_value( $post_id, $start_keys );
@@ -697,8 +697,8 @@ function erankly_schema_event_generic( int $post_id, string $post_type ): array 
 /**
  * Returns the first available event meta value from a list of keys.
  *
- * @param int                $post_id Post ID.
- * @param array<int,string>  $keys    Meta keys to try.
+ * @param int               $post_id Post ID.
+ * @param array<int,string> $keys    Meta keys to try.
  * @return string
  */
 function erankly_schema_event_meta_value( int $post_id, array $keys ): string {

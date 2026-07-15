@@ -38,7 +38,7 @@ final class ERankly_ML_Repository {
 	 * @return array<int,array{id:int,group_id:int,blog_id:int,object_type:string,object_id:int,updated_at:string}>
 	 */
 	public function get_group_members( int $group_id ): array {
-		$cache_key = 'group_' . $group_id;
+		$cache_key = erankly_ml_cache_key( 'group_' . $group_id );
 		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
 
 		if ( is_array( $cached ) ) {
@@ -69,7 +69,7 @@ final class ERankly_ML_Repository {
 	 * @return int Group ID, or 0 if not found.
 	 */
 	public function find_group_id( int $blog_id, string $object_type, int $object_id ): int {
-		$cache_key = "gid_{$blog_id}_{$object_type}_{$object_id}";
+		$cache_key = erankly_ml_cache_key( "gid_{$blog_id}_{$object_type}_{$object_id}" );
 		$cached    = wp_cache_get( $cache_key, self::CACHE_GROUP );
 
 		if ( false !== $cached ) {
@@ -279,7 +279,7 @@ final class ERankly_ML_Repository {
 	 * @return void
 	 */
 	private function invalidate_group( int $group_id ): void {
-		wp_cache_delete( 'group_' . $group_id, self::CACHE_GROUP );
+		wp_cache_delete( erankly_ml_cache_key( 'group_' . $group_id ), self::CACHE_GROUP );
 	}
 
 	/**
@@ -291,7 +291,7 @@ final class ERankly_ML_Repository {
 	 * @return void
 	 */
 	private function invalidate_object( int $blog_id, string $object_type, int $object_id ): void {
-		wp_cache_delete( "gid_{$blog_id}_{$object_type}_{$object_id}", self::CACHE_GROUP );
+		wp_cache_delete( erankly_ml_cache_key( "gid_{$blog_id}_{$object_type}_{$object_id}" ), self::CACHE_GROUP );
 	}
 
 	/**

@@ -265,8 +265,8 @@ function erankly_ai_get_content_limit_steps(): array {
  * @return int
  */
 function erankly_ai_snap_content_limit_to_step( int $value ): int {
-	$steps   = erankly_ai_get_content_limit_steps();
-	$nearest = $steps[0];
+	$steps    = erankly_ai_get_content_limit_steps();
+	$nearest  = $steps[0];
 	$min_diff = PHP_INT_MAX;
 
 	foreach ( $steps as $step ) {
@@ -1250,7 +1250,7 @@ function erankly_ai_render_editor_privacy_notice(): void {
 		printf(
 			/* translators: %d: maximum plain-text body characters sent to the provider. */
 			esc_html__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
-			$limit
+			esc_html( (string) $limit )
 		);
 		?>
 	</p>
@@ -1291,7 +1291,7 @@ function erankly_ai_render_settings_privacy_notice(): void {
 					printf(
 						/* translators: %d: maximum plain-text body characters sent to the provider. */
 						esc_html__( 'Plain-text body or description, truncated to %1$d characters (shortcodes removed).', 'easyrankly' ),
-						$limit
+						esc_html( (string) $limit )
 					);
 					?>
 				</li>
@@ -1351,8 +1351,8 @@ function erankly_ai_render_settings_panel( string $active_panel ): void {
 						printf(
 							/* translators: 1: minimum characters. 2: maximum characters. */
 							esc_html__( 'Maximum plain-text body or description characters sent to the model (%1$d–%2$d). Lower values reduce token usage; higher values give the model more context.', 'easyrankly' ),
-							ERANKLY_AI_CONTENT_LIMIT_MIN,
-							ERANKLY_AI_CONTENT_LIMIT_MAX
+							esc_html( (string) ERANKLY_AI_CONTENT_LIMIT_MIN ),
+							esc_html( (string) ERANKLY_AI_CONTENT_LIMIT_MAX )
 						);
 						?>
 					</p>

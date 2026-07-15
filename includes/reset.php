@@ -14,6 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
+
 /**
  * Returns the settings page URL for the Settings tab (where the Reset box lives).
  *
@@ -56,16 +58,29 @@ function erankly_reset_handle_actions(): void {
 
 	if ( 'reset_local' === $action ) {
 		check_admin_referer( 'erankly_reset_local' );
-		erankly_reset_site_data();
-		erankly_reset_redirect( array( 'erankly_reset_notice' => 'local' ) );
+
+		try {
+			erankly_reset_site_data();
+			erankly_reset_redirect( array( 'erankly_reset_notice' => 'local' ) );
+		} catch ( Throwable ) {
+			erankly_reset_redirect( array( 'erankly_reset_notice' => 'local_failed' ) );
+		}
 	}
 
 	// The network-wide reset is only ever reachable from Network Admin — a
 	// per-site admin on Multisite never sees this button (see erankly_reset_render_panel()).
 	if ( 'reset_global' === $action && is_multisite() && is_network_admin() ) {
 		check_admin_referer( 'erankly_reset_global' );
-		erankly_reset_network();
-		erankly_reset_redirect( array( 'erankly_reset_notice' => 'global' ) );
+
+		try {
+			$queued = erankly_reset_network();
+		} catch ( Throwable ) {
+			$queued = false;
+		}
+
+		erankly_reset_redirect(
+			array( 'erankly_reset_notice' => $queued ? 'global_queued' : 'global_failed' )
+		);
 	}
 }
 
@@ -90,9 +105,14 @@ function erankly_reset_redirect( array $args ): void {
  * handles that scope separately.
  *
  * @return void
+ * @throws RuntimeException When a database cleanup operation fails.
  */
 function erankly_reset_site_data(): void {
 	global $wpdb;
+
+	// Rotate before destructive work so stale positive and negative exact-match
+	// caches become unreachable even if a later cleanup step fails.
+	erankly_rotate_redirects_cache_generation();
 
 	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
 
@@ -100,6 +120,7 @@ function erankly_reset_site_data(): void {
 	delete_option( 'erankly_redirects_db_version' );
 	delete_option( 'erankly_redirects_runtime_rules' );
 	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
+	delete_option( ERANKLY_REWRITE_SIGNATURE_OPTION );
 	delete_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION );
 	delete_option( 'erankly_health_404_candidates' );
 	delete_option( 'erankly_health_404_frequent' );
@@ -109,27 +130,49 @@ function erankly_reset_site_data(): void {
 	delete_option( 'erankly_health_bl_results' );
 	delete_option( 'erankly_lb_graph' );
 
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the plugin-owned redirects table; it is recreated on demand next time the module boots.
+	$dropped_redirects = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the plugin-owned redirects table; it is recreated on demand next time the module boots.
+		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset intentionally drops plugin-owned storage.
+	);
 
-	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes plugin-owned post meta.
+	if ( false === $dropped_redirects ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove redirect storage during reset.', 'easyrankly' ) );
+	}
+
+	erankly_redirects_flush_external_caches();
+
+	$deleted_post_meta = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes plugin-owned post meta.
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->esc_like( '_erankly_' ) . '%'
 		)
 	);
-	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes plugin-owned term meta.
+
+	if ( false === $deleted_post_meta ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove post metadata during reset.', 'easyrankly' ) );
+	}
+
+	$deleted_term_meta = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes plugin-owned term meta.
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->termmeta} WHERE meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->esc_like( '_erankly_' ) . '%'
 		)
 	);
-	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes all plugin-owned transients (sitemap caches, Health 404 suggestion caches).
+
+	if ( false === $deleted_term_meta ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove term metadata during reset.', 'easyrankly' ) );
+	}
+
+	$deleted_transients = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reset removes all plugin-owned transients (sitemap caches, Health 404 suggestion caches).
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->esc_like( '_transient_erankly_' ) . '%',
 			$wpdb->esc_like( '_transient_timeout_erankly_' ) . '%'
 		)
 	);
+
+	if ( false === $deleted_transients ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove transient data during reset.', 'easyrankly' ) );
+	}
 
 	if ( ! is_multisite() ) {
 		erankly_update_plugin_option( ERANKLY_OPTION, erankly_default_settings() );
@@ -141,38 +184,148 @@ function erankly_reset_site_data(): void {
 }
 
 /**
- * Wipes the network-wide global settings plus every site's local data.
+ * Deletes one bounded batch of multilingual relations for the current network.
  *
- * Multisite only. Resets the shared settings option to defaults, clears the
- * multilingual module's network-wide state, then sweeps every site with
- * erankly_reset_site_data().
- *
- * @return void
+ * @param int $after_relation_id Return rows whose ID is greater than this cursor.
+ * @param int $limit             Maximum rows to delete in this batch.
+ * @return array{last_processed_id:int,has_more:bool}
+ * @throws RuntimeException When multilingual storage cannot be inspected or updated.
  */
-function erankly_reset_network(): void {
+function erankly_reset_network_relations_batch( int $after_relation_id = 0, int $limit = 1000 ): array {
 	global $wpdb;
 
-	erankly_update_plugin_option( ERANKLY_OPTION, erankly_default_settings() );
+	$after_relation_id = max( 0, $after_relation_id );
+	$limit             = max( 1, $limit );
+	$ml_table          = $wpdb->base_prefix . 'erankly_ml_relations';
+	$exists            = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The optional multilingual table may not have been created.
+		$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $ml_table ) )
+	);
+
+	if ( $wpdb->last_error ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not inspect multilingual storage during reset.', 'easyrankly' ) );
+	}
+
+	if ( $ml_table !== $exists ) {
+		return array(
+			'last_processed_id' => $after_relation_id,
+			'has_more'          => false,
+		);
+	}
+
+	$relation_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded keyset query keeps network reset resumable.
+		$wpdb->prepare(
+			'SELECT relations.id FROM %i AS relations INNER JOIN %i AS blogs ON blogs.blog_id = relations.blog_id WHERE blogs.site_id = %d AND relations.id > %d ORDER BY relations.id ASC LIMIT %d',
+			$ml_table,
+			$wpdb->blogs,
+			(int) get_current_network_id(),
+			$after_relation_id,
+			$limit + 1
+		)
+	);
+
+	if ( $wpdb->last_error ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not retrieve multilingual relations during reset.', 'easyrankly' ) );
+	}
+
+	$relation_ids = array_map( 'intval', (array) $relation_ids );
+	$has_more     = count( $relation_ids ) > $limit;
+
+	if ( $has_more ) {
+		array_pop( $relation_ids );
+	}
+
+	if ( $relation_ids ) {
+		$placeholders = implode( ', ', array_fill( 0, count( $relation_ids ), '%d' ) );
+		$sql          = "DELETE FROM %i WHERE id IN ({$placeholders})"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholder list is generated internally; values are prepared below.
+		$args         = array_merge( array( $ml_table ), $relation_ids );
+		$wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic placeholder count is fully prepared above.
+
+		if ( $wpdb->last_error ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not delete multilingual relations during reset.', 'easyrankly' ) );
+		}
+
+		$after_relation_id = (int) end( $relation_ids );
+	}
+
+	return array(
+		'last_processed_id' => $after_relation_id,
+		'has_more'          => $has_more,
+	);
+}
+
+/**
+ * Rotates the namespace used by multilingual object-cache entries.
+ *
+ * Versioning makes a network reset independent of object-cache drop-in group
+ * flush support. Old entries become unreachable immediately and retain their
+ * existing one-hour expiry, so no installation-wide cache flush is required.
+ *
+ * @return void
+ * @throws RuntimeException When the new cache generation cannot be persisted.
+ */
+function erankly_rotate_multilingual_cache_generation(): void {
+	$generation = wp_generate_uuid4();
+
+	update_site_option( ERANKLY_ML_CACHE_GENERATION_OPTION, $generation );
+
+	if ( (string) get_site_option( ERANKLY_ML_CACHE_GENERATION_OPTION, '' ) !== $generation ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not invalidate multilingual caches during reset.', 'easyrankly' ) );
+	}
+}
+
+/**
+ * Resets the current network's shared settings and multilingual state.
+ *
+ * This is the first resumable worker phase, not part of the form submission.
+ * Every operation is idempotent and verified so a transient failure can be
+ * retried without losing the reset job that records its status.
+ *
+ * @return void
+ * @throws RuntimeException When shared reset state cannot be persisted.
+ */
+function erankly_reset_network_shared_data(): void {
+	$default_settings = erankly_default_settings();
+
+	erankly_update_plugin_option( ERANKLY_OPTION, $default_settings );
+
+	if ( erankly_get_plugin_option( ERANKLY_OPTION, false ) !== $default_settings ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network settings.', 'easyrankly' ) );
+	}
+
 	// 'pending' re-arms the first-run wizard; deleting the option would not
 	// (erankly_setup_wizard_maybe_redirect() checks for the literal 'pending').
 	erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'pending' );
 
-	delete_site_option( 'erankly_ml_sites' );
-	delete_site_option( 'erankly_ml_db_version' );
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->base_prefix . 'erankly_ml_relations' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the plugin-owned multilingual relations table; it is recreated on demand.
-
-	$site_ids = get_sites(
-		array(
-			'fields' => 'ids',
-			'number' => 0,
-		)
-	);
-
-	foreach ( $site_ids as $site_id ) {
-		switch_to_blog( (int) $site_id );
-		erankly_reset_site_data();
-		restore_current_blog();
+	if ( 'pending' !== erankly_get_plugin_option( ERANKLY_SETUP_STATUS_OPTION, '' ) ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network setup status.', 'easyrankly' ) );
 	}
+
+	$missing = 'erankly-missing-' . wp_generate_uuid4();
+
+	foreach ( array( 'erankly_ml_sites', 'erankly_ml_db_version' ) as $option_name ) {
+		delete_site_option( $option_name );
+
+		if ( get_site_option( $option_name, $missing ) !== $missing ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not reset the multilingual network settings.', 'easyrankly' ) );
+		}
+	}
+
+	erankly_rotate_multilingual_cache_generation();
+}
+
+/**
+ * Queues a resumable reset for the current network.
+ *
+ * No plugin data is mutated until the job has been stored and scheduled. The
+ * worker then resets shared state, multilingual relations, and per-site data in
+ * bounded, retryable phases.
+ *
+ * @return bool Whether the background cleanup was queued.
+ */
+function erankly_reset_network(): bool {
+	require_once ERANKLY_PATH . 'includes/network-reset.php';
+
+	return erankly_queue_network_reset();
 }
 
 /**
@@ -271,7 +424,15 @@ function erankly_reset_render_notice(): void {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'EasyRankly has been reset for this site.', 'easyrankly' ) . '</p></div>';
 	}
 
-	if ( 'global' === $notice ) {
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'EasyRankly has been reset across the entire network.', 'easyrankly' ) . '</p></div>';
+	if ( 'local_failed' === $notice ) {
+		echo '<div class="notice notice-error"><p>' . esc_html__( 'EasyRankly could not complete the site reset because a database operation failed. Resolve the database issue, then run the reset again.', 'easyrankly' ) . '</p></div>';
+	}
+
+	if ( 'global_queued' === $notice ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'The EasyRankly network reset has started and will continue in small background batches.', 'easyrankly' ) . '</p></div>';
+	}
+
+	if ( 'global_failed' === $notice ) {
+		echo '<div class="notice notice-error"><p>' . esc_html__( 'EasyRankly could not start the network reset, so no plugin data was changed. Resolve the database or Cron scheduling issue, then run the reset again.', 'easyrankly' ) . '</p></div>';
 	}
 }

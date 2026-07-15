@@ -206,27 +206,27 @@ function erankly_get_seo_checklist_items( int $post_id ): array {
 	$description     = erankly_get_post_checklist_effective_description( $post_id );
 
 	$items = array(
-		'title'          => array(
+		'title'         => array(
 			'label' => __( 'SEO title within recommended length', 'easyrankly' ),
 			'done'  => erankly_seo_checklist_text_within_limit( $title, ERANKLY_SEO_CHECKLIST_TITLE_LIMIT ),
 			'group' => 'appearance',
 		),
-		'description'    => array(
+		'description'   => array(
 			'label' => __( 'Meta description within recommended length', 'easyrankly' ),
 			'done'  => erankly_seo_checklist_text_within_limit( $description, ERANKLY_SEO_CHECKLIST_DESCRIPTION_LIMIT ),
 			'group' => 'appearance',
 		),
-		'preview_image'  => array(
+		'preview_image' => array(
 			'label' => __( 'Preview image available', 'easyrankly' ),
 			'done'  => erankly_post_has_preview_image( $post_id ),
 			'group' => 'appearance',
 		),
-		'indexable'      => array(
+		'indexable'     => array(
 			'label' => __( 'Indexable by search engines', 'easyrankly' ),
 			'done'  => erankly_post_is_indexable( $post_id ),
 			'group' => 'indexing',
 		),
-		'content'        => array(
+		'content'       => array(
 			'label' => __( 'Minimum content length', 'easyrankly' ),
 			'done'  => erankly_post_has_minimum_content( $post_id ),
 			'group' => 'indexing',
@@ -271,7 +271,7 @@ function erankly_get_seo_checklist_status( array $items ): string {
  * @param WP_Post $post Post object.
  * @return array<string,mixed>
  */
-function erankly_get_seo_checklist_editor_config( WP_Post $post ): array {
+function erankly_get_seo_checklist_editor_config( WP_Post $post ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- The post argument is retained for the stable per-post configuration API.
 	return array(
 		'descriptionLimit'       => ERANKLY_SEO_CHECKLIST_DESCRIPTION_LIMIT,
 		'hasDefaultPreviewImage' => erankly_site_has_default_preview_image(),

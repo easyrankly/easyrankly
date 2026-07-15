@@ -78,7 +78,7 @@ function erankly_lb_register_editor_assets(): void {
  * @param string $hook_suffix Admin hook.
  * @return void
  */
-function erankly_lb_enqueue_editor_assets( string $hook_suffix ): void {
+function erankly_lb_enqueue_editor_assets( string $hook_suffix ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by the admin_enqueue_scripts hook signature.
 	if ( ! erankly_internal_links_available() ) {
 		return;
 	}
@@ -435,7 +435,11 @@ function erankly_lb_ai_load_prompt( array $context ): array {
 			: '',
 	);
 
-	/** @var array{system:string,user:string} $prompt */
+	/**
+	 * Normalized prompt sections.
+	 *
+	 * @var array{system:string,user:string} $prompt
+	 */
 	return apply_filters( 'erankly_lb_ai_prompt', $prompt, $context );
 }
 
@@ -619,7 +623,9 @@ function erankly_lb_editor_candidate_pool( int $post_id, array $graph ): array {
 	usort(
 		$candidates,
 		static function ( array $a, array $b ): int {
-			return ( $b['score'] <=> $a['score'] ) ?: strcmp( (string) $a['title'], (string) $b['title'] );
+			$score_order = $b['score'] <=> $a['score'];
+
+			return 0 !== $score_order ? $score_order : strcmp( (string) $a['title'], (string) $b['title'] );
 		}
 	);
 
@@ -653,7 +659,7 @@ function erankly_lb_format_candidate_pages_for_prompt( array $pool ): string {
 /**
  * Maps a normalized path to a candidate row.
  *
- * @param string                                                                              $path Requested path.
+ * @param string                                                                            $path Requested path.
  * @param array<int,array{post_id:int,path:string,title:string,excerpt:string,score:float}> $pool Candidate pool.
  * @return array{post_id:int,path:string,title:string,excerpt:string,score:float}|null
  */
@@ -674,7 +680,7 @@ function erankly_lb_match_candidate_path( string $path, array $pool ): ?array {
 /**
  * Parses AI editor link suggestions and validates them against the candidate pool.
  *
- * @param string                                                                              $raw  Model output.
+ * @param string                                                                            $raw  Model output.
  * @param array<int,array{post_id:int,path:string,title:string,excerpt:string,score:float}> $pool Candidate pool.
  * @return array{inbound:array<int,array<string,mixed>>,outbound:array<int,array<string,mixed>>}
  */

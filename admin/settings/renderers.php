@@ -1,5 +1,7 @@
 <?php
 /**
+ * Settings field rendering functions.
+ *
  * @package EasyRankly
  */
 
@@ -288,9 +290,9 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 			// A sample post/term stands in for {{post_title}}/{{term_name}} etc. in
 			// the preview since these fields are global templates, not tied to any
 			// single post/term; the raw token stays literal when none exist yet.
-			$sample_post     = $is_taxonomy ? null : erankly_get_sample_post_for_type( (string) $key );
-			$sample_term     = $is_taxonomy ? erankly_get_sample_term_for_taxonomy( (string) $key ) : null;
-			$examples        = erankly_get_admin_variable_examples( $sample_post, $sample_term );
+			$sample_post = $is_taxonomy ? null : erankly_get_sample_post_for_type( (string) $key );
+			$sample_term = $is_taxonomy ? erankly_get_sample_term_for_taxonomy( (string) $key ) : null;
+			$examples    = erankly_get_admin_variable_examples( $sample_post, $sample_term );
 			?>
 			<div class="erankly-tab-panel erankly-default-tab-panel <?php echo $is_first ? 'is-active' : ''; ?>" id="<?php echo esc_attr( $panel_id ); ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_id ); ?>" data-erankly-panel="<?php echo esc_attr( $panel_key ); ?>" <?php echo $is_first ? '' : 'hidden'; ?>>
 				<div class="erankly-global-meta-default">

@@ -312,7 +312,7 @@ final class ERankly_ML_Resolver {
 		// The result depends on the resolution mode: a noindex post yields '' for
 		// the SEO set but a URL for the navigable set, so the modes cache apart.
 		$mode      = $this->include_noindex ? 'nav' : 'seo';
-		$cache_key = 'erml_simp_' . $mode . '_' . $blog_id . '_' . $post_type . '_' . md5( $slug );
+		$cache_key = erankly_ml_cache_key( 'erml_simp_' . $mode . '_' . $blog_id . '_' . $post_type . '_' . md5( $slug ) );
 		$cached    = wp_cache_get( $cache_key, 'erankly_ml' );
 
 		if ( false !== $cached ) {
@@ -366,7 +366,7 @@ final class ERankly_ML_Resolver {
 	 */
 	private function find_same_term_on_blog( int $blog_id, string $slug, string $taxonomy ): string {
 		$mode      = $this->include_noindex ? 'nav' : 'seo';
-		$cache_key = 'erml_simp_term_' . $mode . '_' . $blog_id . '_' . $taxonomy . '_' . md5( $slug );
+		$cache_key = erankly_ml_cache_key( 'erml_simp_term_' . $mode . '_' . $blog_id . '_' . $taxonomy . '_' . md5( $slug ) );
 		$cached    = wp_cache_get( $cache_key, 'erankly_ml' );
 
 		if ( false !== $cached ) {

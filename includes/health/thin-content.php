@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health thin-content scanning functions.
+ *
  * @package EasyRankly
  */
 

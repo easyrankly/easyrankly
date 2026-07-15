@@ -69,7 +69,7 @@ final class ERankly_Redirects_Repository {
 	 * @return string
 	 */
 	public function get_cache_key( string $source_hash ): string {
-		return 'erankly_redirect_' . $source_hash;
+		return erankly_redirects_cache_key( $source_hash );
 	}
 
 	/**
@@ -320,7 +320,7 @@ final class ERankly_Redirects_Repository {
 		$search = preg_replace_callback(
 			'/\bvisibility\s*:\s*(all|public|logged[-_]?in|logged[-_]?out)\b/i',
 			static function ( array $matches ) use ( &$visibility ): string {
-				$value = strtolower( str_replace( '-', '_', $matches[1] ) );
+				$value      = strtolower( str_replace( '-', '_', $matches[1] ) );
 				$visibility = 'public' === $value ? 'all' : $value;
 				return '';
 			},

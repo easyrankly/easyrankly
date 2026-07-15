@@ -1,5 +1,7 @@
 <?php
 /**
+ * Health module constants.
+ *
  * @package EasyRankly
  */
 

@@ -1,7 +1,7 @@
 === EasyRankly ===
 Contributors: easyrankly
 Tags: seo, schema, sitemap, redirects, ai
-Requires at least: 6.2.0
+Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
 Stable tag: 2.1.0
@@ -51,6 +51,8 @@ Yes. EasyRankly can output Product JSON-LD structured data for WooCommerce produ
 = Does EasyRankly work on WordPress Multisite? =
 
 Yes. There is full Multisite support with network-level global settings, plus an optional multilingual module that links posts, pages, and terms across network sites and outputs hreflang alternates in the head and XML sitemaps.
+
+After activation, an upgrade, or a sitemap setting change, each site refreshes its own rewrite rules on its next request; no network-wide scan is required. Network resets run in small background batches and report their status in Network Admin. On installations with more than 100 sites, network deactivation and uninstall are intentionally routed through WP-CLI so every site can be cleaned without an HTTP timeout. Run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly` (replace `easyrankly` if the installed plugin directory uses a different name).
 
 = Does EasyRankly collect any personal data or phone home? =
 

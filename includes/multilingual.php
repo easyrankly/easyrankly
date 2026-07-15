@@ -22,6 +22,18 @@ define( 'ERANKLY_ML_DB_VERSION', '1.0.0' );
 define( 'ERANKLY_ML_DB_VERSION_OPTION', 'erankly_ml_db_version' );
 
 /**
+ * Adds the current network generation to a multilingual object-cache key.
+ *
+ * @param string $key Unversioned cache key.
+ * @return string
+ */
+function erankly_ml_cache_key( string $key ): string {
+	$generation = (string) get_site_option( ERANKLY_ML_CACHE_GENERATION_OPTION, '0' );
+
+	return $generation . ':' . $key;
+}
+
+/**
  * Boots the multilingual module.
  * Idempotent: repeated calls (e.g. via erankly_ml_admin()) are no-ops so
  * runtime hooks are never registered twice.

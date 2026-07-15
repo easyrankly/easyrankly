@@ -123,7 +123,7 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	$description_placeholder = erankly_get_post_global_meta_placeholder( $post, 'description', 160 );
 	// The post being edited is its own {{post_title}}-style example, so the
 	// preview shows this post's real title/excerpt/etc., not a stand-in.
-	$examples                 = erankly_get_admin_variable_examples( $post );
+	$examples = erankly_get_admin_variable_examples( $post );
 	?>
 	<div class="erankly-field">
 		<label for="erankly-title"><strong><?php esc_html_e( 'Meta title', 'easyrankly' ); ?></strong></label>
@@ -418,8 +418,8 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	$title_placeholder        = erankly_get_term_global_meta_placeholder( $taxonomy, 'title' );
 	$description_placeholder  = erankly_get_term_global_meta_placeholder( $taxonomy, 'description' );
 	// The term being edited is its own {{term_name}}-style example.
-	$term_object               = $term_id > 0 ? get_term( $term_id, $taxonomy ) : null;
-	$examples                  = erankly_get_admin_variable_examples( null, $term_object instanceof WP_Term ? $term_object : null );
+	$term_object = $term_id > 0 ? get_term( $term_id, $taxonomy ) : null;
+	$examples    = erankly_get_admin_variable_examples( null, $term_object instanceof WP_Term ? $term_object : null );
 	?>
 	<div class="erankly-meta-box erankly-term-meta-box">
 		<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">

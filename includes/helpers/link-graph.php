@@ -59,10 +59,10 @@ function erankly_lb_delete_graph(): void {
 /**
  * Extracts internal links from post HTML content.
  *
- * @param string $content     Raw post content.
- * @param string $home_host   Site host for internal/external checks.
- * @param array<string,int>  $path_map Normalized path => post ID.
- * @param int                $post_id  Source post ID (self-links are skipped).
+ * @param string            $content     Raw post content.
+ * @param string            $home_host   Site host for internal/external checks.
+ * @param array<string,int> $path_map Normalized path => post ID.
+ * @param int               $post_id  Source post ID (self-links are skipped).
  * @return array<int,array{to:int,anchor:string}>
  */
 function erankly_lb_extract_internal_links( string $content, string $home_host, array $path_map, int $post_id ): array {
@@ -132,11 +132,11 @@ function erankly_lb_build_graph(): array {
 
 	$post_types = array_keys( erankly_get_public_post_types() );
 	$empty      = array(
-		'built_at'    => time(),
-		'post_count'  => 0,
-		'orphan_count'=> 0,
-		'posts'       => array(),
-		'orphans'     => array(),
+		'built_at'     => time(),
+		'post_count'   => 0,
+		'orphan_count' => 0,
+		'posts'        => array(),
+		'orphans'      => array(),
 	);
 
 	if ( empty( $post_types ) ) {
@@ -146,6 +146,7 @@ function erankly_lb_build_graph(): array {
 
 	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
 
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The generated list contains only %s placeholders and every value is bound below.
 	$post_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- On-demand link graph build; IDs only.
 		$wpdb->prepare(
 			"SELECT p.ID
@@ -161,6 +162,7 @@ function erankly_lb_build_graph(): array {
 			$post_types
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 	$post_ids = array_map( 'intval', (array) $post_ids );
 
@@ -194,7 +196,7 @@ function erankly_lb_build_graph(): array {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Batch content load for link graph.
 			$wpdb->prepare(
-				"SELECT ID, post_content FROM {$wpdb->posts} WHERE ID IN ({$id_placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders are literal %d tokens bound via prepare().
+				"SELECT ID, post_content FROM {$wpdb->posts} WHERE ID IN ({$id_placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholders are literal %d tokens bound via prepare().
 				...$batch_ids
 			),
 			ARRAY_A
