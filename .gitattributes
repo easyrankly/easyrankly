@@ -17,6 +17,7 @@
 /phpcs.xml.dist  export-ignore
 /phpunit.xml     export-ignore
 /phpunit.xml.dist export-ignore
+/eslint.config.mjs export-ignore
 /stylelint.config.mjs export-ignore
 /tests           export-ignore
 /docs            export-ignore

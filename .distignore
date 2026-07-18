@@ -19,6 +19,7 @@
 /phpcs.xml.dist
 /phpunit.xml
 /phpunit.xml.dist
+/eslint.config.mjs
 /stylelint.config.mjs
 
 # Dependencies and dev-only directories
@@ -31,6 +32,31 @@
 /build
 /dist
 
+# Local, generated, and sensitive files
+/.env
+/.env.*
+/pro-evidence*.json
+*.log
+*.cache
+*.tmp
+/.eslintcache
+/.phpcs-cache
+/.phpunit.cache
+/.phpunit.result.cache
+/.stylelintcache
+/*.zip
+
+# Editors / IDEs
+/.idea
+/.vscode
+*.sublime-project
+*.sublime-workspace
+*.swp
+
 # OS cruft
 .DS_Store
+.AppleDouble
+.LSOverride
 Thumbs.db
+ehthumbs.db
+Desktop.ini

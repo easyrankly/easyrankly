@@ -19,9 +19,11 @@ Desktop.ini
 *.log
 *.cache
 *.tmp
+/.eslintcache
 /.phpcs-cache
 /.phpunit.cache/
 /.phpunit.result.cache
+/.stylelintcache
 /coverage/
 /build/
 /dist/
