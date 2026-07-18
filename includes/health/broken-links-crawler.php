@@ -17,17 +17,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function erankly_health_bl_default_state(): array {
 	return array(
-		'status'      => 'idle', // idle|discovering|checking|done.
-		'started_at'  => 0,
-		'updated_at'  => 0,
-		'queue'       => array(), // Pending pages to fetch: list of array{url:string,depth:int}.
-		'visited'     => array(), // page-path (string) => true, to avoid refetching/looping.
-		'pages_done'  => 0,
-		'links'       => array(), // link URL (string) => array{type,occurrences,nofollow}.
-		'check_queue' => array(), // list of link URLs still to status-check.
-		'checks_done' => 0,
-		'found'       => array(), // Accumulated broken/unreachable links during checking.
-		'stats'       => array(
+		'status'       => 'idle', // idle|discovering|checking|done.
+		'started_at'   => 0,
+		'updated_at'   => 0,
+		'queue'        => array(), // Pending pages to fetch: list of array{url:string,depth:int}.
+		'queue_cursor' => 0,
+		'visited'      => array(), // page-path (string) => true, to avoid refetching/looping.
+		'pages_done'   => 0,
+		'links'        => array(), // link URL (string) => array{type,occurrences,nofollow}.
+		'check_queue'  => array(), // list of link URLs still to status-check.
+		'check_cursor' => 0,
+		'check_total'  => 0,
+		'checks_done'  => 0,
+		'found'        => array(), // Accumulated broken/unreachable links during checking.
+		'stats'        => array(
 			'pages'          => 0,
 			'links'          => 0,
 			'checked'        => 0,
@@ -45,14 +48,31 @@ function erankly_health_bl_default_state(): array {
  * @return array<string,mixed>
  */
 function erankly_health_bl_get_state(): array {
-	$state = get_option( ERANKLY_HEALTH_BL_STATE_OPTION, null );
+	$stored = get_option( ERANKLY_HEALTH_BL_STATE_OPTION, null );
 
-	if ( ! is_array( $state ) || ! isset( $state['status'] ) ) {
+	if ( ! is_array( $stored ) || ! isset( $stored['status'] ) ) {
 		return erankly_health_bl_default_state();
 	}
 
-	// Merge onto the skeleton so newly added keys are always present.
-	return array_merge( erankly_health_bl_default_state(), $state );
+	$state    = array_merge( erankly_health_bl_default_state(), $stored );
+	$segments = array(
+		'queue'       => ERANKLY_HEALTH_BL_QUEUE_OPTION,
+		'visited'     => ERANKLY_HEALTH_BL_VISITED_OPTION,
+		'links'       => ERANKLY_HEALTH_BL_LINKS_OPTION,
+		'check_queue' => ERANKLY_HEALTH_BL_CHECK_QUEUE_OPTION,
+		'found'       => ERANKLY_HEALTH_BL_FOUND_OPTION,
+	);
+	foreach ( $segments as $key => $option ) {
+		// Read legacy inline data once; the next save transparently migrates it.
+		if ( array_key_exists( $key, $stored ) && is_array( $stored[ $key ] ) ) {
+			$state[ $key ] = $stored[ $key ];
+			continue;
+		}
+		$segment       = get_option( $option, array() );
+		$state[ $key ] = is_array( $segment ) ? $segment : array();
+	}
+
+	return $state;
 }
 
 /**
@@ -63,6 +83,17 @@ function erankly_health_bl_get_state(): array {
  */
 function erankly_health_bl_save_state( array $state ): void {
 	$state['updated_at'] = time();
+	$segments            = array(
+		'queue'       => ERANKLY_HEALTH_BL_QUEUE_OPTION,
+		'visited'     => ERANKLY_HEALTH_BL_VISITED_OPTION,
+		'links'       => ERANKLY_HEALTH_BL_LINKS_OPTION,
+		'check_queue' => ERANKLY_HEALTH_BL_CHECK_QUEUE_OPTION,
+		'found'       => ERANKLY_HEALTH_BL_FOUND_OPTION,
+	);
+	foreach ( $segments as $key => $option ) {
+		update_option( $option, is_array( $state[ $key ] ?? null ) ? $state[ $key ] : array(), false );
+		unset( $state[ $key ] );
+	}
 	update_option( ERANKLY_HEALTH_BL_STATE_OPTION, $state, false );
 }
 
@@ -73,6 +104,11 @@ function erankly_health_bl_save_state( array $state ): void {
  */
 function erankly_health_bl_reset_state(): void {
 	delete_option( ERANKLY_HEALTH_BL_STATE_OPTION );
+	delete_option( ERANKLY_HEALTH_BL_QUEUE_OPTION );
+	delete_option( ERANKLY_HEALTH_BL_VISITED_OPTION );
+	delete_option( ERANKLY_HEALTH_BL_LINKS_OPTION );
+	delete_option( ERANKLY_HEALTH_BL_CHECK_QUEUE_OPTION );
+	delete_option( ERANKLY_HEALTH_BL_FOUND_OPTION );
 }
 
 /**
@@ -174,9 +210,9 @@ function erankly_health_bl_progress_payload( array $state ): array {
 	return array(
 		'status'      => (string) $state['status'],
 		'pages_done'  => (int) $state['pages_done'],
-		'queued'      => count( (array) $state['queue'] ),
+		'queued'      => max( 0, count( (array) $state['queue'] ) - absint( $state['queue_cursor'] ?? 0 ) ),
 		'checks_done' => (int) $state['checks_done'],
-		'check_total' => (int) $state['checks_done'] + count( (array) $state['check_queue'] ),
+		'check_total' => absint( $state['check_total'] ?? count( (array) $state['check_queue'] ) ),
 		'stats'       => array(
 			'pages'   => isset( $stats['pages'] ) ? (int) $stats['pages'] : 0,
 			'links'   => isset( $stats['links'] ) ? (int) $stats['links'] : 0,
@@ -690,13 +726,17 @@ function erankly_health_bl_record_link( array &$state, array $link, string $sour
 function erankly_health_bl_run_discovery_batch( array $state ): array {
 	$processed = 0;
 
-	while ( $processed < ERANKLY_HEALTH_BL_FETCH_BATCH && ! empty( $state['queue'] ) ) {
+	$state['queue_cursor'] = absint( $state['queue_cursor'] ?? 0 );
+	$queue_count           = count( $state['queue'] );
+	while ( $processed < ERANKLY_HEALTH_BL_FETCH_BATCH && $state['queue_cursor'] < $queue_count ) {
 		if ( $state['pages_done'] >= ERANKLY_HEALTH_BL_MAX_PAGES ) {
-			$state['queue'] = array();
+			$state['queue']        = array();
+			$state['queue_cursor'] = 0;
 			break;
 		}
 
-		$item  = array_shift( $state['queue'] );
+		$item = $state['queue'][ $state['queue_cursor'] ] ?? array();
+		++$state['queue_cursor'];
 		$url   = isset( $item['url'] ) ? (string) $item['url'] : '';
 		$depth = isset( $item['depth'] ) ? (int) $item['depth'] : 0;
 
@@ -743,14 +783,18 @@ function erankly_health_bl_run_discovery_batch( array $state ): array {
 					'url'   => $link['url'],
 					'depth' => $depth + 1,
 				);
+				++$queue_count;
 			}
 		}
 	}
 
 	// Discovery is done when the queue is empty or the page budget is spent.
-	if ( empty( $state['queue'] ) || $state['pages_done'] >= ERANKLY_HEALTH_BL_MAX_PAGES ) {
+	if ( $state['queue_cursor'] >= $queue_count || $state['pages_done'] >= ERANKLY_HEALTH_BL_MAX_PAGES ) {
 		$state['queue']          = array();
+		$state['queue_cursor']   = 0;
 		$state['check_queue']    = array_keys( $state['links'] );
+		$state['check_cursor']   = 0;
+		$state['check_total']    = count( $state['check_queue'] );
 		$state['stats']['pages'] = (int) $state['pages_done'];
 		$state['stats']['links'] = count( $state['links'] );
 		$state['status']         = 'checking';
@@ -878,8 +922,11 @@ function erankly_health_bl_check_url_status( string $url, bool $internal ): arra
 function erankly_health_bl_run_checking_batch( array $state ): array {
 	$processed = 0;
 
-	while ( $processed < ERANKLY_HEALTH_BL_CHECK_BATCH && ! empty( $state['check_queue'] ) ) {
-		$url = (string) array_shift( $state['check_queue'] );
+	$state['check_cursor'] = absint( $state['check_cursor'] ?? 0 );
+	$check_count           = count( $state['check_queue'] );
+	while ( $processed < ERANKLY_HEALTH_BL_CHECK_BATCH && $state['check_cursor'] < $check_count ) {
+		$url = (string) ( $state['check_queue'][ $state['check_cursor'] ] ?? '' );
+		++$state['check_cursor'];
 		++$processed;
 		++$state['checks_done'];
 
@@ -917,15 +964,17 @@ function erankly_health_bl_run_checking_batch( array $state ): array {
 
 	$state['stats']['checked'] = (int) $state['checks_done'];
 
-	if ( empty( $state['check_queue'] ) ) {
+	if ( $state['check_cursor'] >= $check_count ) {
 		erankly_health_bl_finalize_results( $state );
 		$state['status'] = 'done';
 
 		// Results are persisted separately; drop the heavy working data so the
 		// lingering state option stays small.
-		$state['links']   = array();
-		$state['found']   = array();
-		$state['visited'] = array();
+		$state['links']        = array();
+		$state['found']        = array();
+		$state['visited']      = array();
+		$state['check_queue']  = array();
+		$state['check_cursor'] = 0;
 	}
 
 	return $state;

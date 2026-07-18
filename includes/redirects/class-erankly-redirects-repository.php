@@ -16,7 +16,12 @@ final class ERankly_Redirects_Repository {
 	/**
 	 * Non-autoloaded option containing frontend-ready active rules.
 	 */
-	private const RUNTIME_RULES_OPTION = 'erankly_redirects_runtime_rules';
+	private const RUNTIME_RULES_OPTION         = 'erankly_redirects_runtime_rules';
+	private const RUNTIME_RULES_VERSION        = 3;
+	private const RUNTIME_GLOBAL_OPTION        = 'erankly_redirects_runtime_rules_global';
+	private const RUNTIME_ALL_OPTION           = 'erankly_redirects_runtime_rules_all';
+	private const RUNTIME_PREFIX_INDEX_OPTION  = 'erankly_redirects_runtime_rules_prefix_index';
+	private const RUNTIME_PREFIX_OPTION_PREFIX = 'erankly_redirects_runtime_rules_prefix_';
 
 	/**
 	 * Sentinel value stored in object cache when no exact redirect exists for a hash.
@@ -38,9 +43,9 @@ final class ERankly_Redirects_Repository {
 	private string $table_name;
 
 	/**
-	 * Request-level runtime rules.
+	 * Request-level runtime manifest, or a freshly compiled rule set.
 	 *
-	 * @var array{exact:array<string,array<string,mixed>>,patterns:array<int,array<string,mixed>>}|null
+	 * @var array<string,mixed>|null
 	 */
 	private ?array $runtime_rules = null;
 
@@ -140,54 +145,209 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Returns all active redirects in a frontend-optimized structure.
+	 * Returns only advanced rules that can match the current route/query.
 	 *
 	 * The non-autoloaded option is rebuilt lazily after redirect mutations. This
 	 * removes custom-table queries from normal frontend requests for patterns.
 	 *
+	 * Passing no route preserves the historical all-patterns API for extensions.
+	 * Runtime requests use prefix/query buckets so unrelated rules are never
+	 * traversed by the matcher.
+	 *
+	 * @param string $request_path  Normalized request path, or empty for all rules.
+	 * @param string $current_query Current raw query string.
 	 * @return array<int,array<string,mixed>>
 	 */
-	public function get_pattern_rules(): array {
+	public function get_pattern_rules( string $request_path = '', string $current_query = '' ): array {
 		global $wpdb;
 
-		if ( null !== $this->runtime_rules ) {
-			return $this->runtime_rules['patterns'];
+		if ( null === $this->runtime_rules ) {
+			$manifest = get_option( self::RUNTIME_RULES_OPTION, null );
+			if ( is_array( $manifest ) && self::RUNTIME_RULES_VERSION === (int) ( $manifest['version'] ?? 0 ) ) {
+				$this->runtime_rules = $manifest;
+			} else {
+				$sql  = $wpdb->prepare(
+					'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, visibility, required_role, conditions, start_at, end_at
+					FROM %i
+					WHERE is_active = 1 AND (
+						match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s OR visibility <> %s OR conditions IS NOT NULL OR start_at IS NOT NULL OR end_at IS NOT NULL
+					)
+					ORDER BY priority ASC, id ASC',
+					$this->table_name,
+					'exact',
+					'ignore',
+					'ignore',
+					'all'
+				);
+				$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rebuilds compact runtime buckets after explicit invalidation.
+
+				$this->runtime_rules = $this->compile_runtime_rules( is_array( $rows ) ? $rows : array() );
+				$this->persist_runtime_rules( $this->runtime_rules );
+			}
 		}
 
-		$cached = get_option( self::RUNTIME_RULES_OPTION, null );
+		if ( '' === $request_path ) {
+			if ( isset( $this->runtime_rules['all'] ) && is_array( $this->runtime_rules['all'] ) ) {
+				return $this->runtime_rules['all'];
+			}
+			$all = get_option( self::RUNTIME_ALL_OPTION, array() );
 
-		if (
-			is_array( $cached ) &&
-			isset( $cached['patterns'] ) &&
-			is_array( $cached['patterns'] )
-		) {
-			$this->runtime_rules = $cached;
-			return $this->runtime_rules['patterns'];
+			return is_array( $all ) ? $all : array();
 		}
 
-		$sql  = $wpdb->prepare(
-			'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, visibility, required_role, conditions, start_at, end_at
-			FROM %i
-			WHERE is_active = 1 AND (
-				match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s OR visibility <> %s OR conditions IS NOT NULL OR start_at IS NOT NULL OR end_at IS NOT NULL
-			)
-			ORDER BY priority ASC, id ASC',
-			$this->table_name,
-			'exact',
-			'ignore',
-			'ignore',
-			'all'
+		$prefix    = $this->runtime_prefix_key( $request_path );
+		$query_key = hash( 'sha256', $current_query );
+		if ( isset( $this->runtime_rules['global'], $this->runtime_rules['prefix'] ) ) {
+			$global = is_array( $this->runtime_rules['global'] ) ? $this->runtime_rules['global'] : array();
+			$local  = is_array( $this->runtime_rules['prefix'][ $prefix ] ?? null ) ? $this->runtime_rules['prefix'][ $prefix ] : array();
+		} else {
+			$global = get_option( self::RUNTIME_GLOBAL_OPTION, array() );
+			$local  = get_option( $this->runtime_prefix_option_name( $prefix ), array() );
+			$global = is_array( $global ) ? $global : array();
+			$local  = is_array( $local ) ? $local : array();
+		}
+		$candidates = array_merge(
+			is_array( $global['any'] ?? null ) ? $global['any'] : array(),
+			is_array( $global['query'][ $query_key ] ?? null ) ? $global['query'][ $query_key ] : array(),
+			is_array( $local['any'] ?? null ) ? $local['any'] : array(),
+			is_array( $local['query'][ $query_key ] ?? null ) ? $local['query'][ $query_key ] : array()
 		);
-		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rebuilds the versionless runtime rules option after explicit invalidation.
 
-		$rules = array(
-			'patterns' => is_array( $rows ) ? $rows : array(),
+		usort(
+			$candidates,
+			static fn( array $left, array $right ): int => array( (int) ( $left['priority'] ?? 10 ), (int) ( $left['id'] ?? 0 ) ) <=> array( (int) ( $right['priority'] ?? 10 ), (int) ( $right['id'] ?? 0 ) )
 		);
 
-		update_option( self::RUNTIME_RULES_OPTION, $rules, false );
-		$this->runtime_rules = $rules;
+		return $candidates;
+	}
 
-		return $this->runtime_rules['patterns'];
+	/**
+	 * Compiles database rows into route/query buckets and reusable match data.
+	 *
+	 * @param array<int,array<string,mixed>> $rows Active advanced rows.
+	 * @return array<string,mixed>
+	 */
+	private function compile_runtime_rules( array $rows ): array {
+		$compiled = array(
+			'version' => self::RUNTIME_RULES_VERSION,
+			'all'     => array(),
+			'global'  => array(
+				'any'   => array(),
+				'query' => array(),
+			),
+			'prefix'  => array(),
+		);
+
+		foreach ( $rows as $row ) {
+			$match_type                  = (string) ( $row['match_type'] ?? ( ! empty( $row['is_wildcard'] ) ? 'wildcard' : ( ! empty( $row['is_regex'] ) ? 'regex' : 'exact' ) ) );
+			$case_sensitive              = ! empty( $row['case_sensitive'] );
+			$trailing_slash              = (string) ( $row['trailing_slash'] ?? 'ignore' );
+			$row['_runtime_source_path'] = ERankly_Redirects_Normalizer::normalize_match_path( (string) ( $row['source_path'] ?? '' ), $case_sensitive, $trailing_slash );
+			if ( 'wildcard' === $match_type ) {
+				$row['_runtime_pattern'] = ERankly_Redirects_Normalizer::build_wildcard_pattern( (string) ( $row['source_path'] ?? '' ), $case_sensitive );
+			} elseif ( 'regex' === $match_type ) {
+				$row['_runtime_pattern'] = ERankly_Redirects_Normalizer::build_regex_pattern( (string) ( $row['source_path'] ?? '' ), $case_sensitive );
+			}
+
+			$prefix = '';
+			if ( 'exact' === $match_type ) {
+				$prefix = $this->runtime_prefix_key( (string) ( $row['source_path'] ?? '' ) );
+			} elseif ( in_array( $match_type, array( 'starts_with', 'wildcard' ), true ) ) {
+				$source = (string) ( $row['source_path'] ?? '' );
+				if ( 'wildcard' === $match_type ) {
+					$wildcard = strpos( $source, '*' );
+					$source   = false === $wildcard ? $source : substr( $source, 0, $wildcard );
+				}
+				// A partial first segment (for example /shop*) can also match
+				// /shopping and therefore cannot be placed in an exact segment bucket.
+				$trimmed = trim( $source, '/' );
+				if ( false !== strpos( $trimmed, '/' ) || str_ends_with( $source, '/' ) ) {
+					$prefix = $this->runtime_prefix_key( $source );
+				}
+			}
+
+			$bucket =& $compiled['global'];
+			if ( '' !== $prefix ) {
+				if ( ! isset( $compiled['prefix'][ $prefix ] ) ) {
+					$compiled['prefix'][ $prefix ] = array(
+						'any'   => array(),
+						'query' => array(),
+					);
+				}
+				$bucket =& $compiled['prefix'][ $prefix ];
+			}
+
+			if ( 'exact' === (string) ( $row['query_mode'] ?? 'ignore' ) ) {
+				$query_key                       = hash( 'sha256', (string) ( $row['source_query'] ?? '' ) );
+				$bucket['query'][ $query_key ][] = $row;
+			} else {
+				$bucket['any'][] = $row;
+			}
+			$compiled['all'][] = $row;
+			unset( $bucket );
+		}
+
+		return $compiled;
+	}
+
+	/**
+	 * Persists independently loadable global and path-prefix rule segments.
+	 *
+	 * The public manifest stays small. Runtime requests therefore deserialize
+	 * only the global bucket and the one bucket matching their first path segment.
+	 *
+	 * @param array<string,mixed> $compiled Freshly compiled runtime rules.
+	 */
+	private function persist_runtime_rules( array $compiled ): void {
+		$global = is_array( $compiled['global'] ?? null ) ? $compiled['global'] : array();
+		$all    = is_array( $compiled['all'] ?? null ) ? $compiled['all'] : array();
+		update_option( self::RUNTIME_GLOBAL_OPTION, $global, false );
+		update_option( self::RUNTIME_ALL_OPTION, $all, false );
+
+		$prefix_options = array();
+		foreach ( is_array( $compiled['prefix'] ?? null ) ? $compiled['prefix'] : array() as $prefix => $rules ) {
+			$option = $this->runtime_prefix_option_name( (string) $prefix );
+			update_option( $option, is_array( $rules ) ? $rules : array(), false );
+			$prefix_options[] = $option;
+		}
+
+		$previous = get_option( self::RUNTIME_PREFIX_INDEX_OPTION, array() );
+		foreach ( is_array( $previous ) ? array_diff( $previous, $prefix_options ) : array() as $stale_option ) {
+			if ( is_string( $stale_option ) && 1 === preg_match( '/^erankly_redirects_runtime_rules_prefix_[a-f0-9]{24}$/', $stale_option ) ) {
+				delete_option( $stale_option );
+			}
+		}
+
+		update_option( self::RUNTIME_PREFIX_INDEX_OPTION, array_values( $prefix_options ), false );
+		update_option(
+			self::RUNTIME_RULES_OPTION,
+			array(
+				'version'      => self::RUNTIME_RULES_VERSION,
+				'prefix_count' => count( $prefix_options ),
+			),
+			false
+		);
+	}
+
+	/**
+	 * Returns a coarse, case-insensitive first-path-segment bucket key.
+	 *
+	 * @param string $path Normalized or raw request path.
+	 */
+	private function runtime_prefix_key( string $path ): string {
+		$path     = ERankly_Redirects_Normalizer::normalize_path( $path );
+		$segments = explode( '/', trim( strtolower( $path ), '/' ) );
+
+		return sanitize_key( (string) ( $segments[0] ?? '' ) );
+	}
+
+	/**
+	 * Returns the fixed-length option name for one path-prefix bucket.
+	 *
+	 * @param string $prefix Normalized first path segment.
+	 */
+	private function runtime_prefix_option_name( string $prefix ): string {
+		return self::RUNTIME_PREFIX_OPTION_PREFIX . substr( hash( 'sha256', $prefix ), 0, 24 );
 	}
 
 	/**
@@ -231,6 +391,15 @@ final class ERankly_Redirects_Repository {
 		}
 
 		$this->runtime_rules = null;
+		$prefix_options      = get_option( self::RUNTIME_PREFIX_INDEX_OPTION, array() );
+		foreach ( is_array( $prefix_options ) ? $prefix_options : array() as $option ) {
+			if ( is_string( $option ) && 1 === preg_match( '/^erankly_redirects_runtime_rules_prefix_[a-f0-9]{24}$/', $option ) ) {
+				delete_option( $option );
+			}
+		}
+		delete_option( self::RUNTIME_GLOBAL_OPTION );
+		delete_option( self::RUNTIME_ALL_OPTION );
+		delete_option( self::RUNTIME_PREFIX_INDEX_OPTION );
 		delete_option( self::RUNTIME_RULES_OPTION );
 		erankly_redirects_flush_external_caches();
 	}
@@ -510,19 +679,23 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Return all redirects for CSV export.
+	 * Returns one keyset-paginated redirect export page.
 	 *
+	 * @param int $after_id Last exported redirect ID.
+	 * @param int $limit    Maximum rows.
 	 * @return array<int,array<string,mixed>>
 	 */
-	public function get_all_for_export(): array {
+	public function export_page( int $after_id, int $limit = 500 ): array {
 		global $wpdb;
 
 		$sql = $wpdb->prepare(
-			'SELECT source_path, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, is_active, visibility, required_role, conditions, start_at, end_at, source_plugin, source_reference, migration_id, note FROM %i ORDER BY priority ASC, id ASC',
-			$this->table_name
+			'SELECT id AS _cursor, source_path, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, is_active, visibility, required_role, conditions, start_at, end_at, source_plugin, source_reference, migration_id, note FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d',
+			$this->table_name,
+			max( 0, $after_id ),
+			max( 1, min( 1000, $limit ) )
 		);
 
-		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
+		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded custom-table export page prepared above.
 
 		return is_array( $rows ) ? $rows : array();
 	}

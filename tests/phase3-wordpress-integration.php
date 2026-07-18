@@ -162,8 +162,10 @@ erankly_phase3_wp_assert( $cancel_id === (string) $competing['job']['id'], 'The 
 
 $acquire_lock = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'acquire_lock' );
 $release_lock = new ReflectionMethod( ERankly_Migration_Job_Runner::class, 'release_lock' );
-$acquire_lock->setAccessible( true );
-$release_lock->setAccessible( true );
+if ( PHP_VERSION_ID < 80500 ) {
+	$acquire_lock->setAccessible( true );
+	$release_lock->setAccessible( true );
+}
 $lock_token   = (string) $acquire_lock->invoke( $runner, $cancel_id );
 erankly_phase3_wp_assert( '' !== $lock_token, 'The cancellation fixture must own the worker lock.' );
 erankly_phase3_wp_assert( $runner->cancel( $cancel_id ), 'Cancellation must be accepted while the worker is locked.' );

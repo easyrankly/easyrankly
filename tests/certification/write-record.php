@@ -11,16 +11,17 @@ if ( PHP_SAPI !== 'cli' ) {
 	exit( 2 );
 }
 
-$options = getopt( '', array( 'output:', 'results:', 'pro-evidence::' ) );
-$output  = isset( $options['output'] ) ? (string) $options['output'] : '';
-$results = isset( $options['results'] ) ? (string) $options['results'] : '';
-$pro     = isset( $options['pro-evidence'] ) ? (string) $options['pro-evidence'] : '';
-$root    = dirname( __DIR__, 2 );
+$options      = getopt( '', array( 'output:', 'results:', 'test-results:', 'pro-evidence::' ) );
+$output       = isset( $options['output'] ) ? (string) $options['output'] : '';
+$results      = isset( $options['results'] ) ? (string) $options['results'] : '';
+$test_results = isset( $options['test-results'] ) ? (string) $options['test-results'] : '';
+$pro          = isset( $options['pro-evidence'] ) ? (string) $options['pro-evidence'] : '';
+$root         = dirname( __DIR__, 2 );
 
 require_once __DIR__ . '/helpers.php';
 
-if ( '' === $output || ! is_file( $results ) ) {
-	fwrite( STDERR, "Usage: php write-record.php --output=<json> --results=<tsv> [--pro-evidence=<json>]\n" );
+if ( '' === $output || ! is_file( $results ) || ! is_file( $test_results ) ) {
+	fwrite( STDERR, "Usage: php write-record.php --output=<json> --results=<tsv> --test-results=<tsv> [--pro-evidence=<json>]\n" );
 	exit( 2 );
 }
 
@@ -55,6 +56,58 @@ $missing = array_diff_key( $expected_cells, $actual_cells );
 $extra   = array_diff_key( $actual_cells, $expected_cells );
 if ( $missing || $extra ) {
 	fwrite( STDERR, 'Certification matrix mismatch. Missing: ' . implode( ', ', array_keys( $missing ) ) . '; extra: ' . implode( ', ', array_keys( $extra ) ) . ".\n" );
+	exit( 1 );
+}
+
+$actual_tests = array();
+$test_lines   = file( $test_results, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
+foreach ( is_array( $test_lines ) ? $test_lines : array() as $line ) {
+	$columns = explode( "\t", $line );
+	if ( 9 !== count( $columns ) ) {
+		fwrite( STDERR, "Malformed per-test certification result row.\n" );
+		exit( 2 );
+	}
+	$test = array_combine( array( 'layer', 'php', 'wordpress', 'database', 'topology', 'test', 'status', 'duration_ms', 'exit_code' ), $columns );
+	if ( ! is_array( $test ) || 'pass' !== $test['status'] || 0 !== (int) $test['exit_code'] ) {
+		fwrite( STDERR, 'A required certification test did not pass: ' . (string) ( $test['test'] ?? 'unknown' ) . ".\n" );
+		exit( 1 );
+	}
+	$key = erankly_certification_cell_key( $test ) . '|' . (string) $test['test'];
+	if ( isset( $actual_tests[ $key ] ) ) {
+		fwrite( STDERR, "Duplicate per-test certification result: {$key}.\n" );
+		exit( 2 );
+	}
+	$path = $root . '/' . (string) $test['test'];
+	if ( ! is_file( $path ) ) {
+		fwrite( STDERR, 'A passing certification result references a missing test: ' . (string) $test['test'] . ".\n" );
+		exit( 1 );
+	}
+	$test['duration_ms'] = max( 0, (int) $test['duration_ms'] );
+	$test['exit_code']   = (int) $test['exit_code'];
+	$test['sha256']      = hash_file( 'sha256', $path );
+	$actual_tests[ $key ] = $test;
+}
+
+$expected_tests = array();
+foreach ( $manifest['certification_cells'] as $cell ) {
+	$suite = '';
+	if ( 'standalone' === (string) ( $cell['layer'] ?? '' ) ) {
+		$suite = 'required_standalone_tests';
+	} elseif ( 'wordpress' === (string) ( $cell['layer'] ?? '' ) ) {
+		$suite = 'multisite' === (string) ( $cell['topology'] ?? '' ) ? 'required_multisite_tests' : 'required_wordpress_tests';
+	}
+	if ( '' === $suite ) {
+		continue;
+	}
+	foreach ( $manifest[ $suite ] as $test_file ) {
+		$key                    = erankly_certification_cell_key( $cell ) . '|' . (string) $test_file;
+		$expected_tests[ $key ] = true;
+	}
+}
+$missing_tests = array_diff_key( $expected_tests, $actual_tests );
+$extra_tests   = array_diff_key( $actual_tests, $expected_tests );
+if ( $missing_tests || $extra_tests ) {
+	fwrite( STDERR, 'Certification test evidence mismatch. Missing: ' . implode( ', ', array_keys( $missing_tests ) ) . '; extra: ' . implode( ', ', array_keys( $extra_tests ) ) . ".\n" );
 	exit( 1 );
 }
 
@@ -129,6 +182,7 @@ $record = array(
 	'manifest_sha256'      => hash_file( 'sha256', __DIR__ . '/manifest.php' ),
 	'fixture_sha256'       => $fixtures,
 	'matrix'               => array_values( $actual_cells ),
+	'tests'                => array_values( $actual_tests ),
 	'sources'              => $manifest['sources'],
 	'licensed_pro_evidence'=> $pro_evidence,
 );

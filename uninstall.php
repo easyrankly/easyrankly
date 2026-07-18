@@ -11,6 +11,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 require_once __DIR__ . '/includes/helpers/redirect-cache.php';
 require_once __DIR__ . '/includes/migrations/class-erankly-migration-upload-store.php';
+require_once __DIR__ . '/includes/class-erankly-import-job-runner.php';
 
 global $wpdb;
 
@@ -25,6 +26,9 @@ global $wpdb;
  */
 function erankly_uninstall_site(): void {
 	global $wpdb;
+	if ( ! ERankly_Import_Job_Runner::purge_all() ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private import uploads during uninstall.', 'easyrankly' ) );
+	}
 	if ( ! ERankly_Migration_Upload_Store::purge_all( true ) ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private migration uploads during uninstall.', 'easyrankly' ) );
 	}
@@ -32,15 +36,36 @@ function erankly_uninstall_site(): void {
 	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
 	wp_unschedule_hook( 'erankly_network_reset_batch' );
 	wp_unschedule_hook( 'erankly_migration_process_batch' );
+	wp_unschedule_hook( 'erankly_migration_rollback_batch' );
+	wp_unschedule_hook( 'erankly_import_process_batch' );
 	$erankly_active_migration = get_option( 'erankly_migration_active_job_v1', array() );
 	if ( is_array( $erankly_active_migration ) && ! empty( $erankly_active_migration['id'] ) ) {
 		delete_option( 'erankly_migration_lock_' . substr( hash( 'sha256', (string) $erankly_active_migration['id'] ), 0, 24 ) );
 		delete_option( 'erankly_migration_cancel_' . substr( hash( 'sha256', (string) $erankly_active_migration['id'] ), 0, 24 ) );
 	}
+	$erankly_active_import = get_option( 'erankly_import_active_job_v1', array() );
+	if ( is_array( $erankly_active_import ) && ! empty( $erankly_active_import['id'] ) ) {
+		delete_option( 'erankly_import_lock_' . substr( hash( 'sha256', (string) $erankly_active_import['id'] ), 0, 24 ) );
+	}
+	$erankly_migration_reports = get_option( 'erankly_migration_reports_v1', array() );
+	foreach ( is_array( $erankly_migration_reports ) ? array_keys( $erankly_migration_reports ) : array() as $erankly_migration_report_id ) {
+		$erankly_rollback_suffix = substr( hash( 'sha256', (string) $erankly_migration_report_id ), 0, 24 );
+		delete_option( 'erankly_migration_rollback_' . $erankly_rollback_suffix );
+		delete_option( 'erankly_migration_rollback_lock_' . $erankly_rollback_suffix );
+	}
 
 	delete_option( 'erankly_special_meta' );
 	delete_option( 'erankly_runtime_state' );
 	delete_option( 'erankly_redirects_db_version' );
+	$erankly_redirect_prefix_options = get_option( 'erankly_redirects_runtime_rules_prefix_index', array() );
+	foreach ( is_array( $erankly_redirect_prefix_options ) ? $erankly_redirect_prefix_options : array() as $erankly_redirect_prefix_option ) {
+		if ( is_string( $erankly_redirect_prefix_option ) && 1 === preg_match( '/^erankly_redirects_runtime_rules_prefix_[a-f0-9]{24}$/', $erankly_redirect_prefix_option ) ) {
+			delete_option( $erankly_redirect_prefix_option );
+		}
+	}
+	delete_option( 'erankly_redirects_runtime_rules_global' );
+	delete_option( 'erankly_redirects_runtime_rules_all' );
+	delete_option( 'erankly_redirects_runtime_rules_prefix_index' );
 	delete_option( 'erankly_redirects_runtime_rules' );
 	delete_option( 'erankly_redirects_cache_generation' );
 	delete_option( 'erankly_flush_rewrite_rules' );
@@ -55,10 +80,17 @@ function erankly_uninstall_site(): void {
 	delete_option( 'erankly_health_ai_suggestions' );
 	delete_option( 'erankly_health_thin_content' );
 	delete_option( 'erankly_health_bl_state' );
+	delete_option( 'erankly_health_bl_queue' );
+	delete_option( 'erankly_health_bl_visited' );
+	delete_option( 'erankly_health_bl_links' );
+	delete_option( 'erankly_health_bl_check_queue' );
+	delete_option( 'erankly_health_bl_found' );
 	delete_option( 'erankly_health_bl_results' );
 	delete_option( 'erankly_lb_graph' );
 	delete_option( 'erankly_migration_reports_v1' );
 	delete_option( 'erankly_migration_active_job_v1' );
+	delete_option( 'erankly_import_active_job_v1' );
+	delete_option( 'erankly_import_last_result_v1' );
 	delete_option( 'erankly_migration_queue_db_version' );
 	delete_option( 'erankly_migration_journal_db_version' );
 	delete_option( 'erankly_migration_evidence_db_version' );

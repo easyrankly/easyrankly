@@ -56,8 +56,9 @@ final class ERankly_Redirects_Runner {
 		$current_query = ERankly_Redirects_Normalizer::extract_query( $request_uri );
 		$source_hash   = ERankly_Redirects_Normalizer::source_hash( $current_path );
 		$exact_rule    = $this->repository->get_exact_rule_cached( $source_hash );
-		$patterns      = $this->repository->get_pattern_rules();
-		$advanced_rule = empty( $patterns ) ? null : $this->find_advanced_match( $request_uri, $current_query, $patterns );
+		$patterns      = $this->repository->get_pattern_rules( $current_path, $current_query );
+		$now           = current_time( 'mysql' );
+		$advanced_rule = empty( $patterns ) ? null : $this->find_advanced_match( $request_uri, $current_query, $patterns, $now );
 		$redirect      = $exact_rule;
 		$target_url    = '';
 		$matched_path  = $current_path;
@@ -257,9 +258,10 @@ final class ERankly_Redirects_Runner {
 	 * @param string                         $request_uri   Current request URI.
 	 * @param string                         $current_query Current request query string.
 	 * @param array<int,array<string,mixed>> $redirects     Advanced redirect rules.
+	 * @param string                         $now           Request-local current time.
 	 * @return array<string,mixed>|null
 	 */
-	private function find_advanced_match( string $request_uri, string $current_query, array $redirects ): ?array {
+	private function find_advanced_match( string $request_uri, string $current_query, array $redirects, string $now ): ?array {
 		// Realistic paths are short; a multi-kilobyte path is only ever a vector for
 		// driving up pattern-matching cost, so refuse to run regexes against it.
 		if ( strlen( $request_uri ) > 4096 ) {
@@ -272,9 +274,10 @@ final class ERankly_Redirects_Runner {
 			}
 		);
 
-		$match = null;
+		$match            = null;
+		$normalized_paths = array();
 		foreach ( $redirects as $redirect ) {
-			if ( ! $this->is_rule_in_schedule( $redirect ) ) {
+			if ( ! $this->is_rule_in_schedule( $redirect, $now ) ) {
 				continue;
 			}
 
@@ -288,16 +291,21 @@ final class ERankly_Redirects_Runner {
 			}
 
 			$case_sensitive = ! empty( $redirect['case_sensitive'] );
-			$current_path   = ERankly_Redirects_Normalizer::normalize_match_path( $request_uri, $case_sensitive, (string) ( $redirect['trailing_slash'] ?? 'ignore' ) );
-			$source_path    = ERankly_Redirects_Normalizer::normalize_match_path( (string) $redirect['source_path'], $case_sensitive, (string) ( $redirect['trailing_slash'] ?? 'ignore' ) );
-			$match_type     = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : ( ! empty( $redirect['is_regex'] ) ? 'regex' : 'exact' ) ) );
-			$matched        = false;
+			$trailing_slash = (string) ( $redirect['trailing_slash'] ?? 'ignore' );
+			$path_key       = ( $case_sensitive ? '1' : '0' ) . '|' . $trailing_slash;
+			if ( ! isset( $normalized_paths[ $path_key ] ) ) {
+				$normalized_paths[ $path_key ] = ERankly_Redirects_Normalizer::normalize_match_path( $request_uri, $case_sensitive, $trailing_slash );
+			}
+			$current_path = $normalized_paths[ $path_key ];
+			$source_path  = (string) ( $redirect['_runtime_source_path'] ?? ERankly_Redirects_Normalizer::normalize_match_path( (string) $redirect['source_path'], $case_sensitive, $trailing_slash ) );
+			$match_type   = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : ( ! empty( $redirect['is_regex'] ) ? 'regex' : 'exact' ) ) );
+			$matched      = false;
 
 			if ( 'wildcard' === $match_type ) {
-				$pattern = ERankly_Redirects_Normalizer::build_wildcard_pattern( (string) $redirect['source_path'], $case_sensitive );
+				$pattern = (string) ( $redirect['_runtime_pattern'] ?? ERankly_Redirects_Normalizer::build_wildcard_pattern( (string) $redirect['source_path'], $case_sensitive ) );
 				$matched = 1 === preg_match( $pattern, $current_path );
 			} elseif ( 'regex' === $match_type ) {
-				$pattern = ERankly_Redirects_Normalizer::build_regex_pattern( (string) $redirect['source_path'], $case_sensitive );
+				$pattern = (string) ( $redirect['_runtime_pattern'] ?? ERankly_Redirects_Normalizer::build_regex_pattern( (string) $redirect['source_path'], $case_sensitive ) );
 				$matched = 1 === preg_match( $pattern, $current_path );
 			} elseif ( 'contains' === $match_type ) {
 				$matched = str_contains( $current_path, $source_path );
@@ -324,10 +332,10 @@ final class ERankly_Redirects_Runner {
 	 * Checks optional rule start/end timestamps in the site timezone.
 	 *
 	 * @param array<string,mixed> $redirect Redirect rule.
+	 * @param string              $now      Request-local current time.
 	 * @return bool
 	 */
-	private function is_rule_in_schedule( array $redirect ): bool {
-		$now   = current_time( 'mysql' );
+	private function is_rule_in_schedule( array $redirect, string $now ): bool {
 		$start = ! empty( $redirect['start_at'] ) ? (string) $redirect['start_at'] : '';
 		$end   = ! empty( $redirect['end_at'] ) ? (string) $redirect['end_at'] : '';
 

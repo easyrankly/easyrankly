@@ -11,6 +11,8 @@ PRO_EVIDENCE="${ERANKLY_CERT_PRO_EVIDENCE:-}"
 RUN_ID="erankly-cert-$PPID-$$"
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/erankly-cert.XXXXXX")"
 RESULTS_FILE="${WORK_ROOT}/results.tsv"
+TEST_RESULTS_FILE="${WORK_ROOT}/test-results.tsv"
+TEST_RESULTS_ARTIFACT="${ERANKLY_CERT_TEST_RESULTS:-${ROOT}/tests/artifacts/migration-test-results.tsv}"
 PHP_INI_FILE="${WORK_ROOT}/phase7-php.ini"
 CURRENT_CONTAINER=""
 CURRENT_NETWORK=""
@@ -28,12 +30,29 @@ cleanup_cell() {
 
 cleanup() {
 	cleanup_cell
+	if [[ -f "${TEST_RESULTS_FILE}" ]]; then
+		mkdir -p "$(dirname -- "${TEST_RESULTS_ARTIFACT}")"
+		cp "${TEST_RESULTS_FILE}" "${TEST_RESULTS_ARTIFACT}"
+	fi
 	rm -rf "${WORK_ROOT}"
 }
 trap cleanup EXIT INT TERM
 
 record_pass() {
 	printf '%s\t%s\t%s\t%s\t%s\tpass\n' "$1" "$2" "$3" "$4" "$5" >> "${RESULTS_FILE}"
+}
+
+record_test() {
+	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" >> "${TEST_RESULTS_FILE}"
+}
+
+manifest_tests() {
+	local suite="$1"
+	docker run --rm \
+		-v "${ROOT}:/plugin:ro" \
+		-w /plugin \
+		php:8.5-cli \
+		php tests/certification/list-tests.php --suite="${suite}"
 }
 
 require_command() {
@@ -47,28 +66,22 @@ run_standalone() {
 	local php_version="$1"
 	docker run --rm \
 		-v "${ROOT}:/plugin:ro" \
+		-v "${WORK_ROOT}:/cert-results" \
 		-w /plugin \
 		"php:${php_version}-cli" \
-		php tests/phase8-go-live-gate.php
-	docker run --rm \
-		-v "${ROOT}:/plugin:ro" \
-		-w /plugin \
-		"php:${php_version}-cli" \
-		php tests/concurrent-standalone-certification.php
+		php tests/certification/run-suite.php \
+			--suite=required_standalone_tests \
+			--output=/cert-results/test-results.tsv \
+			--runtime="${php_version}"
 	record_pass standalone "${php_version}" "" "" contract
 }
 
 run_quality() {
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php vendor/bin/phpcs
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php vendor/bin/phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- '--ignore=vendor/*,node_modules/*' .
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php tests/security-broken-links-ssrf.php
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php tests/security-ai-rate-limit.php
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php tests/security-health-privacy.php
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php tests/security-import-memory.php
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php tests/security-workflow-pinning.php
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.4-cli php tests/performance-contract.php
-	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin php:8.0-cli sh -c 'find . -path ./vendor -prune -o -name "*.php" -type f -print0 | xargs -0 -n1 php -l >/dev/null'
-	record_pass quality 8.4 "" "" static
+	local php_version="$1"
+	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin "php:${php_version}-cli" php vendor/bin/phpcs
+	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin "php:${php_version}-cli" php vendor/bin/phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- '--ignore=vendor/*,node_modules/*' .
+	docker run --rm -v "${ROOT}:/plugin:ro" -w /plugin "php:${php_version}-cli" sh -c 'find . -path ./vendor -prune -o -name "*.php" -type f -print0 | xargs -0 -n1 php -l >/dev/null'
+	record_pass quality "${php_version}" "" "" static
 }
 
 run_wp() {
@@ -120,25 +133,38 @@ run_wp() {
 		"${wp[@]}" core multisite-install --url=http://phase7.example.test --title='EasyRankly Phase 7' --admin_user=admin --admin_password='phase7-admin-password' --admin_email=phase7@example.test --skip-email --subdomains=false
 		"${wp[@]}" plugin activate easyrankly --network
 		"${wp[@]}" eval-file wp-content/plugins/easyrankly/tests/contextual-modules-enable.php
-		"${wp[@]}" eval-file wp-content/plugins/easyrankly/tests/contextual-modules-wordpress-integration.php
-		"${wp[@]}" eval-file wp-content/plugins/easyrankly/tests/phase7-multisite-certification.php
+		local test_file
+		while IFS= read -r test_file; do
+			local started_at ended_at exit_code status
+			started_at="$(date +%s)"
+			set +e
+			"${wp[@]}" eval-file "wp-content/plugins/easyrankly/${test_file}"
+			exit_code="$?"
+			set -e
+			ended_at="$(date +%s)"
+			status='pass'
+			[[ "${exit_code}" == "0" ]] || status='fail'
+			record_test wordpress "${php_version}" "${wp_version}" 'MariaDB 10.11' "${topology}" "${test_file}" "${status}" "$(( ( ended_at - started_at ) * 1000 ))" "${exit_code}"
+			[[ "${exit_code}" == "0" ]] || return "${exit_code}"
+		done < <(manifest_tests required_multisite_tests)
 	else
 		"${wp[@]}" core install --url=http://phase7.example.test --title='EasyRankly Phase 7' --admin_user=admin --admin_password='phase7-admin-password' --admin_email=phase7@example.test --skip-email
 		"${wp[@]}" plugin activate easyrankly
 		"${wp[@]}" eval-file wp-content/plugins/easyrankly/tests/contextual-modules-enable.php
-		"${wp[@]}" eval-file wp-content/plugins/easyrankly/tests/contextual-modules-wordpress-integration.php
 		local test_file
-		for test_file in \
-			tests/performance-wordpress-integration.php \
-			tests/sitemap-wordpress-integration.php \
-			tests/phase3-wordpress-integration.php \
-			tests/phase4-wordpress-integration.php \
-			tests/phase5-wordpress-integration.php \
-			tests/phase6-wordpress-integration.php \
-			tests/phase7-wordpress-certification.php \
-			tests/phase8-wordpress-go-live.php; do
+		while IFS= read -r test_file; do
+			local started_at ended_at exit_code status
+			started_at="$(date +%s)"
+			set +e
 			"${wp[@]}" eval-file "wp-content/plugins/easyrankly/${test_file}"
-		done
+			exit_code="$?"
+			set -e
+			ended_at="$(date +%s)"
+			status='pass'
+			[[ "${exit_code}" == "0" ]] || status='fail'
+			record_test wordpress "${php_version}" "${wp_version}" 'MariaDB 10.11' "${topology}" "${test_file}" "${status}" "$(( ( ended_at - started_at ) * 1000 ))" "${exit_code}"
+			[[ "${exit_code}" == "0" ]] || return "${exit_code}"
+		done < <(manifest_tests required_wordpress_tests)
 	fi
 
 	record_pass wordpress "${php_version}" "${wp_version}" 'MariaDB 10.11' "${topology}"
@@ -148,16 +174,21 @@ run_wp() {
 require_command docker
 require_command git
 : > "${RESULTS_FILE}"
+: > "${TEST_RESULTS_FILE}"
 printf 'memory_limit=512M\n' > "${PHP_INI_FILE}"
 
 run_standalone 8.0
 run_standalone 8.4
-run_quality
+run_standalone 8.5
+run_quality 8.4
+run_quality 8.5
 run_wp 8.0 6.2 single-site
 run_wp 8.0 7.0.1 single-site
 run_wp 8.4 7.0.1 single-site
+run_wp 8.5 7.0.1 single-site
 run_wp 8.0 6.2 multisite
 run_wp 8.4 7.0.1 multisite
+run_wp 8.5 7.0.1 multisite
 
 artifact_directory="$(dirname -- "${ARTIFACT}")"
 artifact_filename="$(basename -- "${ARTIFACT}")"
@@ -177,7 +208,7 @@ if [[ -n "${PRO_EVIDENCE}" ]]; then
 	pro_filename="$(basename -- "${PRO_EVIDENCE}")"
 	writer+=(-v "${pro_directory}:/cert-pro:ro")
 fi
-writer+=(-w /plugin php:8.4-cli php tests/certification/write-record.php --output="/cert-output/${artifact_filename}" --results=/cert-results/results.tsv)
+writer+=(-w /plugin php:8.5-cli php tests/certification/write-record.php --output="/cert-output/${artifact_filename}" --results=/cert-results/results.tsv --test-results=/cert-results/test-results.tsv)
 if [[ -n "${PRO_EVIDENCE}" ]]; then
 	writer+=(--pro-evidence="/cert-pro/${pro_filename}")
 fi
@@ -193,7 +224,7 @@ docker run --rm \
 	-v "${artifact_directory}:/cert-input:ro" \
 	-v "${go_live_directory}:/gate-output" \
 	-w /plugin \
-	php:8.4-cli \
+	php:8.5-cli \
 	php tests/certification/evaluate-go-live.php \
 		--certification="/cert-input/${artifact_filename}" \
 		--output="/gate-output/${go_live_filename}" \

@@ -2,29 +2,9 @@ name: Migration certification
 
 on:
   pull_request:
-    paths:
-      - ".github/workflows/migration-certification.yml"
-      - "composer.json"
-      - "package.json"
-      - "package-lock.json"
-      - "stylelint.config.mjs"
-      - "assets/**"
-      - "easyrankly.php"
-      - "includes/**"
-      - "tests/**"
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/migration-certification.yml"
-      - "composer.json"
-      - "package.json"
-      - "package-lock.json"
-      - "stylelint.config.mjs"
-      - "assets/**"
-      - "easyrankly.php"
-      - "includes/**"
-      - "tests/**"
   workflow_dispatch:
 
 permissions:
@@ -36,7 +16,7 @@ concurrency:
 
 jobs:
   certify:
-    name: Free/PRO migration contract and runtime matrix
+    name: Free/PRO migration contract and PHP 8.0-8.5 runtime matrix
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -47,7 +27,7 @@ jobs:
       - name: Set up certification PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: "8.4"
+          php-version: "8.5"
           coverage: none
           tools: composer:v2
 
@@ -60,18 +40,20 @@ jobs:
           node-version: "24"
           cache: npm
 
-      - name: Lint split CSS bundles
-        run: npm ci --ignore-scripts --no-audit && npm run lint:css
+      - name: Check JavaScript and CSS quality
+        run: npm ci --ignore-scripts --no-audit && npm run quality
 
       - name: Run complete migration certification
         run: composer migration:certify
 
       - name: Publish certification and go-live decision records
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: migration-certification-${{ github.sha }}
           path: |
             tests/artifacts/migration-certification.json
             tests/artifacts/migration-go-live.json
-          if-no-files-found: error
+            tests/artifacts/migration-test-results.tsv
+          if-no-files-found: warn
           retention-days: 30

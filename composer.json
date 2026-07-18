@@ -31,7 +31,7 @@
 		],
 		"test:concurrency": "php tests/concurrent-standalone-certification.php",
 		"performance:contract": "php tests/performance-contract.php",
-		"migration:certify:standalone": "php tests/phase8-go-live-gate.php",
+		"migration:certify:standalone": "php tests/certification/run-suite.php",
 		"migration:certify": "bash tests/certification/run.sh",
 		"migration:go-live": "bash tests/certification/go-live.sh"
 	},

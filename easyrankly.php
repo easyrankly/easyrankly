@@ -50,6 +50,12 @@ define( 'ERANKLY_ML_CACHE_GENERATION_OPTION', 'erankly_ml_cache_generation' );
 define( 'ERANKLY_MIGRATION_ACTIVE_JOB_OPTION', 'erankly_migration_active_job_v1' );
 define( 'ERANKLY_MIGRATION_CRON_HOOK', 'erankly_migration_process_batch' );
 define( 'ERANKLY_MIGRATION_BATCH_SIZE', 100 );
+define( 'ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK', 'erankly_migration_rollback_batch' );
+define( 'ERANKLY_MIGRATION_ROLLBACK_BATCH_SIZE', 100 );
+define( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION', 'erankly_import_active_job_v1' );
+define( 'ERANKLY_IMPORT_LAST_RESULT_OPTION', 'erankly_import_last_result_v1' );
+define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
+define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
 
@@ -189,6 +195,8 @@ if ( is_admin() ) {
  */
 function erankly_bootstrap(): void {
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
+	add_action( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, 'erankly_process_migration_rollback' );
+	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
 	add_action( 'erankly_health_prune_404_cron', 'erankly_clear_disabled_health_cron', 0 );
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_rewrites' );
@@ -376,6 +384,28 @@ function erankly_clear_disabled_health_cron(): void {
 function erankly_process_migration_job( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	erankly_migration_job_runner()->process( $job_id );
+}
+
+/**
+ * Advances one bounded, crash-safe conditional rollback page.
+ *
+ * @param string $job_id Migration UUID.
+ */
+function erankly_process_migration_rollback( string $job_id ): void {
+	require_once ERANKLY_PATH . 'includes/migrations.php';
+	$result = erankly_migration_journal()->process_rollback( $job_id );
+	erankly_migration_record_rollback_result( $job_id, $result );
+}
+
+/**
+ * Advances one bounded EasyRankly JSON import batch.
+ *
+ * @param string $job_id Import UUID.
+ */
+function erankly_process_import_job( string $job_id ): void {
+	require_once ERANKLY_PATH . 'includes/migrations.php';
+	require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
+	ERankly_Import_Job_Runner::process( $job_id );
 }
 
 /**

@@ -126,6 +126,10 @@ erankly_perf_assert( '' !== $base_loader && ! str_contains( $base_loader, 'impor
 erankly_perf_assert( '' !== $base_loader && ! str_contains( $base_loader, 'admin/meta-box.php' ), 'base settings loader still includes the classic editor meta box' );
 erankly_perf_assert( preg_match( '/function erankly_process_migration_job\(.*?includes\/migrations\.php.*?->process/s', $bootstrap ) === 1, 'cron worker does not load migrations.php directly' );
 erankly_perf_assert( ! preg_match( '/function erankly_process_migration_job\(.*?import-export\.php/s', $bootstrap ), 'cron worker still loads import-export.php' );
+$migration_loader = (string) file_get_contents( $root . '/includes/migrations.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
+foreach ( array( 'runtime-database.php', 'runtime-redirects.php', 'runtime-variables.php', 'runtime-rollbacks.php' ) as $runtime_file ) {
+	erankly_perf_assert( str_contains( $migration_loader, $runtime_file ), "migration worker loader is missing {$runtime_file}" );
+}
 erankly_perf_assert( str_contains( $settings, 'data-erankly-server-tabs' ), 'settings navigation is not server-routed' );
 erankly_perf_assert( str_contains( $settings, 'erankly_settings_tab_url' ), 'settings navigation has no no-JS URL builder' );
 erankly_perf_assert( ! str_contains( $admin, 'assets/css/admin.css' ), 'legacy monolithic admin.css is still enqueued' );
@@ -149,6 +153,10 @@ erankly_perf_assert( preg_match( '/function erankly_health_dispatch_frontend_404
 erankly_perf_assert( str_contains( $health_boot, "add_action( 'rest_api_init', 'erankly_health_bootstrap_rest_routes', 5 );" ), 'Health has no lightweight REST dispatcher' );
 erankly_perf_assert( str_contains( $health_routes, 'erankly_health_load_broken_links_crawler();' ), 'Health REST callbacks do not lazy-load the crawler' );
 erankly_perf_assert( ! str_contains( $health_crawler, 'register_rest_route' ), 'Health crawler still owns REST route declarations' );
+erankly_perf_assert( ! str_contains( $health_crawler, 'array_shift( $state[' ), 'Broken-Link queues still use linear array_shift operations' );
+foreach ( array( 'ERANKLY_HEALTH_BL_QUEUE_OPTION', 'ERANKLY_HEALTH_BL_VISITED_OPTION', 'ERANKLY_HEALTH_BL_LINKS_OPTION', 'ERANKLY_HEALTH_BL_CHECK_QUEUE_OPTION', 'ERANKLY_HEALTH_BL_FOUND_OPTION' ) as $segment_constant ) {
+	erankly_perf_assert( str_contains( $health_crawler, $segment_constant ), "Broken-Link state is missing segment {$segment_constant}" );
+}
 erankly_perf_assert( str_contains( $admin, "'health' === \$settings_tab" ) && str_contains( $admin, 'erankly_admin_load_health_module();' ), 'Health admin surface is not loaded contextually from its tab' );
 
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Standalone CLI metrics.

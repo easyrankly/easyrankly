@@ -15,7 +15,7 @@ return array(
 	'schema_version' => 1,
 	'plugin_version' => '2.8.0',
 	'runtime_matrix' => array(
-		'php'       => array( '8.0', '8.4' ),
+		'php'       => array( '8.0', '8.4', '8.5' ),
 		'wordpress' => array( '6.2', '7.0.1' ),
 		'database'  => array( 'MariaDB 10.11' ),
 		'topologies' => array( 'single-site', 'multisite' ),
@@ -23,12 +23,16 @@ return array(
 	'certification_cells' => array(
 		array( 'layer' => 'standalone', 'php' => '8.0', 'wordpress' => '', 'database' => '', 'topology' => 'contract' ),
 		array( 'layer' => 'standalone', 'php' => '8.4', 'wordpress' => '', 'database' => '', 'topology' => 'contract' ),
+		array( 'layer' => 'standalone', 'php' => '8.5', 'wordpress' => '', 'database' => '', 'topology' => 'contract' ),
 		array( 'layer' => 'quality', 'php' => '8.4', 'wordpress' => '', 'database' => '', 'topology' => 'static' ),
+		array( 'layer' => 'quality', 'php' => '8.5', 'wordpress' => '', 'database' => '', 'topology' => 'static' ),
 		array( 'layer' => 'wordpress', 'php' => '8.0', 'wordpress' => '6.2', 'database' => 'MariaDB 10.11', 'topology' => 'single-site' ),
 		array( 'layer' => 'wordpress', 'php' => '8.0', 'wordpress' => '7.0.1', 'database' => 'MariaDB 10.11', 'topology' => 'single-site' ),
 		array( 'layer' => 'wordpress', 'php' => '8.4', 'wordpress' => '7.0.1', 'database' => 'MariaDB 10.11', 'topology' => 'single-site' ),
+		array( 'layer' => 'wordpress', 'php' => '8.5', 'wordpress' => '7.0.1', 'database' => 'MariaDB 10.11', 'topology' => 'single-site' ),
 		array( 'layer' => 'wordpress', 'php' => '8.0', 'wordpress' => '6.2', 'database' => 'MariaDB 10.11', 'topology' => 'multisite' ),
 		array( 'layer' => 'wordpress', 'php' => '8.4', 'wordpress' => '7.0.1', 'database' => 'MariaDB 10.11', 'topology' => 'multisite' ),
+		array( 'layer' => 'wordpress', 'php' => '8.5', 'wordpress' => '7.0.1', 'database' => 'MariaDB 10.11', 'topology' => 'multisite' ),
 	),
 	'sources'        => array(
 		'yoast'    => array(
@@ -72,6 +76,7 @@ return array(
 		'yoast-redirects-official.csv'         => '0b452d6916fa79fc1fc8cd3d89529fce0175fe00e836c4e9edd2d56d07ca69ed',
 	),
 	'required_standalone_tests' => array(
+		'tests/migration-worker-loader.php',
 		'tests/phase1-smoke.php',
 		'tests/phase2-migration-smoke.php',
 		'tests/phase3-migration-integration.php',
@@ -81,16 +86,23 @@ return array(
 		'tests/phase8-go-live-gate.php',
 		'tests/concurrent-standalone-certification.php',
 		'tests/security-broken-links-ssrf.php',
+		'tests/broken-links-state-segmentation.php',
 		'tests/security-ai-rate-limit.php',
 		'tests/security-health-privacy.php',
 		'tests/security-import-memory.php',
+		'tests/import-export-batching-contract.php',
 		'tests/security-workflow-pinning.php',
+		'tests/redirect-runtime-index.php',
 		'tests/performance-contract.php',
 	),
 	'required_wordpress_tests' => array(
 		'tests/contextual-modules-wordpress-integration.php',
 		'tests/performance-wordpress-integration.php',
 		'tests/sitemap-wordpress-integration.php',
+		'tests/migration-cron-seed-wordpress-integration.php',
+		'tests/migration-cron-worker-wordpress-integration.php',
+		'tests/migration-rollback-resume-wordpress-integration.php',
+		'tests/import-export-batch-wordpress-integration.php',
 		'tests/phase3-wordpress-integration.php',
 		'tests/phase4-wordpress-integration.php',
 		'tests/phase5-wordpress-integration.php',
@@ -99,6 +111,7 @@ return array(
 		'tests/phase8-wordpress-go-live.php',
 	),
 	'required_multisite_tests' => array(
+		'tests/contextual-modules-wordpress-integration.php',
 		'tests/phase7-multisite-certification.php',
 	),
 	'evidence_layers' => array(

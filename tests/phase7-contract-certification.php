@@ -33,7 +33,9 @@ foreach ( $manifest['sources'] as $source => $contract ) {
 
 	$reflection = new ReflectionClass( $adapter_classes[ $source ] );
 	$method     = $reflection->getMethod( 'supported_versions' );
-	$method->setAccessible( true );
+	if ( PHP_VERSION_ID < 80500 ) {
+		$method->setAccessible( true );
+	}
 	$actual_range = $method->invoke( $reflection->newInstance() );
 	erankly_phase2_assert( $contract['version_range'] === $actual_range, $source . ' manifest and adapter version ranges must be identical.' );
 
@@ -51,16 +53,12 @@ foreach ( array( 'required_standalone_tests', 'required_wordpress_tests', 'requi
 	}
 }
 
-$runner = (string) file_get_contents( __DIR__ . '/certification/run.sh' );
-$runner_wordpress_tests = array();
-preg_match_all( '/tests\/(?:[a-z0-9]+-)*wordpress(?:-[a-z0-9]+)*\.php/', $runner, $runner_wordpress_matches );
-if ( ! empty( $runner_wordpress_matches[0] ) ) {
-	$runner_wordpress_tests = array_values( array_unique( $runner_wordpress_matches[0] ) );
-}
-$required_wordpress_tests = $manifest['required_wordpress_tests'];
-sort( $runner_wordpress_tests );
-sort( $required_wordpress_tests );
-erankly_phase2_assert( $required_wordpress_tests === $runner_wordpress_tests, 'The authoritative WordPress test manifest and Docker runner must stay aligned.' );
+$runner       = (string) file_get_contents( __DIR__ . '/certification/run.sh' );
+$suite_runner = (string) file_get_contents( __DIR__ . '/certification/run-suite.php' );
+erankly_phase2_assert( str_contains( $runner, 'run-suite.php' ) && str_contains( $runner, 'required_standalone_tests' ), 'The Docker runner must execute the standalone manifest through the suite runner.' );
+erankly_phase2_assert( str_contains( $runner, 'manifest_tests required_wordpress_tests' ), 'The Docker runner must source single-site WordPress tests from the manifest.' );
+erankly_phase2_assert( str_contains( $runner, 'manifest_tests required_multisite_tests' ), 'The Docker runner must source Multisite tests from the manifest.' );
+erankly_phase2_assert( str_contains( $suite_runner, '$manifest[ $suite ]' ), 'The standalone suite runner must iterate the selected manifest suite.' );
 
 erankly_phase2_assert( 'externally_supplied' === ( $manifest['evidence_layers']['licensed_pro_binaries'] ?? '' ), 'Licensed PRO binaries must never be represented as bundled fixtures.' );
 

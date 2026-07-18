@@ -109,9 +109,6 @@
     var identity = container
       ? container.querySelector("[data-erankly-schema-identity]")
       : null;
-    var localBusiness = container
-      ? container.querySelector("[data-erankly-local-business-toggle]")
-      : null;
     var showOrganizationFields = identity && identity.value !== "person";
 
     if (!identity) {

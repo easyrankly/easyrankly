@@ -106,6 +106,7 @@ function wp_raise_memory_limit( $context ) {
 }
 require_once dirname( __DIR__ ) . '/includes/import-export.php';
 require_once dirname( __DIR__ ) . '/includes/redirects/class-erankly-redirects-normalizer.php';
+erankly_migration_load_all_adapters();
 
 function erankly_phase2_assert( bool $condition, string $message ): void {
 	if ( ! $condition ) {

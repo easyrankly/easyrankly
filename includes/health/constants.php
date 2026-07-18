@@ -58,10 +58,21 @@ define( 'ERANKLY_HEALTH_AI_SUGGESTIONS_OPTION', 'erankly_health_ai_suggestions' 
  * internal links up to a bounded depth, and records every discovered link (with
  * anchor text and the page it was found on) so their HTTP status can be checked.
  * The run is driven in small batches from the admin via REST to stay within PHP
- * time limits; all crawl state lives in a single no-autoload option.
+ * time limits; control state and bounded working sets use separate no-autoload
+ * options so a checking tick never rewrites the full discovery graph.
  */
 /** Option holding the in-progress crawl state (queue, visited pages, link map). */
 define( 'ERANKLY_HEALTH_BL_STATE_OPTION', 'erankly_health_bl_state' );
+/** Segmented page-fetch queue. */
+define( 'ERANKLY_HEALTH_BL_QUEUE_OPTION', 'erankly_health_bl_queue' );
+/** Segmented visited-page set. */
+define( 'ERANKLY_HEALTH_BL_VISITED_OPTION', 'erankly_health_bl_visited' );
+/** Segmented discovered-link map. */
+define( 'ERANKLY_HEALTH_BL_LINKS_OPTION', 'erankly_health_bl_links' );
+/** Segmented status-check queue. */
+define( 'ERANKLY_HEALTH_BL_CHECK_QUEUE_OPTION', 'erankly_health_bl_check_queue' );
+/** Segmented broken/unreachable result accumulator. */
+define( 'ERANKLY_HEALTH_BL_FOUND_OPTION', 'erankly_health_bl_found' );
 /** Option holding the finished crawl results (broken links + occurrences). */
 define( 'ERANKLY_HEALTH_BL_RESULTS_OPTION', 'erankly_health_bl_results' );
 /** Hard cap on the number of pages fetched during one crawl (seeds + spidered). */

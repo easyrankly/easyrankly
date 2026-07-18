@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once ERANKLY_PATH . 'includes/migrations.php';
+require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-admin-presenter.php';
+require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 
 /**
  * Export file format version. Bumped when the JSON structure changes.
@@ -267,32 +269,6 @@ function erankly_import_export_json_memory_error( string $json ): string {
 }
 
 /**
- * Loads redirect class files on demand even when the module is disabled.
- *
- * This lets export/import handle redirect data without requiring the feature
- * to be switched on first.
- *
- * @return void
- */
-function erankly_ensure_redirect_classes_available(): void {
-	$base = ERANKLY_PATH . 'includes/redirects/';
-	require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
-
-	$files = array(
-		'class-erankly-redirects-normalizer.php',
-		'class-erankly-redirects-activator.php',
-		'class-erankly-redirects-repository.php',
-	);
-
-	foreach ( $files as $file ) {
-		if ( file_exists( $base . $file ) ) {
-			require_once $base . $file;
-		}
-	}
-}
-
-
-/**
  * Returns the settings page URL for the Import / Export tab.
  *
  * @return string
@@ -446,16 +422,32 @@ function erankly_import_export_handle_import(): void {
 		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$counts = erankly_import_apply( $data );
+	$started = ERankly_Import_Job_Runner::start( $tmp_name, $data );
+	unset( $data );
+	if ( empty( $started['ok'] ) ) {
+		$notice = 'import_already_running' === (string) ( $started['error'] ?? '' ) ? 'import-running' : 'import-error';
+		erankly_import_export_redirect( array( 'erankly_io_notice' => $notice ) );
+	}
+	$job       = is_array( $started['job'] ?? null ) ? $started['job'] : array();
+	$job_id    = (string) ( $job['id'] ?? '' );
+	$processed = ERankly_Import_Job_Runner::process( $job_id );
+	if ( is_array( $processed ) ) {
+		erankly_import_export_redirect( array( 'erankly_io_notice' => 'import-running' ) );
+	}
 
+	$finished = get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() );
+	if ( ! is_array( $finished ) || 'complete' !== (string) ( $finished['status'] ?? '' ) ) {
+		erankly_import_export_redirect( array( 'erankly_io_notice' => 'import-error' ) );
+	}
+	$counts = is_array( $finished['counts'] ?? null ) ? $finished['counts'] : array();
 	erankly_import_export_redirect(
 		array(
 			'erankly_io_notice' => 'imported',
-			'er_settings'       => (int) $counts['settings'],
-			'er_redirects'      => (int) $counts['redirects'],
-			'er_post_meta'      => (int) $counts['post_meta'],
-			'er_term_meta'      => (int) $counts['term_meta'],
-			'er_user_meta'      => (int) $counts['user_meta'],
+			'er_settings'       => (int) ( $counts['settings'] ?? 0 ),
+			'er_redirects'      => (int) ( $counts['redirects'] ?? 0 ),
+			'er_post_meta'      => (int) ( $counts['post_meta'] ?? 0 ),
+			'er_term_meta'      => (int) ( $counts['term_meta'] ?? 0 ),
+			'er_user_meta'      => (int) ( $counts['user_meta'] ?? 0 ),
 		)
 	);
 }
@@ -710,15 +702,12 @@ function erankly_import_export_handle_migration_evidence_action( string $report_
 		$gate   = $manager->evaluate_go_live_gate( $report, true );
 		$notice = ! empty( $gate['go_live'] ) ? 'migration-live-verified' : 'migration-live-review';
 	} else {
-		$result                    = erankly_migration_journal()->rollback( $report_id );
-		$report['rollback_result'] = array_merge( $result, array( 'requested_at' => gmdate( 'c' ) ) );
-		if ( isset( $report['evidence'] ) && is_array( $report['evidence'] ) ) {
-			$report['evidence']['rollback'] = erankly_migration_journal()->summary( $report_id );
-		}
-		$report['verification']['state']           = 'rolled_back';
-		$report['verification']['ready_to_switch'] = false;
-		$notice                                    = 'expired' === (string) ( $result['status'] ?? '' ) ? 'migration-rollback-expired' : ( 'failed' === (string) ( $result['status'] ?? '' ) ? 'migration-rollback-error' : 'migration-rolled-back' );
-		$manager->update_report( $report );
+		$result = erankly_migration_journal()->rollback( $report_id );
+		erankly_migration_record_rollback_result( $report_id, $result );
+		$status = (string) ( $result['status'] ?? '' );
+		$notice = 'running' === $status
+			? 'migration-rollback-running'
+			: ( 'expired' === $status ? 'migration-rollback-expired' : ( 'failed' === $status ? 'migration-rollback-error' : 'migration-rolled-back' ) );
 	}
 
 	erankly_import_export_redirect(
@@ -741,104 +730,130 @@ function erankly_import_export_redirect( array $args ): void {
 }
 
 /**
- * Builds the complete export payload.
+ * Returns one bounded keyset page for integrations that need programmatic export.
  *
+ * @param array<string,mixed> $cursor Stream and last row ID from the previous page.
+ * @param int                 $limit  Maximum records in this page.
  * @return array<string,mixed>
  */
-function erankly_export_build_data(): array {
+function erankly_export_build_data( array $cursor = array(), int $limit = 500 ): array {
+	$streams = array( 'redirects', 'post_meta', 'term_meta', 'user_meta' );
+	$stream  = sanitize_key( (string) ( $cursor['stream'] ?? 'redirects' ) );
+	$index   = array_search( $stream, $streams, true );
+	$index   = false === $index ? 0 : (int) $index;
+	$limit   = max( 1, min( 1000, $limit ) );
+	$after   = absint( $cursor['after_id'] ?? 0 );
+	$rows    = erankly_export_page( $streams[ $index ], $after, $limit );
+	$last_id = $after;
+	foreach ( $rows as &$row ) {
+		$last_id = max( $last_id, absint( $row['_cursor'] ?? 0 ) );
+		unset( $row['_cursor'] );
+	}
+	unset( $row );
+
+	$done = count( $rows ) < $limit;
+	if ( $done && $index < count( $streams ) - 1 ) {
+		++$index;
+		$last_id = 0;
+		$done    = false;
+	}
+
+	return array(
+		'plugin'       => 'erankly',
+		'format'       => ERANKLY_EXPORT_FORMAT,
+		'version'      => ERANKLY_VERSION,
+		'exported_at'  => gmdate( 'c' ),
+		'site_url'     => home_url(),
+		'settings'     => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
+		'special_meta' => get_option( ERANKLY_SPECIAL_META_OPTION, array() ),
+		'batch'        => array(
+			'type'    => $stream,
+			'records' => $rows,
+		),
+		'cursor'       => array(
+			'stream'   => $streams[ $index ],
+			'after_id' => $last_id,
+		),
+		'done'         => $done,
+	);
+}
+
+/**
+ * Returns one bounded export page for a declared data stream.
+ *
+ * @param string $stream   Export stream identifier.
+ * @param int    $after_id Last emitted keyset cursor.
+ * @param int    $limit    Maximum page size.
+ * @return array<int,array<string,mixed>> Export rows.
+ */
+function erankly_export_page( string $stream, int $after_id, int $limit ): array {
 	global $wpdb;
 
-	$meta_keys = array_keys( erankly_get_meta_keys() );
-
-	$data = array(
-		'plugin'      => 'erankly',
-		'format'      => ERANKLY_EXPORT_FORMAT,
-		'version'     => ERANKLY_VERSION,
-		'exported_at' => gmdate( 'c' ),
-		'site_url'    => home_url(),
-		'settings'    => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
-		'redirects'   => array(),
-		'post_meta'   => array(),
-		'term_meta'   => array(),
-		'user_meta'   => array(),
-	);
-
-	// Always export redirects when the table has data, even if the module is off —
-	// that data should stay portable regardless of the feature toggle.
-	erankly_ensure_redirect_classes_available();
-
-	if ( class_exists( 'ERankly_Redirects_Repository' ) ) {
-		$repository = new ERankly_Redirects_Repository();
-		// get_all_for_export() returns an empty array when the table does not exist.
-		$data['redirects'] = $repository->get_all_for_export();
-	}
-
-	$placeholders = implode( ', ', array_fill( 0, count( $meta_keys ), '%s' ) );
-
-	// Post meta.
-	$post_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Export needs all EasyRankly post meta rows.
-		$wpdb->prepare(
-			"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-			$meta_keys
-		),
-		ARRAY_A
-	);
-
-	if ( is_array( $post_rows ) ) {
-		foreach ( $post_rows as $row ) {
-			$data['post_meta'][] = array(
-				'id'    => (int) $row['post_id'],
-				'key'   => (string) $row['meta_key'],
-				'value' => maybe_unserialize( $row['meta_value'] ),
-			);
+	if ( 'redirects' === $stream ) {
+		erankly_ensure_redirect_classes_available();
+		if ( ! class_exists( 'ERankly_Redirects_Repository' ) || ! erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ) {
+			return array();
 		}
+		return ( new ERankly_Redirects_Repository() )->export_page( $after_id, $limit );
 	}
 
-	// Term meta.
-	$term_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Export needs all EasyRankly term meta rows.
-		$wpdb->prepare(
-			"SELECT term_id, meta_key, meta_value FROM {$wpdb->termmeta} WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-			$meta_keys
-		),
-		ARRAY_A
+	$definitions = array(
+		'post_meta' => array( $wpdb->postmeta, 'meta_id', 'post_id' ),
+		'term_meta' => array( $wpdb->termmeta, 'meta_id', 'term_id' ),
+		'user_meta' => array( $wpdb->usermeta, 'umeta_id', 'user_id' ),
 	);
-
-	if ( is_array( $term_rows ) ) {
-		foreach ( $term_rows as $row ) {
-			$data['term_meta'][] = array(
-				'id'    => (int) $row['term_id'],
-				'key'   => (string) $row['meta_key'],
-				'value' => maybe_unserialize( $row['meta_value'] ),
-			);
-		}
+	if ( ! isset( $definitions[ $stream ] ) ) {
+		return array();
 	}
 
-	$user_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export needs all EasyRankly user meta rows.
-		$wpdb->prepare(
-			"SELECT user_id, meta_key, meta_value FROM {$wpdb->usermeta} WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-			$meta_keys
-		),
-		ARRAY_A
+	list( $table, $cursor_column, $object_column ) = $definitions[ $stream ];
+	$meta_keys                                     = array_keys( erankly_get_meta_keys() );
+	$placeholders                                  = implode( ', ', array_fill( 0, count( $meta_keys ), '%s' ) );
+	$sql    = $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The dynamic placeholder list and replacement array are constructed from the same fixed key map.
+		"SELECT {$cursor_column} AS _cursor, {$object_column} AS object_id, meta_key, meta_value FROM {$table} WHERE {$cursor_column} > %d AND meta_key IN ( {$placeholders} ) ORDER BY {$cursor_column} ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifiers come from the fixed internal map above.
+		array_merge( array( max( 0, $after_id ) ), $meta_keys, array( max( 1, min( 1000, $limit ) ) ) )
 	);
-
-	foreach ( is_array( $user_rows ) ? $user_rows : array() as $row ) {
-		$data['user_meta'][] = array(
-			'id'    => (int) $row['user_id'],
-			'key'   => (string) $row['meta_key'],
-			'value' => maybe_unserialize( $row['meta_value'] ),
+	$rows   = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded keyset export page.
+	$result = array();
+	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+		$result[] = array(
+			'_cursor' => absint( $row['_cursor'] ?? 0 ),
+			'id'      => absint( $row['object_id'] ?? 0 ),
+			'key'     => (string) ( $row['meta_key'] ?? '' ),
+			'value'   => maybe_unserialize( $row['meta_value'] ?? '' ),
 		);
 	}
 
-	// Per-site special page metadata. On Multisite this lives in a dedicated
-	// per-site option outside the (network-wide) settings array, so it has to be
-	// exported on its own; on single-site it is already part of 'settings'.
-	$special_meta = get_option( ERANKLY_SPECIAL_META_OPTION, null );
+	return $result;
+}
 
-	if ( is_array( $special_meta ) ) {
-		$data['special_meta'] = $special_meta;
-	}
-
-	return $data;
+/**
+ * Emits a JSON array while holding at most one keyset page in memory.
+ *
+ * @param string $stream Export stream identifier.
+ * @param int    $limit  Maximum page size.
+ * @throws RuntimeException When a row cannot be encoded or the cursor stalls.
+ */
+function erankly_export_stream_array( string $stream, int $limit = 500 ): void {
+	$after_id = 0;
+	$first    = true;
+	echo '['; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response framing.
+	do {
+		$rows = erankly_export_page( $stream, $after_id, $limit );
+		foreach ( $rows as $row ) {
+			$cursor = absint( $row['_cursor'] ?? 0 );
+			unset( $row['_cursor'] );
+			$encoded = wp_json_encode( $row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			if ( false === $encoded || $cursor <= $after_id ) {
+				throw new RuntimeException( 'Export page encoding or cursor validation failed.' );
+			}
+			echo $first ? $encoded : ',' . $encoded; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode output in a JSON download.
+			$first    = false;
+			$after_id = $cursor;
+		}
+		$count = count( $rows );
+	} while ( $limit === $count );
+	echo ']'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response framing.
 }
 
 /**
@@ -847,24 +862,57 @@ function erankly_export_build_data(): array {
  * @return void
  */
 function erankly_export_download(): void {
-	$data     = erankly_export_build_data();
 	$filename = 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
 
 	nocache_headers();
 	header( 'Content-Type: application/json; charset=utf-8' );
 	header( 'Content-Disposition: attachment; filename=' . $filename );
 
-	echo wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+	$header         = array(
+		'plugin'      => 'erankly',
+		'format'      => ERANKLY_EXPORT_FORMAT,
+		'version'     => ERANKLY_VERSION,
+		'exported_at' => gmdate( 'c' ),
+		'site_url'    => home_url(),
+		'settings'    => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
+	);
+	$encoded_header = wp_json_encode( $header, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+	if ( false === $encoded_header ) {
+		wp_die( esc_html__( 'The export header could not be encoded.', 'easyrankly' ), '', array( 'response' => 500 ) );
+	}
+	echo substr( $encoded_header, 0, -1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download header with only its outer terminator removed.
+	foreach ( array( 'redirects', 'post_meta', 'term_meta', 'user_meta' ) as $stream ) {
+		echo ',"' . $stream . '":'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed internal JSON property name.
+		erankly_export_stream_array( $stream );
+	}
+	$special_meta = get_option( ERANKLY_SPECIAL_META_OPTION, null );
+	if ( is_array( $special_meta ) ) {
+		echo ',"special_meta":' . wp_json_encode( $special_meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded download value.
+	}
+	echo '}'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response terminator.
 	exit;
 }
 
 /**
  * Restores an EasyRankly export payload.
  *
- * @param array<string,mixed> $data Decoded export data.
- * @return array{settings:int,redirects:int,post_meta:int,term_meta:int,user_meta:int}
+ * @param array<string,mixed> $data       Decoded export data.
+ * @param array<string,mixed> $checkpoint Optional stage/offset/counts checkpoint.
+ * @return array<string,mixed> Cumulative counts plus cursor and done.
  */
-function erankly_import_apply( array $data ): array {
+function erankly_import_apply( array $data, array $checkpoint = array() ): array {
+	_deprecated_function( __FUNCTION__, '2.8.0', 'ERankly_Import_Job_Runner' );
+
+	return ERankly_Import_Job_Runner::apply_payload_batch( $data, $checkpoint );
+}
+
+/**
+ * Legacy implementation retained only for source-level rollback comparison.
+ *
+ * @param array<string,mixed> $data Decoded export data.
+ * @return array<string,int> Import counts.
+ */
+function erankly_import_apply_legacy_unbounded( array $data ): array {
 	$counts = array(
 		'settings'  => 0,
 		'redirects' => 0,
@@ -987,87 +1035,24 @@ function erankly_import_apply( array $data ): array {
 }
 
 /**
- * Normalizes an exported redirect row into repository-ready data.
- *
- * @param array<string,mixed> $row Redirect row from the export file.
- * @return array<string,mixed>|null
- */
-function erankly_import_prepare_redirect( array $row ): ?array {
-	$match_type     = isset( $row['match_type'] ) ? sanitize_key( (string) $row['match_type'] ) : '';
-	$match_type     = in_array( $match_type, ERankly_Redirects_Normalizer::VALID_MATCH_TYPES, true ) ? $match_type : ( ! empty( $row['is_wildcard'] ) ? 'wildcard' : ( ! empty( $row['is_regex'] ) ? 'regex' : 'exact' ) );
-	$is_wildcard    = 'wildcard' === $match_type ? 1 : 0;
-	$is_regex       = 'regex' === $match_type ? 1 : 0;
-	$case_sensitive = ! empty( $row['case_sensitive'] ) ? 1 : 0;
-	$trailing_slash = isset( $row['trailing_slash'] ) && in_array( $row['trailing_slash'], ERankly_Redirects_Normalizer::VALID_TRAILING_SLASH_MODES, true ) ? (string) $row['trailing_slash'] : 'ignore';
-	$query_mode     = isset( $row['query_mode'] ) && in_array( $row['query_mode'], ERankly_Redirects_Normalizer::VALID_QUERY_MODES, true ) ? (string) $row['query_mode'] : 'ignore';
-
-	$source_path = isset( $row['source_path'] )
-		? ERankly_Redirects_Normalizer::normalize_source( sanitize_text_field( (string) $row['source_path'] ), (bool) $is_regex, (bool) $is_wildcard, (bool) $case_sensitive, $trailing_slash )
-		: '';
-
-	$status_code = isset( $row['status_code'] ) ? absint( $row['status_code'] ) : 301;
-
-	if ( ! ERankly_Redirects_Normalizer::is_valid_status_code( $status_code ) ) {
-		$status_code = 301;
-	}
-
-	$is_status_only = ERankly_Redirects_Normalizer::is_status_only_code( $status_code );
-	$target_url     = isset( $row['target_url'] )
-		? ERankly_Redirects_Normalizer::normalize_target_url( (string) $row['target_url'] )
-		: '';
-
-	if ( '' === $source_path || ( ! $is_status_only && '' === $target_url ) ) {
-		return null;
-	}
-
-	$visibility = isset( $row['visibility'] ) ? sanitize_key( (string) $row['visibility'] ) : 'all';
-
-	if ( ! in_array( $visibility, array( 'all', 'logged_in', 'logged_out' ), true ) ) {
-		$visibility = 'all';
-	}
-
-	return array(
-		'source_path'      => $source_path,
-		'source_hash'      => ERankly_Redirects_Normalizer::source_hash( $source_path ),
-		'source_query'     => 'exact' === $query_mode ? sanitize_text_field( (string) ( $row['source_query'] ?? '' ) ) : '',
-		'target_url'       => $target_url,
-		'status_code'      => $status_code,
-		'match_type'       => $match_type,
-		'is_regex'         => $is_regex,
-		'is_wildcard'      => $is_wildcard,
-		'case_sensitive'   => $case_sensitive,
-		'trailing_slash'   => $trailing_slash,
-		'query_mode'       => $query_mode,
-		'priority'         => isset( $row['priority'] ) ? intval( $row['priority'] ) : 10,
-		'is_active'        => ! empty( $row['is_active'] ) ? 1 : 0,
-		'visibility'       => $visibility,
-		'required_role'    => isset( $row['required_role'] ) ? sanitize_key( (string) $row['required_role'] ) : '',
-		'conditions'       => isset( $row['conditions'] ) ? ( is_string( $row['conditions'] ) ? $row['conditions'] : wp_json_encode( $row['conditions'] ) ) : null,
-		'start_at'         => ! empty( $row['start_at'] ) ? sanitize_text_field( (string) $row['start_at'] ) : null,
-		'end_at'           => ! empty( $row['end_at'] ) ? sanitize_text_field( (string) $row['end_at'] ) : null,
-		'source_plugin'    => isset( $row['source_plugin'] ) ? sanitize_key( (string) $row['source_plugin'] ) : '',
-		'source_reference' => isset( $row['source_reference'] ) ? sanitize_text_field( (string) $row['source_reference'] ) : '',
-		'migration_id'     => isset( $row['migration_id'] ) ? sanitize_text_field( (string) $row['migration_id'] ) : '',
-		'note'             => isset( $row['note'] ) ? sanitize_textarea_field( (string) $row['note'] ) : '',
-	);
-}
-
-/**
  * Imports useful per-content SEO data from a third-party plugin.
  *
  * Existing EasyRankly values are never overwritten, so the import only fills in
  * fields that are currently empty.
  *
  * @param string $source Source plugin slug.
- * @return array{post_meta:int,term_meta:int}
+ * @return array{post_meta:int,term_meta:int,queued:bool,job_id:string}
  */
 function erankly_import_third_party( string $source ): array {
-	$report = erankly_migration_manager()->run( $source, false );
-	$counts = isset( $report['counts'] ) && is_array( $report['counts'] ) ? $report['counts'] : array();
+	_deprecated_function( __FUNCTION__, '2.8.0', 'erankly_migration_job_runner()->start()' );
+	$result = erankly_migration_job_runner()->start( $source, false );
+	$job    = is_array( $result['job'] ?? null ) ? $result['job'] : array();
 
 	return array(
-		'post_meta' => (int) ( $counts['post_fields_written'] ?? 0 ),
-		'term_meta' => (int) ( $counts['term_fields_written'] ?? 0 ),
+		'post_meta' => 0,
+		'term_meta' => 0,
+		'queued'    => ! empty( $result['ok'] ),
+		'job_id'    => sanitize_text_field( (string) ( $job['id'] ?? '' ) ),
 	);
 }
 
@@ -1192,24 +1177,6 @@ function erankly_import_rankmath_terms( array &$counts ): void {
 		$mapped               = erankly_map_rankmath_meta( $meta );
 		$counts['term_meta'] += erankly_apply_imported_meta( 'term', $term_id, $mapped );
 	}
-}
-
-/**
- * Returns whether a custom database table exists.
- *
- * @param string $table Fully-qualified table name (including prefix).
- * @return bool
- */
-function erankly_table_exists( string $table ): bool {
-	global $wpdb;
-
-	// esc_like(): underscores in the table name are LIKE wildcards otherwise, which
-	// could match a differently-named table and skew the exact comparison below.
-	$found = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Presence check for an optional third-party table.
-		$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
-	);
-
-	return $found === $table;
 }
 
 /**
@@ -1508,165 +1475,6 @@ function erankly_map_rankmath_meta( array $meta ): array {
 }
 
 /**
- * Collects bounded, deduplicated variable-conversion diagnostics for a run.
- *
- * @param array<string,string>|null $warning Warning to add.
- * @param bool                      $reset   Whether to clear prior diagnostics.
- * @return array<int,array<string,string>>
- */
-function erankly_import_variable_diagnostics( ?array $warning = null, bool $reset = false ): array {
-	static $warnings = array();
-
-	if ( $reset ) {
-		$warnings = array();
-	}
-
-	if ( is_array( $warning ) && count( $warnings ) < 100 ) {
-		$key = sanitize_key( (string) ( $warning['reference'] ?? '' ) );
-		if ( '' !== $key && ! isset( $warnings[ $key ] ) ) {
-			$warnings[ $key ] = array(
-				'code'      => 'unsupported_template_variable',
-				'message'   => sanitize_text_field( (string) ( $warning['message'] ?? '' ) ),
-				'reference' => sanitize_text_field( (string) ( $warning['reference'] ?? '' ) ),
-			);
-		}
-	}
-
-	return array_values( $warnings );
-}
-
-/**
- * Converts third-party template variables to EasyRankly's {{token}} syntax.
- *
- * Known variables are mapped to their EasyRankly equivalents; unknown variables
- * are stripped so imported templates never render raw placeholders.
- *
- * @param string $value  Raw template string.
- * @param string $source Source plugin: yoast|rankmath|aioseo|seopress.
- * @return string
- */
-function erankly_import_convert_variables( string $value, string $source ): string {
-	$value = (string) $value;
-
-	if ( '' === $value ) {
-		return '';
-	}
-
-	$map = array(
-		'title'                => '{{post_title}}',
-		'seo_title'            => '{{post_title}}',
-		'post_title'           => '{{post_title}}',
-		'sitename'             => '{{site_name}}',
-		'sitetitle'            => '{{site_name}}',
-		'site_name'            => '{{site_name}}',
-		'site_title'           => '{{site_name}}',
-		'sitedesc'             => '{{site_description}}',
-		'tagline'              => '{{site_description}}',
-		'excerpt'              => '{{post_excerpt}}',
-		'excerpt_only'         => '{{post_excerpt}}',
-		'post_excerpt'         => '{{post_excerpt}}',
-		'seo_description'      => '{{post_excerpt}}',
-		'post_content'         => '{{post_content}}',
-		'post_thumbnail'       => '{{featured_image}}',
-		'post_thumbnail_url'   => '{{featured_image}}',
-		'sep'                  => '-',
-		'separator_sa'         => '-',
-		'page'                 => '{{page_number}}',
-		'pagenumber'           => '{{page_number}}',
-		'pagetotal'            => '{{max_pages}}',
-		'primary_category'     => '{{post_categories}}',
-		'category'             => '{{post_categories}}',
-		'categories'           => '{{post_categories}}',
-		'post_category'        => '{{post_categories}}',
-		'tag'                  => '{{post_tags}}',
-		'tags'                 => '{{post_tags}}',
-		'post_tag'             => '{{post_tags}}',
-		'term'                 => '{{term_name}}',
-		'term_title'           => '{{term_name}}',
-		'term_description'     => '{{term_description}}',
-		'taxonomy_description' => '{{term_description}}',
-		'category_description' => '{{term_description}}',
-		'tag_description'      => '{{term_description}}',
-		'name'                 => '{{post_author}}',
-		'post_author'          => '{{post_author}}',
-		'date'                 => '{{post_date}}',
-		'post_date'            => '{{post_date}}',
-		'post_year'            => '{{post_year}}',
-		'post_month'           => '{{post_month}}',
-		'post_day'             => '{{post_day}}',
-		'modified'             => '{{post_modified_date}}',
-		'post_modified_date'   => '{{post_modified_date}}',
-		'url'                  => '{{post_url}}',
-		'permalink'            => '{{post_url}}',
-		'currentyear'          => '{{current_year}}',
-		'current_year'         => '{{current_year}}',
-		'currentmonth'         => '{{current_month}}',
-		'current_month'        => '{{current_month}}',
-		'currentday'           => '{{current_day}}',
-		'current_day'          => '{{current_day}}',
-		'currentdate'          => '{{current_date}}',
-		'current_date'         => '{{current_date}}',
-		'pt_single'            => '{{post_type_name}}',
-		'pt_plural'            => '{{post_type_name}}',
-		'post_type'            => '{{post_type_name}}',
-		'searchphrase'         => '{{search_query}}',
-		'search_term'          => '{{search_query}}',
-		'search_keywords'      => '{{search_query}}',
-		// All in One SEO (#tag) aliases.
-		'tax_name'             => '{{term_name}}',
-		'taxonomy_title'       => '{{term_name}}',
-		'author_name'          => '{{post_author}}',
-	);
-
-	switch ( $source ) {
-		case 'yoast':
-		case 'seopress':
-			$pattern = '/%%([^%]+)%%/';
-			break;
-		case 'aioseo':
-			$pattern = '/#([a-z0-9_]+)/i';
-			break;
-		default:
-			$pattern = '/%([^%\s]+)%/';
-			break;
-	}
-	$replaced = preg_replace_callback(
-		$pattern,
-		static function ( array $matches ) use ( $map, $source ): string {
-			// Rank Math allows arguments, e.g. %customfield(key)% — drop them.
-			$name = strtolower( trim( explode( '(', $matches[1] )[0] ) );
-
-			if ( isset( $map[ $name ] ) ) {
-				return $map[ $name ];
-			}
-
-			erankly_import_variable_diagnostics(
-				array(
-					'message'   => sprintf(
-						'aioseo' === $source ? 'Unrecognized AIOSEO hash token was preserved for review: %s.' : 'Unsupported %1$s template variable was removed: %2$s.',
-						'aioseo' === $source ? sanitize_text_field( (string) $matches[0] ) : sanitize_key( $source ),
-						sanitize_text_field( (string) $matches[0] )
-					),
-					'reference' => sanitize_key( $source ) . ':' . sanitize_key( $name ),
-				)
-			);
-
-			return 'aioseo' === $source ? (string) $matches[0] : '';
-		},
-		$value
-	);
-
-	$replaced = is_string( $replaced ) ? $replaced : $value;
-
-	// Collapse whitespace and trim stray separators left by removed variables.
-	$replaced = preg_replace( '/\s{2,}/', ' ', $replaced ) ?? $replaced;
-	$replaced = trim( $replaced );
-	$replaced = trim( $replaced, ' -|' );
-
-	return trim( $replaced );
-}
-
-/**
  * Renders the focused second upload required after an official-export preview.
  *
  * @param array<string,mixed> $report     Reviewed preview report.
@@ -1767,12 +1575,24 @@ function erankly_import_export_render_panel(): void {
 		}
 	}
 	$active_job        = erankly_migration_job_runner()->active_job();
+	$active_import_job = ERankly_Import_Job_Runner::active_job();
 	$import_max        = erankly_import_export_max_bytes();
 	$upload_max        = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
 	$focused_report_id = isset( $_GET['report_id'] ) ? sanitize_text_field( wp_unslash( $_GET['report_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report context.
 	$focused_report    = '' !== $focused_report_id ? erankly_migration_manager()->get_report( $focused_report_id ) : null;
 
 	erankly_import_export_render_notice();
+	if ( is_array( $active_import_job ) ) {
+		$totals    = is_array( $active_import_job['totals'] ?? null ) ? array_sum( array_map( 'absint', $active_import_job['totals'] ) ) : 0;
+		$processed = min( $totals, absint( $active_import_job['processed'] ?? 0 ) );
+		?>
+		<div class="notice notice-info inline">
+			<p><strong><?php esc_html_e( 'EasyRankly import in progress', 'easyrankly' ); ?></strong></p>
+			<p><?php echo esc_html( sprintf( /* translators: 1: processed records, 2: total records, 3: stage name. */ __( '%1$d of %2$d records processed. Current stage: %3$s. The private source and cursor are saved; WP-Cron will continue automatically.', 'easyrankly' ), $processed, $totals, sanitize_key( (string) ( $active_import_job['stage'] ?? '' ) ) ) ); ?></p>
+		</div>
+		<?php
+		return;
+	}
 	erankly_migration_render_report();
 	if ( is_array( $active_job ) ) {
 		return;
@@ -1934,6 +1754,28 @@ function erankly_import_export_render_notice(): void {
 		return;
 	}
 
+	if ( 'import-running' === $notice ) {
+		$active   = ERankly_Import_Job_Runner::active_job();
+		$finished = get_option( ERANKLY_IMPORT_LAST_RESULT_OPTION, array() );
+		if ( is_array( $active ) ) {
+			$message = __( 'Import queued. It is continuing in bounded, restart-safe background batches.', 'easyrankly' );
+			$class   = 'notice-info';
+		} elseif ( is_array( $finished ) && 'complete' === (string) ( $finished['status'] ?? '' ) ) {
+			$message = __( 'The background import completed successfully. Settings, redirects and metadata were restored from the saved checkpoint.', 'easyrankly' );
+			$class   = 'notice-success';
+		} else {
+			$message = __( 'The background import stopped before completion. No unchecked batch will be retried; review the PHP/database log before uploading again.', 'easyrankly' );
+			$class   = 'notice-error';
+		}
+		echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		return;
+	}
+
+	if ( 'import-error' === $notice ) {
+		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'The import job could not be persisted or completed. The private upload was removed and no further background write is scheduled.', 'easyrankly' ) . '</p></div>';
+		return;
+	}
+
 	$report_id        = isset( $_GET['report_id'] ) ? sanitize_text_field( wp_unslash( $_GET['report_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report context.
 	$report           = '' !== $report_id ? erankly_migration_manager()->get_report( $report_id ) : null;
 	$reported_notices = array(
@@ -1994,6 +1836,7 @@ function erankly_import_export_render_notice(): void {
 		'migration-gate-blocked'        => array( 'notice-error', __( 'Live verification is unavailable because the go-live preflight gate is blocked. Resolve every blocking check and run a fresh migration before cutover.', 'easyrankly' ) ),
 		'migration-source-still-active' => array( 'notice-warning', __( 'Live verification was not run because another SEO plugin still owns the frontend output. Deactivate the migrated source plugin, purge caches, then verify again.', 'easyrankly' ) ),
 		'migration-rolled-back'         => array( 'notice-success', __( 'Conditional rollback finished. Later manual edits were preserved and are listed separately in the report.', 'easyrankly' ) ),
+		'migration-rollback-running'    => array( 'notice-info', __( 'Conditional rollback started and will continue in bounded background batches. Its cursor is persisted after every batch.', 'easyrankly' ) ),
 		'migration-rollback-expired'    => array( 'notice-error', __( 'The rollback safety window has expired. No value was changed.', 'easyrankly' ) ),
 		'migration-rollback-error'      => array( 'notice-error', __( 'Rollback could not be completed. Review the journal summary before making manual changes.', 'easyrankly' ) ),
 		'migration-evidence-error'      => array( 'notice-error', __( 'The requested migration evidence action is not valid for this report.', 'easyrankly' ) ),

@@ -275,7 +275,7 @@
 		results.innerHTML = '';
 		results.hidden = false;
 
-		function appendSection( title, items, type ) {
+		function appendSection( title, items ) {
 			const label = document.createElement( 'p' );
 			label.className = 'erankly-internal-links-section-label';
 			label.textContent = title;
@@ -340,13 +340,13 @@
 			results.appendChild( list );
 		}
 
-		appendSection( eranklyLinkSuggestions.i18n.outboundTitle, outbound, 'outbound' );
+		appendSection( eranklyLinkSuggestions.i18n.outboundTitle, outbound );
 
 		const divider = document.createElement( 'hr' );
 		divider.className = 'erankly-internal-links-divider';
 		results.appendChild( divider );
 
-		appendSection( eranklyLinkSuggestions.i18n.inboundTitle, inbound, 'inbound' );
+		appendSection( eranklyLinkSuggestions.i18n.inboundTitle, inbound );
 	}
 
 	function bindClassicInternalLinks( root ) {

@@ -22,19 +22,16 @@ final class ERankly_Migration_Manager {
 	 */
 	private array $adapters = array();
 
-	/** Registers all supported source adapters. */
-	public function __construct() {
-		foreach ( array( new ERankly_Migration_Adapter_Yoast(), new ERankly_Migration_Adapter_RankMath(), new ERankly_Migration_Adapter_AIOSEO(), new ERankly_Migration_Adapter_SEOPress() ) as $adapter ) {
-			$this->adapters[ $adapter->slug() ] = $adapter;
-		}
-	}
-
 	/**
 	 * Returns all registered source adapters.
 	 *
 	 * @return array<string,ERankly_Migration_Adapter>
 	 */
 	public function adapters(): array {
+		foreach ( array( 'yoast', 'rankmath', 'aioseo', 'seopress' ) as $source ) {
+			$this->adapter( $source );
+		}
+
 		return $this->adapters;
 	}
 
@@ -46,8 +43,24 @@ final class ERankly_Migration_Manager {
 	 */
 	public function adapter( string $source ): ?ERankly_Migration_Adapter {
 		$source = sanitize_key( $source );
+		if ( isset( $this->adapters[ $source ] ) ) {
+			return $this->adapters[ $source ];
+		}
 
-		return $this->adapters[ $source ] ?? null;
+		$classes = array(
+			'yoast'    => 'ERankly_Migration_Adapter_Yoast',
+			'rankmath' => 'ERankly_Migration_Adapter_RankMath',
+			'aioseo'   => 'ERankly_Migration_Adapter_AIOSEO',
+			'seopress' => 'ERankly_Migration_Adapter_SEOPress',
+		);
+		if ( ! isset( $classes[ $source ] ) || ! function_exists( 'erankly_migration_load_adapter' ) || ! erankly_migration_load_adapter( $source ) ) {
+			return null;
+		}
+
+		$class                     = $classes[ $source ];
+		$this->adapters[ $source ] = new $class();
+
+		return $this->adapters[ $source ];
 	}
 
 	/**

@@ -9,16 +9,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once ERANKLY_PATH . 'includes/migrations/runtime-database.php';
+require_once ERANKLY_PATH . 'includes/migrations/runtime-redirects.php';
+require_once ERANKLY_PATH . 'includes/migrations/runtime-variables.php';
+require_once ERANKLY_PATH . 'includes/migrations/runtime-rollbacks.php';
+
 $erankly_migration_files = array(
 	'class-erankly-migration-adapter.php',
 	'class-erankly-migration-export-reader.php',
 	'class-erankly-migration-upload-store.php',
-	'class-erankly-migration-adapter-yoast.php',
-	'class-erankly-migration-adapter-rankmath.php',
-	'class-erankly-migration-adapter-aioseo.php',
-	'class-erankly-migration-adapter-seopress.php',
 	'class-erankly-migration-go-live-gate.php',
-	'class-erankly-migration-admin-presenter.php',
 	'class-erankly-migration-manager.php',
 	'class-erankly-migration-job-store.php',
 	'class-erankly-migration-evidence-store.php',
@@ -34,6 +34,40 @@ foreach ( $erankly_migration_files as $erankly_migration_file ) {
 }
 
 unset( $erankly_migration_file, $erankly_migration_files );
+
+/**
+ * Loads one source adapter only when a request actually selects it.
+ *
+ * @param string $source Adapter slug.
+ * @return bool Whether the adapter class is available.
+ */
+function erankly_migration_load_adapter( string $source ): bool {
+	$adapters = array(
+		'yoast'    => array( 'class-erankly-migration-adapter-yoast.php', 'ERankly_Migration_Adapter_Yoast' ),
+		'rankmath' => array( 'class-erankly-migration-adapter-rankmath.php', 'ERankly_Migration_Adapter_RankMath' ),
+		'aioseo'   => array( 'class-erankly-migration-adapter-aioseo.php', 'ERankly_Migration_Adapter_AIOSEO' ),
+		'seopress' => array( 'class-erankly-migration-adapter-seopress.php', 'ERankly_Migration_Adapter_SEOPress' ),
+	);
+	$source   = sanitize_key( $source );
+
+	if ( ! isset( $adapters[ $source ] ) ) {
+		return false;
+	}
+
+	$class = $adapters[ $source ][1];
+	if ( ! class_exists( $class, false ) ) {
+		require_once ERANKLY_PATH . 'includes/migrations/' . $adapters[ $source ][0];
+	}
+
+	return class_exists( $class, false );
+}
+
+/** Loads every adapter for source-selection screens and compatibility tests. */
+function erankly_migration_load_all_adapters(): void {
+	foreach ( array( 'yoast', 'rankmath', 'aioseo', 'seopress' ) as $source ) {
+		erankly_migration_load_adapter( $source );
+	}
+}
 
 /**
  * Returns the shared migration manager instance.

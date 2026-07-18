@@ -1,4 +1,4 @@
-/* global eranklySiteEditor, wp */
+/* global wp */
 /**
  * EasyRankly Site Editor panels.
  *

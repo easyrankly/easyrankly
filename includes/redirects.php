@@ -76,7 +76,7 @@ function erankly_redirects_maybe_upgrade_db(): void {
 	}
 
 	ERankly_Redirects_Activator::activate();
-	delete_option( 'erankly_redirects_runtime_rules' );
+	( new ERankly_Redirects_Repository() )->invalidate_runtime_rules();
 	erankly_rotate_redirects_cache_generation();
 	update_option( ERANKLY_REDIRECTS_DB_VERSION_OPTION, ERANKLY_REDIRECTS_DB_VERSION, false );
 }

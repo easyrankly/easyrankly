@@ -11,8 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Records every migration-owned write without retaining temporary source files. */
 final class ERankly_Migration_Journal {
-	private const SCHEMA_VERSION        = '1.0';
-	private const SCHEMA_VERSION_OPTION = 'erankly_migration_journal_db_version';
+	private const SCHEMA_VERSION         = '1.0';
+	private const SCHEMA_VERSION_OPTION  = 'erankly_migration_journal_db_version';
+	private const ROLLBACK_OPTION_PREFIX = 'erankly_migration_rollback_';
+	private const ROLLBACK_LOCK_PREFIX   = 'erankly_migration_rollback_lock_';
 
 	/** Returns the site-scoped journal table name. */
 	public static function table_name(): string {
@@ -209,27 +211,100 @@ final class ERankly_Migration_Journal {
 	 * @return array<string,int|string>
 	 */
 	public function rollback( string $job_id ): array {
+		$job_id = sanitize_text_field( $job_id );
+		if ( '' === $job_id ) {
+			return array(
+				'status'      => 'failed',
+				'rolled_back' => 0,
+				'preserved'   => 0,
+				'failed'      => 1,
+			);
+		}
+
+		$checkpoint = $this->rollback_checkpoint( $job_id );
+		if ( ! is_array( $checkpoint ) ) {
+			$checkpoint = array(
+				'job_id'      => $job_id,
+				'status'      => 'queued',
+				'cursor'      => PHP_INT_MAX,
+				'batches'     => 0,
+				'rolled_back' => 0,
+				'preserved'   => 0,
+				'failed'      => 0,
+				'started_at'  => gmdate( 'c' ),
+				'updated_at'  => gmdate( 'c' ),
+			);
+			if ( ! add_option( $this->rollback_option_key( $job_id ), $checkpoint, '', 'no' ) ) {
+				$checkpoint = $this->rollback_checkpoint( $job_id );
+				if ( ! is_array( $checkpoint ) ) {
+					return array(
+						'status'      => 'failed',
+						'rolled_back' => 0,
+						'preserved'   => 0,
+						'failed'      => 1,
+					);
+				}
+			}
+		}
+
+		return $this->process_rollback( $job_id );
+	}
+
+	/**
+	 * Processes one bounded rollback page and persists its descending cursor.
+	 *
+	 * @param string $job_id Migration UUID.
+	 * @return array<string,int|string>
+	 */
+	public function process_rollback( string $job_id ): array {
 		global $wpdb;
 
-		$result  = array(
-			'status'      => 'complete',
-			'rolled_back' => 0,
-			'preserved'   => 0,
-			'failed'      => 0,
-		);
+		$job_id = sanitize_text_field( $job_id );
+		$result = $this->rollback_checkpoint( $job_id );
+		if ( ! is_array( $result ) ) {
+			return array(
+				'status'      => 'failed',
+				'rolled_back' => 0,
+				'preserved'   => 0,
+				'failed'      => 1,
+			);
+		}
+		if ( in_array( (string) ( $result['status'] ?? '' ), array( 'complete', 'partial', 'failed', 'expired' ), true ) ) {
+			return $result;
+		}
+
+		$token = $this->acquire_rollback_lock( $job_id );
+		if ( '' === $token ) {
+			$result['status'] = 'running';
+			$this->schedule_rollback( $job_id, 10 );
+			return $result;
+		}
+
 		$summary = $this->summary( $job_id );
 		if ( ! empty( $summary['expired'] ) ) {
 			$result['status'] = 'expired';
+			$this->save_rollback_checkpoint( $job_id, $result );
+			$this->release_rollback_lock( $job_id, $token );
 			return $result;
 		}
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed, user-requested rollback read.
-			$wpdb->prepare( 'SELECT * FROM %i WHERE job_id = %s AND state IN (%s, %s) ORDER BY id DESC', self::table_name(), $job_id, 'applied', 'pending' ),
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE job_id = %s AND state IN (%s, %s) AND id < %d ORDER BY id DESC LIMIT %d',
+				self::table_name(),
+				$job_id,
+				'applied',
+				'pending',
+				max( 1, (int) ( $result['cursor'] ?? PHP_INT_MAX ) ),
+				max( 1, min( 500, (int) apply_filters( 'erankly_migration_rollback_batch_size', defined( 'ERANKLY_MIGRATION_ROLLBACK_BATCH_SIZE' ) ? ERANKLY_MIGRATION_ROLLBACK_BATCH_SIZE : 100 ) ) )
+			),
 			ARRAY_A
 		);
 		if ( ! is_array( $rows ) ) {
 			$result['status'] = 'failed';
 			++$result['failed'];
+			$this->save_rollback_checkpoint( $job_id, $result );
+			$this->release_rollback_lock( $job_id, $token );
 			return $result;
 		}
 
@@ -246,20 +321,66 @@ final class ERankly_Migration_Journal {
 					: $this->rollback_meta( $row );
 				++$result[ $outcome ];
 				$this->set_rollback_state( absint( $row['id'] ?? 0 ), $outcome );
+				$result['cursor'] = absint( $row['id'] ?? 0 );
 			}
+		} catch ( Throwable ) {
+			$result['status'] = 'failed';
+			++$result['failed'];
+			$this->save_rollback_checkpoint( $job_id, $result );
+			$this->release_rollback_lock( $job_id, $token );
+			return $result;
 		} finally {
 			if ( $repository ) {
 				$repository->end_bulk();
 			}
 		}
 
+		++$result['batches'];
+		$result['updated_at'] = gmdate( 'c' );
+		$remaining            = (int) ( $this->summary( $job_id )['available'] ?? 0 );
+		if ( $remaining > 0 ) {
+			$result['status'] = 'running';
+			$this->save_rollback_checkpoint( $job_id, $result );
+			$this->release_rollback_lock( $job_id, $token );
+			$this->schedule_rollback( $job_id );
+			return $result;
+		}
+
 		if ( $result['failed'] > 0 ) {
 			$result['status'] = $result['rolled_back'] > 0 ? 'partial' : 'failed';
 		} elseif ( $result['preserved'] > 0 ) {
 			$result['status'] = 'partial';
+		} else {
+			$result['status'] = 'complete';
+		}
+		$this->save_rollback_checkpoint( $job_id, $result );
+		$this->release_rollback_lock( $job_id, $token );
+		if ( defined( 'ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK' ) ) {
+			wp_clear_scheduled_hook( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, array( $job_id ) );
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Returns the durable rollback checkpoint, when present.
+	 *
+	 * @param string $job_id Migration UUID.
+	 */
+	public function rollback_checkpoint( string $job_id ): ?array {
+		$value = get_option( $this->rollback_option_key( $job_id ), null );
+
+		return is_array( $value ) ? $value : null;
+	}
+
+	/**
+	 * Removes a terminal rollback checkpoint after its report is durable.
+	 *
+	 * @param string $job_id Migration UUID.
+	 */
+	public function clear_rollback_checkpoint( string $job_id ): void {
+		delete_option( $this->rollback_option_key( $job_id ) );
+		delete_option( $this->rollback_lock_key( $job_id ) );
 	}
 
 	/** Deletes expired journal payloads after their safety window. */
@@ -272,6 +393,89 @@ final class ERankly_Migration_Journal {
 		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded lifecycle cleanup by indexed expiry.
 			$wpdb->prepare( 'DELETE FROM %i WHERE expires_at < %s', self::table_name(), gmdate( 'Y-m-d H:i:s' ) )
 		);
+	}
+
+	/**
+	 * Persists a cumulative rollback checkpoint without autoloading it.
+	 *
+	 * @param string              $job_id     Migration UUID.
+	 * @param array<string,mixed> $checkpoint Cumulative rollback state.
+	 */
+	private function save_rollback_checkpoint( string $job_id, array $checkpoint ): void {
+		update_option( $this->rollback_option_key( $job_id ), $checkpoint, false );
+	}
+
+	/**
+	 * Schedules the next rollback page without creating duplicate events.
+	 *
+	 * @param string $job_id Migration UUID.
+	 * @param int    $delay  Delay in seconds.
+	 */
+	private function schedule_rollback( string $job_id, int $delay = 1 ): void {
+		if ( ! defined( 'ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK' ) || ! function_exists( 'wp_schedule_single_event' ) ) {
+			return;
+		}
+		$args = array( $job_id );
+		if ( function_exists( 'wp_next_scheduled' ) && false !== wp_next_scheduled( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, $args ) ) {
+			return;
+		}
+		wp_schedule_single_event( time() + max( 1, $delay ), ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, $args, true );
+	}
+
+	/**
+	 * Acquires a short-lived per-job lock and recovers stale locks.
+	 *
+	 * @param string $job_id Migration UUID.
+	 */
+	private function acquire_rollback_lock( string $job_id ): string {
+		$key   = $this->rollback_lock_key( $job_id );
+		$token = wp_generate_uuid4();
+		$lock  = array(
+			'token'   => $token,
+			'expires' => time() + 300,
+		);
+		if ( add_option( $key, $lock, '', 'no' ) ) {
+			return $token;
+		}
+		$existing = get_option( $key, array() );
+		if ( is_array( $existing ) && (int) ( $existing['expires'] ?? 0 ) < time() ) {
+			delete_option( $key );
+			return add_option( $key, $lock, '', 'no' ) ? $token : '';
+		}
+
+		return '';
+	}
+
+	/**
+	 * Releases only the lock token owned by the current request.
+	 *
+	 * @param string $job_id Migration UUID.
+	 * @param string $token  Lock owner token.
+	 */
+	private function release_rollback_lock( string $job_id, string $token ): void {
+		$key      = $this->rollback_lock_key( $job_id );
+		$existing = get_option( $key, array() );
+		if ( is_array( $existing ) && hash_equals( (string) ( $existing['token'] ?? '' ), $token ) ) {
+			delete_option( $key );
+		}
+	}
+
+	/**
+	 * Returns a bounded per-job checkpoint option name.
+	 *
+	 * @param string $job_id Migration UUID.
+	 */
+	private function rollback_option_key( string $job_id ): string {
+		return self::ROLLBACK_OPTION_PREFIX . substr( hash( 'sha256', $job_id ), 0, 24 );
+	}
+
+	/**
+	 * Returns a bounded per-job lock option name.
+	 *
+	 * @param string $job_id Migration UUID.
+	 */
+	private function rollback_lock_key( string $job_id ): string {
+		return self::ROLLBACK_LOCK_PREFIX . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}
 
 	/**

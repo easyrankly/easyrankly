@@ -119,20 +119,45 @@ function erankly_reset_site_data(): void {
 	if ( ! class_exists( 'ERankly_Migration_Upload_Store' ) ) {
 		require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-upload-store.php';
 	}
+	require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 	if ( ! ERankly_Migration_Upload_Store::purge_all() ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private migration uploads during reset.', 'easyrankly' ) );
+	}
+	if ( ! ERankly_Import_Job_Runner::purge_all() ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private import uploads during reset.', 'easyrankly' ) );
 	}
 
 	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
 	wp_unschedule_hook( ERANKLY_MIGRATION_CRON_HOOK );
+	wp_unschedule_hook( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK );
+	wp_unschedule_hook( ERANKLY_IMPORT_CRON_HOOK );
 	$active_migration = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array() );
 	if ( is_array( $active_migration ) && ! empty( $active_migration['id'] ) ) {
 		delete_option( 'erankly_migration_lock_' . substr( hash( 'sha256', (string) $active_migration['id'] ), 0, 24 ) );
 		delete_option( 'erankly_migration_cancel_' . substr( hash( 'sha256', (string) $active_migration['id'] ), 0, 24 ) );
 	}
+	$active_import = get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() );
+	if ( is_array( $active_import ) && ! empty( $active_import['id'] ) ) {
+		delete_option( 'erankly_import_lock_' . substr( hash( 'sha256', (string) $active_import['id'] ), 0, 24 ) );
+	}
+	$migration_reports = get_option( 'erankly_migration_reports_v1', array() );
+	foreach ( is_array( $migration_reports ) ? array_keys( $migration_reports ) : array() as $migration_report_id ) {
+		$rollback_suffix = substr( hash( 'sha256', (string) $migration_report_id ), 0, 24 );
+		delete_option( 'erankly_migration_rollback_' . $rollback_suffix );
+		delete_option( 'erankly_migration_rollback_lock_' . $rollback_suffix );
+	}
 
 	delete_option( ERANKLY_SPECIAL_META_OPTION );
 	delete_option( 'erankly_redirects_db_version' );
+	$redirect_prefix_options = get_option( 'erankly_redirects_runtime_rules_prefix_index', array() );
+	foreach ( is_array( $redirect_prefix_options ) ? $redirect_prefix_options : array() as $redirect_prefix_option ) {
+		if ( is_string( $redirect_prefix_option ) && 1 === preg_match( '/^erankly_redirects_runtime_rules_prefix_[a-f0-9]{24}$/', $redirect_prefix_option ) ) {
+			delete_option( $redirect_prefix_option );
+		}
+	}
+	delete_option( 'erankly_redirects_runtime_rules_global' );
+	delete_option( 'erankly_redirects_runtime_rules_all' );
+	delete_option( 'erankly_redirects_runtime_rules_prefix_index' );
 	delete_option( 'erankly_redirects_runtime_rules' );
 	delete_option( ERANKLY_REWRITE_FLUSH_OPTION );
 	delete_option( ERANKLY_REWRITE_SIGNATURE_OPTION );
@@ -145,10 +170,17 @@ function erankly_reset_site_data(): void {
 	delete_option( 'erankly_health_ai_suggestions' );
 	delete_option( 'erankly_health_thin_content' );
 	delete_option( 'erankly_health_bl_state' );
+	delete_option( 'erankly_health_bl_queue' );
+	delete_option( 'erankly_health_bl_visited' );
+	delete_option( 'erankly_health_bl_links' );
+	delete_option( 'erankly_health_bl_check_queue' );
+	delete_option( 'erankly_health_bl_found' );
 	delete_option( 'erankly_health_bl_results' );
 	delete_option( 'erankly_lb_graph' );
 	delete_option( 'erankly_migration_reports_v1' );
 	delete_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION );
+	delete_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION );
+	delete_option( ERANKLY_IMPORT_LAST_RESULT_OPTION );
 	delete_option( 'erankly_migration_queue_db_version' );
 	delete_option( 'erankly_migration_journal_db_version' );
 	delete_option( 'erankly_migration_evidence_db_version' );
