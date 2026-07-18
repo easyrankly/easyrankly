@@ -4,7 +4,7 @@
 
 	const shared = window.eranklyShared;
 	const { apiFetch } = wp;
-	const { Button, ComboboxControl, Notice, TextareaControl, TextControl } = wp.components;
+	const { Button, ComboboxControl, Notice, SelectControl, TextareaControl, TextControl, ToggleControl } = wp.components;
 	const { useDispatch, useSelect } = wp.data;
 	// PluginDocumentSettingPanel moved from wp.editPost to wp.editor in WP 6.6.
 	// Prefer wp.editor (6.6+, non-deprecated) and fall back to wp.editPost
@@ -13,7 +13,7 @@
 		( wp.editor && wp.editor.PluginDocumentSettingPanel ) ||
 		( wp.editPost && wp.editPost.PluginDocumentSettingPanel );
 	const { createElement: el, Fragment, useEffect, useState } = wp.element;
-	const { __, sprintf } = wp.i18n;
+	const { __ } = wp.i18n;
 	const { registerPlugin } = wp.plugins;
 	const config = eranklyEditor;
 
@@ -29,9 +29,27 @@
 		twitter_description: '_erankly_twitter_description',
 		twitter_card_type: '_erankly_twitter_card_type',
 		social_image_url: '_erankly_social_image_url',
+		og_image_url: '_erankly_og_image_url',
+		og_image_alt: '_erankly_og_image_alt',
+		twitter_image_url: '_erankly_twitter_image_url',
+		twitter_image_alt: '_erankly_twitter_image_alt',
 		noindex: '_erankly_noindex',
 		nofollow: '_erankly_nofollow',
 		noarchive: '_erankly_noarchive',
+		index_directive: '_erankly_index_directive',
+		follow_directive: '_erankly_follow_directive',
+		archive_directive: '_erankly_archive_directive',
+		snippet_directive: '_erankly_snippet_directive',
+		image_directive: '_erankly_image_directive',
+		max_snippet: '_erankly_max_snippet',
+		max_video_preview: '_erankly_max_video_preview',
+		max_image_preview: '_erankly_max_image_preview',
+		indexifembedded: '_erankly_indexifembedded',
+		focus_keywords: '_erankly_focus_keywords',
+		cornerstone: '_erankly_cornerstone',
+		schema_mode: '_erankly_schema_mode',
+		schema_blocks: '_erankly_schema_blocks',
+		schema_disabled_types: '_erankly_schema_disabled_types',
 		disable_sitemap: '_erankly_disable_sitemap',
 		exclude_search: '_erankly_exclude_search',
 		exclude_archive: '_erankly_exclude_archive',
@@ -46,6 +64,8 @@
 		disableSitemap: true,
 		excludeQueries: true,
 		newsSitemap: config.newsSitemapEnabled,
+		splitSocialImages: true,
+		triStateRobots: true,
 	};
 
 	// Post-meta data adapter shared builders read and write through.
@@ -174,11 +194,7 @@
 			el(
 				'p',
 				{ className: 'description erankly-ai-privacy' },
-				sprintf(
-					/* translators: %d: maximum plain-text body characters sent to the provider. */
-					__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
-					config.aiContentLimit || 4000
-				)
+				__( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' )
 			),
 			el(
 				Button,
@@ -228,6 +244,7 @@
 	function GeneralPanel() {
 		const data = usePostData();
 		const panelConfig = useConfigWithPostTitle();
+		const focusKeywords = Array.isArray( data.get( 'focus_keywords' ) ) ? data.get( 'focus_keywords' ).join( ', ' ) : '';
 
 		return el(
 			PluginDocumentSettingPanel,
@@ -238,6 +255,16 @@
 			},
 			config.simplifiedMode && el( SerpPreview, { data } ),
 			...shared.searchAppearanceFields( { config: panelConfig, data, features: FEATURES } ),
+			! config.simplifiedMode && el( TextControl, {
+				label: __( 'Focus keywords', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'focus_keywords', value.split( /[,\n]+/ ).map( ( item ) => item.trim() ).filter( Boolean ) ),
+				value: focusKeywords,
+			} ),
+			! config.simplifiedMode && el( ToggleControl, {
+				checked: Boolean( data.get( 'cornerstone' ) ),
+				label: __( 'Cornerstone / pillar content', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'cornerstone', value ),
+			} ),
 			config.aiEnabled && el( AiGenerateButton, { data } )
 		);
 	}
@@ -274,6 +301,62 @@
 				title: __( 'Search visibility', 'easyrankly' ),
 			},
 			...shared.visibilityFields( { config, data, features: FEATURES } )
+		);
+	}
+
+	function SchemaPanel() {
+		const data = usePostData();
+		const blocks = Array.isArray( data.get( 'schema_blocks' ) ) ? data.get( 'schema_blocks' ) : [];
+		const disabledTypes = Array.isArray( data.get( 'schema_disabled_types' ) ) ? data.get( 'schema_disabled_types' ).join( ', ' ) : '';
+
+		return el(
+			PluginDocumentSettingPanel,
+			{
+				className: 'erankly-panel erankly-panel--schema',
+				name: 'erankly-schema',
+				title: __( 'Schema', 'easyrankly' ),
+			},
+			el( SelectControl, {
+				label: __( 'Schema mode', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'schema_mode', value ),
+				options: [
+					{ label: __( 'Automatic schema', 'easyrankly' ), value: 'default' },
+					{ label: __( 'Automatic + custom schema', 'easyrankly' ), value: 'merge' },
+					{ label: __( 'Custom schema only', 'easyrankly' ), value: 'replace' },
+					{ label: __( 'Disable schema', 'easyrankly' ), value: 'disabled' },
+				],
+				value: data.get( 'schema_mode' ) || 'default',
+			} ),
+			el( TextControl, {
+				label: __( 'Suppress automatic schema types', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'schema_disabled_types', value.split( /[,\n]+/ ).map( ( item ) => item.trim() ).filter( Boolean ) ),
+				placeholder: 'Article, Product, FAQPage',
+				value: disabledTypes,
+			} ),
+			...blocks.map( ( block, index ) => el(
+				Fragment,
+				{ key: `schema-block-${ index }` },
+				el( TextareaControl, {
+					help: __( 'One JSON-LD object, an array, or an object with @graph.', 'easyrankly' ),
+					label: `${ __( 'Custom JSON-LD', 'easyrankly' ) } ${ index + 1 }`,
+					onChange: ( value ) => {
+						const nextBlocks = [ ...blocks ];
+						nextBlocks[ index ] = { type: 'custom', fields: { custom_json: value } };
+						data.set( 'schema_blocks', nextBlocks );
+					},
+					rows: 10,
+					value: block && block.fields ? ( block.fields.custom_json || '' ) : '',
+				} ),
+				el( Button, {
+					isDestructive: true,
+					onClick: () => data.set( 'schema_blocks', blocks.filter( ( unused, blockIndex ) => blockIndex !== index ) ),
+					variant: 'link',
+				}, __( 'Remove schema block', 'easyrankly' ) )
+			) ),
+			el( Button, {
+				onClick: () => data.set( 'schema_blocks', [ ...blocks, { type: 'custom', fields: { custom_json: '' } } ] ),
+				variant: 'secondary',
+			}, __( 'Add JSON-LD schema', 'easyrankly' ) )
 		);
 	}
 
@@ -454,6 +537,7 @@
 			null,
 			el( GeneralPanel ),
 			! config.simplifiedMode && el( SocialPanel ),
+			! config.simplifiedMode && el( SchemaPanel ),
 			el( VisibilityPanel ),
 			config.internalLinksEnabled && config.aiEnabled && el( InternalLinksPanel ),
 			el( SeoChecklistPanel ),

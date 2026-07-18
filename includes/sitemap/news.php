@@ -60,18 +60,7 @@ function erankly_get_news_sitemap_stats(): array {
 		WHERE p.post_status = 'publish'
 			AND p.post_type IN ({$placeholders})
 			AND p.post_date_gmt >= %s
-				" . "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_noindex
-				WHERE pm_noindex.post_id = p.ID
-					AND pm_noindex.meta_key = '_erankly_noindex'
-					AND pm_noindex.meta_value = '1'
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_sitemap
-				WHERE pm_sitemap.post_id = p.ID
-					AND pm_sitemap.meta_key = '_erankly_disable_sitemap'
-					AND pm_sitemap.meta_value = '1'
-			)" . "
+	" . erankly_get_sitemap_exclusion_sql( 'p' ) . "
 				AND NOT EXISTS (
 					SELECT 1 FROM {$wpdb->postmeta} pm_news
 					WHERE pm_news.post_id = p.ID

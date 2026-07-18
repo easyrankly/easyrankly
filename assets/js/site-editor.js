@@ -25,7 +25,7 @@
 	const { Button, Notice, SelectControl, Spinner, TextareaControl } = wp.components;
 	const { useDispatch, useSelect } = wp.data;
 	const { createElement: el, Fragment, useState } = wp.element;
-	const { __, sprintf } = wp.i18n;
+	const { __ } = wp.i18n;
 	const { registerPlugin } = wp.plugins;
 	const specialMetaSetting = config.specialMetaSetting;
 
@@ -215,11 +215,7 @@
 			el(
 				'p',
 				{ className: 'description erankly-ai-privacy' },
-				sprintf(
-					/* translators: %d: maximum plain-text body characters sent to the provider. */
-					__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
-					config.aiContentLimit || 4000
-				)
+				__( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' )
 			),
 			el(
 				Button,

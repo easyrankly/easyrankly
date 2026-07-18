@@ -1,0 +1,22 @@
+{
+  "aioseo": {
+    "redirects": [
+      {
+        "id": 17,
+        "source_url": "/aio-old?campaign=summer",
+        "target_url": "/aio-new",
+        "type": 308,
+        "source_url_match": "exact",
+        "status": "active"
+      },
+      {
+        "id": 18,
+        "source_url": "^/aio-products/(.*)$",
+        "target_url": "/catalog/$1",
+        "type": 301,
+        "source_url_match": "regex",
+        "status": "inactive"
+      }
+    ]
+  }
+}

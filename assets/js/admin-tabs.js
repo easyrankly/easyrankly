@@ -212,6 +212,25 @@
       });
     }
 
+    // Top-level settings tabs are real links and only the active panel exists
+    // in the response. Keep JavaScript limited to the mobile navigation and
+    // inner tab groups; navigation must continue to work with JS disabled.
+    if (tablist.hasAttribute("data-erankly-server-tabs")) {
+      var currentLink = tablist.querySelector('[aria-current="page"]');
+      var requestedSubtab =
+        tablist.getAttribute("data-erankly-active-subtab") || "";
+
+      if (currentLink && sidebarToggleLabel) {
+        sidebarToggleLabel.textContent = getTabLabel(currentLink);
+      }
+
+      if (requestedSubtab) {
+        activateInnerTab(requestedSubtab);
+      }
+
+      return;
+    }
+
     // Keep the Settings API redirect on the active tab after "Save Changes".
     function syncReferer(target, subtab) {
       if (!referer) {

@@ -55,7 +55,7 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 						</fieldset>
 						<fieldset class="erankly-field erankly-checkboxes">
 							<span class="erankly-inline-row">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_enabled]" value="1" <?php checked( ! empty( $settings['ai_enabled'] ) ); ?> <?php disabled( ! $ai_provider_available ); ?>> <strong><?php esc_html_e( 'Enable AI features', 'easyrankly' ); ?></strong></label>
+								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_enabled]" value="1" <?php checked( ! empty( $settings['ai_enabled'] ) && $ai_provider_available ); ?> <?php disabled( ! $ai_provider_available ); ?>> <strong><?php esc_html_e( 'Enable AI features', 'easyrankly' ); ?></strong></label>
 								<?php
 								if ( ! function_exists( 'wp_get_connectors' ) ) {
 									erankly_render_connectors_status();
@@ -230,7 +230,7 @@ function erankly_render_settings_panel_social( array $settings ): void {
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel" id="erankly-settings-panel-social" role="tabpanel" aria-labelledby="erankly-settings-tab-social" data-erankly-settings-panel="settings-social" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> hidden>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-social" role="tabpanel" aria-labelledby="erankly-settings-tab-social" data-erankly-settings-panel="settings-social" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<?php if ( $autosave_active ) : ?>
 				<?php endif; ?>
 				<div class="erankly-settings-fields">
@@ -326,7 +326,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel" id="erankly-settings-panel-schema" role="tabpanel" aria-labelledby="erankly-settings-tab-schema" data-erankly-settings-panel="settings-schema" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> hidden>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-schema" role="tabpanel" aria-labelledby="erankly-settings-tab-schema" data-erankly-settings-panel="settings-schema" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<?php if ( $autosave_active ) : ?>
 				<?php endif; ?>
 				<div class="erankly-settings-section">
@@ -378,7 +378,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel" id="erankly-settings-panel-sitemap" role="tabpanel" aria-labelledby="erankly-settings-tab-sitemap" data-erankly-settings-panel="settings-sitemap" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> hidden>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-sitemap" role="tabpanel" aria-labelledby="erankly-settings-tab-sitemap" data-erankly-settings-panel="settings-sitemap" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<?php if ( $autosave_active ) : ?>
 				<?php endif; ?>
 				<div class="erankly-settings-fields">
@@ -480,7 +480,7 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel" id="erankly-settings-panel-settings" role="tabpanel" aria-labelledby="erankly-settings-tab-settings" data-erankly-settings-panel="settings-settings" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> hidden>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-settings" role="tabpanel" aria-labelledby="erankly-settings-tab-settings" data-erankly-settings-panel="settings-settings" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<?php if ( $autosave_active ) : ?>
 				<?php endif; ?>
 				<?php if ( function_exists( 'erankly_reset_render_notice' ) ) : ?>
@@ -529,7 +529,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel" id="erankly-settings-panel-advanced" role="tabpanel" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced" data-erankly-advanced-panel <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> hidden>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-advanced" role="tabpanel" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced" data-erankly-advanced-panel <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<?php if ( $autosave_active ) : ?>
 				<?php endif; ?>
 				<div class="erankly-settings-fields">
@@ -635,7 +635,7 @@ function erankly_render_settings_panel_bloat( array $settings, bool $safe_bloat_
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-				<div class="erankly-tab-panel" id="erankly-settings-panel-bloat" role="tabpanel" aria-labelledby="erankly-settings-tab-bloat" data-erankly-settings-panel="settings-bloat" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> hidden>
+				<div class="erankly-tab-panel is-active" id="erankly-settings-panel-bloat" role="tabpanel" aria-labelledby="erankly-settings-tab-bloat" data-erankly-settings-panel="settings-bloat" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 					<?php if ( $autosave_active ) : ?>
 					<?php endif; ?>
 

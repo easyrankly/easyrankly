@@ -49,6 +49,13 @@ function erankly_render_schema(): void {
  * @return array<int,array<string,mixed>>
  */
 function erankly_get_schema_graph(): array {
+	$post_id     = is_singular() ? get_queried_object_id() : 0;
+	$schema_mode = $post_id > 0 ? erankly_get_post_meta_string( $post_id, 'schema_mode' ) : 'default';
+
+	if ( 'disabled' === $schema_mode ) {
+		return array();
+	}
+
 	$graph = is_404() ? array() : erankly_schema_foundational_graph();
 
 	$breadcrumbs = function_exists( 'erankly_schema_breadcrumb_list' )
@@ -60,7 +67,6 @@ function erankly_get_schema_graph(): array {
 		: '';
 
 	if ( is_singular() ) {
-		$post_id = get_queried_object_id();
 		$product = erankly_get_woocommerce_product_data( $post_id );
 
 		$graph[] = erankly_schema_webpage( $post_id, $breadcrumb_id );
@@ -115,6 +121,33 @@ function erankly_get_schema_graph(): array {
 		$graph[] = erankly_schema_webpage( 0, $breadcrumb_id );
 	}
 
+	if ( $post_id > 0 ) {
+		$disabled_types = get_post_meta( $post_id, '_erankly_schema_disabled_types', true );
+		$disabled_types = is_array( $disabled_types ) ? $disabled_types : array();
+		$graph          = erankly_filter_schema_graph_types( $graph, $disabled_types );
+
+		if ( 'replace' === $schema_mode ) {
+			$graph       = array();
+			$breadcrumbs = array();
+		}
+
+		if ( in_array( $schema_mode, array( 'merge', 'replace' ), true ) ) {
+			$blocks = get_post_meta( $post_id, '_erankly_schema_blocks', true );
+
+			foreach ( is_array( $blocks ) ? $blocks : array() as $block ) {
+				if ( ! is_array( $block ) ) {
+					continue;
+				}
+
+				foreach ( erankly_schema_from_configured_block( $block, $post_id ) as $schema ) {
+					if ( ! empty( $schema ) ) {
+						$graph[] = $schema;
+					}
+				}
+			}
+		}
+	}
+
 	foreach ( erankly_get_global_schema_graph() as $schema ) {
 		$graph[] = $schema;
 	}
@@ -131,6 +164,33 @@ function erankly_get_schema_graph(): array {
 	$graph = apply_filters( 'erankly_schema', array_filter( $graph ) );
 
 	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
+}
+
+/**
+ * Removes automatic graph nodes whose type was explicitly suppressed.
+ *
+ * @param array<int,array<string,mixed>> $graph          Schema graph.
+ * @param array<int,string>              $disabled_types Schema.org types.
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_filter_schema_graph_types( array $graph, array $disabled_types ): array {
+	$disabled = array_map( 'strtolower', erankly_sanitize_schema_type_list( $disabled_types ) );
+
+	if ( empty( $disabled ) ) {
+		return $graph;
+	}
+
+	return array_values(
+		array_filter(
+			$graph,
+			static function ( array $node ) use ( $disabled ): bool {
+				$types = isset( $node['@type'] ) && is_array( $node['@type'] ) ? $node['@type'] : array( $node['@type'] ?? '' );
+				$types = array_map( static fn( mixed $type ): string => strtolower( (string) $type ), $types );
+
+				return empty( array_intersect( $disabled, $types ) );
+			}
+		)
+	);
 }
 
 /**
@@ -477,6 +537,16 @@ function erankly_schema_article( int $post_id = 0 ): array {
 	// the default OG image and finally the Organization logo.
 	if ( '' !== $image ) {
 		$schema['image'] = $image;
+	}
+
+	$primary_category = erankly_get_primary_term( $post_id, 'category' );
+	if ( $primary_category instanceof WP_Term ) {
+		$schema['articleSection'] = $primary_category->name;
+	}
+
+	$focus_keywords = get_post_meta( $post_id, '_erankly_focus_keywords', true );
+	if ( is_array( $focus_keywords ) && ! empty( $focus_keywords ) ) {
+		$schema['keywords'] = array_values( $focus_keywords );
 	}
 
 	/**

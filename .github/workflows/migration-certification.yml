@@ -1,0 +1,77 @@
+name: Migration certification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/migration-certification.yml"
+      - "composer.json"
+      - "package.json"
+      - "package-lock.json"
+      - "stylelint.config.mjs"
+      - "assets/**"
+      - "easyrankly.php"
+      - "includes/**"
+      - "tests/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/migration-certification.yml"
+      - "composer.json"
+      - "package.json"
+      - "package-lock.json"
+      - "stylelint.config.mjs"
+      - "assets/**"
+      - "easyrankly.php"
+      - "includes/**"
+      - "tests/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration-certification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: Free/PRO migration contract and runtime matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Set up certification PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          tools: composer:v2
+
+      - name: Install static-analysis dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Set up CSS quality runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Lint split CSS bundles
+        run: npm ci --ignore-scripts --no-audit && npm run lint:css
+
+      - name: Run complete migration certification
+        run: composer migration:certify
+
+      - name: Publish certification and go-live decision records
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: migration-certification-${{ github.sha }}
+          path: |
+            tests/artifacts/migration-certification.json
+            tests/artifacts/migration-go-live.json
+          if-no-files-found: error
+          retention-days: 30

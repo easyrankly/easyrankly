@@ -88,11 +88,11 @@ function erankly_health_suggest_redirect_target( array $entry ): ?array {
 
 /**
  * Builds a bounded pool of published candidates for the AI, ranked by lexical
- * proximity to the 404 slug. Each item is { path (site-relative), title }.
+ * proximity to the 404 slug. Each item is { id, path (site-relative), title }.
  *
  * @param string $slug  Normalized 404 slug.
  * @param int    $limit Maximum candidates (0 = filtered default).
- * @return array<int,array{path:string,title:string}>
+ * @return array<int,array{id?:int,path:string,title:string}>
  */
 function erankly_health_ai_candidate_pool( string $slug, int $limit = 0 ): array {
 	global $wpdb;
@@ -156,6 +156,7 @@ function erankly_health_ai_candidate_pool( string $slug, int $limit = 0 ): array
 		}
 
 		$pool[] = array(
+			'id'    => (int) $candidate['id'],
 			'path'  => $path,
 			'title' => wp_strip_all_tags( (string) $candidate['title'] ),
 		);
@@ -179,9 +180,9 @@ function erankly_health_path_match_key( string $path ): string {
 /**
  * Builds the system/user prompt for the AI redirect suggestion.
  *
- * @param string                                     $slug  Normalized 404 slug.
- * @param array<int,array{path:string,title:string}> $pool  Candidate pool.
- * @param array<string,mixed>                        $entry 404 entry.
+ * @param string                                             $slug  Normalized 404 slug.
+ * @param array<int,array{id?:int,path:string,title:string}> $pool  Candidate pool.
+ * @param array<string,mixed>                                $entry 404 entry.
  * @return array{system:string,user:string}
  */
 function erankly_health_ai_build_prompt( string $slug, array $pool, array $entry ): array {
@@ -210,7 +211,7 @@ function erankly_health_ai_build_prompt( string $slug, array $pool, array $entry
 	 *
 	 * @param array{system:string,user:string}            $prompt System/user prompt.
 	 * @param string                                      $slug   Normalized 404 slug.
-	 * @param array<int,array{path:string,title:string}>  $pool   Candidate pool.
+	 * @param array<int,array{id?:int,path:string,title:string}>  $pool   Candidate pool.
 	 * @param array<string,mixed>                         $entry  404 entry.
 	 */
 	return apply_filters( 'erankly_health_ai_suggestion_prompt', $prompt, $slug, $pool, $entry );
@@ -219,8 +220,8 @@ function erankly_health_ai_build_prompt( string $slug, array $pool, array $entry
 /**
  * Parses the model's JSON answer and validates the target against the pool.
  *
- * @param string                                     $raw  Raw model output.
- * @param array<int,array{path:string,title:string}> $pool Candidate pool.
+ * @param string                                             $raw  Raw model output.
+ * @param array<int,array{id?:int,path:string,title:string}> $pool Candidate pool.
  * @return array<string,string>|null Suggestion payload, or null when none/invalid.
  */
 function erankly_health_ai_parse_suggestion( string $raw, array $pool ): ?array {
@@ -239,11 +240,13 @@ function erankly_health_ai_parse_suggestion( string $raw, array $pool ): ?array 
 
 	// Anti-hallucination: the target must be one of the candidate paths.
 	$target_key  = erankly_health_path_match_key( $data['target'] );
+	$match_id    = 0;
 	$match_path  = '';
 	$match_title = '';
 
 	foreach ( $pool as $candidate ) {
 		if ( erankly_health_path_match_key( (string) $candidate['path'] ) === $target_key ) {
+			$match_id    = isset( $candidate['id'] ) ? absint( $candidate['id'] ) : 0;
 			$match_path  = (string) $candidate['path'];
 			$match_title = (string) $candidate['title'];
 			break;
@@ -257,22 +260,131 @@ function erankly_health_ai_parse_suggestion( string $raw, array $pool ): ?array 
 	$confidence = isset( $data['confidence'] ) && in_array( $data['confidence'], array( 'high', 'medium', 'low' ), true ) ? (string) $data['confidence'] : 'medium';
 
 	$suggestion                = erankly_health_build_suggestion( $match_path, $confidence, 'ai', $match_title );
+	$suggestion['target_id']   = (string) $match_id;
 	$suggestion['reason_text'] = isset( $data['reason'] ) ? sanitize_text_field( (string) $data['reason'] ) : '';
 
 	return $suggestion;
 }
 
 /**
- * Caches an AI suggestion result ('none' sentinel when there is no match).
+ * Returns the persistent AI-suggestion records for the current site.
  *
- * @param string                    $cache_key  Transient key.
+ * @return array<string,array{path:string,suggestion:array<string,string>,updated_at:int}>
+ */
+function erankly_health_get_stored_ai_suggestions(): array {
+	$stored = get_option( ERANKLY_HEALTH_AI_SUGGESTIONS_OPTION, array() );
+
+	return is_array( $stored ) ? $stored : array();
+}
+
+/**
+ * Whether an AI suggestion still points to the same published target.
+ *
+ * New suggestions carry the post ID selected from the bounded candidate pool.
+ * Legacy transient suggestions are resolved from their URL while they are
+ * migrated. Comparing the current permalink also invalidates a target whose
+ * slug changed, since the saved path would otherwise now lead to a 404.
+ *
+ * @param array<string,string> $suggestion Suggestion payload.
+ * @return bool
+ */
+function erankly_health_ai_suggestion_target_exists( array $suggestion ): bool {
+	$target = isset( $suggestion['target'] ) ? (string) $suggestion['target'] : '';
+
+	if ( '' === $target || '/' !== $target[0] ) {
+		return false;
+	}
+
+	$post_id = isset( $suggestion['target_id'] ) ? absint( $suggestion['target_id'] ) : 0;
+
+	if ( $post_id <= 0 ) {
+		$home       = wp_parse_url( home_url( '/' ) );
+		$target_url = '';
+
+		if ( is_array( $home ) && isset( $home['scheme'], $home['host'] ) ) {
+			$target_url  = $home['scheme'] . '://' . $home['host'];
+			$target_url .= isset( $home['port'] ) ? ':' . absint( $home['port'] ) : '';
+			$target_url .= '/' . ltrim( $target, '/' );
+		}
+
+		$post_id = '' !== $target_url ? url_to_postid( $target_url ) : 0;
+	}
+
+	$post        = $post_id > 0 ? get_post( $post_id ) : null;
+	$post_types  = array_keys( erankly_get_public_post_types() );
+	$current_url = $post instanceof WP_Post ? erankly_health_permalink_path( $post_id ) : '';
+
+	return $post instanceof WP_Post
+		&& 'publish' === $post->post_status
+		&& in_array( $post->post_type, $post_types, true )
+		&& erankly_health_path_match_key( $current_url ) === erankly_health_path_match_key( $target );
+}
+
+/**
+ * Persists a valid AI suggestion until its destination disappears.
+ *
+ * No-match results remain short-lived transients so a later content change can
+ * make the source eligible for a fresh suggestion. Positive results live in a
+ * non-autoloaded option and therefore do not expire just because a new 404 is
+ * recorded or the transient TTL elapses.
+ *
+ * @param string                    $path       Stored 404 path.
  * @param array<string,string>|null $suggestion Suggestion or null.
  * @return void
  */
-function erankly_health_cache_ai_suggestion( string $cache_key, ?array $suggestion ): void {
-	$ttl = (int) apply_filters( 'erankly_health_suggestion_ttl', 12 * HOUR_IN_SECONDS, array() );
+function erankly_health_cache_ai_suggestion( string $path, ?array $suggestion ): void {
+	$cache_key = ERANKLY_HEALTH_AI_SUGGESTION_PREFIX . md5( $path );
 
-	set_transient( $cache_key, null === $suggestion ? 'none' : $suggestion, max( MINUTE_IN_SECONDS, $ttl ) );
+	if ( null === $suggestion ) {
+		$ttl = (int) apply_filters( 'erankly_health_suggestion_ttl', 12 * HOUR_IN_SECONDS, array() );
+
+		set_transient( $cache_key, 'none', max( MINUTE_IN_SECONDS, $ttl ) );
+		return;
+	}
+
+	$stored                 = erankly_health_get_stored_ai_suggestions();
+	$stored[ md5( $path ) ] = array(
+		'path'       => $path,
+		'suggestion' => $suggestion,
+		'updated_at' => time(),
+	);
+
+	update_option( ERANKLY_HEALTH_AI_SUGGESTIONS_OPTION, $stored, false );
+	delete_transient( $cache_key );
+}
+
+/**
+ * Removes stored AI suggestions whose destination is invalid or whose
+ * historical source path now matches a sensitive-data pattern.
+ *
+ * @return void
+ */
+function erankly_health_prune_stored_ai_suggestions(): void {
+	$stored = erankly_health_get_stored_ai_suggestions();
+	$kept   = array();
+
+	foreach ( $stored as $hash => $record ) {
+		$stored_path    = is_array( $record ) && isset( $record['path'] ) ? (string) $record['path'] : '';
+		$sanitized_path = '' !== $stored_path ? erankly_health_sanitize_404_path( $stored_path ) : '';
+
+		if (
+			is_string( $hash )
+			&& preg_match( '/^[a-f0-9]{32}$/', $hash )
+			&& is_array( $record )
+			&& isset( $record['path'], $record['suggestion'] )
+			&& '' !== $sanitized_path
+			&& $stored_path === $sanitized_path
+			&& md5( $stored_path ) === $hash
+			&& is_array( $record['suggestion'] )
+			&& erankly_health_ai_suggestion_target_exists( $record['suggestion'] )
+		) {
+			$kept[ $hash ] = $record;
+		}
+	}
+
+	if ( count( $kept ) !== count( $stored ) ) {
+		update_option( ERANKLY_HEALTH_AI_SUGGESTIONS_OPTION, $kept, false );
+	}
 }
 
 /**
@@ -283,9 +395,48 @@ function erankly_health_cache_ai_suggestion( string $cache_key, ?array $suggesti
  *               state = 'fresh' (never tried) | 'none' (tried, no match) | 'hit'.
  */
 function erankly_health_ai_cached_suggestion( string $path ): array {
-	$cached = get_transient( ERANKLY_HEALTH_AI_SUGGESTION_PREFIX . md5( $path ) );
+	$hash      = md5( $path );
+	$cache_key = ERANKLY_HEALTH_AI_SUGGESTION_PREFIX . $hash;
+	$stored    = erankly_health_get_stored_ai_suggestions();
+	$record    = isset( $stored[ $hash ] ) && is_array( $stored[ $hash ] ) ? $stored[ $hash ] : array();
+
+	if (
+		isset( $record['path'], $record['suggestion'] )
+		&& $path === (string) $record['path']
+		&& is_array( $record['suggestion'] )
+	) {
+		if ( erankly_health_ai_suggestion_target_exists( $record['suggestion'] ) ) {
+			return array(
+				'state'      => 'hit',
+				'suggestion' => $record['suggestion'],
+			);
+		}
+
+		unset( $stored[ $hash ] );
+		update_option( ERANKLY_HEALTH_AI_SUGGESTIONS_OPTION, $stored, false );
+		delete_transient( $cache_key );
+
+		return array(
+			'state'      => 'fresh',
+			'suggestion' => null,
+		);
+	}
+
+	$cached = get_transient( $cache_key );
 
 	if ( is_array( $cached ) ) {
+		if ( ! erankly_health_ai_suggestion_target_exists( $cached ) ) {
+			delete_transient( $cache_key );
+
+			return array(
+				'state'      => 'fresh',
+				'suggestion' => null,
+			);
+		}
+
+		// Transparently migrate still-valid suggestions from the old transient.
+		erankly_health_cache_ai_suggestion( $path, $cached );
+
 		return array(
 			'state'      => 'hit',
 			'suggestion' => $cached,
@@ -326,18 +477,17 @@ function erankly_health_ai_suggest_redirect_target( array $entry ): ?array {
 		return null;
 	}
 
-	$cache_key = ERANKLY_HEALTH_AI_SUGGESTION_PREFIX . md5( $path );
-	$cached    = get_transient( $cache_key );
+	$cached = erankly_health_ai_cached_suggestion( $path );
 
-	if ( false !== $cached ) {
-		return is_array( $cached ) ? $cached : null;
+	if ( 'fresh' !== $cached['state'] ) {
+		return $cached['suggestion'];
 	}
 
 	$slug = erankly_health_404_slug_from_path( $path );
 	$pool = '' !== $slug ? erankly_health_ai_candidate_pool( $slug ) : array();
 
 	if ( empty( $pool ) ) {
-		erankly_health_cache_ai_suggestion( $cache_key, null );
+		erankly_health_cache_ai_suggestion( $path, null );
 
 		return null;
 	}
@@ -352,7 +502,7 @@ function erankly_health_ai_suggest_redirect_target( array $entry ): ?array {
 
 	$suggestion = erankly_health_ai_parse_suggestion( (string) $raw, $pool );
 
-	erankly_health_cache_ai_suggestion( $cache_key, $suggestion );
+	erankly_health_cache_ai_suggestion( $path, $suggestion );
 
 	return $suggestion;
 }
@@ -607,22 +757,4 @@ function erankly_health_render_404_state_forms( string $hash, string $current_st
 		</form>
 		<?php
 	}
-}
-
-/**
- * Normalizes a URL or path to a root-relative path for internal link matching.
- *
- * @param string $url URL or path to normalize.
- * @return string Normalized root-relative path, or empty string if not resolvable.
- */
-function erankly_health_normalize_link_path( string $url ): string {
-	$path = wp_parse_url( $url, PHP_URL_PATH );
-
-	if ( ! is_string( $path ) || '' === $path ) {
-		return '';
-	}
-
-	$path = '/' . ltrim( $path, '/' );
-
-	return '/' === $path ? $path : untrailingslashit( $path );
 }

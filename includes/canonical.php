@@ -27,7 +27,7 @@ function erankly_get_canonical(): string {
 		$canonical = erankly_get_paged_archive_canonical();
 	} elseif ( is_singular() ) {
 		$post_id   = get_queried_object_id();
-		$canonical = (bool) erankly_get_setting( 'simplified_mode', 1 ) ? '' : erankly_get_post_meta_string( $post_id, 'canonical' );
+		$canonical = erankly_get_post_meta_string( $post_id, 'canonical' );
 
 		if ( '' === $canonical ) {
 			$wp_canonical = wp_get_canonical_url( $post_id );
@@ -41,7 +41,7 @@ function erankly_get_canonical(): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$canonical = (bool) erankly_get_setting( 'simplified_mode', 1 ) ? '' : erankly_get_term_meta_string( $term->term_id, 'canonical' );
+			$canonical = erankly_get_term_meta_string( $term->term_id, 'canonical' );
 
 			if ( '' === $canonical ) {
 				$term_link = get_term_link( $term );
@@ -53,7 +53,9 @@ function erankly_get_canonical(): string {
 	} elseif ( is_post_type_archive() ) {
 		$canonical = get_post_type_archive_link( (string) get_query_var( 'post_type' ) );
 	} elseif ( is_author() ) {
-		$canonical = get_author_posts_url( (int) get_queried_object_id() );
+		$user_id   = (int) get_queried_object_id();
+		$canonical = trim( (string) get_user_meta( $user_id, '_erankly_canonical', true ) );
+		$canonical = '' !== $canonical ? erankly_replace_variables( $canonical ) : get_author_posts_url( $user_id );
 	} elseif ( is_date() ) {
 		$canonical = erankly_current_url();
 	} elseif ( is_search() ) {

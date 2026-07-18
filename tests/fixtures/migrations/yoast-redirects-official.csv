@@ -1,0 +1,3 @@
+Origin,Target,Type,Format
+/yoast-old,/yoast-new,301,plain
+^/yoast-news/(.*)$,/yoast-articles/$1,307,regex

@@ -3,70 +3,64 @@
 
   var ER = window.ERanklyAdmin || {};
 
+  function bindEach(selector, callbackName) {
+    if (typeof ER[callbackName] !== "function") {
+      return;
+    }
+
+    document.querySelectorAll(selector).forEach(ER[callbackName]);
+  }
+
+  function bindRoot(callbackName) {
+    bindEach(".erankly-settings", callbackName);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".erankly-meta-box").forEach(ER.bindTabs);
-    document.querySelectorAll(".erankly-meta-box").forEach(ER.bindSeoChecklist);
+    bindEach(".erankly-meta-box", "bindTabs");
+    bindEach(".erankly-meta-box", "bindSeoChecklist");
 
     if (window.eranklyLinkSuggestionsUi) {
       document
         .querySelectorAll(".erankly-meta-box")
         .forEach(window.eranklyLinkSuggestionsUi.bindClassicInternalLinks);
     }
-    document
-      .querySelectorAll("[data-erankly-expandable]")
-      .forEach(ER.bindExpandablePanel);
-    document.querySelectorAll(".erankly-settings").forEach(ER.bindTabs);
-    document.querySelectorAll(".erankly-settings").forEach(ER.bindSettingsTabs);
-    document.querySelectorAll(".erankly-settings").forEach(ER.bindSimplifiedMode);
-    document
-      .querySelectorAll("[data-erankly-media-url-field]")
-      .forEach(ER.bindMediaUrlField);
-    document
-      .querySelectorAll(".erankly-counted-field")
-      .forEach(ER.bindCharacterCounter);
-    ER.bindVariablePickers(document);
-    document
-      .querySelectorAll("[data-erankly-linked-defaults]")
-      .forEach(ER.bindLinkedDefaults);
-    document
-      .querySelectorAll("[data-erankly-schema-builder]")
-      .forEach(ER.bindSchemaBuilder);
-    document
-      .querySelectorAll("[data-erankly-schema-identity]")
-      .forEach(ER.bindSchemaIdentityField);
-    document
-      .querySelectorAll("[data-erankly-user-search-wrap]")
-      .forEach(ER.bindUserSearch);
-    document
-      .querySelectorAll("[data-erankly-local-business]")
-      .forEach(ER.bindLocalBusiness);
-    document
-      .querySelectorAll("[data-erankly-file-dropzone]")
-      .forEach(ER.bindFileDropzone);
-    document
-      .querySelectorAll("[data-erankly-segment-control]")
-      .forEach(ER.bindSegmentControl);
+    bindEach("[data-erankly-expandable]", "bindExpandablePanel");
+    bindRoot("bindTabs");
+    bindRoot("bindSettingsTabs");
+    bindRoot("bindSimplifiedMode");
+    bindEach("[data-erankly-media-url-field]", "bindMediaUrlField");
+    bindEach(".erankly-counted-field", "bindCharacterCounter");
+    if (typeof ER.bindVariablePickers === "function") {
+      ER.bindVariablePickers(document);
+    }
+    bindEach("[data-erankly-linked-defaults]", "bindLinkedDefaults");
+    bindEach("[data-erankly-schema-builder]", "bindSchemaBuilder");
+    bindEach("[data-erankly-schema-identity]", "bindSchemaIdentityField");
+    bindEach("[data-erankly-user-search-wrap]", "bindUserSearch");
+    bindEach("[data-erankly-local-business]", "bindLocalBusiness");
+    bindEach("[data-erankly-file-dropzone]", "bindFileDropzone");
+    bindEach("[data-erankly-segment-control]", "bindSegmentControl");
     var bloatPanel = document.getElementById("erankly-settings-panel-bloat");
-    if (bloatPanel) {
+    if (bloatPanel && typeof ER.bindBloatToggle === "function") {
       ER.bindBloatToggle(bloatPanel);
     }
 
-    document
-      .querySelectorAll(".erankly-settings")
-      .forEach(ER.bindAllSettingsAutosave);
+    bindRoot("bindAllSettingsAutosave");
 
     // Outside-click dismissal is handled per field in bindVariablePicker();
     // a global click closer here would fire on the very click that focuses a
     // field and close the menu the instant it opens.
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && typeof ER.closeVariablePicker === "function") {
         document
           .querySelectorAll("[data-erankly-variable-field]")
           .forEach(ER.closeVariablePicker);
       }
     });
 
-    ER.bindResetConfirmModal();
+    if (typeof ER.bindResetConfirmModal === "function") {
+      ER.bindResetConfirmModal();
+    }
   });
 
 })();

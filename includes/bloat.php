@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return void
  */
 function erankly_bloat_bootstrap(): void {
-	$settings = erankly_get_settings();
+	$settings = erankly_get_stored_settings();
 
 	if ( ! empty( $settings['bloat_remove_emoji'] ) ) {
 		remove_action( 'wp_head', 'print_emoji_detection_script', 7 );

@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+erankly_load_video_helpers();
+
 /**
  * Counts posts with embedded YouTube or Vimeo videos eligible for the video sitemap.
  *
@@ -68,19 +70,7 @@ function erankly_count_video_sitemap_posts(): int {
 					)
 				)
 			)
-				" . "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_noindex
-				WHERE pm_noindex.post_id = p.ID
-					AND pm_noindex.meta_key = '_erankly_noindex'
-					AND pm_noindex.meta_value = '1'
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_sitemap
-				WHERE pm_sitemap.post_id = p.ID
-					AND pm_sitemap.meta_key = '_erankly_disable_sitemap'
-					AND pm_sitemap.meta_value = '1'
-			)" . '
-	';
+	" . erankly_get_sitemap_exclusion_sql( 'p' );
 
 	$args = array_merge(
 		$post_types,
@@ -167,18 +157,7 @@ function erankly_get_video_sitemap_xml( int $page = 1 ): string {
 					)
 				)
 			)
-				" . "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_noindex
-				WHERE pm_noindex.post_id = p.ID
-					AND pm_noindex.meta_key = '_erankly_noindex'
-					AND pm_noindex.meta_value = '1'
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_sitemap
-				WHERE pm_sitemap.post_id = p.ID
-					AND pm_sitemap.meta_key = '_erankly_disable_sitemap'
-					AND pm_sitemap.meta_value = '1'
-			)" . '
+	" . erankly_get_sitemap_exclusion_sql( 'p' ) . '
 			ORDER BY p.ID DESC
 			LIMIT %d OFFSET %d
 	';

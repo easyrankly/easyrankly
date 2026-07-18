@@ -59,7 +59,9 @@ function erankly_render_opengraph_tags(): void {
 	$description   = erankly_get_og_description();
 	$url           = erankly_get_canonical();
 	$image         = erankly_get_og_image();
+	$image_alt     = erankly_get_social_image_alt( 'og' );
 	$twitter_image = erankly_get_twitter_image( $image );
+	$twitter_alt   = erankly_get_social_image_alt( 'twitter', $image_alt );
 	$twitter_title = erankly_get_twitter_title( $title );
 	$twitter_desc  = erankly_get_twitter_description( $description );
 	$twitter_site  = erankly_get_twitter_site();
@@ -77,11 +79,13 @@ function erankly_render_opengraph_tags(): void {
 		'og:description'      => $description,
 		'og:url'              => $url,
 		'og:image'            => $image,
+		'og:image:alt'        => $image_alt,
 		'twitter:card'        => erankly_get_twitter_card_type(),
 		'twitter:site'        => $twitter_site,
 		'twitter:title'       => $twitter_title,
 		'twitter:description' => $twitter_desc,
 		'twitter:image'       => $twitter_image,
+		'twitter:image:alt'   => $twitter_alt,
 	);
 
 	/**
@@ -110,8 +114,8 @@ function erankly_render_opengraph_tags(): void {
 /**
  * Resolves a social title or description through the shared fallback chain.
  *
- * Order: simplified-mode automatic value, per-content meta, special-page
- * template, global default template, then the caller-provided fallback.
+ * Order: explicit per-content meta, simplified-mode automatic value,
+ * special-page template, global default template, then the caller-provided fallback.
  *
  * @param string $meta_key    Per-content meta key (without plugin prefix).
  * @param string $setting_key Global default setting key.
@@ -123,16 +127,18 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 	$is_title = str_contains( $meta_key, 'title' );
 	$value    = '';
 
-	if ( is_singular() && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
-		$value = $is_title
-			? erankly_get_simplified_social_title( get_queried_object_id() )
-			: erankly_get_simplified_social_description( get_queried_object_id() );
-	} elseif ( is_singular() ) {
+	if ( is_singular() ) {
 		$post_id = get_queried_object_id();
 		$value   = erankly_get_post_meta_string( $post_id, $meta_key );
 
 		if ( '' !== $value ) {
 			$value = erankly_replace_variables( $value, $post_id );
+		}
+
+		if ( '' === $value && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+			$value = $is_title
+				? erankly_get_simplified_social_title( $post_id )
+				: erankly_get_simplified_social_description( $post_id );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
@@ -143,6 +149,12 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 			if ( '' !== $value ) {
 				$value = erankly_replace_variables( $value );
 			}
+		}
+	} elseif ( is_author() ) {
+		$value = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_' . $meta_key, true ) );
+
+		if ( '' !== $value ) {
+			$value = erankly_replace_variables( $value );
 		}
 	}
 
@@ -253,7 +265,7 @@ function erankly_get_twitter_description( string $fallback = '' ): string {
 function erankly_get_twitter_card_type(): string {
 	$card_type = '';
 
-	if ( is_singular() && ! (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+	if ( is_singular() ) {
 		$card_type = erankly_get_post_meta_string( get_queried_object_id(), 'twitter_card_type' );
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
@@ -261,6 +273,8 @@ function erankly_get_twitter_card_type(): string {
 		if ( $term instanceof WP_Term ) {
 			$card_type = erankly_get_term_meta_string( $term->term_id, 'twitter_card_type' );
 		}
+	} elseif ( is_author() ) {
+		$card_type = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_twitter_card_type', true ) );
 	}
 
 	if ( ! in_array( $card_type, array( 'summary', 'summary_large_image' ), true ) ) {
@@ -304,9 +318,10 @@ function erankly_get_twitter_site(): string {
 function erankly_get_twitter_image( string $fallback = '' ): string {
 	$image = '';
 
-	if ( is_singular() && ! (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+	if ( is_singular() ) {
 		$post_id   = get_queried_object_id();
-		$image     = erankly_get_post_meta_string( $post_id, 'social_image_url' );
+		$image     = erankly_get_post_meta_string( $post_id, 'twitter_image_url' );
+		$image     = '' !== $image ? $image : erankly_get_post_meta_string( $post_id, 'social_image_url' );
 		$custom_id = absint( get_post_meta( $post_id, '_erankly_twitter_image_id', true ) );
 
 		if ( '' !== $image ) {
@@ -320,11 +335,19 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$image = erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
+			$image = erankly_get_term_meta_string( $term->term_id, 'twitter_image_url' );
+			$image = '' !== $image ? $image : erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
 
 			if ( '' !== $image ) {
 				$image = esc_url_raw( erankly_replace_variables( $image ) );
 			}
+		}
+	} elseif ( is_author() ) {
+		$user_id = (int) get_queried_object_id();
+		$image   = trim( (string) get_user_meta( $user_id, '_erankly_twitter_image_url', true ) );
+
+		if ( '' !== $image ) {
+			$image = esc_url_raw( erankly_replace_variables( $image ) );
 		}
 	} elseif ( '' !== erankly_current_special_page_key() ) {
 		$image = erankly_get_special_page_social_image();
@@ -350,10 +373,8 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
  * @return void
  */
 function erankly_render_oembed_link(): void {
-	$settings = erankly_get_settings();
-
 	// Honour the Bloat tab: if oEmbed removal is active, emit nothing.
-	if ( ! empty( $settings['bloat_remove_oembed'] ) ) {
+	if ( (bool) erankly_get_setting( 'bloat_remove_oembed', 0 ) ) {
 		return;
 	}
 
@@ -418,13 +439,14 @@ function erankly_get_og_image(): string {
 		$post_id     = get_queried_object_id();
 		$custom_id   = absint( get_post_meta( $post_id, '_erankly_og_image_id', true ) );
 		$featured_id = get_post_thumbnail_id( $post_id );
-		$image       = (bool) erankly_get_setting( 'simplified_mode', 1 ) ? '' : erankly_get_post_meta_string( $post_id, 'social_image_url' );
+		$image       = erankly_get_post_meta_string( $post_id, 'og_image_url' );
+		$image       = '' !== $image ? $image : erankly_get_post_meta_string( $post_id, 'social_image_url' );
 
 		if ( '' !== $image ) {
 			$image = esc_url_raw( erankly_replace_variables( $image, $post_id ) );
 		}
 
-		if ( '' === $image && $custom_id > 0 && ! (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+		if ( '' === $image && $custom_id > 0 ) {
 			$image = erankly_get_image_url( $custom_id, 'full' );
 		}
 
@@ -440,11 +462,18 @@ function erankly_get_og_image(): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
-			$image = erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
+			$image = erankly_get_term_meta_string( $term->term_id, 'og_image_url' );
+			$image = '' !== $image ? $image : erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
 
 			if ( '' !== $image ) {
 				$image = esc_url_raw( erankly_replace_variables( $image ) );
 			}
+		}
+	} elseif ( is_author() ) {
+		$image = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_og_image_url', true ) );
+
+		if ( '' !== $image ) {
+			$image = esc_url_raw( erankly_replace_variables( $image ) );
 		}
 	} elseif ( '' !== erankly_current_special_page_key() ) {
 		$image = erankly_get_special_page_social_image();
@@ -470,4 +499,30 @@ function erankly_get_og_image(): string {
 	$resolved = (string) apply_filters( 'erankly_og_image', $image );
 
 	return $resolved;
+}
+
+/**
+ * Returns explicit alternative text for a social image.
+ *
+ * @param string $network  Either `og` or `twitter`.
+ * @param string $fallback Fallback alternative text.
+ * @return string
+ */
+function erankly_get_social_image_alt( string $network, string $fallback = '' ): string {
+	$key = 'twitter' === $network ? 'twitter_image_alt' : 'og_image_alt';
+	$alt = '';
+
+	if ( is_singular() ) {
+		$alt = erankly_get_post_meta_string( get_queried_object_id(), $key );
+	} elseif ( is_category() || is_tag() || is_tax() ) {
+		$term = get_queried_object();
+
+		if ( $term instanceof WP_Term ) {
+			$alt = erankly_get_term_meta_string( $term->term_id, $key );
+		}
+	} elseif ( is_author() ) {
+		$alt = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_' . $key, true ) );
+	}
+
+	return '' !== $alt ? $alt : $fallback;
 }

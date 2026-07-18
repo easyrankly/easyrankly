@@ -784,6 +784,19 @@ function erankly_schema_video_objects( int $post_id ): array {
 		return array();
 	}
 
+	$video_markers  = array( 'youtube.com/', 'youtu.be/', 'vimeo.com/', '<video', 'wp:video' );
+	$video_haystack = strtolower( $post->post_content );
+	$has_video      = array_reduce(
+		$video_markers,
+		static fn( bool $found, string $marker ): bool => $found || str_contains( $video_haystack, $marker ),
+		false
+	);
+
+	if ( ! $has_video ) {
+		return array();
+	}
+
+	erankly_load_video_helpers();
 	$video_urls = erankly_extract_video_urls( $post->post_content );
 
 	if ( empty( $video_urls ) ) {

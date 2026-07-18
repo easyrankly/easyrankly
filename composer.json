@@ -21,11 +21,29 @@
 	"scripts": {
 		"lint": "phpcs",
 		"lint:fix": "phpcbf",
-		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- ."
+		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --ignore='vendor/*,node_modules/*' .",
+		"security:contract": [
+			"php tests/security-broken-links-ssrf.php",
+			"php tests/security-ai-rate-limit.php",
+			"php tests/security-health-privacy.php",
+			"php tests/security-import-memory.php",
+			"php tests/security-workflow-pinning.php"
+		],
+		"test:concurrency": "php tests/concurrent-standalone-certification.php",
+		"performance:contract": "php tests/performance-contract.php",
+		"migration:certify:standalone": "php tests/phase8-go-live-gate.php",
+		"migration:certify": "bash tests/certification/run.sh",
+		"migration:go-live": "bash tests/certification/go-live.sh"
 	},
 	"scripts-descriptions": {
 		"lint": "Check the plugin against the EasyRankly coding standards (phpcs.xml).",
 		"lint:fix": "Auto-fix the coding-standard issues that can be fixed automatically.",
-		"compat": "Check PHP 8.0+ compatibility across the codebase."
+		"compat": "Check PHP 8.0+ compatibility across the codebase.",
+		"security:contract": "Verify SSRF, AI rate-limit, 404 privacy, bounded JSON imports, and workflow supply-chain boundaries.",
+		"test:concurrency": "Run Phase 5, 7, and 8 standalone certifications concurrently to verify temporary-file isolation.",
+		"performance:contract": "Enforce helper, frontend bootstrap, Import/Export asset, and contextual-loader budgets.",
+		"migration:certify:standalone": "Run the immutable Free/PRO contract and go-live decision suites.",
+		"migration:certify": "Run the complete Docker-backed migration certification matrix and produce a release verdict.",
+		"migration:go-live": "Require a clean fresh matrix plus externally supplied authorized evidence for every PRO source."
 	}
 }

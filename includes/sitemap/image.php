@@ -60,23 +60,11 @@ function erankly_count_image_sitemap_items(): int {
 				OR EXISTS (
 					SELECT 1 FROM {$wpdb->postmeta} pm_soc
 					WHERE pm_soc.post_id = p.ID
-						AND pm_soc.meta_key IN ('_erankly_social_image_url', '_erankly_og_image_id', '_erankly_twitter_image_id')
+						AND pm_soc.meta_key IN ('_erankly_social_image_url', '_erankly_og_image_url', '_erankly_twitter_image_url', '_erankly_og_image_id', '_erankly_twitter_image_id')
 						AND pm_soc.meta_value != ''
 				)
 			)
-				" . "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_noindex
-				WHERE pm_noindex.post_id = p.ID
-					AND pm_noindex.meta_key = '_erankly_noindex'
-					AND pm_noindex.meta_value = '1'
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_sitemap
-				WHERE pm_sitemap.post_id = p.ID
-					AND pm_sitemap.meta_key = '_erankly_disable_sitemap'
-					AND pm_sitemap.meta_value = '1'
-			)" . '
-	';
+	" . erankly_get_sitemap_exclusion_sql( 'p' );
 
 	$args = array_merge(
 		$post_types,
@@ -151,22 +139,11 @@ function erankly_get_image_sitemap_xml( int $page = 1 ): string {
 				OR EXISTS (
 					SELECT 1 FROM {$wpdb->postmeta} pm_soc
 					WHERE pm_soc.post_id = p.ID
-						AND pm_soc.meta_key IN ('_erankly_social_image_url', '_erankly_og_image_id', '_erankly_twitter_image_id')
+						AND pm_soc.meta_key IN ('_erankly_social_image_url', '_erankly_og_image_url', '_erankly_twitter_image_url', '_erankly_og_image_id', '_erankly_twitter_image_id')
 						AND pm_soc.meta_value != ''
 				)
 			)
-				" . "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_noindex
-				WHERE pm_noindex.post_id = p.ID
-					AND pm_noindex.meta_key = '_erankly_noindex'
-					AND pm_noindex.meta_value = '1'
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_sitemap
-				WHERE pm_sitemap.post_id = p.ID
-					AND pm_sitemap.meta_key = '_erankly_disable_sitemap'
-					AND pm_sitemap.meta_value = '1'
-			)" . '
+	" . erankly_get_sitemap_exclusion_sql( 'p' ) . '
 			ORDER BY p.post_modified_gmt DESC
 			LIMIT %d OFFSET %d
 	';

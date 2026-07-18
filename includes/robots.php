@@ -130,12 +130,117 @@ function erankly_filter_wp_robots( array $robots ): array {
 		$robots['indexifembedded'] = true;
 	}
 
+	$robots = erankly_apply_current_object_robots_overrides( $robots );
+
+	if ( empty( $robots['noindex'] ) ) {
+		$robots['index'] = true;
+	}
+
+	if ( empty( $robots['nofollow'] ) ) {
+		$robots['follow'] = true;
+	}
+
 	/**
 	 * Filters robots directives before WordPress renders the meta tag.
 	 *
 	 * @param array<string,bool|string> $robots Robots directives.
 	 */
 	return apply_filters( 'erankly_robots', $robots );
+}
+
+/**
+ * Applies tri-state per-object directives after global defaults.
+ *
+ * @param array<string,bool|string> $robots Current directives.
+ * @return array<string,bool|string>
+ */
+function erankly_apply_current_object_robots_overrides( array $robots ): array {
+	$object_type = '';
+	$object_id   = 0;
+
+	if ( is_singular() ) {
+		$object_type = 'post';
+		$object_id   = get_queried_object_id();
+	} elseif ( is_category() || is_tag() || is_tax() ) {
+		$term = get_queried_object();
+
+		if ( $term instanceof WP_Term ) {
+			$object_type = 'term';
+			$object_id   = $term->term_id;
+		}
+	} elseif ( is_author() ) {
+		$object_type = 'user';
+		$object_id   = get_queried_object_id();
+	}
+
+	if ( '' === $object_type || $object_id < 1 ) {
+		return $robots;
+	}
+
+	$directives = array(
+		'index'   => erankly_get_object_robots_directive( $object_type, $object_id, 'index' ),
+		'follow'  => erankly_get_object_robots_directive( $object_type, $object_id, 'follow' ),
+		'archive' => erankly_get_object_robots_directive( $object_type, $object_id, 'archive' ),
+		'snippet' => erankly_get_object_robots_directive( $object_type, $object_id, 'snippet' ),
+		'image'   => erankly_get_object_robots_directive( $object_type, $object_id, 'image' ),
+	);
+
+	$pairs = array(
+		'index'   => array( 'index', 'noindex' ),
+		'follow'  => array( 'follow', 'nofollow' ),
+		'archive' => array( 'archive', 'noarchive' ),
+		'snippet' => array( 'snippet', 'nosnippet' ),
+		'image'   => array( 'imageindex', 'noimageindex' ),
+	);
+
+	foreach ( $pairs as $axis => $values ) {
+		list( $allow, $deny ) = $values;
+
+		if ( $deny === $directives[ $axis ] ) {
+			$robots[ $deny ] = true;
+			unset( $robots[ $allow ] );
+		} elseif ( $allow === $directives[ $axis ] ) {
+			unset( $robots[ $deny ] );
+
+			if ( in_array( $allow, array( 'index', 'follow' ), true ) ) {
+				$robots[ $allow ] = true;
+			}
+		}
+	}
+
+	$get_meta = static function ( string $key ) use ( $object_type, $object_id ): mixed {
+		if ( 'term' === $object_type ) {
+			return get_term_meta( $object_id, $key, true );
+		}
+
+		if ( 'user' === $object_type ) {
+			return get_user_meta( $object_id, $key, true );
+		}
+
+		return get_post_meta( $object_id, $key, true );
+	};
+
+	$max_snippet = trim( (string) $get_meta( '_erankly_max_snippet' ) );
+	$max_video   = trim( (string) $get_meta( '_erankly_max_video_preview' ) );
+	$max_image   = trim( (string) $get_meta( '_erankly_max_image_preview' ) );
+
+	if ( '' !== $max_snippet ) {
+		$robots['max-snippet'] = $max_snippet;
+	}
+
+	if ( '' !== $max_video ) {
+		$robots['max-video-preview'] = $max_video;
+	}
+
+	if ( in_array( $max_image, array( 'none', 'standard', 'large' ), true ) ) {
+		$robots['max-image-preview'] = $max_image;
+	}
+
+	if ( '1' === (string) $get_meta( '_erankly_indexifembedded' ) && ! empty( $robots['noindex'] ) ) {
+		$robots['indexifembedded'] = true;
+	}
+
+	return $robots;
 }
 
 /**
@@ -150,6 +255,7 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 		return $output;
 	}
 
+	erankly_load_sitemap_helpers();
 	$lines = array_filter( array_map( 'trim', explode( "\n", $output ) ) );
 
 	if ( $is_public ) {

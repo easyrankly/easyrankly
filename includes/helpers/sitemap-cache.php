@@ -2,7 +2,7 @@
 /**
  * Shared helpers — sitemap URLs and cache invalidation.
  *
- * Part of the helpers.php loader; always loaded early on every request.
+ * Loaded only for sitemap, robots, lifecycle and related settings work.
  *
  * @package EasyRankly
  */

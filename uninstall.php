@@ -10,6 +10,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 require_once __DIR__ . '/includes/helpers/redirect-cache.php';
+require_once __DIR__ . '/includes/migrations/class-erankly-migration-upload-store.php';
 
 global $wpdb;
 
@@ -24,11 +25,21 @@ global $wpdb;
  */
 function erankly_uninstall_site(): void {
 	global $wpdb;
+	if ( ! ERankly_Migration_Upload_Store::purge_all( true ) ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private migration uploads during uninstall.', 'easyrankly' ) );
+	}
 
 	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
 	wp_unschedule_hook( 'erankly_network_reset_batch' );
+	wp_unschedule_hook( 'erankly_migration_process_batch' );
+	$erankly_active_migration = get_option( 'erankly_migration_active_job_v1', array() );
+	if ( is_array( $erankly_active_migration ) && ! empty( $erankly_active_migration['id'] ) ) {
+		delete_option( 'erankly_migration_lock_' . substr( hash( 'sha256', (string) $erankly_active_migration['id'] ), 0, 24 ) );
+		delete_option( 'erankly_migration_cancel_' . substr( hash( 'sha256', (string) $erankly_active_migration['id'] ), 0, 24 ) );
+	}
 
 	delete_option( 'erankly_special_meta' );
+	delete_option( 'erankly_runtime_state' );
 	delete_option( 'erankly_redirects_db_version' );
 	delete_option( 'erankly_redirects_runtime_rules' );
 	delete_option( 'erankly_redirects_cache_generation' );
@@ -39,10 +50,39 @@ function erankly_uninstall_site(): void {
 	delete_option( 'erankly_health_404_candidates' );
 	delete_option( 'erankly_health_404_frequent' );
 	delete_option( 'erankly_health_404_states' );
+	delete_option( 'erankly_health_404_storage_version' );
+	delete_option( 'erankly_health_404_storage_lock' );
+	delete_option( 'erankly_health_ai_suggestions' );
 	delete_option( 'erankly_health_thin_content' );
 	delete_option( 'erankly_health_bl_state' );
 	delete_option( 'erankly_health_bl_results' );
 	delete_option( 'erankly_lb_graph' );
+	delete_option( 'erankly_migration_reports_v1' );
+	delete_option( 'erankly_migration_active_job_v1' );
+	delete_option( 'erankly_migration_queue_db_version' );
+	delete_option( 'erankly_migration_journal_db_version' );
+	delete_option( 'erankly_migration_evidence_db_version' );
+
+	$erankly_dropped_migration_queue = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall removes temporary migration staging storage.
+		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_migration_queue' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall intentionally drops plugin-owned staging storage.
+	);
+	if ( false === $erankly_dropped_migration_queue ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove migration staging storage during uninstall.', 'easyrankly' ) );
+	}
+
+	$erankly_dropped_migration_journal = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall removes plugin-owned rollback history.
+		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_migration_changes' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall intentionally drops plugin-owned rollback storage.
+	);
+	if ( false === $erankly_dropped_migration_journal ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove migration rollback storage during uninstall.', 'easyrankly' ) );
+	}
+
+	$erankly_dropped_migration_evidence = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall removes the complete migration exception ledger.
+		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_migration_exceptions' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall intentionally drops plugin-owned exception evidence.
+	);
+	if ( false === $erankly_dropped_migration_evidence ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove migration exception evidence during uninstall.', 'easyrankly' ) );
+	}
 
 	$erankly_dropped_redirects = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall cleanup removes the plugin-owned redirects table.
 		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall intentionally drops plugin-owned storage.
@@ -74,6 +114,17 @@ function erankly_uninstall_site(): void {
 
 	if ( false === $erankly_deleted_term_meta ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove term metadata during uninstall.', 'easyrankly' ) );
+	}
+
+	$erankly_deleted_user_meta = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall removes plugin-owned user meta.
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->esc_like( '_erankly_' ) . '%'
+		)
+	);
+
+	if ( false === $erankly_deleted_user_meta ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove user metadata during uninstall.', 'easyrankly' ) );
 	}
 
 	$erankly_deleted_transients = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall cleanup removes all plugin-owned transients (sitemap caches, Health 404 suggestion caches).

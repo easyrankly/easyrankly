@@ -1,0 +1,73 @@
+/** EasyRankly destructive reset controls. */
+
+/* Reset */
+.erankly-reset-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-btn-danger.button {
+	background: var(--erankly-color-danger);
+	border-color: var(--erankly-color-danger);
+	color: var(--erankly-color-surface);
+}
+
+.erankly-btn-danger.button:hover,
+.erankly-btn-danger.button:focus {
+	background: var(--erankly-color-error);
+	border-color: var(--erankly-color-error);
+	color: var(--erankly-color-surface);
+}
+
+.erankly-btn-danger.button:focus {
+	box-shadow: 0 0 0 1px var(--erankly-color-surface), 0 0 0 3px var(--erankly-color-danger);
+}
+
+/* display: flex below beats the UA stylesheet's [hidden] { display: none },
+   so the closed state needs its own explicit rule. */
+.erankly-modal-overlay[hidden] {
+	display: none;
+}
+
+.erankly-modal-overlay {
+	align-items: center;
+	background: rgba(0, 0, 0, 0.5);
+	bottom: 0;
+	display: flex;
+	justify-content: center;
+	left: 0;
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 100000;
+}
+
+.erankly-modal {
+	background: #fff;
+	border-radius: var(--erankly-radius-surface);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+	box-sizing: border-box;
+	margin: 16px;
+	max-width: 440px;
+	padding: 24px;
+	width: 100%;
+}
+
+.erankly-modal-title {
+	font-size: 16px;
+	margin: 0 0 12px;
+}
+
+.erankly-modal-desc {
+	color: #50575e;
+	line-height: 1.5;
+	margin: 0 0 20px;
+}
+
+.erankly-modal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+}

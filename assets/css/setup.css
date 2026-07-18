@@ -1,0 +1,255 @@
+/** EasyRankly first-run setup wizard. */
+
+/* First-run setup wizard */
+.erankly-setup {
+	margin: 48px auto 0;
+	max-width: 760px;
+}
+
+.erankly-setup-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: var(--erankly-radius-surface);
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	overflow: hidden;
+}
+
+.erankly-setup-header,
+.erankly-setup-content {
+	padding: 24px 32px;
+}
+
+.erankly-setup-header {
+	border-bottom: 1px solid var(--erankly-color-border);
+}
+
+.erankly-setup-header h1,
+.erankly-setup-content h2 {
+	margin-top: 0;
+}
+
+.erankly-setup-header h1 {
+	margin-bottom: 8px;
+}
+
+.erankly-setup-content h2 {
+	margin-bottom: 12px;
+}
+
+.erankly-setup-header p {
+	color: #50575e;
+	font-size: 14px;
+	margin-bottom: 0;
+}
+
+.erankly-setup-steps {
+	--erankly-tab-color: var(--wp-admin-theme-color, #3858e9);
+	--erankly-tabs-item-radius: var(--erankly-radius-control, 6px);
+	align-items: center;
+	background: #fff;
+	border: 1px solid var(--erankly-tab-color);
+	border-radius: var(--erankly-radius-surface, 8px);
+	box-sizing: border-box;
+	display: flex;
+	gap: 3px;
+	list-style: none;
+	margin: 16px 32px;
+	padding: 3px;
+}
+
+.erankly-setup-steps .erankly-tab {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	border-radius: var(--erankly-tabs-item-radius);
+	box-sizing: border-box;
+	color: color-mix(in srgb, var(--erankly-tab-color) 38%, var(--erankly-color-muted));
+	display: inline-flex;
+	flex: 1 1 0;
+	font-weight: 500;
+	justify-content: center;
+	line-height: 1.2;
+	margin: 0;
+	min-height: 32px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	padding: 7px 14px;
+	text-align: center;
+	white-space: normal;
+}
+
+.erankly-setup-steps .erankly-tab.is-active {
+	background: var(--erankly-tab-color);
+	color: #fff;
+}
+
+.erankly-setup-steps .erankly-tab.is-complete {
+	color: #50575e;
+}
+
+.erankly-setup-steps .erankly-tab.is-complete::before {
+	color: var(--erankly-tab-color);
+	content: "\f147";
+	display: inline-block;
+	font: normal 18px/1 dashicons;
+	margin-right: 4px;
+	vertical-align: -3px;
+}
+
+.erankly-setup-section {
+	border: 0;
+	margin: 0 0 24px;
+	padding: 0;
+}
+
+.erankly-setup-row {
+	display: grid;
+	gap: 24px;
+	grid-template-columns: 1fr 1fr;
+}
+
+.erankly-setup-row .erankly-setup-section {
+	margin: 0 0 24px;
+}
+
+.erankly-setup-row .regular-text {
+	width: 100%;
+}
+
+@media (max-width: 782px) {
+	.erankly-setup-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+.erankly-setup-section legend {
+	font-size: 16px;
+	font-weight: 600;
+	margin-bottom: 12px;
+}
+
+.erankly-setup-section > label:not(.erankly-setup-choice) {
+	display: block;
+	margin-bottom: 6px;
+}
+
+.erankly-setup-choice {
+	align-items: flex-start;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: var(--erankly-radius-surface);
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	margin-bottom: 8px;
+	padding: 14px;
+	transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+}
+
+.erankly-setup-choice:hover {
+	border-color: #8c8f94;
+}
+
+.erankly-setup-choice:has(input:checked) {
+	background: #f0f6fc;
+	border-color: #2271b1;
+	box-shadow: inset 0 0 0 1px #2271b1;
+}
+
+.erankly-setup-choice:focus-within {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.erankly-setup-choice input {
+	margin-top: 3px;
+}
+
+.erankly-setup-choice strong,
+.erankly-setup-choice small {
+	display: block;
+}
+
+.erankly-setup-choice small {
+	color: var(--erankly-color-muted);
+	line-height: 1.5;
+	margin-top: 4px;
+}
+
+.erankly-setup-ready-title {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+}
+
+.erankly-setup-ready-icon {
+	color: var(--erankly-color-success);
+	display: inline-flex;
+	line-height: 1;
+}
+
+.erankly-setup-ready-icon .dashicons {
+	height: 24px;
+	width: 24px;
+	font-size: 24px;
+}
+
+.erankly-setup-summary {
+	background: #fff;
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-surface);
+	margin: 20px 0 24px;
+	max-width: 720px;
+	padding: 4px 20px;
+}
+
+.erankly-setup-summary-row {
+	align-items: baseline;
+	border-top: 1px solid var(--erankly-color-border);
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+	padding: 14px 0;
+}
+
+.erankly-setup-summary-row:first-child {
+	border-top: 0;
+}
+
+.erankly-setup-summary-row dt {
+	color: var(--erankly-color-muted);
+	font-weight: 500;
+}
+
+.erankly-setup-summary-row dd {
+	font-weight: 600;
+	margin: 0;
+	text-align: right;
+}
+
+.erankly-setup-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 24px;
+}
+
+.erankly-setup-actions form {
+	margin: 0;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-setup {
+		margin: 16px 10px 0 0;
+	}
+
+	.erankly-setup-header,
+	.erankly-setup-content {
+		padding: 20px;
+	}
+
+	.erankly-setup-steps li {
+		padding: 10px 6px;
+	}
+}

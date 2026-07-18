@@ -19,12 +19,17 @@
 /phpcs.xml.dist
 /phpunit.xml
 /phpunit.xml.dist
+/stylelint.config.mjs
 
 # Dependencies and dev-only directories
 /vendor
 /node_modules
 /tests
+/docs
 /bin
+/coverage
+/build
+/dist
 
 # OS cruft
 .DS_Store

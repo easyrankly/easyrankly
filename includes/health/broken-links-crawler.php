@@ -187,88 +187,6 @@ function erankly_health_bl_progress_payload( array $state ): array {
 }
 
 /**
- * Permission callback for the Broken-Link crawl REST routes.
- *
- * @return bool
- */
-function erankly_health_bl_rest_permission(): bool {
-	return current_user_can( 'manage_options' );
-}
-
-/**
- * Registers the REST routes that drive the manual crawl from the admin UI.
- *
- * @return void
- */
-function erankly_health_bl_register_rest_routes(): void {
-	$routes = array(
-		'start'  => 'erankly_health_bl_rest_start',
-		'tick'   => 'erankly_health_bl_rest_tick',
-		'cancel' => 'erankly_health_bl_rest_cancel',
-	);
-
-	foreach ( $routes as $path => $callback ) {
-		register_rest_route(
-			'erankly/v1',
-			'/health/broken-links/' . $path,
-			array(
-				'methods'             => 'POST',
-				'callback'            => $callback,
-				'permission_callback' => 'erankly_health_bl_rest_permission',
-			)
-		);
-	}
-}
-
-/**
- * REST: starts (or restarts) a crawl and returns the initial progress payload.
- *
- * @return WP_REST_Response
- */
-function erankly_health_bl_rest_start(): WP_REST_Response {
-	$state = erankly_health_bl_start_crawl();
-
-	return new WP_REST_Response( erankly_health_bl_progress_payload( $state ), 200 );
-}
-
-/**
- * REST: advances the crawl by one batch and returns the current progress.
- *
- * Discovering: fetch a batch of pages, extract links, spider internal ones.
- * Checking: not implemented yet (Phase 3) — finalized immediately for now.
- *
- * @return WP_REST_Response
- */
-function erankly_health_bl_rest_tick(): WP_REST_Response {
-	$state = erankly_health_bl_get_state();
-
-	if ( 'idle' === $state['status'] || 'done' === $state['status'] ) {
-		return new WP_REST_Response( erankly_health_bl_progress_payload( $state ), 200 );
-	}
-
-	if ( 'discovering' === $state['status'] ) {
-		$state = erankly_health_bl_run_discovery_batch( $state );
-	} elseif ( 'checking' === $state['status'] ) {
-		$state = erankly_health_bl_run_checking_batch( $state );
-	}
-
-	erankly_health_bl_save_state( $state );
-
-	return new WP_REST_Response( erankly_health_bl_progress_payload( $state ), 200 );
-}
-
-/**
- * REST: cancels an in-progress crawl and returns the crawler to idle.
- *
- * @return WP_REST_Response
- */
-function erankly_health_bl_rest_cancel(): WP_REST_Response {
-	erankly_health_bl_reset_state();
-
-	return new WP_REST_Response( erankly_health_bl_progress_payload( erankly_health_bl_default_state() ), 200 );
-}
-
-/**
  * Returns the lowercased host of this site's home URL (memoized per request).
  *
  * @return string
@@ -282,6 +200,37 @@ function erankly_health_bl_home_host(): string {
 	}
 
 	return $host;
+}
+
+/**
+ * Returns the normalized HTTP origin for a URL.
+ *
+ * Default ports are made explicit so https://example.com and
+ * https://example.com:443 compare as the same origin.
+ *
+ * @param string $url Absolute URL.
+ * @return string Normalized scheme://host:port origin, or an empty string.
+ */
+function erankly_health_bl_url_origin( string $url ): string {
+	$parts = wp_parse_url( $url );
+
+	if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+		return '';
+	}
+
+	$scheme = strtolower( (string) $parts['scheme'] );
+	if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+		return '';
+	}
+
+	$host = strtolower( rtrim( (string) $parts['host'], '.' ) );
+	$port = isset( $parts['port'] ) ? (int) $parts['port'] : ( 'https' === $scheme ? 443 : 80 );
+
+	if ( '' === $host || $port < 1 || $port > 65535 ) {
+		return '';
+	}
+
+	return $scheme . '://' . $host . ':' . $port;
 }
 
 /**
@@ -411,15 +360,16 @@ function erankly_health_bl_canonicalize( string $url ): string {
 }
 
 /**
- * Whether a canonical URL points to this site (same host as the home URL).
+ * Whether a canonical URL points to this site's exact HTTP origin.
  *
  * @param string $canonical_url Canonical URL.
  * @return bool
  */
 function erankly_health_bl_is_internal( string $canonical_url ): bool {
-	$host = wp_parse_url( $canonical_url, PHP_URL_HOST );
+	$origin      = erankly_health_bl_url_origin( $canonical_url );
+	$home_origin = erankly_health_bl_url_origin( home_url( '/' ) );
 
-	return is_string( $host ) && strtolower( $host ) === erankly_health_bl_home_host();
+	return '' !== $origin && '' !== $home_origin && $origin === $home_origin;
 }
 
 /**
@@ -453,8 +403,8 @@ function erankly_health_bl_is_asset_url( string $canonical_url ): bool {
  * Whether the Broken-Link crawler may issue an HTTP request to a URL.
  *
  * External targets must pass wp_http_validate_url() so probes cannot reach
- * loopback or private-network addresses (SSRF). Same-host internal URLs skip
- * that check because intentional loopback fetches are required for spidering.
+ * loopback or private-network addresses (SSRF). Internal loopback is allowed
+ * only for the site's exact scheme, host, and effective port.
  *
  * @param string $url      Canonical URL to probe or fetch.
  * @param bool   $internal Whether the URL belongs to this site.
@@ -472,19 +422,63 @@ function erankly_health_bl_is_http_request_allowed( string $url, bool $internal 
 	/**
 	 * Filters whether an external URL may be probed during a Broken-Link scan.
 	 *
-	 * Return a boolean to override the default validation; null keeps the
-	 * built-in wp_http_validate_url() check.
+	 * Returning false blocks the request. A truthy value cannot bypass the
+	 * built-in wp_http_validate_url() SSRF validation.
 	 *
-	 * @param bool|null $allowed Null to use the default validation.
+	 * @param bool|null $allowed False to deny; null or true keeps validation.
 	 * @param string    $url     Canonical external URL.
 	 */
 	$allowed = apply_filters( 'erankly_health_bl_allow_external_http_request', null, $url );
 
-	if ( null !== $allowed ) {
-		return (bool) $allowed;
+	if ( null !== $allowed && ! (bool) $allowed ) {
+		return false;
 	}
 
 	return function_exists( 'wp_http_validate_url' ) ? (bool) wp_http_validate_url( $url ) : false;
+}
+
+/**
+ * Performs a crawler GET request with redirect-safe external handling.
+ *
+ * Internal requests are already restricted to the exact site origin and never
+ * follow redirects. Arbitrary external URLs use WordPress' safe wrapper, which
+ * validates the initial URL and every redirect target.
+ *
+ * @param string              $url      URL to request.
+ * @param array<string,mixed> $args     WordPress HTTP API arguments.
+ * @param bool                $internal Whether this is an exact-origin request.
+ * @return array|WP_Error
+ */
+function erankly_health_bl_remote_get( string $url, array $args, bool $internal ) {
+	if ( $internal ) {
+		$args['redirection'] = 0;
+
+		return wp_remote_get( $url, $args );
+	}
+
+	$args['reject_unsafe_urls'] = true;
+
+	return wp_safe_remote_get( $url, $args );
+}
+
+/**
+ * Performs a crawler HEAD request with redirect-safe external handling.
+ *
+ * @param string              $url      URL to request.
+ * @param array<string,mixed> $args     WordPress HTTP API arguments.
+ * @param bool                $internal Whether this is an exact-origin request.
+ * @return array|WP_Error
+ */
+function erankly_health_bl_remote_head( string $url, array $args, bool $internal ) {
+	if ( $internal ) {
+		$args['redirection'] = 0;
+
+		return wp_remote_head( $url, $args );
+	}
+
+	$args['reject_unsafe_urls'] = true;
+
+	return wp_safe_remote_head( $url, $args );
 }
 
 /**
@@ -499,18 +493,16 @@ function erankly_health_bl_fetch_html( string $url ): ?string {
 		return null;
 	}
 
-	$response = wp_remote_get(
+	$response = erankly_health_bl_remote_get(
 		$url,
 		array(
 			'timeout'     => ERANKLY_HEALTH_BL_HTTP_TIMEOUT,
-			'redirection' => 5,
-			// Pages fetched here are always on this site (loopback), where a
-			// self-signed or mismatched certificate on staging would otherwise
-			// abort every request. Mirrors WordPress core's loopback convention.
-			'sslverify'   => (bool) apply_filters( 'erankly_health_bl_sslverify', false, $url, true ),
+			'redirection' => 0,
+			'sslverify'   => (bool) apply_filters( 'erankly_health_bl_sslverify', true, $url, true ),
 			'user-agent'  => 'EasyRankly Broken-Link Crawler/1.0; ' . home_url( '/' ),
 			'headers'     => array( 'Accept' => 'text/html,application/xhtml+xml' ),
-		)
+		),
+		true
 	);
 
 	if ( is_wp_error( $response ) ) {
@@ -772,7 +764,7 @@ function erankly_health_bl_run_discovery_batch( array $state ): array {
  * HEAD is unusable (errored, not allowed, or bot-blocked at the HEAD level).
  *
  * @param string $url      Canonical URL to probe.
- * @param bool   $internal Whether the URL is on this site (loopback → no SSL verify).
+ * @param bool   $internal Whether the URL is on this site's exact origin.
  * @return array{code:int,state:string} state is 'ok'|'broken'|'unreachable'.
  */
 function erankly_health_bl_probe( string $url, bool $internal = false ): array {
@@ -785,18 +777,18 @@ function erankly_health_bl_probe( string $url, bool $internal = false ): array {
 
 	$args = array(
 		'timeout'     => ERANKLY_HEALTH_BL_HTTP_TIMEOUT,
-		'redirection' => 5,
-		'sslverify'   => (bool) apply_filters( 'erankly_health_bl_sslverify', ! $internal, $url, $internal ),
+		'redirection' => $internal ? 0 : 5,
+		'sslverify'   => (bool) apply_filters( 'erankly_health_bl_sslverify', true, $url, $internal ),
 		'user-agent'  => 'EasyRankly Broken-Link Crawler/1.0; ' . home_url( '/' ),
 		'headers'     => array( 'Accept' => '*/*' ),
 	);
 
-	$response = wp_remote_head( $url, $args );
+	$response = erankly_health_bl_remote_head( $url, $args, $internal );
 	$code     = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
 
 	// HEAD is often blocked or unsupported; a GET gives the authoritative status.
 	if ( in_array( $code, array( 0, 400, 403, 405, 501 ), true ) ) {
-		$get      = wp_remote_get( $url, array_merge( $args, array( 'limit_response_size' => 4096 ) ) );
+		$get      = erankly_health_bl_remote_get( $url, array_merge( $args, array( 'limit_response_size' => 4096 ) ), $internal );
 		$get_code = is_wp_error( $get ) ? 0 : (int) wp_remote_retrieve_response_code( $get );
 
 		if ( 0 !== $get_code ) {
@@ -1018,80 +1010,4 @@ function erankly_health_bl_get_results(): ?array {
 		'fetch_failed'   => isset( $data['fetch_failed'] ) ? absint( $data['fetch_failed'] ) : 0,
 		'items'          => isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : array(),
 	);
-}
-
-/**
- * Handles the on-demand "Suggest with AI" request for one internal broken link.
- *
- * Reuses the same AI suggestion engine (and per-path cache) as the frequent-404
- * scanner, keyed by the broken link's site-relative path.
- *
- * @return void
- */
-function erankly_health_bl_handle_ai_suggest(): void {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( esc_html__( 'Sorry, you are not allowed to update Health data.', 'easyrankly' ) );
-	}
-
-	check_admin_referer( 'erankly_health_bl_ai_suggest' );
-
-	$raw_url   = isset( $_POST['url'] ) ? esc_url_raw( wp_unslash( $_POST['url'] ) ) : '';
-	$canonical = erankly_health_bl_canonicalize( $raw_url );
-	$outcome   = 'error';
-
-	if ( ! function_exists( 'erankly_ai_enabled' ) || ! erankly_ai_enabled() ) {
-		$outcome = 'disabled';
-	} elseif ( '' !== $canonical && erankly_health_bl_is_internal( $canonical ) ) {
-		$path = erankly_health_normalize_link_path( $canonical );
-
-		if ( '' !== $path ) {
-			$suggestion = erankly_health_ai_suggest_redirect_target( array( 'path' => $path ) );
-
-			if ( null !== $suggestion ) {
-				$outcome = 'suggested';
-			} else {
-				$outcome = 'none' === erankly_health_ai_cached_suggestion( $path )['state'] ? 'none' : 'error';
-			}
-		}
-	}
-
-	wp_safe_redirect(
-		add_query_arg(
-			array(
-				'page'              => 'erankly',
-				'erankly_tab'       => 'health',
-				'erankly_health_ai' => $outcome,
-			),
-			admin_url( 'options-general.php' )
-		)
-	);
-	exit;
-}
-
-/**
- * Handles clearing the finished Broken-Link results (and any stale run state).
- *
- * @return void
- */
-function erankly_health_bl_handle_clear(): void {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( esc_html__( 'Sorry, you are not allowed to update Health data.', 'easyrankly' ) );
-	}
-
-	check_admin_referer( 'erankly_health_bl_clear' );
-
-	erankly_health_bl_reset_state();
-	delete_option( ERANKLY_HEALTH_BL_RESULTS_OPTION );
-
-	wp_safe_redirect(
-		add_query_arg(
-			array(
-				'page'                      => 'erankly',
-				'erankly_tab'               => 'health',
-				'erankly_health_bl_cleared' => '1',
-			),
-			admin_url( 'options-general.php' )
-		)
-	);
-	exit;
 }

@@ -129,6 +129,7 @@
 	box-shadow: 0 0 0 0.5px var(--wp-admin-theme-color, #3858e9);
 }
 
+/* stylelint-disable declaration-no-important -- Overrides a core component shadow with higher-priority inline styles. */
 .erankly-panel--translations .components-combobox-control__input,
 .erankly-panel--translations .components-combobox-control__suggestions-container .components-input-control__input {
 	height: 38px;
@@ -140,6 +141,7 @@
 	border: none;
 	box-shadow: none !important;
 }
+/* stylelint-enable declaration-no-important */
 
 .erankly-panel--translations .components-form-token-field__suggestions-list {
 	position: absolute;

@@ -16,7 +16,7 @@ require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
 /**
  * Database schema version for the redirects table.
  */
-define( 'ERANKLY_REDIRECTS_DB_VERSION', '1.0.0' );
+define( 'ERANKLY_REDIRECTS_DB_VERSION', '2.0.0' );
 
 /**
  * Option name tracking the installed redirects table version.
@@ -76,6 +76,8 @@ function erankly_redirects_maybe_upgrade_db(): void {
 	}
 
 	ERankly_Redirects_Activator::activate();
+	delete_option( 'erankly_redirects_runtime_rules' );
+	erankly_rotate_redirects_cache_generation();
 	update_option( ERANKLY_REDIRECTS_DB_VERSION_OPTION, ERANKLY_REDIRECTS_DB_VERSION, false );
 }
 

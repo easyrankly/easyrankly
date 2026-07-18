@@ -1,0 +1,19 @@
+/** EasyRankly Health-specific presentation. */
+
+/* Broken-Link Candidates: section-specific bits only. */
+.erankly-bl-progress {
+	font-style: italic;
+	margin: 0 0 12px;
+}
+
+.erankly-bl-occ {
+	margin-bottom: 4px;
+}
+
+.erankly-bl-anchor {
+	font-weight: 600;
+}
+
+.erankly-bl-suggestion {
+	margin-bottom: 6px;
+}

@@ -98,7 +98,7 @@
 
 /*
  * Section width, expand toggle, and table borders come from the shared
- * .erankly-panel-* component (admin.css). Only redirects-specific tweaks remain.
+ * .erankly-panel-* component (admin-core.css). Only redirects-specific tweaks remain.
  */
 
 /* Expanded: widen the search field ~25% (280px -> 360px) since the extra

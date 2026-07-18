@@ -1,41 +1,37 @@
 (function (ER) {
   "use strict";
 
+  function bindEach(root, selector, callbackName) {
+    if (typeof ER[callbackName] !== "function") {
+      return;
+    }
+
+    root.querySelectorAll(selector).forEach(ER[callbackName]);
+  }
+
   function bindSettingsReplacement(root) {
-    ER.bindTabs(root);
-    ER.bindSettingsTabs(root);
-    ER.bindSimplifiedMode(root);
-    root
-      .querySelectorAll("[data-erankly-media-url-field]")
-      .forEach(ER.bindMediaUrlField);
-    root
-      .querySelectorAll(".erankly-counted-field")
-      .forEach(ER.bindCharacterCounter);
-    ER.bindVariablePickers(root);
-    root
-      .querySelectorAll("[data-erankly-linked-defaults]")
-      .forEach(ER.bindLinkedDefaults);
-    root
-      .querySelectorAll("[data-erankly-schema-builder]")
-      .forEach(ER.bindSchemaBuilder);
-    root
-      .querySelectorAll("[data-erankly-schema-identity]")
-      .forEach(ER.bindSchemaIdentityField);
-    root
-      .querySelectorAll("[data-erankly-user-search-wrap]")
-      .forEach(ER.bindUserSearch);
-    root
-      .querySelectorAll("[data-erankly-local-business]")
-      .forEach(ER.bindLocalBusiness);
-    root
-      .querySelectorAll("[data-erankly-file-dropzone]")
-      .forEach(ER.bindFileDropzone);
-    root
-      .querySelectorAll("[data-erankly-segment-control]")
-      .forEach(ER.bindSegmentControl);
+    ["bindTabs", "bindSettingsTabs", "bindSimplifiedMode"].forEach(
+      function (callbackName) {
+        if (typeof ER[callbackName] === "function") {
+          ER[callbackName](root);
+        }
+      },
+    );
+    bindEach(root, "[data-erankly-media-url-field]", "bindMediaUrlField");
+    bindEach(root, ".erankly-counted-field", "bindCharacterCounter");
+    if (typeof ER.bindVariablePickers === "function") {
+      ER.bindVariablePickers(root);
+    }
+    bindEach(root, "[data-erankly-linked-defaults]", "bindLinkedDefaults");
+    bindEach(root, "[data-erankly-schema-builder]", "bindSchemaBuilder");
+    bindEach(root, "[data-erankly-schema-identity]", "bindSchemaIdentityField");
+    bindEach(root, "[data-erankly-user-search-wrap]", "bindUserSearch");
+    bindEach(root, "[data-erankly-local-business]", "bindLocalBusiness");
+    bindEach(root, "[data-erankly-file-dropzone]", "bindFileDropzone");
+    bindEach(root, "[data-erankly-segment-control]", "bindSegmentControl");
 
     var bloatPanel = root.querySelector("#erankly-settings-panel-bloat");
-    if (bloatPanel) {
+    if (bloatPanel && typeof ER.bindBloatToggle === "function") {
       ER.bindBloatToggle(bloatPanel);
     }
 

@@ -50,7 +50,10 @@ function erankly_health_current_request_path(): string {
 		return '';
 	}
 
-	$path = sanitize_text_field( rawurldecode( $path ) );
+	// Preserve token punctuation until the sampled-in storage sanitizer can
+	// classify it. sanitize_text_field() removes percent-encoded octets and could
+	// otherwise shorten a secret below the anonymization threshold.
+	$path = wp_strip_all_tags( rawurldecode( $path ), true );
 	$path = preg_replace( '#/+#', '/', $path );
 	$path = is_string( $path ) ? $path : '';
 
@@ -183,6 +186,13 @@ function erankly_health_record_404_path( string $path, string $referrer = '' ): 
 		return;
 	}
 
+	// A legacy entry may be re-keyed by the stricter sanitizer below. Move its
+	// manual state first, otherwise this visit could overwrite the only old-hash
+	// entry before the retention cron has a chance to discover the relationship.
+	if ( ! erankly_health_ensure_404_storage_current() ) {
+		return;
+	}
+
 	$path = erankly_health_sanitize_404_path( $path );
 
 	if ( '' === $path ) {
@@ -262,13 +272,31 @@ function erankly_health_record_404_path( string $path, string $referrer = '' ): 
  * @return array<string,array<string,int|string>>
  */
 function erankly_health_get_404_entries( string $option_name ): array {
-	$entries = get_option( $option_name, array() );
+	$entries    = get_option( $option_name, array() );
+	$normalized = erankly_health_normalize_404_entries_with_map( $entries );
+
+	return $normalized['entries'];
+}
+
+/**
+ * Purely normalizes stored entries and maps every valid old hash to its new one.
+ *
+ * No option is read or written here. Keeping calculation separate lets the
+ * migration build the complete relationship between candidates, frequent rows
+ * and states before any persistent value changes.
+ *
+ * @param mixed $entries Raw stored option value.
+ * @return array{entries:array<string,array<string,mixed>>,hash_map:array<string,string>}
+ */
+function erankly_health_normalize_404_entries_with_map( $entries ): array {
+	$result = array(
+		'entries'  => array(),
+		'hash_map' => array(),
+	);
 
 	if ( ! is_array( $entries ) ) {
-		return array();
+		return $result;
 	}
-
-	$clean = array();
 
 	foreach ( $entries as $hash => $entry ) {
 		if ( ! is_string( $hash ) || ! preg_match( '/^[a-f0-9]{32}$/', $hash ) || ! is_array( $entry ) ) {
@@ -281,7 +309,11 @@ function erankly_health_get_404_entries( string $option_name ): array {
 			continue;
 		}
 
-		$clean[ $hash ] = array(
+		$clean_hash = md5( $path );
+
+		$result['hash_map'][ $hash ] = $clean_hash;
+
+		$normalized = array(
 			'path'         => $path,
 			'count'        => isset( $entry['count'] ) ? absint( $entry['count'] ) : 0,
 			'window_start' => isset( $entry['window_start'] ) ? absint( $entry['window_start'] ) : 0,
@@ -289,9 +321,241 @@ function erankly_health_get_404_entries( string $option_name ): array {
 			'last_seen'    => isset( $entry['last_seen'] ) ? absint( $entry['last_seen'] ) : 0,
 			'referrers'    => isset( $entry['referrers'] ) ? erankly_health_sanitize_referrers( $entry['referrers'] ) : array(),
 		);
+
+		$result['entries'][ $clean_hash ] = isset( $result['entries'][ $clean_hash ] )
+			? erankly_health_merge_404_entries( $result['entries'][ $clean_hash ], $normalized )
+			: $normalized;
+	}
+
+	return $result;
+}
+
+/**
+ * Merges entries that collapse to the same anonymized path.
+ *
+ * Re-keying prevents historical raw token hashes from keeping parallel rows
+ * after the anonymizer becomes stricter.
+ *
+ * @param array<string,mixed> $current  Existing normalized entry.
+ * @param array<string,mixed> $incoming Additional normalized entry.
+ * @return array<string,mixed>
+ */
+function erankly_health_merge_404_entries( array $current, array $incoming ): array {
+	$first_seen   = array_filter( array( absint( $current['first_seen'] ?? 0 ), absint( $incoming['first_seen'] ?? 0 ) ) );
+	$window_start = array_filter( array( absint( $current['window_start'] ?? 0 ), absint( $incoming['window_start'] ?? 0 ) ) );
+	$referrers    = isset( $current['referrers'] ) && is_array( $current['referrers'] ) ? $current['referrers'] : array();
+
+	foreach ( (array) ( $incoming['referrers'] ?? array() ) as $path => $count ) {
+		$referrers[ $path ] = absint( $referrers[ $path ] ?? 0 ) + absint( $count );
+	}
+
+	return array(
+		'path'         => (string) ( $current['path'] ?? $incoming['path'] ?? '' ),
+		'count'        => absint( $current['count'] ?? 0 ) + absint( $incoming['count'] ?? 0 ),
+		'window_start' => empty( $window_start ) ? 0 : min( $window_start ),
+		'first_seen'   => empty( $first_seen ) ? 0 : min( $first_seen ),
+		'last_seen'    => max( absint( $current['last_seen'] ?? 0 ), absint( $incoming['last_seen'] ?? 0 ) ),
+		'referrers'    => erankly_health_sanitize_referrers( $referrers ),
+	);
+}
+
+/**
+ * Keeps the most recent manual state when anonymized paths collapse together.
+ *
+ * A resolved state wins a timestamp tie because it records a more definitive
+ * administrator decision than ignored.
+ *
+ * @param array<string,mixed> $current  State already assigned to the new hash.
+ * @param array<string,mixed> $incoming Additional state being migrated.
+ * @return array<string,mixed>
+ */
+function erankly_health_merge_404_states( array $current, array $incoming ): array {
+	$current_time  = absint( $current['updated_at'] ?? 0 );
+	$incoming_time = absint( $incoming['updated_at'] ?? 0 );
+
+	if ( $incoming_time > $current_time ) {
+		return $incoming;
+	}
+	if ( $incoming_time < $current_time ) {
+		return $current;
+	}
+
+	return 'resolved' === (string) ( $incoming['status'] ?? '' ) ? $incoming : $current;
+}
+
+/**
+ * Validates raw manual states without reading persistent storage.
+ *
+ * @param mixed $states Raw state option value.
+ * @return array<string,array{status:string,updated_at:int}>
+ */
+function erankly_health_normalize_404_states( $states ): array {
+	if ( ! is_array( $states ) ) {
+		return array();
+	}
+
+	$clean = array();
+
+	foreach ( $states as $hash => $state ) {
+		if ( ! is_string( $hash ) || ! preg_match( '/^[a-f0-9]{32}$/', $hash ) || ! is_array( $state ) ) {
+			continue;
+		}
+
+		$status = isset( $state['status'] ) ? (string) $state['status'] : '';
+
+		if ( ! in_array( $status, array( 'ignored', 'resolved' ), true ) ) {
+			continue;
+		}
+
+		$clean[ $hash ] = array(
+			'status'     => $status,
+			'updated_at' => isset( $state['updated_at'] ) ? absint( $state['updated_at'] ) : 0,
+		);
 	}
 
 	return $clean;
+}
+
+/**
+ * Moves manual states to normalized entry hashes and discards only stale ones.
+ *
+ * @param mixed                $states      Raw stored states.
+ * @param array<string,string> $hash_map    Old entry hash => normalized hash.
+ * @param array<string,bool>   $live_hashes Set of normalized hashes still live.
+ * @return array<string,array{status:string,updated_at:int}>
+ */
+function erankly_health_migrate_404_states_to_normalized_hashes( $states, array $hash_map, array $live_hashes ): array {
+	$migrated = array();
+
+	foreach ( erankly_health_normalize_404_states( $states ) as $hash => $state ) {
+		$new_hash = $hash_map[ $hash ] ?? $hash;
+
+		if ( ! isset( $live_hashes[ $new_hash ] ) ) {
+			continue;
+		}
+
+		$migrated[ $new_hash ] = isset( $migrated[ $new_hash ] )
+			? erankly_health_merge_404_states( $migrated[ $new_hash ], $state )
+			: $state;
+	}
+
+	return $migrated;
+}
+
+/**
+ * Persists an option and verifies exact at-rest equality when WordPress returns
+ * false (which also happens for a legitimate no-op update).
+ *
+ * @param string $option Option name.
+ * @param mixed  $value  Desired value.
+ * @return bool
+ */
+function erankly_health_update_option_exact( string $option, $value ): bool {
+	if ( update_option( $option, $value, false ) ) {
+		return true;
+	}
+
+	$missing = new stdClass();
+	$stored  = get_option( $option, $missing );
+
+	return $missing !== $stored && $value === $stored;
+}
+
+/**
+ * Atomically orders the one-time 404 storage migration across requests.
+ *
+ * The unique option insert acts as a database lock. A five-minute timeout lets
+ * a later request recover from a PHP process that died without releasing it.
+ *
+ * @return bool Whether this request owns the migration or it is already done.
+ */
+function erankly_health_acquire_404_storage_lock(): bool {
+	$now = time();
+
+	if ( add_option( ERANKLY_HEALTH_404_STORAGE_LOCK_OPTION, $now, '', false ) ) {
+		return true;
+	}
+
+	$started = absint( get_option( ERANKLY_HEALTH_404_STORAGE_LOCK_OPTION, 0 ) );
+
+	if ( $started > 0 && $now - $started > 300 ) {
+		delete_option( ERANKLY_HEALTH_404_STORAGE_LOCK_OPTION );
+
+		return add_option( ERANKLY_HEALTH_404_STORAGE_LOCK_OPTION, $now, '', false );
+	}
+
+	return false;
+}
+
+/**
+ * Brings candidates, frequent entries and their manual states to the current
+ * anonymized hash schema without ever exposing a half-migrated relationship.
+ *
+ * States are persisted first. Entry options follow only after exact state
+ * persistence is confirmed, and the version marker is always written last.
+ * Re-running any interrupted step is safe because normalization and collision
+ * resolution are deterministic.
+ *
+ * @return bool Whether storage is current and callers may safely write entries.
+ */
+function erankly_health_ensure_404_storage_current(): bool {
+	if ( absint( get_option( ERANKLY_HEALTH_404_STORAGE_VERSION_OPTION, 0 ) ) >= ERANKLY_HEALTH_404_STORAGE_VERSION ) {
+		return true;
+	}
+
+	if ( ! erankly_health_acquire_404_storage_lock() ) {
+		return absint( get_option( ERANKLY_HEALTH_404_STORAGE_VERSION_OPTION, 0 ) ) >= ERANKLY_HEALTH_404_STORAGE_VERSION;
+	}
+
+	try {
+		// Another request may have completed while this one was acquiring the lock.
+		if ( absint( get_option( ERANKLY_HEALTH_404_STORAGE_VERSION_OPTION, 0 ) ) >= ERANKLY_HEALTH_404_STORAGE_VERSION ) {
+			return true;
+		}
+
+		$raw_candidates = get_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION, array() );
+		$raw_frequent   = get_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, array() );
+		$raw_states     = get_option( ERANKLY_HEALTH_404_STATES_OPTION, array() );
+		$candidate_data = erankly_health_normalize_404_entries_with_map( $raw_candidates );
+		$frequent_data  = erankly_health_normalize_404_entries_with_map( $raw_frequent );
+		$candidates     = $candidate_data['entries'];
+		$frequent       = $frequent_data['entries'];
+
+		// A normalized path must not occupy both collections. If either historical
+		// row was already frequent, keep the merged aggregate in that collection.
+		foreach ( array_intersect_key( $candidates, $frequent ) as $hash => $entry ) {
+			$frequent[ $hash ] = erankly_health_merge_404_entries( $frequent[ $hash ], $entry );
+			unset( $candidates[ $hash ] );
+		}
+
+		// Candidate collisions can cross the frequency threshold during migration.
+		foreach ( $candidates as $hash => $entry ) {
+			if ( absint( $entry['count'] ?? 0 ) >= ERANKLY_HEALTH_404_THRESHOLD ) {
+				$frequent[ $hash ] = isset( $frequent[ $hash ] )
+					? erankly_health_merge_404_entries( $frequent[ $hash ], $entry )
+					: $entry;
+				unset( $candidates[ $hash ] );
+			}
+		}
+
+		$hash_map    = array_merge( $candidate_data['hash_map'], $frequent_data['hash_map'] );
+		$live_hashes = array_fill_keys( array_keys( $candidates + $frequent ), true );
+		$states      = erankly_health_migrate_404_states_to_normalized_hashes( $raw_states, $hash_map, $live_hashes );
+
+		if ( ! erankly_health_update_option_exact( ERANKLY_HEALTH_404_STATES_OPTION, $states ) ) {
+			return false;
+		}
+		if ( ! erankly_health_update_option_exact( ERANKLY_HEALTH_404_CANDIDATES_OPTION, $candidates ) ) {
+			return false;
+		}
+		if ( ! erankly_health_update_option_exact( ERANKLY_HEALTH_404_FREQUENT_OPTION, $frequent ) ) {
+			return false;
+		}
+
+		return erankly_health_update_option_exact( ERANKLY_HEALTH_404_STORAGE_VERSION_OPTION, ERANKLY_HEALTH_404_STORAGE_VERSION );
+	} finally {
+		delete_option( ERANKLY_HEALTH_404_STORAGE_LOCK_OPTION );
+	}
 }
 
 /**
@@ -339,7 +603,10 @@ function erankly_health_sanitize_referrers( $referrers ): array {
  * @return string Anonymized, sanitized path.
  */
 function erankly_health_sanitize_404_path( string $path ): string {
-	$path = sanitize_text_field( wp_unslash( $path ) );
+	// Classify token punctuation before sanitize_text_field(), which deliberately
+	// strips percent-encoded octets and can turn an opaque value into a short,
+	// apparently harmless fragment. The final value is still text-sanitized.
+	$path = wp_strip_all_tags( wp_unslash( $path ), true );
 	$path = preg_replace( '#/+#', '/', $path );
 	$path = is_string( $path ) ? $path : '';
 
@@ -350,7 +617,7 @@ function erankly_health_sanitize_404_path( string $path ): string {
 	$path = '/' . ltrim( $path, '/' );
 	$path = '/' === $path ? $path : untrailingslashit( $path );
 
-	return erankly_health_anonymize_path_segments( $path );
+	return sanitize_text_field( erankly_health_anonymize_path_segments( $path ) );
 }
 
 /**
@@ -360,7 +627,7 @@ function erankly_health_sanitize_404_path( string $path ): string {
  * - Email addresses (URL-encoded or literal) → [email]
  * - UUIDs / GUIDs (8-4-4-4-12 hex) → [id]
  * - Long numeric strings ≥ 8 digits (phone numbers, user IDs) → [n]
- * - Opaque tokens ≥ 40 chars (JWTs, session tokens, base64) → [token]
+ * - Opaque tokens, including token-like mixed-class values as short as 8 chars → [token]
  *
  * The replacement is irreversible: a placeholder discards the original segment,
  * so a replaced value cannot be recovered from the stored path. It is a
@@ -373,38 +640,35 @@ function erankly_health_sanitize_404_path( string $path ): string {
 function erankly_health_anonymize_path_segments( string $path ): string {
 	$segments = explode( '/', $path );
 
-	foreach ( $segments as &$segment ) {
+	foreach ( $segments as $index => &$segment ) {
 		if ( '' === $segment ) {
 			continue;
 		}
+		$decoded          = rawurldecode( $segment );
+		$previous_segment = $index > 0 ? strtolower( rawurldecode( (string) $segments[ $index - 1 ] ) ) : '';
+		$sensitive_route  = in_array( $previous_segment, array( 'reset', 'verify', 'activate', 'invite', 'magic-link', 'token' ), true );
 
 		// Email addresses (URL-encoded or literal).
-		if ( preg_match( '/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/', rawurldecode( $segment ) ) ) {
+		if ( preg_match( '/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/', $decoded ) ) {
 			$segment = '[email]';
 			continue;
 		}
 
 		// UUID / GUID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
-		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $segment ) ) {
+		if ( preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $decoded ) ) {
 			$segment = '[id]';
 			continue;
 		}
 
 		// Long numeric strings (≥ 8 digits) — likely user/order IDs or phone numbers.
-		if ( preg_match( '/^\d{8,}$/', $segment ) ) {
+		if ( preg_match( '/^\d{8,}$/', $decoded ) ) {
 			$segment = '[n]';
 			continue;
 		}
 
-		// Long opaque tokens (≥ 40 chars) and Short tokens (≥ 8 chars).
-		if ( strlen( $segment ) >= 8 && preg_match( '/^[a-zA-Z0-9_\-\.~%]+$/', $segment ) ) {
-			// To avoid replacing regular words like 'about' or 'contact', we only target segments
-			// that lack vowels (likely hex/hashes) OR are purely numeric OR are very long.
-			$decoded_seg = rawurldecode( $segment );
-			if ( strlen( $segment ) >= 40 || preg_match( '/^[a-f0-9]+$/i', $segment ) || ! preg_match( '/[aeiouy]/i', $decoded_seg ) ) {
-				$segment = '[token]';
-				continue;
-			}
+		if ( erankly_health_path_segment_is_opaque_token( $decoded, $sensitive_route ) ) {
+			$segment = '[token]';
+			continue;
 		}
 
 		// Usernames. Each uncached check costs up to two user queries on an
@@ -412,7 +676,6 @@ function erankly_health_anonymize_path_segments( string $path ): string {
 		// paths must not be able to amplify database load.
 		static $checked_users = array();
 		static $user_lookups  = 0;
-		$decoded              = rawurldecode( $segment );
 		if ( ! isset( $checked_users[ $decoded ] ) ) {
 			if ( $user_lookups >= 5 ) {
 				continue;
@@ -439,6 +702,91 @@ function erankly_health_anonymize_path_segments( string $path ): string {
 }
 
 /**
+ * Determines whether a decoded path segment resembles a secret or opaque ID.
+ *
+ * Hyphenated lowercase slugs remain readable for 404 diagnostics. Compact
+ * values are redacted when they are very long, hash-like, vowel-free, or mix
+ * token character classes such as case, digits, underscores, dots, or tildes.
+ *
+ * @param string $segment           Decoded path segment.
+ * @param bool   $sensitive_context Whether it follows a reset/verification route.
+ * @return bool
+ */
+function erankly_health_path_segment_is_opaque_token( string $segment, bool $sensitive_context = false ): bool {
+	$length = strlen( $segment );
+
+	if ( $length < 8 || ! preg_match( '/^[a-zA-Z0-9_\-\.~%+=]+$/', $segment ) ) {
+		return false;
+	}
+
+	if ( $length >= 40 || preg_match( '/^[a-f0-9]+$/i', $segment ) ) {
+		return true;
+	}
+
+	$has_hyphen = false !== strpos( $segment, '-' );
+
+	// Preserve clear lowercase word slugs, optionally hyphenated or ending in a
+	// four-digit year. A single 24+ character alphabetic run retains the older
+	// privacy-first treatment because it is indistinguishable from an opaque ID.
+	if (
+		preg_match( '/^[a-z]+(?:-[a-z]+)*(?:-(?:19|20)\d{2})?$/', $segment )
+		&& ( $has_hyphen || $length < 24 )
+	) {
+		return false;
+	}
+
+	if ( ! preg_match( '/[aeiouy]/i', $segment ) ) {
+		return true;
+	}
+
+	$has_upper           = (bool) preg_match( '/[A-Z]/', $segment );
+	$has_lower           = (bool) preg_match( '/[a-z]/', $segment );
+	$has_digit           = (bool) preg_match( '/\d/', $segment );
+	$has_token_punct     = (bool) preg_match( '/[_\.~%+=]/', $segment );
+	$class_count         = (int) $has_upper + (int) $has_lower + (int) $has_digit + (int) $has_token_punct;
+	$digit_count         = preg_match_all( '/\d/', $segment );
+	$digit_count         = false === $digit_count ? 0 : $digit_count;
+	$digit_density       = $digit_count / $length;
+	$case_transitions    = preg_match_all( '/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[a-z])/', $segment );
+	$case_transitions    = false === $case_transitions ? 0 : $case_transitions;
+	$hyphen_digit_groups = 0;
+
+	if ( $has_hyphen ) {
+		foreach ( explode( '-', $segment ) as $group ) {
+			if ( preg_match( '/\d/', $group ) ) {
+				++$hyphen_digit_groups;
+			}
+		}
+	}
+
+	if (
+		$sensitive_context
+		&& ( $has_digit || $has_token_punct || $has_upper || $case_transitions >= 2 )
+	) {
+		return true;
+	}
+
+	if ( $length <= 15 ) {
+		return ( $has_upper && $has_lower && $has_digit )
+			|| $case_transitions >= 3
+			|| ( $has_token_punct && $class_count >= 2 )
+			|| $hyphen_digit_groups >= 2
+			|| ( $has_hyphen && $has_digit && $digit_density >= 0.3 )
+			|| ( ! $has_hyphen && $has_digit && ( $has_upper || $has_lower ) && $digit_count >= 3 && $digit_density >= 0.25 );
+	}
+
+	if ( $length <= 39 ) {
+		return $class_count >= 2
+			|| $case_transitions >= 3
+			|| $hyphen_digit_groups >= 2
+			|| ( $has_hyphen && $has_digit && $digit_density >= 0.2 )
+			|| ( $length >= 24 && ! $has_hyphen );
+	}
+
+	return $length >= 24 && ! $has_hyphen;
+}
+
+/**
  * Keeps the newest aggregate entries within a fixed cap.
  *
  * @param array<string,array<string,int|string>> $entries Entries.
@@ -457,20 +805,6 @@ function erankly_health_prune_404_entries( array $entries, int $max ): array {
 }
 
 /**
- * Schedules the daily 404 retention cron event if not already scheduled.
- *
- * Called from erankly_health_boot() on every request so the schedule is
- * restored automatically after the site clears its cron table.
- *
- * @return void
- */
-function erankly_health_maybe_schedule_retention_cron(): void {
-	if ( ! wp_next_scheduled( ERANKLY_HEALTH_404_PRUNE_HOOK ) ) {
-		wp_schedule_event( time(), 'daily', ERANKLY_HEALTH_404_PRUNE_HOOK );
-	}
-}
-
-/**
  * Removes 404 aggregate entries that are older than the retention window.
  *
  * Fired daily by ERANKLY_HEALTH_404_PRUNE_HOOK. Removes any entry whose
@@ -480,6 +814,10 @@ function erankly_health_maybe_schedule_retention_cron(): void {
  * @return void
  */
 function erankly_health_prune_stale_404_data(): void {
+	if ( ! erankly_health_ensure_404_storage_current() ) {
+		return;
+	}
+
 	$cutoff  = time() - ( ERANKLY_HEALTH_404_RETENTION_DAYS * DAY_IN_SECONDS );
 	$options = array(
 		ERANKLY_HEALTH_404_CANDIDATES_OPTION,
@@ -487,6 +825,7 @@ function erankly_health_prune_stale_404_data(): void {
 	);
 
 	foreach ( $options as $option ) {
+		$stored  = get_option( $option, array() );
 		$entries = erankly_health_get_404_entries( $option );
 		$pruned  = array();
 
@@ -496,22 +835,30 @@ function erankly_health_prune_stale_404_data(): void {
 			}
 		}
 
-		if ( count( $pruned ) !== count( $entries ) ) {
+		if ( ! is_array( $stored ) || $pruned !== $stored ) {
 			update_option( $option, $pruned, false );
 		}
 	}
 
-	// Drop manual states whose 404 entry no longer exists.
+	// Drop manual states only after the hash migration is known to be complete.
 	$states = erankly_health_get_404_states();
 
 	if ( ! empty( $states ) ) {
 		$live = erankly_health_get_404_entries( ERANKLY_HEALTH_404_FREQUENT_OPTION )
 			+ erankly_health_get_404_entries( ERANKLY_HEALTH_404_CANDIDATES_OPTION );
+		$kept = array();
+
 		$kept = array_intersect_key( $states, $live );
 
-		if ( count( $kept ) !== count( $states ) ) {
+		if ( $kept !== $states ) {
 			update_option( ERANKLY_HEALTH_404_STATES_OPTION, $kept, false );
 		}
+	}
+
+	// AI suggestions are durable; remove them when their target is gone or their
+	// historical source path now matches a sensitive-data pattern.
+	if ( function_exists( 'erankly_health_prune_stored_ai_suggestions' ) ) {
+		erankly_health_prune_stored_ai_suggestions();
 	}
 }
 
@@ -525,6 +872,10 @@ function erankly_health_prune_stale_404_data(): void {
  * @return array<string,array<string,int|string>>
  */
 function erankly_health_get_frequent_404s(): array {
+	if ( ! erankly_health_ensure_404_storage_current() ) {
+		return array();
+	}
+
 	$now      = time();
 	$entries  = erankly_health_get_404_entries( ERANKLY_HEALTH_404_FREQUENT_OPTION );
 	$frequent = array();
@@ -571,32 +922,7 @@ function erankly_health_clear_404s(): void {
  * @return array<string,array<string,int|string>>
  */
 function erankly_health_get_404_states(): array {
-	$states = get_option( ERANKLY_HEALTH_404_STATES_OPTION, array() );
-
-	if ( ! is_array( $states ) ) {
-		return array();
-	}
-
-	$clean = array();
-
-	foreach ( $states as $hash => $state ) {
-		if ( ! is_string( $hash ) || ! preg_match( '/^[a-f0-9]{32}$/', $hash ) || ! is_array( $state ) ) {
-			continue;
-		}
-
-		$status = isset( $state['status'] ) ? (string) $state['status'] : '';
-
-		if ( ! in_array( $status, array( 'ignored', 'resolved' ), true ) ) {
-			continue;
-		}
-
-		$clean[ $hash ] = array(
-			'status'     => $status,
-			'updated_at' => isset( $state['updated_at'] ) ? absint( $state['updated_at'] ) : 0,
-		);
-	}
-
-	return $clean;
+	return erankly_health_normalize_404_states( get_option( ERANKLY_HEALTH_404_STATES_OPTION, array() ) );
 }
 
 /**
@@ -608,6 +934,9 @@ function erankly_health_get_404_states(): array {
  */
 function erankly_health_set_404_state( string $hash, string $status ): void {
 	if ( ! preg_match( '/^[a-f0-9]{32}$/', $hash ) ) {
+		return;
+	}
+	if ( ! erankly_health_ensure_404_storage_current() ) {
 		return;
 	}
 

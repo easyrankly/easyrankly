@@ -61,6 +61,34 @@ function erankly_ai_module_enabled(): bool {
 }
 
 /**
+ * Turns off AI features when their last provider is no longer available.
+ *
+ * Provider discovery is complete only after WordPress has run `init`, so this
+ * is called from `admin_init` rather than while feature modules are bootstrapped.
+ * Persisting the disabled state also means reconnecting a provider does not
+ * silently opt the site back into AI features.
+ *
+ * @return void
+ */
+function erankly_maybe_disable_ai_without_provider(): void {
+	// The toggle is network-wide on Multisite. A provider can still be
+	// configured on another site, so only the Network Admin context may
+	// reconcile the shared value.
+	if ( is_multisite() && ! is_network_admin() ) {
+		return;
+	}
+
+	if ( ! erankly_ai_module_enabled() || erankly_ai_provider_available() ) {
+		return;
+	}
+
+	$settings               = erankly_get_settings();
+	$settings['ai_enabled'] = 0;
+
+	erankly_update_plugin_option( ERANKLY_OPTION, $settings );
+}
+
+/**
  * Whether the Link Building module is enabled.
  *
  * @return bool

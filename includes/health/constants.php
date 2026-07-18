@@ -20,6 +20,12 @@ define( 'ERANKLY_HEALTH_404_CANDIDATES_OPTION', 'erankly_health_404_candidates' 
 define( 'ERANKLY_HEALTH_404_FREQUENT_OPTION', 'erankly_health_404_frequent' );
 /** Stores manual 404 resolution states ( hash => ignored|resolved ). */
 define( 'ERANKLY_HEALTH_404_STATES_OPTION', 'erankly_health_404_states' );
+/** Version marker written only after all 404 storage migrations succeed. */
+define( 'ERANKLY_HEALTH_404_STORAGE_VERSION_OPTION', 'erankly_health_404_storage_version' );
+/** Short-lived database lock serializing 404 storage migrations. */
+define( 'ERANKLY_HEALTH_404_STORAGE_LOCK_OPTION', 'erankly_health_404_storage_lock' );
+/** Current schema/anonymization version for persistent 404 data. */
+define( 'ERANKLY_HEALTH_404_STORAGE_VERSION', 1 );
 
 define( 'ERANKLY_HEALTH_THIN_MIN_CHARS', 300 );
 define( 'ERANKLY_HEALTH_THIN_MAX_RESULTS', 100 );
@@ -40,8 +46,10 @@ define( 'ERANKLY_HEALTH_SUGGESTION_PREFIX', 'erankly_health_sugg_' );
 define( 'ERANKLY_HEALTH_SUGGESTION_MIN_RATIO', 0.8 );
 /** Maximum published rows scanned when looking for a fuzzy suggestion. */
 define( 'ERANKLY_HEALTH_SUGGESTION_CANDIDATE_LIMIT', 2000 );
-/** Transient key prefix for cached AI (semantic) 404 → redirect suggestions. */
+/** Transient key prefix for legacy suggestions and short-lived AI no-match results. */
 define( 'ERANKLY_HEALTH_AI_SUGGESTION_PREFIX', 'erankly_health_aisugg_' );
+/** Persistent AI suggestions, keyed by the source-path hash. */
+define( 'ERANKLY_HEALTH_AI_SUGGESTIONS_OPTION', 'erankly_health_ai_suggestions' );
 
 /*
  * Broken-Link Candidates crawler.

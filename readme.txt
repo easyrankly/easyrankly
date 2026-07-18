@@ -4,7 +4,7 @@ Tags: seo, schema, sitemap, redirects, ai
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.0
+Stable tag: 2.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ Here's what it does:
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
 * **Optional AI meta generation.** Generate or improve SEO titles and descriptions right from the editor when WordPress has a connected AI provider. It's off by default and uses WordPress' native AI/Connectors APIs (available in WordPress 7.0 and later); on earlier versions it stays inactive and EasyRankly uses its built-in, non-AI logic instead.
 * **Optional internal linking assistant.** Build a site-wide link graph, find orphan pages, get rule-based suggestions, and optionally refine with AI when AI features are enabled.
-* **Private health monitoring.** Optional 404 tracking that stays on your server — request paths are anonymized and cleaned up automatically, and no visitor data is ever collected.
+* **Private health monitoring.** Optional 404 tracking that stays on your server. EasyRankly stores no IP address or user agent; path identifiers are redacted on a best-effort basis and aggregate records are cleaned up automatically.
 * **Dynamic variables** for filling in titles, social tags, and schema fields automatically.
 
 All of it lives in a redesigned, streamlined admin interface with a short setup wizard to get you configured in minutes.
@@ -84,11 +84,73 @@ AI meta generation relies on WordPress' native AI and Connectors APIs, which are
 
 Call `erankly_breadcrumbs()` in your theme template. You can customise the markup with the `erankly_breadcrumb_items` and `erankly_breadcrumbs_html` filters. Legacy `easyrankly_breadcrumbs()` and `easyrankly_*` hook aliases remain available for backward compatibility.
 
-= Can I import my settings from Yoast SEO or Rank Math? =
+= Can I migrate from Yoast SEO, Rank Math, All in One SEO or SEOPress? =
 
-Yes. Open Settings > EasyRankly > Import/Export. You can export and re-import your EasyRankly settings, redirects, special page defaults and the SEO metadata for posts and terms as a single JSON file, and there are dedicated Yoast SEO and Rank Math importers for per-content meta. On Multisite the Import/Export tab lives in Network Admin, and the file covers the network-wide global settings plus the content (redirects, post and term metadata, special page defaults) of the primary site it runs on; it is not a whole-network export covering every site. (Translation links between network sites are not part of the file, as they reference site-specific IDs.)
+Yes. Open Settings > EasyRankly > Import/Export. Dedicated adapters read Free and paid-edition data left by Yoast SEO/Premium, Rank Math/PRO, AIOSEO/Pro and SEOPress/PRO, including per-content SEO, separate social fields, robots directives, schema configuration, keyphrases and advanced redirects where the source supports them. Preview and import run in resumable background batches with live counters, restart-safe checkpoints, manual resume/cancel controls and a downloadable JSON report. Preview never writes; import rechecks every target before writing and never overwrites existing EasyRankly values.
+
+Before a run, EasyRankly identifies the source edition, version, modules and exact database signature. Unknown future versions or malformed source tables are blocked before any write. A value-sensitive source fingerprint is verified again after discovery, so a source modified during migration is paused instead of producing a mixed snapshot. Official Yoast, Rank Math, AIOSEO and SEOPress CSV/JSON exports can be uploaded directly from the migration screen. EasyRankly detects their certified signature automatically, stages them outside the public WordPress tree with private permissions, and deletes its temporary copy after preview, import or cancellation.
+
+The final report contains an authoritative fail-closed go-live gate. It separates `blocked`, `ready_for_cutover`, `go_live`, `rollback_required`, `rolled_back` and `rollback_failed`, displays every mandatory proof and fingerprints the exact decision with SHA-256. No live-verification action is available until preflight passes. Download the complete JSON report or its value-free CSV exception ledger.
+
+For database migrations, EasyRankly captures a representative semantic HTML, robots.txt, sitemap and redirect baseline while the old plugin still owns frontend output. After controlled deactivation and cache purging, the live verifier repeats same-origin requests without following redirect chains. Real imports also retain a seven-day conditional rollback journal: a rollback restores only values that still equal what the migration wrote, so later manual edits are never lost.
+
+You can also export and re-import EasyRankly settings, redirects, special-page defaults and SEO metadata for posts, terms and authors as a single JSON file. Complete JSON imports have a request-specific application limit (10 MB by default, reduced automatically when PHP memory is constrained) and a structural decode budget for nesting and value count; unsafe files are rejected before they can expand into PHP arrays. On Multisite the Import/Export tab lives in Network Admin, and the file covers the network-wide global settings plus the content of the primary site it runs on; it is not a whole-network content export. Translation links between network sites are not included because they reference site-specific IDs.
 
 == Changelog ==
+
+= 2.8.0 =
+* Added an authoritative fail-closed gate that is embedded in every migration report and distinguishes preflight authorization, full go-live, rollback-required and terminal rollback states.
+* Made invalid, conflicting, unsupported, preserved or semantically mismatched values, unresolved diagnostics, unsafe redirects, incomplete rollback coverage and missing frontend baselines explicit cutover blockers.
+* Added server-side enforcement for live verification, a prominent proof checklist, a deterministic decision SHA-256 and an honest contract-only boundary for official exports that cannot provide an old-plugin HTML baseline.
+* Added a separate release-level gate tied to the exact Phase 7 workspace, commit, matrix age and clean-worktree state.
+* Made authorized real-package evidence for Yoast Premium, Rank Math PRO, AIOSEO Pro and SEOPress PRO mandatory for a release GO-LIVE verdict; bundled contract fixtures cannot satisfy this proof.
+* Added machine-readable `migration-go-live.json`, a strict `composer migration:go-live` command and regression coverage for every runtime and release blocker.
+
+= 2.7.0 =
+* Added a single fail-closed migration certification command with immutable fixture hashes and a machine-readable evidence record tied to the exact workspace bytes under test.
+* Added a PHP 8.0/8.4 and WordPress 6.2/7.0.1 matrix on MariaDB 10.11, covering both single-site and Multisite installations.
+* Added real WordPress database imports for Yoast Premium, Rank Math PRO, AIOSEO Pro and SEOPress PRO plus real application of every certified official export signature.
+* Added a bounded 500-post performance fixture with explicit time and incremental-memory budgets, alongside the existing interruption, retry, cancellation, security, live verification and rollback regressions.
+* Added Multisite isolation certification for queue tables, reports, target metadata and conditional rollback journals.
+* Separated bundled storage-contract fixtures from externally supplied licensed PRO binary evidence so certification reports cannot overstate their provenance.
+
+= 2.6.0 =
+* Added an exact post-import evidence ledger whose invariant requires every discovered object, metadata field and redirect occurrence to have one terminal outcome.
+* Added normalized before/after hashes for title, canonical, robots, social and JSON-LD data, unresolved-variable diagnostics and direct editor links for exceptions.
+* Added redirect graph audits for loops, chains, collisions and dangerous regex, plus status/Location storage and live probes that never follow redirect chains.
+* Added representative old-plugin HTML, robots.txt, sitemap and redirect baseline capture with a controlled post-cutover live comparison; raw responses are never retained.
+* Added nonce-protected complete JSON and CSV exception exports with CSV formula-injection hardening.
+* Added a seven-day conditional rollback journal for metadata and redirects. Rollback restores only unchanged migration-owned values and always preserves later manual edits.
+* Added real WordPress/MariaDB certification for accounting, semantic/live proof, redirect diagnostics, admin controls and mixed safe rollback.
+
+= 2.5.0 =
+* Added secure admin uploads for official Yoast, Rank Math, AIOSEO and SEOPress CSV/JSON exports, with capability and nonce gates plus strict certified-signature auto-detection.
+* Stages source exports only in a per-site private directory outside WordPress and wp-content, uses random filenames and restrictive filesystem permissions, and never exposes server paths in notices or reports.
+* Deletes managed exports after preview, import or cancellation, preserves them across resumable pauses/deactivation, prunes abandoned uploads and integrates complete cleanup with reset/uninstall.
+* Added deterministic post-run `ready`, `safe`, `review` and `blocked` decisions, machine-readable verification checks and a controlled source-plugin switch checklist.
+* Added direct preview-to-import approval for database migrations and explicit re-upload approval for official exports whose preview copy has already been securely erased.
+* Added standalone and real WordPress/MariaDB certification for source auto-detection, private permissions, mismatch rejection, lifecycle cleanup, admin authorization and switch decisions.
+
+= 2.4.0 =
+* Added certified source profiles for Yoast SEO Free/Premium, Rank Math Free/PRO, AIOSEO Lite/Pro and SEOPress Free/PRO, with explicit version gates, module/add-on reporting and per-surface inventories.
+* Added strict database-signature validation so unknown versions, missing required columns and unrecognized storage layouts fail closed before migration writes.
+* Added value-sensitive source fingerprints that pause a job if source SEO data changes between discovery and apply.
+* Added resumable readers for official Yoast and Rank Math CSV exports, AIOSEO Complete Data JSON/CSV exports and SEOPress metadata CSV exports.
+* Added official-format fixtures plus real WordPress/MariaDB certification for profiles, drift detection, malformed tables and full export-backed worker execution.
+
+= 2.3.0 =
+* Added resumable, keyset-paginated migrations with WP-Cron processing, atomic job admission and worker locks, saved checkpoints and manual resume/cancel controls.
+* Added a crash-safe temporary queue and durable finalization checkpoint so replayed batches, interrupted writes and cleanup retries remain idempotent and report counters stay accurate.
+* Made cancellation durable while another worker owns the lock and exposed its pending state without competing admin controls.
+* Added live migration progress, paused-job recovery and complete reset, deactivation and uninstall lifecycle handling.
+* Added representative Free/PRO snapshot coverage for all four source plugins and a real WordPress/MySQL end-to-end worker test.
+* Fixed author SEO metadata registration so migrated author overrides use WordPress' supported user-meta API.
+
+= 2.2.0 =
+* Added a lossless migration target model for explicit canonical, social, robots, editorial, author, and per-content schema data.
+* Added advanced redirect semantics, provenance, scheduling, 307/308 support, and bulk-safe cache invalidation.
+* Added previewable, conflict-safe Free/PRO migrations from Yoast SEO, Rank Math, All in One SEO, and SEOPress, including redirects and downloadable post-migration reports.
+* Made Simplified mode presentation-only so imported overrides remain effective on the frontend.
 
 = 2.1.0 =
 **New**
@@ -124,6 +186,24 @@ Major release: the admin interface has been rebuilt from the ground up, with AI-
 * First public release.
 
 == Upgrade Notice ==
+
+= 2.8.0 =
+Migration cutovers now use a fail-closed proof gate, while release GO-LIVE additionally requires a fresh clean Phase 7 record and authorized evidence for every supported PRO plugin.
+
+= 2.7.0 =
+Third-party migrations now ship with a reproducible Free/PRO contract, runtime, scale and Multisite certification matrix plus a machine-readable evidence record.
+
+= 2.6.0 =
+Migration reports now include cutover evidence, live semantic verification, a CSV exception ledger and a time-limited conditional rollback that preserves later manual edits.
+
+= 2.5.0 =
+Official source-plugin exports can now be uploaded privately from the migration screen, and terminal reports explicitly determine whether importing or switching SEO plugins is safe.
+
+= 2.4.0 =
+Migration adapters now validate source editions, versions and storage signatures, verify immutable source fingerprints, and support strict official-export fallbacks.
+
+= 2.3.0 =
+Third-party SEO migrations now continue in restart-safe background batches and expose live progress and recovery controls.
 
 = 2.1.0 =
 Adds Health → Broken-Link Candidates: an on-demand crawler that finds internal and external links returning 4xx/5xx across your indexable pages.

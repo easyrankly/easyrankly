@@ -1,0 +1,722 @@
+<?php
+/**
+ * All in One SEO and AIOSEO Pro migration adapter.
+ *
+ * @package EasyRankly
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** AIOSEO v3/v4 Free/Pro adapter. */
+final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
+	/**
+	 * Returns the adapter slug.
+	 *
+	 * @return string
+	 */
+	public function slug(): string {
+		return 'aioseo';
+	}
+
+	/**
+	 * Returns the source label.
+	 *
+	 * @return string
+	 */
+	public function label(): string {
+		return 'All in One SEO';
+	}
+
+	/**
+	 * Returns the detected source version.
+	 *
+	 * @return string
+	 */
+	public function version(): string {
+		if ( function_exists( 'aioseo' ) ) {
+			$instance = aioseo();
+			if ( is_object( $instance ) && isset( $instance->version ) && is_scalar( $instance->version ) ) {
+				return sanitize_text_field( (string) $instance->version );
+			}
+		}
+
+		return $this->detect_version(
+			'AIOSEO_VERSION',
+			array( 'aioseo_version', 'aioseo_db_version' ),
+			array( 'all-in-one-seo-pack/all_in_one_seo_pack.php', 'all-in-one-seo-pack-pro/all_in_one_seo_pack.php' )
+		);
+	}
+
+	/** Returns Lite or Pro from installed code and Pro-only storage. */
+	public function edition(): string {
+		$pro = ! empty( $this->installed_plugins( array( 'all-in-one-seo-pack-pro/all_in_one_seo_pack.php' ) ) )
+			|| $this->table_has_rows( 'aioseo_terms' )
+			|| $this->table_has_rows( 'aioseo_redirects' );
+
+		return $pro ? 'pro' : 'lite';
+	}
+
+	/** Returns separately certified AIOSEO feature profiles. */
+	public function modules(): array {
+		$modules = array( 'search-appearance', 'social', 'schema', 'robots' );
+		if ( $this->table_has_rows( 'aioseo_terms' ) ) {
+			$modules[] = 'term-seo';
+		}
+		if ( $this->table_has_rows( 'aioseo_redirects' ) ) {
+			$modules[] = 'redirects';
+		}
+		if ( $this->table_column_has_values( 'aioseo_posts', 'local_seo' ) ) {
+			$modules[] = 'local-seo';
+		}
+		if ( $this->table_column_has_values( 'aioseo_posts', 'videos' ) ) {
+			$modules[] = 'video-sitemap';
+		}
+		if ( 'pro' === $this->edition() ) {
+			$modules[] = 'pro';
+		}
+
+		return array_values( array_unique( $modules ) );
+	}
+
+	/** Returns certification state for detected AIOSEO modules. */
+	public function module_support(): array {
+		$mapped  = array( 'search-appearance', 'social', 'schema', 'robots', 'term-seo', 'redirects', 'pro' );
+		$support = array();
+		foreach ( $this->modules() as $module ) {
+			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'review_required';
+		}
+		return $support;
+	}
+
+	/** Covers AIOSEO 3 postmeta and the versioned v4 table family. */
+	protected function supported_versions(): array {
+		return array(
+			'min' => '3.0.0',
+			'max' => '4.999.999',
+		);
+	}
+
+	/**
+	 * Returns the Pro redirection profile proven by AIOSEO export signatures.
+	 *
+	 * @param string $format Certified export format.
+	 * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
+	 */
+	protected function export_source_profile( string $format ): array {
+		if ( in_array( $format, array( 'aioseo-redirects-csv', 'aioseo-redirects-json' ), true ) ) {
+			return array(
+				'edition'        => 'pro',
+				'modules'        => array( 'pro', 'redirects' ),
+				'module_support' => array(
+					'pro'       => 'supported',
+					'redirects' => 'supported',
+				),
+			);
+		}
+
+		return parent::export_source_profile( $format );
+	}
+
+	/** Declares every AIOSEO surface and required table signature. */
+	protected function storage_definitions(): array {
+		return array(
+			'v4_posts'      => array(
+				'type'                => 'table',
+				'suffix'              => 'aioseo_posts',
+				'columns'             => array( 'id', 'post_id', 'title', 'description', 'canonical_url' ),
+				'fingerprint_columns' => array( 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'keyphrases', 'primary_term' ),
+			),
+			'pro_terms'     => array(
+				'type'                => 'table',
+				'suffix'              => 'aioseo_terms',
+				'columns'             => array( 'id', 'term_id', 'title', 'description' ),
+				'fingerprint_columns' => array( 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'keyphrases', 'primary_term' ),
+			),
+			'pro_redirects' => array(
+				'type'                => 'table',
+				'suffix'              => 'aioseo_redirects',
+				'columns'             => array( 'id', 'source_url', 'target_url', 'type', 'source_url_match', 'query_param', 'enabled' ),
+				'fingerprint_columns' => array( 'source_url', 'target_url', 'type', 'source_url_match', 'query_param', 'enabled', 'ignore_case' ),
+			),
+			'v3_postmeta'   => array(
+				'type'        => 'meta',
+				'object_type' => 'post',
+				'prefixes'    => array( '_aioseop_' ),
+			),
+		);
+	}
+
+	/**
+	 * Returns the supported source capabilities.
+	 *
+	 * @return array<int,string>
+	 */
+	public function capabilities(): array {
+		return array( 'v3 and v4 posts', 'PRO terms', 'social', 'advanced robots', 'schema configuration', 'primary terms', 'keyphrases', 'pillar content', 'PRO redirects' );
+	}
+
+	/**
+	 * Determines whether AIOSEO data is available.
+	 *
+	 * @return bool
+	 */
+	public function is_available(): bool {
+		if ( $this->uses_export_file() ) {
+			return 'supported' === (string) $this->profile()['storage_status'];
+		}
+
+		return $this->table_has_rows( 'aioseo_posts' )
+			|| $this->table_has_rows( 'aioseo_terms' )
+			|| $this->table_has_rows( 'aioseo_redirects' )
+			|| $this->has_meta( 'post', array(), array( '_aioseop_' ) );
+	}
+
+	/**
+	 * Yields normalized content records.
+	 *
+	 * @return iterable<int,array<string,mixed>>
+	 */
+	public function content_records(): iterable {
+		foreach ( array(
+			'aioseo_posts' => array( 'post', 'post_id' ),
+			'aioseo_terms' => array( 'term', 'term_id' ),
+		) as $suffix => $config ) {
+			foreach ( $this->table_rows( $suffix ) as $row ) {
+				$object_id = absint( $row[ $config[1] ] ?? 0 );
+				if ( $object_id < 1 || ( 'post' === $config[0] ? null === get_post( $object_id ) : ! get_term( $object_id ) instanceof WP_Term ) ) {
+					continue;
+				}
+
+				$mapped = $this->map_row( $row, $config[0], $object_id );
+				if ( ! empty( $mapped ) ) {
+					yield array(
+						'object_type'      => $config[0],
+						'object_id'        => $object_id,
+						'meta'             => $mapped,
+						'source_reference' => $suffix . ':' . absint( $row['id'] ?? $object_id ),
+					);
+				}
+			}
+		}
+
+		// AIOSEO 3.x data predates the v4 custom tables and remains common on
+		// long-lived sites and backups.
+		foreach ( $this->meta_objects( 'post', array(), array( '_aioseop_' ) ) as $record ) {
+			$mapped = $this->map_v3_meta( $record['meta'] );
+			if ( ! empty( $mapped ) ) {
+				yield array(
+					'object_type'      => 'post',
+					'object_id'        => $record['id'],
+					'meta'             => $mapped,
+					'source_reference' => 'v3-post:' . $record['id'],
+				);
+			}
+		}
+	}
+
+	/**
+	 * Returns one resumable AIOSEO v4/v3 content page.
+	 *
+	 * @param array<string,mixed> $cursor Resume cursor.
+	 * @param int                 $limit  Maximum source rows or objects to scan.
+	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+	 */
+	public function content_batch( array $cursor, int $limit ): array {
+		if ( $this->uses_export_file() ) {
+			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
+		}
+
+		$stages = array( 'aioseo_posts', 'aioseo_terms', 'v3_postmeta' );
+		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'aioseo_posts' ) );
+		$stage  = in_array( $stage, $stages, true ) ? $stage : 'aioseo_posts';
+		$limit  = max( 1, min( 500, $limit ) );
+
+		while ( true ) {
+			$records = array();
+			if ( 'v3_postmeta' === $stage ) {
+				$page = $this->meta_object_batch( 'post', array(), array( '_aioseop_' ), absint( $cursor['after_id'] ?? 0 ), $limit );
+				foreach ( $page['records'] as $record ) {
+					$mapped = $this->map_v3_meta( $record['meta'] );
+					if ( $mapped ) {
+						$records[] = array(
+							'object_type'      => 'post',
+							'object_id'        => $record['id'],
+							'meta'             => $mapped,
+							'source_reference' => 'v3-post:' . $record['id'],
+						);
+					}
+				}
+			} else {
+				$config = 'aioseo_posts' === $stage ? array( 'post', 'post_id' ) : array( 'term', 'term_id' );
+				$page   = $this->source_table_batch( $stage, absint( $cursor['after_id'] ?? 0 ), $limit );
+				foreach ( $page['records'] as $row ) {
+					$object_id = absint( $row[ $config[1] ] ?? 0 );
+					if ( $object_id < 1 || ( 'post' === $config[0] ? null === get_post( $object_id ) : ! get_term( $object_id ) instanceof WP_Term ) ) {
+						continue;
+					}
+					$mapped = $this->map_row( $row, $config[0], $object_id );
+					if ( $mapped ) {
+						$records[] = array(
+							'object_type'      => $config[0],
+							'object_id'        => $object_id,
+							'meta'             => $mapped,
+							'source_reference' => $stage . ':' . absint( $row['id'] ?? $object_id ),
+						);
+					}
+				}
+			}
+
+			if ( $page['done'] ) {
+				$index = array_search( $stage, $stages, true );
+				if ( false === $index || count( $stages ) - 1 === $index ) {
+					return array(
+						'records' => $records,
+						'cursor'  => array( 'stage' => 'done' ),
+						'done'    => true,
+					);
+				}
+				$stage  = $stages[ $index + 1 ];
+				$cursor = array(
+					'stage'    => $stage,
+					'after_id' => 0,
+				);
+			} else {
+				$cursor = array(
+					'stage'    => $stage,
+					'after_id' => $page['after_id'],
+				);
+			}
+
+			if ( $records || ! $page['done'] ) {
+				return array(
+					'records' => $records,
+					'cursor'  => $cursor,
+					'done'    => false,
+				);
+			}
+		}
+	}
+
+	/**
+	 * Yields normalized redirect records.
+	 *
+	 * @return iterable<int,array<string,mixed>>
+	 */
+	public function redirect_records(): iterable {
+		foreach ( $this->table_rows( 'aioseo_redirects' ) as $row ) {
+			$source = (string) ( $row['source_url'] ?? '' );
+			if ( '' === $source ) {
+				continue;
+			}
+
+			$match      = strtolower( (string) ( $row['source_url_match'] ?? 'exact' ) );
+			$match_type = 'regex' === $match ? 'regex' : 'exact';
+			$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $source, PHP_URL_QUERY );
+			$query_mode = $this->aioseo_query_mode( (string) ( $row['query_param'] ?? '' ), $query );
+
+			yield array(
+				'source_path'      => $source,
+				'source_query'     => 'exact' === $query_mode ? $query : '',
+				'target_url'       => (string) ( $row['target_url'] ?? '' ),
+				'status_code'      => absint( $row['type'] ?? 301 ),
+				'match_type'       => $match_type,
+				'case_sensitive'   => empty( $row['ignore_case'] ) ? 1 : 0,
+				'trailing_slash'   => 'ignore',
+				'query_mode'       => $query_mode,
+				'is_active'        => empty( $row['enabled'] ) ? 0 : 1,
+				'source_reference' => 'redirect:' . absint( $row['id'] ?? 0 ),
+			);
+		}
+	}
+
+	/**
+	 * Returns one keyset-paginated AIOSEO Pro redirect page.
+	 *
+	 * @param array<string,mixed> $cursor Resume cursor.
+	 * @param int                 $limit  Maximum source rows to scan.
+	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+	 */
+	public function redirect_batch( array $cursor, int $limit ): array {
+		if ( $this->uses_export_file() ) {
+			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
+		}
+
+		$page    = $this->source_table_batch( 'aioseo_redirects', absint( $cursor['after_id'] ?? 0 ), $limit );
+		$records = array();
+
+		foreach ( $page['records'] as $row ) {
+			$source = (string) ( $row['source_url'] ?? '' );
+			if ( '' === $source ) {
+				continue;
+			}
+			$match      = strtolower( (string) ( $row['source_url_match'] ?? 'exact' ) );
+			$match_type = 'regex' === $match ? 'regex' : 'exact';
+			$query      = 'regex' === $match_type ? '' : (string) wp_parse_url( $source, PHP_URL_QUERY );
+			$query_mode = $this->aioseo_query_mode( (string) ( $row['query_param'] ?? '' ), $query );
+			$records[]  = array(
+				'source_path'      => $source,
+				'source_query'     => 'exact' === $query_mode ? $query : '',
+				'target_url'       => (string) ( $row['target_url'] ?? '' ),
+				'status_code'      => absint( $row['type'] ?? 301 ),
+				'match_type'       => $match_type,
+				'case_sensitive'   => empty( $row['ignore_case'] ) ? 1 : 0,
+				'trailing_slash'   => 'ignore',
+				'query_mode'       => $query_mode,
+				'is_active'        => empty( $row['enabled'] ) ? 0 : 1,
+				'source_reference' => 'redirect:' . absint( $row['id'] ?? 0 ),
+			);
+		}
+
+		return array(
+			'records' => $records,
+			'cursor'  => $page['done'] ? array( 'stage' => 'done' ) : array( 'after_id' => $page['after_id'] ),
+			'done'    => $page['done'],
+		);
+	}
+
+	/**
+	 * Maps an AIOSEO v4 database row.
+	 *
+	 * @param array<string,mixed> $row         Source row.
+	 * @param string              $object_type post|term.
+	 * @param int                 $object_id   Object ID.
+	 * @return array<string,mixed>
+	 */
+	private function map_row( array $row, string $object_type, int $object_id ): array {
+		$get    = static fn( string $key ): string => isset( $row[ $key ] ) && is_scalar( $row[ $key ] ) ? trim( (string) $row[ $key ] ) : '';
+		$og_url = $get( 'og_image_custom_url' );
+		$tw_url = $get( 'twitter_image_custom_url' );
+		if ( '' === $og_url ) {
+			$og_url = $get( 'og_image_url' );
+		}
+		if ( '' === $tw_url ) {
+			$tw_url = $get( 'twitter_image_url' );
+		}
+		$mapped = array(
+			'_erankly_title'               => erankly_import_convert_variables( $get( 'title' ), 'aioseo' ),
+			'_erankly_description'         => erankly_import_convert_variables( $get( 'description' ), 'aioseo' ),
+			'_erankly_canonical'           => $get( 'canonical_url' ),
+			'_erankly_og_title'            => erankly_import_convert_variables( $get( 'og_title' ), 'aioseo' ),
+			'_erankly_og_description'      => erankly_import_convert_variables( $get( 'og_description' ), 'aioseo' ),
+			'_erankly_og_image_url'        => $og_url,
+			'_erankly_twitter_title'       => erankly_import_convert_variables( $get( 'twitter_title' ), 'aioseo' ),
+			'_erankly_twitter_description' => erankly_import_convert_variables( $get( 'twitter_description' ), 'aioseo' ),
+			'_erankly_twitter_image_url'   => $tw_url,
+			'_erankly_twitter_card_type'   => $this->twitter_card( $get( 'twitter_card' ) ),
+		);
+
+		if ( $this->enabled( $row['twitter_use_og'] ?? false ) ) {
+			if ( '' === $mapped['_erankly_twitter_title'] ) {
+				$mapped['_erankly_twitter_title'] = $mapped['_erankly_og_title'];
+			}
+			if ( '' === $mapped['_erankly_twitter_description'] ) {
+				$mapped['_erankly_twitter_description'] = $mapped['_erankly_og_description'];
+			}
+			if ( '' === $mapped['_erankly_twitter_image_url'] ) {
+				$mapped['_erankly_twitter_image_url'] = $mapped['_erankly_og_image_url'];
+			}
+		}
+
+		if ( isset( $row['robots_default'] ) && ! $this->enabled( $row['robots_default'] ) ) {
+			$mapped['_erankly_index_directive']   = $this->enabled( $row['robots_noindex'] ?? false ) ? 'noindex' : 'index';
+			$mapped['_erankly_follow_directive']  = $this->enabled( $row['robots_nofollow'] ?? false ) ? 'nofollow' : 'follow';
+			$mapped['_erankly_archive_directive'] = $this->enabled( $row['robots_noarchive'] ?? false ) ? 'noarchive' : 'archive';
+			$mapped['_erankly_snippet_directive'] = $this->enabled( $row['robots_nosnippet'] ?? false ) ? 'nosnippet' : 'snippet';
+			$mapped['_erankly_image_directive']   = $this->enabled( $row['robots_noimageindex'] ?? false ) ? 'noimageindex' : 'imageindex';
+
+			if ( isset( $row['robots_max_snippet'] ) && null !== $row['robots_max_snippet'] && '' !== (string) $row['robots_max_snippet'] ) {
+				$mapped['_erankly_max_snippet'] = (string) $row['robots_max_snippet'];
+			}
+			if ( isset( $row['robots_max_videopreview'] ) && null !== $row['robots_max_videopreview'] && '' !== (string) $row['robots_max_videopreview'] ) {
+				$mapped['_erankly_max_video_preview'] = (string) $row['robots_max_videopreview'];
+			}
+			if ( ! empty( $row['robots_max_imagepreview'] ) ) {
+				$mapped['_erankly_max_image_preview'] = strtolower( (string) $row['robots_max_imagepreview'] );
+			}
+		}
+
+		$keywords = $this->keywords( $row['keyphrases'] ?? $row['keywords'] ?? '' );
+		if ( ! empty( $keywords ) ) {
+			$mapped['_erankly_focus_keywords'] = $keywords;
+		}
+		if ( $this->enabled( $row['pillar_content'] ?? false ) ) {
+			$mapped['_erankly_cornerstone'] = true;
+		}
+
+		if ( 'post' === $object_type ) {
+			$primary = $this->primary_terms( $row['primary_term'] ?? '' );
+			if ( ! empty( $primary ) ) {
+				$mapped['_erankly_primary_terms'] = $primary;
+			}
+		}
+
+		$schema_payload = isset( $row['schema'] ) ? json_decode( (string) $row['schema'], true ) : array();
+		$entities       = array();
+		foreach ( $this->extract_schema_entities( $schema_payload ) as $entity ) {
+			$entities[] = $this->convert_schema_variables( $entity );
+		}
+
+		$old_schema = $this->old_schema_entity( $get( 'schema_type' ), $row['schema_type_options'] ?? '' );
+		if ( ! empty( $old_schema ) ) {
+			$entities[] = $old_schema;
+		}
+
+		$schema_options = is_array( $schema_payload ) ? $schema_payload : array();
+		$page_type      = isset( $schema_options['default']['data']['WebPage']['webPageType'] ) ? (string) $schema_options['default']['data']['WebPage']['webPageType'] : '';
+		$article_type   = isset( $schema_options['default']['graphName'] ) && false !== stripos( (string) $schema_options['default']['graphName'], 'article' ) ? 'Article' : '';
+		$type_templates = $this->schema_type_templates( $page_type, $article_type );
+		$blocks         = array_merge( $this->schema_blocks( $entities ), $type_templates['blocks'] );
+
+		if ( ! empty( $blocks ) ) {
+			$mapped['_erankly_schema_mode']   = 'merge';
+			$mapped['_erankly_schema_blocks'] = $blocks;
+		}
+		if ( ! empty( $type_templates['disabled'] ) ) {
+			$mapped['_erankly_schema_disabled_types'] = $type_templates['disabled'];
+		}
+		if ( isset( $schema_options['default']['isEnabled'] ) && false === $schema_options['default']['isEnabled'] && empty( $blocks ) ) {
+			$mapped['_erankly_schema_mode'] = 'disabled';
+		}
+
+		$legacy = array_filter(
+			array(
+				'page_analysis'       => $row['page_analysis'] ?? '',
+				'schema_type'         => $row['schema_type'] ?? '',
+				'schema_type_options' => $row['schema_type_options'] ?? '',
+				'schema'              => $row['schema'] ?? '',
+				'local_seo'           => $row['local_seo'] ?? '',
+				'ai'                  => $row['ai'] ?? '',
+			),
+			static fn( mixed $value ): bool => ! empty( $value )
+		);
+		if ( ! empty( $legacy ) ) {
+			$mapped['_erankly_legacy_editorial'] = array( 'aioseo' => $legacy );
+			if ( ! empty( $row['schema'] ) && empty( $blocks ) ) {
+				$this->add_warning( 'schema_configuration_preserved', 'An AIOSEO schema configuration was preserved but needs review because it is not rendered JSON-LD.', $object_type . ':' . $object_id );
+			}
+		}
+
+		return $mapped;
+	}
+
+	/**
+	 * Maps an AIOSEO v3 post metadata record.
+	 *
+	 * @param array<string,mixed> $meta V3 post metadata.
+	 * @return array<string,mixed>
+	 */
+	private function map_v3_meta( array $meta ): array {
+		$og     = maybe_unserialize( $meta['_aioseop_opengraph_settings'] ?? array() );
+		$og     = is_array( $og ) ? $og : array();
+		$mapped = array(
+			'_erankly_title'             => erankly_import_convert_variables( $this->value( $meta, '_aioseop_title' ), 'aioseo' ),
+			'_erankly_description'       => erankly_import_convert_variables( $this->value( $meta, '_aioseop_description' ), 'aioseo' ),
+			'_erankly_canonical'         => $this->value( $meta, '_aioseop_custom_link' ),
+			'_erankly_og_title'          => erankly_import_convert_variables( (string) ( $og['aioseop_opengraph_settings_title'] ?? '' ), 'aioseo' ),
+			'_erankly_og_description'    => erankly_import_convert_variables( (string) ( $og['aioseop_opengraph_settings_desc'] ?? '' ), 'aioseo' ),
+			'_erankly_og_image_url'      => (string) ( $og['aioseop_opengraph_settings_image'] ?? '' ),
+			'_erankly_twitter_image_url' => (string) ( $og['aioseop_opengraph_settings_customimg_twitter'] ?? '' ),
+			'_erankly_twitter_card_type' => $this->twitter_card( (string) ( $og['aioseop_opengraph_settings_setcard'] ?? '' ) ),
+		);
+
+		foreach ( array(
+			'_aioseop_noindex'  => array( '_erankly_index_directive', 'noindex', 'index' ),
+			'_aioseop_nofollow' => array( '_erankly_follow_directive', 'nofollow', 'follow' ),
+		) as $source => $values ) {
+			$value = strtolower( $this->value( $meta, $source ) );
+			if ( 'on' === $value || 'off' === $value ) {
+				$mapped[ $values[0] ] = 'on' === $value ? $values[1] : $values[2];
+			}
+		}
+
+		$keywords = $this->keywords( $meta['_aioseop_keywords'] ?? '' );
+		if ( ! empty( $keywords ) ) {
+			$mapped['_erankly_focus_keywords'] = $keywords;
+		}
+		if ( $this->enabled( $meta['_aioseop_sitemap_exclude'] ?? false ) || $this->enabled( $meta['_aioseop_disable'] ?? false ) ) {
+			$mapped['_erankly_disable_sitemap'] = true;
+		}
+
+		return $mapped;
+	}
+
+	/**
+	 * Yields rows from an AIOSEO source table in bounded batches.
+	 *
+	 * @param string $suffix Table suffix.
+	 * @return iterable<int,array<string,mixed>>
+	 */
+	private function table_rows( string $suffix ): iterable {
+		global $wpdb;
+
+		$table = $wpdb->prefix . $suffix;
+		if ( ! erankly_table_exists( $table ) ) {
+			return;
+		}
+
+		$cursor = 0;
+		do {
+			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded third-party source scan.
+				$wpdb->prepare( "SELECT * FROM {$table} WHERE id > %d ORDER BY id ASC LIMIT 200", $cursor ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted WordPress prefix plus an internal suffix.
+				ARRAY_A
+			);
+			if ( ! is_array( $rows ) || empty( $rows ) ) {
+				break;
+			}
+			$batch_count = count( $rows );
+			foreach ( $rows as $row ) {
+				$cursor = max( $cursor, absint( $row['id'] ?? 0 ) );
+				yield $row;
+			}
+		} while ( 200 === $batch_count );
+	}
+
+	/**
+	 * Determines whether an AIOSEO source table contains rows.
+	 *
+	 * @param string $suffix Table suffix.
+	 * @return bool
+	 */
+	private function table_has_rows( string $suffix ): bool {
+		global $wpdb;
+
+		$table = $wpdb->prefix . $suffix;
+		if ( ! erankly_table_exists( $table ) ) {
+			return false;
+		}
+
+		return null !== $wpdb->get_var( "SELECT id FROM {$table} LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Presence check against a trusted prefixed table.
+	}
+
+	/**
+	 * Checks whether a certified optional AIOSEO column contains data.
+	 *
+	 * @param string $suffix Table suffix.
+	 * @param string $column Certified optional column.
+	 * @return bool
+	 */
+	private function table_column_has_values( string $suffix, string $column ): bool {
+		global $wpdb;
+
+		$allowed = array(
+			'aioseo_posts' => array( 'local_seo', 'videos' ),
+		);
+		if ( ! isset( $allowed[ $suffix ] ) || ! in_array( $column, $allowed[ $suffix ], true ) ) {
+			return false;
+		}
+
+		$table = $wpdb->prefix . $suffix;
+		if ( ! erankly_table_exists( $table ) ) {
+			return false;
+		}
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Storage signature inspection.
+		if ( null === $exists ) {
+			return false;
+		}
+
+		return null !== $wpdb->get_var( "SELECT id FROM {$table} WHERE `{$column}` IS NOT NULL AND `{$column}` <> '' LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table and column are selected from the internal whitelist above.
+	}
+
+	/**
+	 * Normalizes an AIOSEO Twitter card value.
+	 *
+	 * @param string $value Source card value.
+	 * @return string
+	 */
+	private function twitter_card( string $value ): string {
+		$value = strtolower( $value );
+		if ( '' === $value || 'default' === $value ) {
+			return '';
+		}
+		return false !== strpos( $value, 'large' ) ? 'summary_large_image' : 'summary';
+	}
+
+	/**
+	 * Maps AIOSEO query handling to the target model.
+	 *
+	 * @param string $value Source query option.
+	 * @param string $query Query found in the source URL.
+	 * @return string
+	 */
+	private function aioseo_query_mode( string $value, string $query ): string {
+		$value = strtolower( $value );
+		if ( false !== strpos( $value, 'pass' ) || false !== strpos( $value, 'preserve' ) ) {
+			return 'preserve';
+		}
+		if ( false !== strpos( $value, 'exact' ) || '' !== $query ) {
+			return 'exact';
+		}
+		return 'ignore';
+	}
+
+	/**
+	 * Normalizes AIOSEO primary-term data.
+	 *
+	 * @param mixed $value Source primary-term data.
+	 * @return array<string,int>
+	 */
+	private function primary_terms( mixed $value ): array {
+		if ( is_string( $value ) ) {
+			$decoded = json_decode( $value, true );
+			$value   = JSON_ERROR_NONE === json_last_error() ? $decoded : array();
+		}
+		$primary = array();
+		foreach ( is_array( $value ) ? $value : array() as $taxonomy => $term_id ) {
+			if ( is_array( $term_id ) ) {
+				$taxonomy = $term_id['taxonomy'] ?? $taxonomy;
+				$term_id  = $term_id['term_id'] ?? $term_id['id'] ?? 0;
+			}
+			$term = get_term( absint( $term_id ) );
+			if ( $term instanceof WP_Term ) {
+				$primary[ $term->taxonomy ] = $term->term_id;
+			} elseif ( is_string( $taxonomy ) && absint( $term_id ) > 0 ) {
+				$primary[ sanitize_key( $taxonomy ) ] = absint( $term_id );
+			}
+		}
+		return $primary;
+	}
+
+	/**
+	 * Builds a JSON-LD entity from an old AIOSEO schema record.
+	 *
+	 * @param string $type    Source schema type.
+	 * @param mixed  $options Source schema options.
+	 * @return array<string,mixed>
+	 */
+	private function old_schema_entity( string $type, mixed $options ): array {
+		$type = preg_replace( '/[^A-Za-z0-9_-]/', '', $type ) ?? '';
+		if ( ! in_array( $type, array( 'SoftwareApplication', 'Product', 'Recipe', 'Course' ), true ) ) {
+			return array();
+		}
+		$data = is_string( $options ) ? json_decode( $options, true ) : $options;
+		$data = is_array( $data ) ? ( $data[ strtolower( 'SoftwareApplication' === $type ? 'software' : $type ) ] ?? $data[ strtolower( $type ) ] ?? array() ) : array();
+		$node = array( '@type' => $type );
+		foreach ( array( 'name', 'description', 'brand', 'category', 'price', 'currency', 'provider', 'dishType', 'cuisineType' ) as $key ) {
+			if ( isset( $data[ $key ] ) && is_scalar( $data[ $key ] ) && '' !== (string) $data[ $key ] ) {
+				$node[ $key ] = erankly_import_convert_variables( (string) $data[ $key ], 'aioseo' );
+			}
+		}
+		return $node;
+	}
+
+	/**
+	 * Converts AIOSEO variables throughout a schema value.
+	 *
+	 * @param mixed $value Schema value.
+	 * @return mixed
+	 */
+	private function convert_schema_variables( mixed $value ): mixed {
+		if ( is_string( $value ) ) {
+			return erankly_import_convert_variables( $value, 'aioseo' );
+		}
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+		foreach ( $value as $key => $child ) {
+			$value[ $key ] = $this->convert_schema_variables( $child );
+		}
+		return $value;
+	}
+}

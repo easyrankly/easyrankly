@@ -1,8 +1,8 @@
 /**
  * EasyRankly — shared design tokens and cross-surface components.
  *
- * Loaded before admin.css and editor.css so both contexts share the same
- * palette, suggestion menus, and SEO checklist styling.
+ * Loaded before the surface-specific admin and editor styles so every context
+ * shares the same palette, suggestion menus, and SEO checklist styling.
  */
 
 :root {

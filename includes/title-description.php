@@ -113,7 +113,8 @@ function erankly_get_title(): string {
 		}
 	} elseif ( is_author() || is_date() ) {
 		$special_key = is_author() ? 'author' : 'date';
-		$title       = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
+		$title       = is_author() ? trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_title', true ) ) : '';
+		$title       = '' !== $title ? $title : erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
 
 		if ( '' !== $title ) {
 			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
@@ -233,7 +234,8 @@ function erankly_get_description(): string {
 			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
 		}
 	} elseif ( is_author() ) {
-		$description = erankly_get_global_entity_meta( 'global_special_meta', 'author', 'description' );
+		$description = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_description', true ) );
+		$description = '' !== $description ? $description : erankly_get_global_entity_meta( 'global_special_meta', 'author', 'description' );
 
 		if ( '' !== $description ) {
 			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );

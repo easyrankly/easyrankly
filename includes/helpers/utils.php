@@ -2,62 +2,13 @@
 /**
  * Shared helpers — miscellaneous utilities.
  *
- * Part of the helpers.php loader; always loaded early on every request.
+ * Loaded on SEO-rendering and rich admin surfaces.
  *
  * @package EasyRankly
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
-}
-
-/**
- * Returns public post types supported by EasyRankly.
- *
- * @return array<string,WP_Post_Type>
- */
-function erankly_get_public_post_types(): array {
-	$post_types = get_post_types(
-		array(
-			'public' => true,
-		),
-		'objects'
-	);
-
-	unset( $post_types['attachment'] );
-
-	/**
-	 * Filters public post types handled by the plugin.
-	 *
-	 * @param array<string,WP_Post_Type> $post_types Public post type objects.
-	 */
-	return apply_filters( 'erankly_post_types', $post_types );
-}
-
-/**
- * Returns public taxonomies supported by EasyRankly.
- *
- * @return array<string,WP_Taxonomy>
- */
-function erankly_get_public_taxonomies(): array {
-	$taxonomies = get_taxonomies(
-		array(
-			'public' => true,
-		),
-		'objects'
-	);
-
-	unset(
-		$taxonomies['post_format'],
-		$taxonomies['product_shipping_class']
-	);
-
-	/**
-	 * Filters public taxonomies handled by the plugin.
-	 *
-	 * @param array<string,WP_Taxonomy> $taxonomies Public taxonomy objects.
-	 */
-	return apply_filters( 'erankly_taxonomies', $taxonomies );
 }
 
 /**
@@ -160,15 +111,6 @@ function erankly_get_social_profiles(): array {
 	}
 
 	return array_values( array_unique( $urls ) );
-}
-
-/**
- * Returns whether a request is likely a frontend HTML request.
- *
- * @return bool
- */
-function erankly_is_frontend_html_request(): bool {
-	return ! is_admin() && ! wp_doing_ajax() && ! wp_doing_cron();
 }
 
 /**
@@ -318,6 +260,13 @@ function erankly_ai_provider_available(): bool {
 	if ( function_exists( 'wp_get_connectors' ) ) {
 		foreach ( (array) wp_get_connectors() as $connector ) {
 			if ( ! is_array( $connector ) || ( $connector['type'] ?? '' ) !== 'ai_provider' ) {
+				continue;
+			}
+
+			$plugin    = is_array( $connector['plugin'] ?? null ) ? $connector['plugin'] : array();
+			$is_active = $plugin['is_active'] ?? null;
+
+			if ( is_callable( $is_active ) && ! call_user_func( $is_active ) ) {
 				continue;
 			}
 

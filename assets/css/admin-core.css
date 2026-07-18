@@ -1,0 +1,387 @@
+/**
+ * EasyRankly admin shell and cross-surface primitives.
+ *
+ * Keep this file small: every classic admin surface loads it.
+ */
+
+.erankly-settings form {
+	margin-top: 0;
+	max-width: 920px;
+}
+
+.erankly-settings > h1 {
+	margin-left: 20px;
+}
+
+.erankly-settings-layout {
+	align-items: flex-start;
+	display: flex;
+	gap: 24px;
+	margin-top: 16px;
+}
+
+.erankly-settings-sidebar-nav {
+	box-sizing: border-box;
+	display: flex;
+	flex: 0 0 220px;
+	flex-direction: column;
+	padding: 0;
+	position: sticky;
+	top: 42px;
+}
+
+.erankly-settings-nav-tablist {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.erankly-settings-sidebar-toggle {
+	align-items: center;
+	background: #fff;
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-control);
+	cursor: pointer;
+	display: none;
+	font-size: 14px;
+	font-weight: 600;
+	justify-content: space-between;
+	padding: 10px 12px;
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-settings-sidebar-toggle::after {
+	border-bottom: 2px solid;
+	border-right: 2px solid;
+	content: "";
+	flex-shrink: 0;
+	height: 7px;
+	margin-left: 12px;
+	transform: rotate(45deg);
+	transition: transform 0.15s;
+	width: 7px;
+}
+
+.erankly-settings-sidebar-nav.is-expanded .erankly-settings-sidebar-toggle::after {
+	transform: rotate(-135deg);
+}
+
+.erankly-settings-nav-item {
+	background: transparent;
+	border: none;
+	border-left: 3px solid transparent;
+	border-radius: var(--erankly-radius-control);
+	color: var(--erankly-color-text);
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1.4;
+	padding: 8px 10px 8px 9px;
+	text-align: left;
+	text-decoration: none;
+	width: 100%;
+	overflow-wrap: anywhere;
+}
+
+.erankly-settings-nav-item:hover {
+	background: var(--erankly-color-surface-hover);
+	color: var(--erankly-color-text);
+}
+
+.erankly-settings-nav-item:disabled,
+.erankly-settings-nav-item[aria-disabled="true"] {
+	color: #a7aaad;
+	cursor: default;
+}
+
+.erankly-settings-nav-item:disabled:hover,
+.erankly-settings-nav-item[aria-disabled="true"]:hover {
+	background: transparent;
+	color: #a7aaad;
+}
+
+.erankly-settings-nav-item:focus-visible {
+	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+	outline: 2px solid transparent;
+}
+
+.erankly-settings-nav-item.is-active {
+	background: color-mix(in srgb, var(--wp-admin-theme-color, #3858e9) 8%, transparent);
+	color: var(--wp-admin-theme-color, #3858e9);
+	font-weight: 600;
+}
+
+.erankly-settings-content {
+	box-sizing: border-box;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.erankly-settings-content > h2:first-child {
+	margin-top: 0;
+}
+
+.erankly-settings-content > form > .erankly-tab-panel,
+.erankly-settings-content > .erankly-tab-panel {
+	margin-top: 0;
+}
+
+.erankly-settings-submit {
+	background: #fff;
+	border-top: 1px solid var(--erankly-color-border);
+	bottom: 0;
+	margin-top: 24px;
+	padding: 16px 0;
+	position: sticky;
+}
+
+.erankly-autosave-status {
+	background: transparent;
+	border-radius: var(--erankly-radius-control);
+	box-sizing: border-box;
+	color: var(--erankly-color-success);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	margin-top: 0;
+	max-height: 0;
+	opacity: 0;
+	overflow: hidden;
+	padding: 0 10px;
+	transform: translateY(-4px);
+	transition: opacity 0.15s ease, transform 0.15s ease, max-height 0.15s ease, margin-top 0.15s ease, padding 0.15s ease, background-color 0.15s ease;
+}
+
+.erankly-autosave-status.is-visible {
+	background: var(--erankly-color-success-surface);
+	margin-top: 6px;
+	max-height: 34px;
+	opacity: 1;
+	padding: 8px 10px;
+	transform: translateY(0);
+}
+
+.erankly-autosave-status.is-error {
+	background: var(--erankly-color-error-surface);
+	color: var(--erankly-color-error);
+}
+
+.erankly-autosave-status.is-warning {
+	background: var(--erankly-color-warning-surface);
+	color: var(--erankly-color-warning);
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-settings-layout {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.erankly-settings-sidebar-nav {
+		border: none;
+		flex: 0 0 auto;
+		padding: 0;
+		position: static;
+		width: 100%;
+	}
+
+	.erankly-settings-sidebar-toggle {
+		display: flex;
+	}
+
+	.erankly-settings-nav-tablist {
+		border: 1px solid var(--erankly-color-border);
+		border-radius: var(--erankly-radius-surface);
+		display: none;
+		margin-top: 4px;
+		padding: 8px;
+	}
+
+	.erankly-settings-sidebar-nav.is-expanded .erankly-settings-nav-tablist {
+		display: flex;
+	}
+
+	.erankly-settings-content {
+		width: 100%;
+	}
+
+	.no-js .erankly-settings-sidebar-toggle {
+		display: none;
+	}
+
+	.no-js .erankly-settings-nav-tablist {
+		display: flex;
+	}
+}
+
+.erankly-field {
+	margin: 0 0 16px;
+	min-width: 0;
+}
+
+/*
+ * Card — the single container class shared by every settings section on
+ * every screen (single-site, Network Admin and per-site on Multisite).
+ * Restyle sections everywhere by editing this one block.
+ */
+.erankly-card {
+	background: #fff;
+	border: 1px solid var(--erankly-color-border);
+	border-radius: var(--erankly-radius-surface);
+	box-sizing: border-box;
+	margin: 0 0 24px;
+	max-width: 720px;
+	padding: 24px;
+}
+
+.erankly-settings-section {
+	margin: 0 0 24px;
+	max-width: 720px;
+}
+
+.erankly-settings-section > .erankly-card {
+	margin-bottom: 0;
+	max-width: none;
+}
+
+/* Shared small heading (card titles + section sub-headings). */
+.erankly-card h3,
+.erankly-section-title,
+.erankly-global-meta-default h4,
+.erankly-additional-contexts h4 {
+	font-size: 14px;
+	margin: 0 0 8px;
+}
+
+.erankly-card h3,
+.erankly-section-title {
+	max-width: 720px;
+}
+
+.erankly-card > :first-child {
+	margin-top: 0;
+}
+
+.erankly-card > :last-child {
+	margin-bottom: 0;
+}
+
+
+/*
+ * Reusable expandable table panel.
+ *
+ * Shared chrome for the Redirects, Broken-Link Candidates, and Frequent 404
+ * sections: a white card with a toolbar (controls + expand toggle) above a
+ * bordered table. Behavior is wired by bindExpandablePanel() in admin.js.
+ */
+.erankly-panel-expandable {
+	max-width: 720px;
+	transition: max-width 0.15s ease;
+}
+
+.erankly-panel-expandable.erankly-panel-expanded {
+	max-width: none;
+}
+
+/* Consistent vertical rhythm between the card's stacked children (intro text,
+   toolbar, table, notices, summary, action button) so every gap matches. */
+.erankly-panel-expandable > .erankly-card > * {
+	margin-top: 0;
+	margin-bottom: 12px;
+}
+
+.erankly-panel-expandable > .erankly-card > *:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-panel-toolbar {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	margin: 0 0 12px;
+}
+
+.erankly-panel-controls {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0;
+}
+
+.erankly-panel-filter {
+	min-width: 240px;
+}
+
+.button.erankly-panel-expand-toggle {
+	align-items: center;
+	box-sizing: border-box;
+	display: inline-flex;
+	flex-shrink: 0;
+	height: 40px;
+	justify-content: center;
+	line-height: 1;
+	min-height: 40px;
+	min-width: 40px;
+	padding: 0;
+	width: 40px;
+}
+
+.erankly-panel-expand-toggle svg {
+	display: block;
+	flex: 0 0 auto;
+	height: 16px;
+	width: 16px;
+}
+
+.erankly-panel-expand-toggle .erankly-panel-expand-icon-collapse {
+	display: none;
+}
+
+.erankly-panel-expand-toggle[aria-pressed="true"] .erankly-panel-expand-icon-expand {
+	display: none;
+}
+
+.erankly-panel-expand-toggle[aria-pressed="true"] .erankly-panel-expand-icon-collapse {
+	display: block;
+}
+
+.erankly-panel-table {
+	border-radius: var(--erankly-radius-surface, 8px);
+	overflow: hidden;
+}
+
+.erankly-panel-table code {
+	white-space: normal;
+	word-break: break-word;
+}
+
+.erankly-panel-table td.erankly-panel-empty {
+	color: var(--erankly-color-muted);
+	padding: 16px;
+	text-align: center;
+}
+
+/* Panel callouts use the shared plugin alert styles above. */
+
+@media screen and (max-width: 960px) {
+	.erankly-panel-toolbar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.erankly-panel-controls {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.erankly-panel-filter {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.erankly-panel-expand-toggle {
+		align-self: flex-end;
+	}
+}

@@ -57,6 +57,9 @@ const ERANKLY_AI_RATE_LIMIT_MAX_HEALTH_SUGGEST = 20;
 /** Transient prefix for per-user AI rate-limit counters. */
 const ERANKLY_AI_RATE_LIMIT_PREFIX = 'erankly_ai_rl_';
 
+/** Maximum seconds spent waiting for the atomic AI rate-limit lock. */
+const ERANKLY_AI_RATE_LIMIT_LOCK_TIMEOUT = 2;
+
 /**
  * Registers the AI feature hooks.
  *
@@ -1156,7 +1159,78 @@ function erankly_ai_call_model( string $system, string $user, string $rate_limit
 }
 
 /**
- * Checks and records one AI model call against the per-user rate limit.
+ * Returns the bounded MySQL advisory-lock name for an AI counter.
+ *
+ * @param string $key Transient counter key.
+ * @return string
+ */
+function erankly_ai_rate_limit_lock_name( string $key ): string {
+	global $wpdb;
+
+	$database = defined( 'DB_NAME' ) ? (string) DB_NAME : '';
+	$prefix   = is_object( $wpdb ) && isset( $wpdb->base_prefix ) ? (string) $wpdb->base_prefix : '';
+	$install  = $database . '|' . $prefix;
+
+	// DB_NAME plus the network base prefix isolates advisory locks between
+	// separate WordPress installations sharing one MySQL/MariaDB server. ABSPATH
+	// is a stable fail-closed fallback for non-standard test/bootstrap contexts.
+	if ( '|' === $install ) {
+		$install = defined( 'ABSPATH' ) ? (string) ABSPATH : 'easyrankly';
+	}
+
+	return 'erankly_ai_' . md5( $install . '|' . $key );
+}
+
+/**
+ * Acquires the cross-request lock that serializes an AI counter update.
+ *
+ * WordPress supports MySQL/MariaDB, whose connection-scoped advisory locks let
+ * the existing transient work with both database and persistent-object-cache
+ * backends without a read-then-write race.
+ *
+ * @param string $lock_name Advisory-lock name.
+ * @return bool
+ */
+function erankly_ai_rate_limit_acquire_lock( string $lock_name ): bool {
+	global $wpdb;
+
+	if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
+		return false;
+	}
+
+	$query = $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, ERANKLY_AI_RATE_LIMIT_LOCK_TIMEOUT );
+	if ( ! is_string( $query ) || '' === $query ) {
+		return false;
+	}
+
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared above; a connection-scoped advisory lock cannot use the object cache.
+	return 1 === (int) $wpdb->get_var( $query );
+}
+
+/**
+ * Releases a previously acquired AI counter lock.
+ *
+ * @param string $lock_name Advisory-lock name.
+ * @return void
+ */
+function erankly_ai_rate_limit_release_lock( string $lock_name ): void {
+	global $wpdb;
+
+	if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
+		return;
+	}
+
+	$query = $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name );
+	if ( ! is_string( $query ) || '' === $query ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared above; releases the matching connection-scoped advisory lock.
+	$wpdb->get_var( $query );
+}
+
+/**
+ * Checks and atomically records one AI model call against the per-user limit.
  *
  * @param string $bucket Rate-limit bucket.
  * @return true|WP_Error
@@ -1219,20 +1293,43 @@ function erankly_ai_consume_rate_limit( string $bucket ) {
 
 	$blog_id = is_multisite() ? get_current_blog_id() : 0;
 	$key     = ERANKLY_AI_RATE_LIMIT_PREFIX . md5( $bucket . ':' . $user_id . ':' . $blog_id );
-	$count   = (int) get_transient( $key );
+	$lock    = erankly_ai_rate_limit_lock_name( $key );
 
-	if ( $count >= $max ) {
+	if ( ! erankly_ai_rate_limit_acquire_lock( $lock ) ) {
 		return new WP_Error(
-			'erankly_ai_rate_limited',
-			__( 'Too many AI requests. Please wait a few minutes and try again.', 'easyrankly' ),
+			'erankly_ai_rate_busy',
+			__( 'Another AI request is being checked. Please retry in a moment.', 'easyrankly' ),
 			array(
 				'status'      => 429,
-				'retry_after' => $window,
+				'retry_after' => 1,
 			)
 		);
 	}
 
-	set_transient( $key, $count + 1, $window );
+	try {
+		$count = (int) get_transient( $key );
+
+		if ( $count >= $max ) {
+			return new WP_Error(
+				'erankly_ai_rate_limited',
+				__( 'Too many AI requests. Please wait a few minutes and try again.', 'easyrankly' ),
+				array(
+					'status'      => 429,
+					'retry_after' => $window,
+				)
+			);
+		}
+
+		if ( ! set_transient( $key, $count + 1, $window ) ) {
+			return new WP_Error(
+				'erankly_ai_rate_storage',
+				__( 'The AI usage limit could not be recorded. Please try again later.', 'easyrankly' ),
+				array( 'status' => 503 )
+			);
+		}
+	} finally {
+		erankly_ai_rate_limit_release_lock( $lock );
+	}
 
 	return true;
 }
@@ -1243,16 +1340,9 @@ function erankly_ai_consume_rate_limit( string $bucket ) {
  * @return void
  */
 function erankly_ai_render_editor_privacy_notice(): void {
-	$limit = erankly_ai_get_content_limit();
 	?>
 	<p class="description erankly-ai-privacy">
-		<?php
-		printf(
-			/* translators: %d: maximum plain-text body characters sent to the provider. */
-			esc_html__( 'Generating sends page context (title and up to %1$d characters of plain-text content, plus site name and language) to the AI provider configured in WordPress Connectors. Improve also sends your current fields and instructions. EasyRankly does not operate that service.', 'easyrankly' ),
-			esc_html( (string) $limit )
-		);
-		?>
+		<?php esc_html_e( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' ); ?>
 	</p>
 	<?php
 }

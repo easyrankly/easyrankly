@@ -1,0 +1,10 @@
+{
+  "name": "easyrankly-quality",
+  "private": true,
+  "scripts": {
+    "lint:css": "stylelint \"assets/css/**/*.css\""
+  },
+  "devDependencies": {
+    "stylelint": "17.14.0"
+  }
+}

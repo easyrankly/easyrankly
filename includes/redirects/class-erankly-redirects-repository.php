@@ -45,6 +45,20 @@ final class ERankly_Redirects_Repository {
 	private ?array $runtime_rules = null;
 
 	/**
+	 * Whether mutation invalidation is deferred during a bulk import.
+	 *
+	 * @var bool
+	 */
+	private bool $bulk_mode = false;
+
+	/**
+	 * Whether a bulk import changed at least one rule.
+	 *
+	 * @var bool
+	 */
+	private bool $bulk_dirty = false;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -152,11 +166,17 @@ final class ERankly_Redirects_Repository {
 		}
 
 		$sql  = $wpdb->prepare(
-			'SELECT id, source_path, source_hash, target_url, status_code, is_regex, is_wildcard, visibility, required_role
+			'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, visibility, required_role, conditions, start_at, end_at
 			FROM %i
-			WHERE is_active = 1 AND (is_regex = 1 OR is_wildcard = 1)
-			ORDER BY id ASC',
-			$this->table_name
+			WHERE is_active = 1 AND (
+				match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s OR visibility <> %s OR conditions IS NOT NULL OR start_at IS NOT NULL OR end_at IS NOT NULL
+			)
+			ORDER BY priority ASC, id ASC',
+			$this->table_name,
+			'exact',
+			'ignore',
+			'ignore',
+			'all'
 		);
 		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rebuilds the versionless runtime rules option after explicit invalidation.
 
@@ -205,9 +225,30 @@ final class ERankly_Redirects_Repository {
 	 * @return void
 	 */
 	public function invalidate_runtime_rules(): void {
+		if ( $this->bulk_mode ) {
+			$this->bulk_dirty = true;
+			return;
+		}
+
 		$this->runtime_rules = null;
 		delete_option( self::RUNTIME_RULES_OPTION );
 		erankly_redirects_flush_external_caches();
+	}
+
+	/** Starts a bulk mutation and defers cache invalidation. */
+	public function begin_bulk(): void {
+		$this->bulk_mode  = true;
+		$this->bulk_dirty = false;
+	}
+
+	/** Ends a bulk mutation and invalidates runtime caches once. */
+	public function end_bulk(): void {
+		$this->bulk_mode = false;
+
+		if ( $this->bulk_dirty ) {
+			$this->bulk_dirty = false;
+			$this->invalidate_runtime_rules();
+		}
 	}
 
 	/**
@@ -220,9 +261,13 @@ final class ERankly_Redirects_Repository {
 		global $wpdb;
 
 		$sql = $wpdb->prepare(
-			'SELECT * FROM %i WHERE source_hash = %s AND is_active = 1 AND is_regex = 0 LIMIT 1',
+			'SELECT * FROM %i WHERE source_hash = %s AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s AND visibility = %s AND conditions IS NULL AND start_at IS NULL AND end_at IS NULL ORDER BY priority ASC, id ASC LIMIT 1',
 			$this->table_name,
-			$source_hash
+			$source_hash,
+			'exact',
+			'ignore',
+			'ignore',
+			'all'
 		);
 
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
@@ -231,18 +276,18 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Find a redirect by source hash, regardless of active state.
+	 * Find a redirect by rule identity hash, regardless of active state.
 	 *
-	 * @param string $source_hash Source hash.
+	 * @param string $rule_hash Rule identity hash.
 	 * @return array<string,mixed>|null
 	 */
-	public function find_by_hash( string $source_hash ): ?array {
+	public function find_by_hash( string $rule_hash ): ?array {
 		global $wpdb;
 
 		$sql = $wpdb->prepare(
-			'SELECT * FROM %i WHERE source_hash = %s LIMIT 1',
+			'SELECT * FROM %i WHERE rule_hash = %s LIMIT 1',
 			$this->table_name,
-			$source_hash
+			$rule_hash
 		);
 
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
@@ -309,7 +354,7 @@ final class ERankly_Redirects_Repository {
 		);
 
 		$search = preg_replace_callback(
-			'/\btype\s*:\s*(exact|regex|wildcard)\b/i',
+			'/\btype\s*:\s*(exact|regex|wildcard|contains|starts_with|ends_with)\b/i',
 			static function ( array $matches ) use ( &$type ): string {
 				$type = strtolower( $matches[1] );
 				return '';
@@ -370,13 +415,8 @@ final class ERankly_Redirects_Repository {
 		}
 
 		if ( null !== $parsed['type'] ) {
-			if ( 'regex' === $parsed['type'] ) {
-				$conditions[] = 'is_regex = 1';
-			} elseif ( 'wildcard' === $parsed['type'] ) {
-				$conditions[] = 'is_wildcard = 1';
-			} else {
-				$conditions[] = 'is_regex = 0 AND is_wildcard = 0';
-			}
+			$conditions[] = 'match_type = %s';
+			$params[]     = $parsed['type'];
 		}
 
 		if ( null !== $parsed['visibility'] ) {
@@ -478,7 +518,7 @@ final class ERankly_Redirects_Repository {
 		global $wpdb;
 
 		$sql = $wpdb->prepare(
-			'SELECT source_path, target_url, status_code, is_regex, is_wildcard, is_active, visibility, required_role, note FROM %i ORDER BY id ASC',
+			'SELECT source_path, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, is_active, visibility, required_role, conditions, start_at, end_at, source_plugin, source_reference, migration_id, note FROM %i ORDER BY priority ASC, id ASC',
 			$this->table_name
 		);
 
@@ -496,27 +536,18 @@ final class ERankly_Redirects_Repository {
 	public function create( array $data ): int {
 		global $wpdb;
 
-		$now = current_time( 'mysql' );
-		$sql = $wpdb->prepare(
-			'INSERT INTO %i
-				(source_path, source_hash, target_url, status_code, is_regex, is_wildcard, is_active, visibility, required_role, note, hit_count, last_hit_at, created_at, updated_at)
-				VALUES (%s, %s, %s, %d, %d, %d, %d, %s, %s, %s, 0, NULL, %s, %s)',
-			$this->table_name,
-			(string) $data['source_path'],
-			(string) $data['source_hash'],
-			(string) $data['target_url'],
-			(int) $data['status_code'],
-			(int) $data['is_regex'],
-			(int) $data['is_wildcard'],
-			(int) $data['is_active'],
-			(string) $data['visibility'],
-			(string) $data['required_role'],
-			isset( $data['note'] ) && '' !== $data['note'] ? (string) $data['note'] : null,
-			$now,
-			$now
+		$data   = $this->normalize_data( $data );
+		$now    = current_time( 'mysql' );
+		$insert = array_merge(
+			$data,
+			array(
+				'hit_count'   => 0,
+				'last_hit_at' => null,
+				'created_at'  => $now,
+				'updated_at'  => $now,
+			)
 		);
-
-		$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
+		$result = $wpdb->insert( $this->table_name, $insert ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table mutation.
 
 		if ( false === $result ) {
 			return 0;
@@ -538,37 +569,10 @@ final class ERankly_Redirects_Repository {
 	public function update( int $id, array $data ): bool {
 		global $wpdb;
 
-		$old = $this->find_by_id( $id );
-		$sql = $wpdb->prepare(
-			'UPDATE %i
-				SET source_path = %s,
-					source_hash = %s,
-					target_url = %s,
-					status_code = %d,
-					is_regex = %d,
-					is_wildcard = %d,
-					is_active = %d,
-					visibility = %s,
-					required_role = %s,
-					note = %s,
-					updated_at = %s
-				WHERE id = %d',
-			$this->table_name,
-			(string) $data['source_path'],
-			(string) $data['source_hash'],
-			(string) $data['target_url'],
-			(int) $data['status_code'],
-			(int) $data['is_regex'],
-			(int) $data['is_wildcard'],
-			(int) $data['is_active'],
-			(string) $data['visibility'],
-			(string) $data['required_role'],
-			isset( $data['note'] ) && '' !== $data['note'] ? (string) $data['note'] : null,
-			current_time( 'mysql' ),
-			$id
-		);
-
-		$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
+		$old                = $this->find_by_id( $id );
+		$data               = $this->normalize_data( $data );
+		$data['updated_at'] = current_time( 'mysql' );
+		$result             = $wpdb->update( $this->table_name, $data, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table mutation.
 
 		if ( $old && isset( $old['source_hash'] ) ) {
 			$this->delete_cached_exact( (string) $old['source_hash'] );
@@ -637,19 +641,70 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Upsert a redirect by source hash.
+	 * Upsert a redirect by its complete matching identity.
 	 *
 	 * @param array<string,mixed> $data Redirect data.
 	 * @return string created|updated|failed
 	 */
 	public function upsert_by_hash( array $data ): string {
-		$existing = $this->find_by_hash( (string) $data['source_hash'] );
+		$data     = $this->normalize_data( $data );
+		$existing = $this->find_by_hash( (string) $data['rule_hash'] );
 
 		if ( $existing ) {
 			return $this->update( (int) $existing['id'], $data ) ? 'updated' : 'failed';
 		}
 
 		return $this->create( $data ) > 0 ? 'created' : 'failed';
+	}
+
+	/**
+	 * Applies backward-compatible defaults and computes both path and rule hashes.
+	 *
+	 * @param array<string,mixed> $data Redirect data.
+	 * @return array<string,mixed>
+	 */
+	private function normalize_data( array $data ): array {
+		$match_type = isset( $data['match_type'] ) && in_array( $data['match_type'], ERankly_Redirects_Normalizer::VALID_MATCH_TYPES, true )
+			? (string) $data['match_type']
+			: ( ! empty( $data['is_wildcard'] ) ? 'wildcard' : ( ! empty( $data['is_regex'] ) ? 'regex' : 'exact' ) );
+		$defaults   = array(
+			'source_path'      => '',
+			'source_query'     => '',
+			'target_url'       => '',
+			'status_code'      => 301,
+			'match_type'       => $match_type,
+			'is_regex'         => 'regex' === $match_type ? 1 : 0,
+			'is_wildcard'      => 'wildcard' === $match_type ? 1 : 0,
+			'case_sensitive'   => 0,
+			'trailing_slash'   => 'ignore',
+			'query_mode'       => 'ignore',
+			'priority'         => 10,
+			'is_active'        => 1,
+			'visibility'       => 'all',
+			'required_role'    => '',
+			'conditions'       => null,
+			'start_at'         => null,
+			'end_at'           => null,
+			'source_plugin'    => '',
+			'source_reference' => '',
+			'migration_id'     => '',
+			'note'             => null,
+		);
+		$data       = array_intersect_key( array_merge( $defaults, $data ), $defaults );
+		if ( is_array( $data['conditions'] ) ) {
+			$data['conditions'] = wp_json_encode( $data['conditions'] );
+		} elseif ( ! is_string( $data['conditions'] ) || '' === trim( $data['conditions'] ) ) {
+			$data['conditions'] = null;
+		}
+		$data['start_at']    = empty( $data['start_at'] ) ? null : (string) $data['start_at'];
+		$data['end_at']      = empty( $data['end_at'] ) ? null : (string) $data['end_at'];
+		$data['match_type']  = $match_type;
+		$data['is_regex']    = 'regex' === $match_type ? 1 : 0;
+		$data['is_wildcard'] = 'wildcard' === $match_type ? 1 : 0;
+		$data['source_hash'] = ERankly_Redirects_Normalizer::source_hash( ERankly_Redirects_Normalizer::normalize_path( (string) $data['source_path'] ) );
+		$data['rule_hash']   = ERankly_Redirects_Normalizer::rule_hash( $data );
+
+		return $data;
 	}
 
 	/**

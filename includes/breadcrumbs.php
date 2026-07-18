@@ -114,14 +114,14 @@ if ( ! function_exists( 'easyrankly_breadcrumbs' ) ) {
  * @return string
  */
 function erankly_get_post_breadcrumb_name( int $post_id ): string {
-	if ( (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+	$name = erankly_get_post_meta_string( $post_id, 'breadcrumb_name' );
+
+	if ( '' === $name && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
 		$name = erankly_get_post_meta_string( $post_id, 'title' );
 
 		if ( '' !== $name ) {
 			$name = erankly_replace_variables( $name, $post_id, array( 'seo_title' ) );
 		}
-	} else {
-		$name = erankly_get_post_meta_string( $post_id, 'breadcrumb_name' );
 	}
 
 	$name = '' !== $name ? erankly_normalize_seo_text( $name ) : get_the_title( $post_id );
@@ -154,9 +154,10 @@ function erankly_get_breadcrumb_items(): array {
 
 		if ( 'post' === $type ) {
 			$categories = get_the_category( $post_id );
+			$primary    = erankly_get_primary_term( $post_id, 'category' );
 
-			if ( ! empty( $categories[0] ) ) {
-				$category = $categories[0];
+			if ( $primary instanceof WP_Term || ! empty( $categories[0] ) ) {
+				$category = $primary instanceof WP_Term ? $primary : $categories[0];
 				$parents  = array_reverse( get_ancestors( $category->term_id, 'category', 'taxonomy' ) );
 
 				foreach ( $parents as $parent_id ) {

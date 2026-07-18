@@ -29,6 +29,8 @@ function erankly_register_special_meta_setting(): void {
 	}
 
 	$registered = true;
+	erankly_load_content_helpers();
+	erankly_load_default_helpers();
 
 	register_setting(
 		'general',

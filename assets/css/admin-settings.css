@@ -1,0 +1,1281 @@
+/** EasyRankly settings-only components. */
+
+/*
+ * Shared admin UI classes. Several selectors below (erankly-section-divider,
+ * erankly-status-description, erankly-inline-status, erankly-error-text,
+ * erankly-option-list*, erankly-settings-table, is-success/is-error) are
+ * not referenced by the free plugin's own markup: they are consumed by the
+ * EasyRankly Pro add-on, which renders its panels inside this settings screen.
+ * Do not remove them as "unused".
+ */
+.erankly-section-divider {
+	border: 0;
+	border-top: 1px solid var(--erankly-color-border);
+	margin: 32px 0;
+}
+
+.erankly-status-description {
+	margin: 2px 0 8px;
+}
+
+.erankly-inline-status {
+	align-items: center;
+	display: inline-flex;
+	font-size: 12px;
+	font-weight: 400;
+	gap: 3px;
+	line-height: 1.4;
+}
+
+.erankly-inline-status.is-success {
+	color: var(--erankly-color-success);
+}
+
+.erankly-inline-status.is-warning {
+	color: var(--erankly-color-warning);
+}
+
+.erankly-inline-status.is-error,
+.erankly-error-text {
+	color: var(--erankly-color-error);
+}
+
+/*
+ * Shared plugin alerts.
+ *
+ * WordPress admin notices emitted inside the EasyRankly screen are restyled to
+ * match the plugin's custom callout pattern: soft surface, full border, rounded
+ * corners and a state icon.
+ */
+.erankly-alert,
+.erankly-panel-callout,
+.erankly-settings .notice.notice-info,
+.erankly-settings .notice.notice-success,
+.erankly-settings .notice.notice-warning,
+.erankly-settings .notice.notice-error {
+	--erankly-alert-color: var(--erankly-color-warning);
+	--erankly-alert-surface: var(--erankly-color-warning-surface);
+	--erankly-alert-border: var(--erankly-color-warning-border);
+	align-items: flex-start;
+	background: var(--erankly-alert-surface);
+	border: 1px solid var(--erankly-alert-border);
+	border-radius: var(--erankly-radius-surface);
+	box-shadow: none;
+	box-sizing: border-box;
+	color: #3c434a;
+	display: flex;
+	gap: 14px;
+	line-height: 1.45;
+	margin: 0 0 16px;
+	max-width: 100%;
+	min-width: 0;
+	padding: 20px 24px;
+	width: 100%;
+}
+
+.erankly-alert--info,
+.erankly-settings .notice.notice-info {
+	--erankly-alert-color: var(--erankly-color-info);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27M12%2011v5%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%208h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-info-surface);
+	--erankly-alert-border: var(--erankly-color-info-border);
+}
+
+.erankly-alert--success,
+.erankly-settings .notice.notice-success {
+	--erankly-alert-color: var(--erankly-color-success);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M22%2011.08V12a10%2010%200%201%201-5.93-9.14%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%2011%203%203L22%204%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-success-surface);
+	--erankly-alert-border: var(--erankly-color-success-border);
+}
+
+.erankly-alert--warning,
+.erankly-panel-callout,
+.erankly-settings .notice.notice-warning {
+	--erankly-alert-color: var(--erankly-color-warning);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M10.29%203.86%201.82%2018a2%202%200%200%200%201.71%203h16.94a2%202%200%200%200%201.71-3L13.71%203.86a2%202%200%200%200-3.42%200Z%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%209v4%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%2017h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-warning-surface);
+	--erankly-alert-border: var(--erankly-color-warning-border);
+}
+
+.erankly-alert--error,
+.erankly-settings .notice.notice-error {
+	--erankly-alert-color: var(--erankly-color-error);
+	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27m15%209-6%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%209%206%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
+	--erankly-alert-surface: var(--erankly-color-error-surface);
+	--erankly-alert-border: var(--erankly-color-error-border);
+}
+
+.erankly-settings .notice.notice-info,
+.erankly-settings .notice.notice-success,
+.erankly-settings .notice.notice-warning,
+.erankly-settings .notice.notice-error {
+	border-left: 1px solid var(--erankly-alert-border);
+	min-height: 0;
+	position: relative;
+}
+
+.erankly-settings .notice.notice-info::before,
+.erankly-settings .notice.notice-success::before,
+.erankly-settings .notice.notice-warning::before,
+.erankly-settings .notice.notice-error::before {
+	background-color: var(--erankly-alert-color);
+	content: "";
+	display: block;
+	flex: 0 0 auto;
+	height: 24px;
+	line-height: 1;
+	mask: var(--erankly-alert-icon) center / contain no-repeat;
+	-webkit-mask: var(--erankly-alert-icon) center / contain no-repeat;
+	width: 24px;
+}
+
+.erankly-alert p,
+.erankly-panel-callout p,
+.erankly-settings .notice.notice-info p,
+.erankly-settings .notice.notice-success p,
+.erankly-settings .notice.notice-warning p,
+.erankly-settings .notice.notice-error p {
+	flex: 1 1 auto;
+	margin: 0;
+	max-width: 100%;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	padding: 0;
+	white-space: normal;
+}
+
+.erankly-alert__icon,
+.erankly-panel-callout-icon {
+	color: var(--erankly-alert-color);
+	flex: 0 0 auto;
+	height: 24px;
+	margin-top: 0;
+	width: 24px;
+}
+
+.erankly-settings .notice.notice-info.is-dismissible,
+.erankly-settings .notice.notice-success.is-dismissible,
+.erankly-settings .notice.notice-warning.is-dismissible,
+.erankly-settings .notice.notice-error.is-dismissible {
+	padding-right: 44px;
+}
+
+.erankly-settings .notice.notice-info .notice-dismiss,
+.erankly-settings .notice.notice-success .notice-dismiss,
+.erankly-settings .notice.notice-warning .notice-dismiss,
+.erankly-settings .notice.notice-error .notice-dismiss {
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.erankly-inline-status .dashicons {
+	font-size: 14px;
+	height: 14px;
+	width: 14px;
+}
+
+.erankly-option-list {
+	gap: 4px 16px;
+}
+
+.erankly-option-list-inline {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.erankly-option-list-stacked {
+	display: grid;
+}
+
+.erankly-settings-table {
+	max-width: 900px;
+}
+
+.erankly-schema-identity-fields,
+.erankly-inline-fields {
+	column-gap: 16px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	row-gap: 6px;
+}
+
+.erankly-schema-identity-fields.is-person {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.erankly-schema-identity-fields .erankly-field select.widefat,
+.erankly-inline-fields .erankly-field input.widefat,
+.erankly-inline-fields .erankly-field select.widefat {
+	max-width: none;
+	width: 100%;
+}
+
+.erankly-settings input[type="text"],
+.erankly-settings input[type="tel"],
+.erankly-settings input[type="url"],
+.erankly-settings input[type="email"],
+.erankly-settings input[type="number"],
+.erankly-settings input[type="search"],
+.erankly-settings input[type="password"],
+.erankly-settings textarea,
+.erankly-settings select,
+.erankly-meta-box input[type="text"],
+.erankly-meta-box input[type="tel"],
+.erankly-meta-box input[type="url"],
+.erankly-meta-box input[type="email"],
+.erankly-meta-box input[type="number"],
+.erankly-meta-box input[type="search"],
+.erankly-meta-box input[type="password"],
+.erankly-meta-box textarea,
+.erankly-meta-box select,
+.erankly-term-meta-box input[type="text"],
+.erankly-term-meta-box input[type="url"],
+.erankly-term-meta-box input[type="email"],
+.erankly-term-meta-box input[type="number"],
+.erankly-term-meta-box input[type="search"],
+.erankly-term-meta-box input[type="password"],
+.erankly-term-meta-box textarea,
+.erankly-term-meta-box select,
+.erankly-setup input[type="text"],
+.erankly-setup input[type="url"],
+.erankly-setup input[type="email"],
+.erankly-setup input[type="number"],
+.erankly-setup input[type="search"],
+.erankly-setup input[type="password"],
+.erankly-setup textarea,
+.erankly-setup select {
+	border-radius: var(--erankly-radius-control);
+}
+
+.erankly-settings .button,
+.erankly-meta-box .button,
+.erankly-term-meta-box .button,
+.erankly-setup .button {
+	border-radius: var(--erankly-radius-control);
+}
+
+.erankly-schema-identity-fields .erankly-field,
+.erankly-inline-fields .erankly-field {
+	margin-bottom: 0;
+}
+
+.erankly-inline-fields {
+	margin: 8px 0 16px;
+}
+
+.erankly-inline-fields-two-columns {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.erankly-schema-person-reference-description {
+	display: block;
+	grid-column: 1 / -1;
+	margin: 0 0 16px;
+}
+
+/* Shared autocomplete used by Person references and multilingual links. */
+.erankly-autocomplete-control {
+	align-items: center;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.erankly-autocomplete-value,
+.erankly-autocomplete-search {
+	grid-column: 1;
+	min-width: 0;
+}
+
+.erankly-user-selected-input[readonly],
+.erankly-user-search-input {
+	background: #fff;
+	border-radius: var(--erankly-radius-control);
+}
+
+.erankly-autocomplete-search {
+	position: relative;
+}
+
+.erankly-autocomplete-results {
+	background: #fff;
+	border: 1px solid var(--erankly-color-border-strong);
+	border-radius: var(--erankly-radius-surface);
+	left: 0;
+	list-style: none;
+	margin: 4px 0 0;
+	max-height: 280px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 0;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	z-index: 1000;
+}
+
+.erankly-autocomplete-results li {
+	margin: 0;
+	padding: 0;
+}
+
+.erankly-autocomplete-results li + li {
+	border-top: 1px solid var(--erankly-color-surface-hover);
+}
+
+.erankly-autocomplete-item {
+	appearance: none;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	box-sizing: border-box;
+	color: var(--erankly-color-text);
+	cursor: pointer;
+	display: block;
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.5;
+	margin: 0;
+	padding: 8px;
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-autocomplete-item:hover,
+.erankly-autocomplete-item:focus {
+	background: var(--erankly-color-surface-subtle);
+	color: var(--erankly-color-text);
+	outline: none;
+}
+
+.erankly-autocomplete-item:focus-visible {
+	box-shadow: inset 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+}
+
+/* Rich user result: avatar + two-line details. */
+.erankly-user-result-item {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	min-height: 40px;
+}
+
+.erankly-user-result-avatar {
+	border-radius: 50%;
+	flex: 0 0 auto;
+	height: 24px;
+	object-fit: cover;
+	width: 24px;
+}
+
+.erankly-user-result-details {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+
+.erankly-user-result-name {
+	color: var(--erankly-color-text);
+	font-weight: 500;
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.erankly-user-result-meta {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.erankly-autocomplete-item:hover .erankly-user-result-meta,
+.erankly-autocomplete-item:focus .erankly-user-result-meta {
+	color: var(--erankly-color-muted);
+}
+
+.erankly-autocomplete-status {
+	color: #757575;
+	font-size: 13px;
+	padding: 8px;
+}
+
+.erankly-field > label,
+.erankly-field > strong,
+.erankly-field > legend {
+	display: block;
+	margin: 0 0 4px;
+}
+
+.erankly-segment-control.erankly-tabs {
+	display: flex;
+	flex-wrap: nowrap;
+	width: 100%;
+}
+
+.erankly-segment-control .erankly-tab {
+	cursor: pointer;
+	flex: 1 1 0;
+	font-variant-numeric: tabular-nums;
+	min-width: 0;
+	position: relative;
+}
+
+.erankly-segment-control .erankly-tab input[type="radio"] {
+	height: 0;
+	margin: 0;
+	opacity: 0;
+	position: absolute;
+	width: 0;
+}
+
+.erankly-segment-control .erankly-tab:has(input:focus-visible) {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--erankly-tab-color);
+	outline: 2px solid transparent;
+}
+
+/* wp-clearfix ::after becomes a flex item and picks up gap after the last tab. */
+.nav-tab-wrapper.erankly-tabs::after,
+button.erankly-linked-defaults-toggle.erankly-tabs::after {
+	content: none;
+	display: none;
+}
+
+.erankly-field select.widefat {
+	max-width: 360px;
+}
+
+.erankly-field select.erankly-field-full-width {
+	max-width: none;
+	width: 100%;
+}
+
+.erankly-meta-box .erankly-field select.widefat {
+	max-width: none;
+	width: 100%;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-schema-identity-fields.is-person,
+	.erankly-inline-fields-two-columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.erankly-settings textarea,
+.erankly-meta-box textarea {
+	resize: vertical;
+}
+
+.erankly-schema-block {
+	background: #fff;
+	border: 1px solid var(--erankly-color-border-strong);
+	border-radius: var(--erankly-radius-surface);
+	margin: 0;
+	overflow: hidden;
+}
+
+.erankly-settings-details {
+	background: #fff;
+	border: 1px solid var(--erankly-color-border-strong);
+	border-radius: var(--erankly-radius-surface);
+	margin: 0 0 16px;
+	overflow: hidden;
+}
+
+.erankly-settings-details:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-settings-details > summary {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	font-weight: 600;
+	gap: 8px;
+	line-height: 1.4;
+	list-style: none;
+	padding: 12px 14px;
+}
+
+.erankly-settings-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.erankly-settings-details[open] > summary {
+	border-bottom: 1px solid var(--erankly-color-border-strong);
+}
+
+.erankly-settings-details > summary::after,
+.erankly-schema-block-header::after {
+	border-bottom: 2px solid;
+	border-right: 2px solid;
+	content: "";
+	display: block;
+	height: 7px;
+	transform: rotate(45deg);
+	transition: transform 0.15s;
+	width: 7px;
+}
+
+.erankly-settings-details > summary::after {
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.erankly-settings-details[open] > summary::after,
+.erankly-schema-block[open] > .erankly-schema-block-header::after {
+	transform: rotate(-135deg);
+}
+
+.erankly-settings-details-content {
+	padding: 16px 14px 1px;
+}
+
+.erankly-schema-panel {
+	background: #fff;
+	padding: 16px 14px 1px;
+}
+
+.erankly-local-business-fields {
+	margin-top: 16px;
+}
+
+.erankly-opening-hours {
+	border-top: 1px solid var(--erankly-color-border);
+	margin: 16px 0;
+}
+
+.erankly-opening-hours-row {
+	align-items: center;
+	border-bottom: 1px solid var(--erankly-color-border);
+	display: grid;
+	gap: 12px;
+	grid-template-columns: 110px 90px minmax(0, 1fr);
+	padding: 10px 0;
+}
+
+.erankly-opening-intervals {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-opening-intervals > span {
+	align-items: center;
+	display: inline-flex;
+	gap: 5px;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-opening-hours-row {
+		align-items: start;
+		grid-template-columns: 1fr;
+	}
+}
+
+/*
+ * Nested subsection inside a card (e.g. the per-context "Social sharing"
+ * block of the special page defaults): a divider, not a separate card.
+ */
+.erankly-defaults-section {
+	border-top: 1px solid var(--erankly-color-border);
+	margin-top: 24px;
+	padding-top: 24px;
+}
+
+/* Sitemap panel: divider between the News / Image / Video subsections. */
+#erankly-settings-panel-sitemap .erankly-card fieldset + fieldset {
+	border-top: 1px solid var(--erankly-color-border);
+	margin-top: 24px;
+	padding-top: 24px;
+}
+
+.erankly-tabs {
+	--erankly-tab-color: var(--wp-admin-theme-color, #3858e9);
+	--erankly-tabs-border-width: 1px;
+	--erankly-tabs-padding: 3px;
+	--erankly-tabs-radius: var(--erankly-radius-surface, 8px);
+	--erankly-tabs-item-radius: var(--erankly-radius-control, 6px);
+	align-items: center;
+	background: #fff;
+	border: var(--erankly-tabs-border-width) solid var(--erankly-tab-color);
+	border-radius: var(--erankly-tabs-radius);
+	box-sizing: border-box;
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	max-width: 100%;
+	padding: var(--erankly-tabs-padding);
+}
+
+.erankly-tabs .erankly-tab,
+.erankly-tabs .erankly-tab.nav-tab {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	border-radius: var(--erankly-tabs-item-radius);
+	box-shadow: none;
+	box-sizing: border-box;
+	color: color-mix(in srgb, var(--erankly-tab-color) 38%, var(--erankly-color-muted));
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 14px;
+	font-weight: 500;
+	justify-content: center;
+	line-height: 1.2;
+	margin: 0;
+	min-height: 32px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	padding: 7px 14px;
+	text-align: center;
+	text-decoration: none;
+	transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, color 0.15s ease-in-out;
+	white-space: normal;
+}
+
+.erankly-tabs .erankly-tab:hover,
+.erankly-tabs .erankly-tab:focus {
+	background: color-mix(in srgb, var(--erankly-tab-color) 8%, transparent);
+	color: var(--erankly-tab-color);
+}
+
+.erankly-tabs .erankly-tab.is-active,
+.erankly-tabs .erankly-tab.nav-tab-active {
+	background: var(--erankly-tab-color);
+	box-shadow: none;
+	color: #fff;
+}
+
+.erankly-tabs .erankly-tab.is-active:hover,
+.erankly-tabs .erankly-tab.nav-tab-active:hover,
+.erankly-tabs .erankly-tab.is-active:focus,
+.erankly-tabs .erankly-tab.nav-tab-active:focus {
+	background: var(--erankly-tab-color);
+	color: #fff;
+}
+
+.erankly-tabs .erankly-tab:focus-visible {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--erankly-tab-color);
+	outline: 2px solid transparent;
+}
+
+.erankly-default-tabs {
+	margin: 0 0 24px;
+}
+
+.erankly-default-tabs-bar {
+	align-items: flex-end;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+	flex: 0 1 auto;
+}
+
+.erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+	flex: 0 1 auto;
+	min-width: 108px;
+}
+
+.erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+	--erankly-entity-tab-width: 108px;
+	--erankly-entity-tab-window: 375px;
+	-webkit-overflow-scrolling: touch;
+	flex-wrap: nowrap;
+	max-width: var(--erankly-entity-tab-window);
+	overflow-x: auto;
+	overflow-y: hidden;
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+.erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+	flex: 0 0 auto;
+	min-width: var(--erankly-entity-tab-width);
+	white-space: nowrap;
+}
+
+.erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs::-webkit-scrollbar {
+	display: none;
+}
+
+.erankly-special-page-default-tabs > .erankly-default-tabs-bar {
+	width: 100%;
+}
+
+.erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+	flex: 1 1 100%;
+	max-width: 100%;
+	width: 100%;
+}
+
+.erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+	flex: 1 0 var(--erankly-entity-tab-width);
+}
+
+.erankly-default-tabs .erankly-linked-tabs-summary {
+	display: none;
+}
+
+.erankly-linked-defaults-label {
+	align-self: center;
+	flex: 0 0 auto;
+	font-weight: 500;
+	margin: 0 0 4px auto;
+	overflow-wrap: anywhere;
+	text-align: left;
+}
+
+button.erankly-linked-defaults-toggle.erankly-tabs {
+	appearance: none;
+	cursor: pointer;
+	flex: 0 0 auto;
+	font: inherit;
+	margin: 0 0 4px;
+}
+
+button.erankly-linked-defaults-toggle.erankly-tabs:focus-visible {
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
+	outline: 2px solid transparent;
+}
+
+button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-option {
+	flex: 0 0 auto;
+	font-weight: 600;
+	min-width: 42px;
+	padding-left: 12px;
+	padding-right: 12px;
+}
+
+.erankly-default-tabs.is-linked button.erankly-linked-defaults-toggle .erankly-linked-defaults-option.is-yes,
+.erankly-default-tabs:not(.is-linked) button.erankly-linked-defaults-toggle .erankly-linked-defaults-option.is-no {
+	background: var(--wp-admin-theme-color, #3858e9);
+	box-shadow: none;
+	color: #fff;
+}
+
+.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
+	border-color: var(--erankly-color-border-strong);
+	overflow: hidden;
+}
+
+/* The postbox .inside already pads the bottom; avoid doubling it up. */
+.erankly-meta-box .erankly-field:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-meta-box .description {
+	display: block;
+	margin-top: 4px;
+}
+
+/* stylelint-disable declaration-no-important -- Overrides WordPress hidden and linked-tab utility states. */
+.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab,
+.erankly-tabs .erankly-tab:disabled {
+	background: transparent;
+	box-shadow: none;
+	color: #a7aaad;
+	cursor: default;
+	opacity: 0.8;
+	pointer-events: none;
+}
+
+.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
+	color: #949494;
+	opacity: 1;
+}
+
+.erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs [data-erankly-tab] {
+	display: none !important;
+}
+
+.erankly-default-tabs.is-linked .erankly-linked-tabs-summary {
+	display: inline-flex !important;
+}
+
+.erankly-redirect-management {
+	margin-top: 16px;
+}
+
+.erankly-tab-panel {
+	margin-top: 16px;
+}
+
+.erankly-meta-box .erankly-internal-links-panel .hidden {
+	display: none !important;
+}
+
+.erankly-meta-box .erankly-internal-links-status.is-error {
+	color: var(--erankly-color-error);
+}
+
+.erankly-meta-box .erankly-internal-links-status.is-success {
+	color: var(--erankly-color-success);
+}
+
+/* Without JavaScript, expose inner tab panels; top-level navigation is links. */
+.no-js .erankly-settings .erankly-tab-panel[hidden],
+.no-js .erankly-settings [data-erankly-advanced-panel][hidden] {
+	display: block !important;
+}
+/* stylelint-enable declaration-no-important */
+
+.erankly-default-tab-panel {
+	margin-top: 0;
+	padding-top: 16px;
+}
+
+.erankly-character-counter {
+	color: var(--erankly-color-muted);
+	display: block;
+	margin-top: 4px;
+}
+
+.erankly-character-counter.is-warning {
+	color: var(--erankly-color-warning);
+}
+
+.erankly-media-preview {
+	margin: 0 0 8px;
+	min-height: 0;
+}
+
+.erankly-media-preview img {
+	display: block;
+	height: auto;
+	max-height: 120px;
+	max-width: 220px;
+}
+
+.erankly-media-url-field {
+	margin: 8px 0 0;
+}
+
+/* Flex-wrap keeps the buttons usable in narrow containers such as the
+   block editor sidebar meta boxes, without a dedicated media query. */
+.erankly-media-url-control {
+	align-items: flex-start;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.erankly-media-url-control .erankly-variable-field {
+	flex: 1 1 220px;
+	min-width: 0;
+}
+
+.erankly-media-url-preview {
+	margin-top: 8px;
+}
+
+.erankly-checkboxes {
+	border: 0;
+	padding: 0;
+}
+
+/* Single-class on/off toggle: overlays any input[type="checkbox"], no
+   extra markup required — appearance:none turns it into a plain box that
+   ::before can render the knob on top of. The input[type="checkbox"]
+   prefix is needed to out-specificity wp-admin/css/forms.css, which
+   styles that same attribute selector with a border/background. */
+input[type="checkbox"].erankly-toggle {
+	--erankly-toggle-inset: 2px;
+	appearance: none;
+	background: #dcdcde;
+	border: 0;
+	border-radius: var(--erankly-radius-control);
+	cursor: pointer;
+	flex-shrink: 0;
+	height: 20px;
+	margin: 0 6px 0 0;
+	padding: 0;
+	position: relative;
+	transition: background-color 0.15s ease-in-out;
+	vertical-align: middle;
+	width: 36px;
+}
+
+input[type="checkbox"].erankly-toggle::before {
+	background: #fff;
+	border-radius: calc(var(--erankly-radius-control) - var(--erankly-toggle-inset));
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	content: "";
+	height: 16px;
+	left: var(--erankly-toggle-inset);
+	position: absolute;
+	top: var(--erankly-toggle-inset);
+	transition: left 0.15s ease-in-out;
+	width: 16px;
+}
+
+input[type="checkbox"].erankly-toggle:checked {
+	animation: erankly-toggle-pulse 0.4s ease-out;
+	background: var(--erankly-color-success);
+}
+
+@keyframes erankly-toggle-pulse {
+	0% {
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--erankly-color-success) 50%, transparent);
+	}
+
+	100% {
+		box-shadow: 0 0 0 6px color-mix(in srgb, var(--erankly-color-success) 0%, transparent);
+	}
+}
+
+/* Re-declares content/width/height/margin (not just left): wp-admin's own
+   input[type="checkbox"]:checked::before rule — which paints a 21px
+   checkmark icon — outranks our unchecked-state ::before here, so those
+   properties must be repeated at this higher specificity to stay 16px. */
+input[type="checkbox"].erankly-toggle:checked::before {
+	content: "";
+	height: 16px;
+	left: 18px;
+	margin: 0;
+	width: 16px;
+}
+
+input[type="checkbox"].erankly-toggle:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+input[type="checkbox"].erankly-toggle:focus {
+	border-color: initial;
+	box-shadow: none;
+}
+
+input[type="checkbox"].erankly-toggle:focus-visible {
+	outline: 0;
+}
+
+.erankly-checkboxes legend {
+	margin-bottom: 4px;
+}
+
+.erankly-visibility-defaults legend {
+	margin-bottom: 8px;
+}
+
+.erankly-checkbox-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 20px;
+}
+
+.erankly-visibility-defaults .erankly-checkbox-options label {
+	align-items: center;
+	display: inline-flex;
+	line-height: 1.4;
+	margin: 0;
+}
+
+.erankly-visibility-defaults .erankly-checkbox-options input[type="checkbox"] {
+	margin: 0 4px 0 0;
+}
+
+.erankly-variable-field {
+	position: relative;
+}
+
+.erankly-variable-field .widefat,
+.erankly-variable-field .regular-text,
+.erankly-variable-field .large-text {
+	padding-right: 8px;
+}
+
+.erankly-term-meta-box .erankly-variable-field .widefat {
+	box-sizing: border-box;
+	max-width: none;
+	width: 100%;
+}
+
+.erankly-term-meta-box .erankly-term-twitter-card-type {
+	box-sizing: border-box;
+	max-width: none;
+	width: 100%;
+}
+
+/* The preview never paints a background/border of its own — it only draws
+ * text over the real field, whose own text is made transparent while it's
+ * showing (see .erankly-variable-field.erankly-is-previewing below). That
+ * keeps the field's native border/box-shadow untouched instead of an opaque
+ * overlay box hiding it (which previously clipped the bottom border on some
+ * themes/browsers when the overlay's computed height didn't exactly match
+ * the control's). pointer-events: none lets clicks fall through to focus
+ * the real (transparent-text) control directly, no click handler needed.
+ */
+.erankly-variable-preview {
+	align-items: center;
+	box-sizing: border-box;
+	color: var(--erankly-color-text);
+	display: none;
+	font: inherit;
+	inset: 0;
+	overflow: hidden;
+	padding: 0 8px;
+	pointer-events: none;
+	position: absolute;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	z-index: 1;
+}
+
+.erankly-variable-field.erankly-is-previewing .erankly-variable-preview {
+	display: flex;
+}
+
+.erankly-variable-field.erankly-is-previewing .widefat,
+.erankly-variable-field.erankly-is-previewing .regular-text,
+.erankly-variable-field.erankly-is-previewing .large-text {
+	color: transparent;
+}
+
+.erankly-variable-field textarea + .erankly-variable-preview {
+	align-items: flex-start;
+	padding-top: 6px;
+	white-space: pre-wrap;
+}
+
+/* Suggestion dropdown positioning — surface/row styles live in shared.css. */
+.erankly-variable-menu {
+	left: 0;
+	margin-top: 4px;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	z-index: 10000;
+}
+
+.erankly-schema-blocks {
+	display: grid;
+	gap: 8px;
+}
+
+.erankly-schema-blocks.is-empty {
+	display: none;
+}
+
+.erankly-schema-block-header {
+	align-items: center;
+	background: #fff;
+	cursor: pointer;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: minmax(0, 1fr) auto 16px;
+	padding: 0 8px 0 14px;
+}
+
+.erankly-schema-block-header::-webkit-details-marker {
+	display: none;
+}
+
+.erankly-schema-block[open] > .erankly-schema-block-header {
+	border-bottom: 1px solid var(--erankly-color-border-strong);
+}
+
+.erankly-schema-targeting {
+	margin: 0 0 16px;
+	padding: 0;
+}
+
+.erankly-schema-targeting legend {
+	font-weight: 600;
+	padding: 0 4px;
+}
+
+.erankly-schema-targeting label {
+	display: block;
+	margin: 4px 0;
+}
+
+.erankly-schema-targeting-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	margin-top: 12px;
+}
+
+.erankly-schema-title {
+	font-weight: 600;
+	line-height: 1.4;
+	padding: 12px 0;
+}
+
+.erankly-schema-row-actions {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.erankly-schema-field {
+	display: block;
+	margin: 0;
+	min-width: 0;
+}
+
+.erankly-schema-field > span {
+	color: #3c434a;
+	display: block;
+	font-weight: 600;
+	line-height: 1.4;
+	margin-bottom: 4px;
+}
+
+.erankly-schema-field .widefat {
+	min-height: 32px;
+}
+
+.erankly-schema-field textarea,
+.erankly-schema-field .erankly-variable-field {
+	width: 100%;
+}
+
+.erankly-schema-field textarea.widefat {
+	min-height: 74px;
+}
+
+.erankly-schema-field textarea[rows="8"] {
+	min-height: 190px;
+}
+
+.erankly-schema-actions {
+	margin: 16px 0;
+}
+
+.erankly-schema-blocks.is-empty ~ .erankly-schema-actions {
+	margin-top: 0;
+}
+
+.erankly-global-meta-default {
+	margin: 0;
+	max-width: none;
+}
+
+.erankly-global-meta-default .erankly-field:last-child {
+	margin-bottom: 0;
+}
+
+.erankly-additional-contexts {
+	border-top: 1px solid var(--erankly-color-border);
+	margin-top: 32px;
+	padding-top: 32px;
+}
+
+.erankly-global-meta-default label {
+	display: block;
+	margin: 0 0 4px;
+}
+
+.erankly-term-meta-box {
+	max-width: 900px;
+}
+
+@media screen and (max-width: 782px) {
+	.erankly-schema-block-header {
+		padding: 0 10px 0 14px;
+	}
+
+	.erankly-schema-row-actions {
+		align-self: start;
+	}
+
+	.erankly-schema-field > span {
+		padding-top: 0;
+	}
+}
+
+
+/* AI meta generation */
+.erankly-ai-field {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 6px;
+}
+
+.erankly-ai-privacy {
+	margin: 0;
+	max-width: 52em;
+}
+
+.erankly-ai-field .button {
+	width: 100%;
+	text-align: center;
+}
+
+.erankly-ai-improve {
+	padding-top: 8px;
+	border-top: 1px solid var(--erankly-color-border);
+}
+
+.erankly-ai-improve label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+}
+
+.erankly-ai-improve textarea {
+	display: block;
+	min-height: 84px;
+}
+
+.erankly-ai-improve .button {
+	margin-top: 6px;
+}
+
+.erankly-ai-status {
+	margin: 0;
+}
+
+.erankly-ai-status.erankly-ai-error {
+	color: var(--erankly-color-error);
+}
+
+.erankly-ai-privacy-notice {
+	margin: 0 0 20px;
+	max-width: 52em;
+}
+
+.erankly-ai-privacy-notice__content {
+	flex: 1 1 auto;
+	max-width: 100%;
+	min-width: 0;
+}
+
+.erankly-ai-privacy-notice__content p {
+	flex: none;
+	margin: 0 0 0.75em;
+}
+
+.erankly-ai-privacy-notice__content ul {
+	flex: none;
+	margin: 0 0 0.75em 1.5em;
+}
+
+.erankly-ai-privacy-notice__content > :last-child {
+	margin-bottom: 0;
+}
+
+.erankly-ai-privacy-notice .ul-disc {
+	list-style: disc;
+}
+
+
+/* Link graph maintenance (Features panel) */
+.erankly-lb-stats {
+	margin: 0 0 12px;
+	padding-left: 1.2em;
+}

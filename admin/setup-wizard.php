@@ -10,111 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Returns the capability required to manage the wizard.
- *
- * @return string
- */
-function erankly_setup_wizard_capability(): string {
-	return is_multisite() ? 'manage_network_options' : 'manage_options';
-}
-
-/**
- * Returns a setup wizard URL.
- *
- * @param string $step Optional wizard step.
- * @return string
- */
-function erankly_setup_wizard_url( string $step = '' ): string {
-	$url = is_multisite()
-		? network_admin_url( 'settings.php?page=erankly-setup' )
-		: admin_url( 'options-general.php?page=erankly-setup' );
-
-	if ( '' !== $step ) {
-		$url = add_query_arg( 'step', sanitize_key( $step ), $url );
-	}
-
-	return $url;
-}
-
-/**
- * Returns the settings URL for the current installation type.
- *
- * @return string
- */
-function erankly_setup_wizard_settings_url(): string {
-	return is_multisite()
-		? network_admin_url( 'settings.php?page=erankly' )
-		: admin_url( 'options-general.php?page=erankly' );
-}
-
-/**
- * Registers the hidden setup page.
- *
- * @return void
- */
-function erankly_setup_wizard_register_page(): void {
-	$parent_slug = is_network_admin() ? 'settings.php' : 'options-general.php';
-
-	add_submenu_page(
-		$parent_slug,
-		__( 'EasyRankly setup', 'easyrankly' ),
-		__( 'EasyRankly setup', 'easyrankly' ),
-		erankly_setup_wizard_capability(),
-		'erankly-setup',
-		'erankly_setup_wizard_render'
-	);
-
-	remove_submenu_page( $parent_slug, 'erankly-setup' );
-}
-
-/**
- * Redirects administrators to the wizard after a fresh installation.
- *
- * @return void
- */
-function erankly_setup_wizard_maybe_redirect(): void {
-	global $pagenow;
-
-	if ( 'pending' !== erankly_get_plugin_option( ERANKLY_SETUP_STATUS_OPTION, '' ) ) {
-		return;
-	}
-
-	if ( is_multisite() && ! is_network_admin() ) {
-		return;
-	}
-
-	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
-		return;
-	}
-
-	if ( wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
-		return;
-	}
-
-	$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
-	if ( 'get' !== $request_method ) {
-		return;
-	}
-
-	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
-	if ( 'erankly-setup' === $page ) {
-		return;
-	}
-
-	if ( in_array( $pagenow, array( 'plugins.php', 'plugin-install.php', 'update.php', 'update-core.php', 'admin-post.php' ), true ) ) {
-		return;
-	}
-
-	wp_safe_redirect( erankly_setup_wizard_url() );
-	exit;
-}
-
-/**
  * Saves the setup choices.
  *
  * @return void
  */
-function erankly_setup_wizard_save(): void {
+function erankly_setup_wizard_handle_save(): void {
 	check_admin_referer( 'erankly_setup_save' );
 
 	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
@@ -146,7 +46,7 @@ function erankly_setup_wizard_save(): void {
  *
  * @return void
  */
-function erankly_setup_wizard_skip(): void {
+function erankly_setup_wizard_handle_skip(): void {
 	check_admin_referer( 'erankly_setup_skip' );
 
 	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
@@ -164,7 +64,7 @@ function erankly_setup_wizard_skip(): void {
  *
  * @return void
  */
-function erankly_setup_wizard_render(): void {
+function erankly_setup_wizard_render_screen(): void {
 	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}

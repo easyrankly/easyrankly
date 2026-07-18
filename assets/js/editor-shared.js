@@ -25,6 +25,7 @@
 	const PANEL_ORDER = [
 		'erankly-panel--appearance',
 		'erankly-panel--social',
+		'erankly-panel--schema',
 		'erankly-panel--visibility',
 		'erankly-panel--internal-links',
 		'erankly-panel--checklist',
@@ -455,7 +456,7 @@
 		);
 	}
 
-	function SocialImageControl( { onChange, placeholder = '', value = '', variables = {} } ) {
+	function SocialImageControl( { label = '', onChange, placeholder = '', value = '', variables = {} } ) {
 		return el( VariableControl, {
 			extraActions: [
 				el(
@@ -477,7 +478,7 @@
 					__( 'Remove', 'easyrankly' )
 				),
 			],
-			label: __( 'Social image URL', 'easyrankly' ),
+			label: label || __( 'Social image URL', 'easyrankly' ),
 			onChange,
 			placeholder,
 			value,
@@ -704,13 +705,45 @@
 			} ) );
 		}
 
-		fields.push( el( SocialImageControl, {
-			key: 'image',
-			onChange: ( value ) => data.set( 'social_image_url', value ),
-			placeholder: config.socialImagePlaceholder,
-			value: data.get( 'social_image_url' ),
-			variables: config.variables,
-		} ) );
+		if ( features.splitSocialImages ) {
+			fields.push( el( SocialImageControl, {
+				key: 'og_image',
+				label: __( 'Open Graph image URL', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'og_image_url', value ),
+				placeholder: config.socialImagePlaceholder,
+				value: data.get( 'og_image_url' ),
+				variables: config.variables,
+			} ) );
+			fields.push( el( TextControl, {
+				key: 'og_image_alt',
+				label: __( 'Open Graph image alt text', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'og_image_alt', value ),
+				value: data.get( 'og_image_alt' ),
+			} ) );
+
+			fields.push( el( SocialImageControl, {
+				key: 'twitter_image',
+				label: __( 'X (Twitter) image URL', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'twitter_image_url', value ),
+				placeholder: config.socialImagePlaceholder,
+				value: data.get( 'twitter_image_url' ),
+				variables: config.variables,
+			} ) );
+			fields.push( el( TextControl, {
+				key: 'twitter_image_alt',
+				label: __( 'X image alt text', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'twitter_image_alt', value ),
+				value: data.get( 'twitter_image_alt' ),
+			} ) );
+		} else {
+			fields.push( el( SocialImageControl, {
+				key: 'image',
+				onChange: ( value ) => data.set( 'social_image_url', value ),
+				placeholder: config.socialImagePlaceholder,
+				value: data.get( 'social_image_url' ),
+				variables: config.variables,
+			} ) );
+		}
 
 		return fields;
 	}
@@ -722,36 +755,106 @@
 
 		if ( config.simplifiedMode ) {
 			fields.push( el( ToggleControl, {
-				checked: Boolean( data.get( 'noindex' ) && data.get( 'disable_sitemap' ) ),
+				checked: Boolean( ( features.triStateRobots ? 'noindex' === ( data.get( 'index_directive' ) || ( data.get( 'noindex' ) ? 'noindex' : 'inherit' ) ) : data.get( 'noindex' ) ) && data.get( 'disable_sitemap' ) ),
 				help: __( 'Sets noindex and removes this page from the sitemap.', 'easyrankly' ),
 				key: 'hide',
 				label: __( 'Hide from search results', 'easyrankly' ),
 				onChange: ( value ) => {
+					if ( features.triStateRobots ) {
+						data.set( 'index_directive', value ? 'noindex' : 'inherit' );
+					}
 					data.set( 'noindex', value );
 					data.set( 'disable_sitemap', value );
 				},
 			} ) );
 		} else {
-			fields.push(
-				el( ToggleControl, {
-					checked: Boolean( data.get( 'noindex' ) ),
-					key: 'noindex',
-					label: __( 'Noindex', 'easyrankly' ),
-					onChange: toggle( 'noindex' ),
-				} ),
-				el( ToggleControl, {
-					checked: Boolean( data.get( 'nofollow' ) ),
-					key: 'nofollow',
-					label: __( 'Nofollow', 'easyrankly' ),
-					onChange: toggle( 'nofollow' ),
-				} ),
-				el( ToggleControl, {
-					checked: Boolean( data.get( 'noarchive' ) ),
-					key: 'noarchive',
-					label: __( 'Noarchive', 'easyrankly' ),
-					onChange: toggle( 'noarchive' ),
-				} )
-			);
+			if ( features.triStateRobots ) {
+				[
+					[ 'index_directive', __( 'Indexing', 'easyrankly' ), 'index', 'noindex' ],
+					[ 'follow_directive', __( 'Link following', 'easyrankly' ), 'follow', 'nofollow' ],
+					[ 'archive_directive', __( 'Cached copy', 'easyrankly' ), 'archive', 'noarchive' ],
+					[ 'snippet_directive', __( 'Text snippet', 'easyrankly' ), 'snippet', 'nosnippet' ],
+					[ 'image_directive', __( 'Image indexing', 'easyrankly' ), 'imageindex', 'noimageindex' ],
+				].forEach( ( directive ) => {
+					const legacy = { index_directive: 'noindex', follow_directive: 'nofollow', archive_directive: 'noarchive' }[ directive[ 0 ] ];
+
+					fields.push( el( SelectControl, {
+						key: directive[ 0 ],
+						label: directive[ 1 ],
+						onChange: ( value ) => {
+							data.set( directive[ 0 ], value );
+
+							if ( legacy ) {
+								data.set( legacy, value === directive[ 3 ] );
+							}
+						},
+						options: [
+							{ label: __( 'Inherit', 'easyrankly' ), value: 'inherit' },
+							{ label: directive[ 2 ], value: directive[ 2 ] },
+							{ label: directive[ 3 ], value: directive[ 3 ] },
+						],
+						value: data.get( directive[ 0 ] ) || ( legacy && data.get( legacy ) ? directive[ 3 ] : 'inherit' ),
+					} ) );
+				} );
+
+				fields.push(
+					el( TextControl, {
+						key: 'max_snippet',
+						label: __( 'Max snippet', 'easyrankly' ),
+						min: -1,
+						onChange: ( value ) => data.set( 'max_snippet', value ),
+						type: 'number',
+						value: data.get( 'max_snippet' ),
+					} ),
+					el( TextControl, {
+						key: 'max_video_preview',
+						label: __( 'Max video preview', 'easyrankly' ),
+						min: -1,
+						onChange: ( value ) => data.set( 'max_video_preview', value ),
+						type: 'number',
+						value: data.get( 'max_video_preview' ),
+					} ),
+					el( SelectControl, {
+						key: 'max_image_preview',
+						label: __( 'Max image preview', 'easyrankly' ),
+						onChange: ( value ) => data.set( 'max_image_preview', value ),
+						options: [
+							{ label: __( 'Inherit', 'easyrankly' ), value: 'inherit' },
+							{ label: 'none', value: 'none' },
+							{ label: 'standard', value: 'standard' },
+							{ label: 'large', value: 'large' },
+						],
+						value: data.get( 'max_image_preview' ) || 'inherit',
+					} ),
+					el( ToggleControl, {
+						checked: Boolean( data.get( 'indexifembedded' ) ),
+						key: 'indexifembedded',
+						label: __( 'Index if embedded when noindex applies', 'easyrankly' ),
+						onChange: toggle( 'indexifembedded' ),
+					} )
+				);
+			} else {
+				fields.push(
+					el( ToggleControl, {
+						checked: Boolean( data.get( 'noindex' ) ),
+						key: 'noindex',
+						label: __( 'Noindex', 'easyrankly' ),
+						onChange: toggle( 'noindex' ),
+					} ),
+					el( ToggleControl, {
+						checked: Boolean( data.get( 'nofollow' ) ),
+						key: 'nofollow',
+						label: __( 'Nofollow', 'easyrankly' ),
+						onChange: toggle( 'nofollow' ),
+					} ),
+					el( ToggleControl, {
+						checked: Boolean( data.get( 'noarchive' ) ),
+						key: 'noarchive',
+						label: __( 'Noarchive', 'easyrankly' ),
+						onChange: toggle( 'noarchive' ),
+					} )
+				);
+			}
 
 			if ( false !== features.disableSitemap ) {
 				fields.push( el( ToggleControl, {

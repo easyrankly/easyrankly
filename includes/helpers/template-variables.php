@@ -121,6 +121,15 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 		case 'post_date':
 			$value = $post_id > 0 ? get_the_date( DATE_W3C, $post_id ) : '';
 			break;
+		case 'post_year':
+			$value = $post_id > 0 ? get_the_date( 'Y', $post_id ) : '';
+			break;
+		case 'post_month':
+			$value = $post_id > 0 ? get_the_date( 'F', $post_id ) : '';
+			break;
+		case 'post_day':
+			$value = $post_id > 0 ? get_the_date( 'j', $post_id ) : '';
+			break;
 		case 'post_modified_date':
 			$value = $post_id > 0 ? get_the_modified_date( DATE_W3C, $post_id ) : '';
 			break;
@@ -131,6 +140,9 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 			break;
 		case 'post_categories':
 			$value = erankly_get_post_category_names( $post_id );
+			break;
+		case 'post_tags':
+			$value = erankly_get_post_tag_names( $post_id );
 			break;
 		case 'seo_title':
 			$value = function_exists( 'erankly_get_title' ) ? erankly_get_title() : '';
@@ -184,6 +196,18 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 		case 'max_pages':
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Core WP global, read-only.
 			$value = isset( $GLOBALS['wp_query'] ) ? (string) max( 1, (int) $GLOBALS['wp_query']->max_num_pages ) : '1';
+			break;
+		case 'current_year':
+			$value = wp_date( 'Y' );
+			break;
+		case 'current_month':
+			$value = wp_date( 'F' );
+			break;
+		case 'current_day':
+			$value = wp_date( 'j' );
+			break;
+		case 'current_date':
+			$value = wp_date( (string) get_option( 'date_format' ) );
 			break;
 		case 'site_name':
 			$value = get_bloginfo( 'name' );
@@ -243,6 +267,28 @@ function erankly_get_post_category_names( int $post_id ): string {
 }
 
 /**
+ * Returns comma-separated tag names for a post.
+ *
+ * @param int $post_id Post ID.
+ * @return string
+ */
+function erankly_get_post_tag_names( int $post_id ): string {
+	if ( $post_id <= 0 ) {
+		return '';
+	}
+
+	$tags = get_the_tags( $post_id );
+
+	if ( empty( $tags ) || is_wp_error( $tags ) ) {
+		return '';
+	}
+
+	$names = wp_list_pluck( $tags, 'name' );
+
+	return implode( ', ', array_map( 'sanitize_text_field', $names ) );
+}
+
+/**
  * Resolves a variable's example value for admin field previews, given an
  * explicit post/term instead of the global queried object — admin screens
  * (Settings defaults, classic meta boxes) don't have one to fall back on.
@@ -273,6 +319,15 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 		case 'post_date':
 			$value = $post ? get_the_date( DATE_W3C, $post ) : '';
 			break;
+		case 'post_year':
+			$value = $post ? get_the_date( 'Y', $post ) : '';
+			break;
+		case 'post_month':
+			$value = $post ? get_the_date( 'F', $post ) : '';
+			break;
+		case 'post_day':
+			$value = $post ? get_the_date( 'j', $post ) : '';
+			break;
 		case 'post_modified_date':
 			$value = $post ? get_the_modified_date( DATE_W3C, $post ) : '';
 			break;
@@ -281,6 +336,9 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 			break;
 		case 'post_categories':
 			$value = $post ? erankly_get_post_category_names( $post->ID ) : '';
+			break;
+		case 'post_tags':
+			$value = $post ? erankly_get_post_tag_names( $post->ID ) : '';
 			break;
 		case 'seo_title':
 			$value = $post ? get_the_title( $post ) : '';
@@ -329,6 +387,18 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 		case 'site_name':
 			$value = get_bloginfo( 'name' );
 			break;
+		case 'current_year':
+			$value = wp_date( 'Y' );
+			break;
+		case 'current_month':
+			$value = wp_date( 'F' );
+			break;
+		case 'current_day':
+			$value = wp_date( 'j' );
+			break;
+		case 'current_date':
+			$value = wp_date( (string) get_option( 'date_format' ) );
+			break;
 		case 'site_description':
 			$value = get_bloginfo( 'description' );
 			break;
@@ -373,9 +443,13 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'post_excerpt',
 		'post_url',
 		'post_date',
+		'post_year',
+		'post_month',
+		'post_day',
 		'post_modified_date',
 		'post_author',
 		'post_categories',
+		'post_tags',
 		'post_type_name',
 		'featured_image',
 		'term_name',
@@ -384,6 +458,10 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'term_url',
 		'taxonomy_name',
 		'site_name',
+		'current_year',
+		'current_month',
+		'current_day',
+		'current_date',
 		'site_description',
 		'site_url',
 		'site_language',

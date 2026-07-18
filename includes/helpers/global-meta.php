@@ -121,6 +121,73 @@ function erankly_get_term_meta_bool( int $term_id, string $key ): bool {
 }
 
 /**
+ * Returns the selected primary term when it still belongs to the post.
+ *
+ * @param int    $post_id  Post ID.
+ * @param string $taxonomy Taxonomy name.
+ * @return WP_Term|null
+ */
+function erankly_get_primary_term( int $post_id, string $taxonomy ): ?WP_Term {
+	$primary_terms = get_post_meta( $post_id, '_erankly_primary_terms', true );
+	$term_id       = is_array( $primary_terms ) && isset( $primary_terms[ $taxonomy ] ) ? absint( $primary_terms[ $taxonomy ] ) : 0;
+
+	if ( $term_id < 1 || ! has_term( $term_id, $taxonomy, $post_id ) ) {
+		return null;
+	}
+
+	$term = get_term( $term_id, $taxonomy );
+
+	return $term instanceof WP_Term ? $term : null;
+}
+
+/**
+ * Returns the explicit robots directive for a post or term.
+ *
+ * Legacy boolean metadata is used only when the tri-state field has never been
+ * stored, which keeps upgrades lossless while allowing an explicit positive
+ * directive to override a restrictive global default.
+ *
+ * @param string $object_type `post`, `term`, or `user`.
+ * @param int    $object_id   Object ID.
+ * @param string $axis        index, follow, archive, snippet, or image.
+ * @return string
+ */
+function erankly_get_object_robots_directive( string $object_type, int $object_id, string $axis ): string {
+	$key = '_erankly_' . $axis . '_directive';
+
+	if ( 'term' === $object_type ) {
+		$value = get_term_meta( $object_id, $key, true );
+	} elseif ( 'user' === $object_type ) {
+		$value = get_user_meta( $object_id, $key, true );
+	} else {
+		$value = get_post_meta( $object_id, $key, true );
+	}
+
+	$value = is_string( $value ) ? trim( $value ) : '';
+
+	if ( '' !== $value && 'inherit' !== $value ) {
+		return $value;
+	}
+
+	$legacy = array(
+		'index'   => 'noindex',
+		'follow'  => 'nofollow',
+		'archive' => 'noarchive',
+	);
+
+	if ( ! isset( $legacy[ $axis ] ) || 'inherit' === $value ) {
+		return 'inherit';
+	}
+
+	$legacy_key = '_erankly_' . $legacy[ $axis ];
+	$legacy_val = 'term' === $object_type
+		? get_term_meta( $object_id, $legacy_key, true )
+		: ( 'user' === $object_type ? get_user_meta( $object_id, $legacy_key, true ) : get_post_meta( $object_id, $legacy_key, true ) );
+
+	return '1' === (string) $legacy_val ? $legacy[ $axis ] : 'inherit';
+}
+
+/**
  * Returns a global metadata template for a post type.
  *
  * @param string $post_type Post type name.
@@ -177,7 +244,13 @@ function erankly_get_global_taxonomy_directive( string $taxonomy, string $field 
 function erankly_get_site_special_meta(): array {
 	$stored = get_option( ERANKLY_SPECIAL_META_OPTION, null );
 
-	return is_array( $stored ) ? $stored : erankly_default_global_special_meta();
+	if ( is_array( $stored ) ) {
+		return $stored;
+	}
+
+	erankly_load_default_helpers();
+
+	return erankly_default_global_special_meta();
 }
 
 /**

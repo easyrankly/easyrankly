@@ -19,6 +19,13 @@ Desktop.ini
 *.log
 *.cache
 *.tmp
+/.phpcs-cache
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/
+/build/
+/dist/
+/*.zip
 
 # Dependencies and build artifacts (never commit these)
 /vendor/
@@ -27,3 +34,7 @@ Desktop.ini
 # Local environment
 .env
 .env.*
+!.env.example
+
+# Licensed release evidence must remain outside version control
+/pro-evidence*.json

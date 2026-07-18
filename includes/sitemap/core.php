@@ -20,7 +20,8 @@ const ERANKLY_SITEMAP_PER_PAGE = 1000;
 /**
  * Injects EasyRankly's per-post exclusion meta_query into core sitemap post queries.
  *
- * Respects both _erankly_noindex and _erankly_disable_sitemap per-post settings.
+ * Respects the canonical index directive, the legacy noindex flag and the
+ * explicit sitemap exclusion setting.
  *
  * @param array<string,mixed> $args      WP_Query args built by the core sitemap provider.
  * @param string              $post_type Post type being queried.
@@ -200,8 +201,9 @@ function erankly_render_sitemap_response( string $type, int $page = 1 ) {
  * Returns image URLs for a post sitemap entry.
  *
  * Sources (in order): featured image, images found in post content (img tags,
- * Gutenberg image/gallery blocks), SEO social image meta, and stored OG/Twitter
- * attachment IDs. Only absolute http(s) URLs are returned; duplicates are dropped.
+ * Gutenberg image/gallery blocks), separate and legacy SEO social image URLs,
+ * and stored OG/Twitter attachment IDs. Only absolute http(s) URLs are returned;
+ * duplicates are dropped.
  *
  * @param int $post_id Post ID.
  * @return array<int,string>
@@ -219,11 +221,13 @@ function erankly_get_sitemap_images( int $post_id ): array {
 	// 2. Images embedded in post content.
 	$images = array_merge( $images, erankly_get_post_content_image_urls( $post_id ) );
 
-	// 3. SEO social image meta (URL stored directly).
-	$social_image = erankly_get_post_meta_string( $post_id, 'social_image_url' );
+	// 3. Separate OG / Twitter URLs plus the legacy shared social-image URL.
+	foreach ( array( 'og_image_url', 'twitter_image_url', 'social_image_url' ) as $meta_key ) {
+		$social_image = erankly_get_post_meta_string( $post_id, $meta_key );
 
-	if ( '' !== $social_image ) {
-		$images[] = esc_url_raw( erankly_replace_variables( $social_image, $post_id ) );
+		if ( '' !== $social_image ) {
+			$images[] = esc_url_raw( erankly_replace_variables( $social_image, $post_id ) );
+		}
 	}
 
 	// 4. OG / Twitter attachment IDs stored in meta.
@@ -319,7 +323,59 @@ function erankly_filter_sitemap_post_type_names_by_global_directives( array $pos
 }
 
 /**
+ * Returns the SQL suffix that excludes posts blocked from sitemap output.
+ *
+ * The tri-state directive is canonical when it contains a recognized value.
+ * The legacy boolean is consulted only when that directive is absent, retaining
+ * compatibility without allowing a stale legacy flag to override explicit
+ * `index` metadata.
+ *
+ * @param string $post_alias Alias of the posts table in the owning query.
+ * @return string
+ */
+function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p' ): string {
+	global $wpdb;
+
+	if ( 1 !== preg_match( '/^[A-Za-z_][A-Za-z0-9_]*$/D', $post_alias ) ) {
+		$post_alias = 'p';
+	}
+
+	return "
+		AND NOT EXISTS (
+			SELECT 1 FROM {$wpdb->postmeta} pm_erankly_index_noindex
+			WHERE pm_erankly_index_noindex.post_id = {$post_alias}.ID
+				AND pm_erankly_index_noindex.meta_key = '_erankly_index_directive'
+				AND pm_erankly_index_noindex.meta_value = 'noindex'
+		)
+		AND (
+			EXISTS (
+				SELECT 1 FROM {$wpdb->postmeta} pm_erankly_index_override
+				WHERE pm_erankly_index_override.post_id = {$post_alias}.ID
+					AND pm_erankly_index_override.meta_key = '_erankly_index_directive'
+					AND pm_erankly_index_override.meta_value IN ('index', 'inherit', 'noindex')
+			)
+			OR NOT EXISTS (
+				SELECT 1 FROM {$wpdb->postmeta} pm_erankly_legacy_noindex
+				WHERE pm_erankly_legacy_noindex.post_id = {$post_alias}.ID
+					AND pm_erankly_legacy_noindex.meta_key = '_erankly_noindex'
+					AND pm_erankly_legacy_noindex.meta_value = '1'
+			)
+		)
+		AND NOT EXISTS (
+			SELECT 1 FROM {$wpdb->postmeta} pm_erankly_sitemap_disabled
+			WHERE pm_erankly_sitemap_disabled.post_id = {$post_alias}.ID
+				AND pm_erankly_sitemap_disabled.meta_key = '_erankly_disable_sitemap'
+				AND pm_erankly_sitemap_disabled.meta_value = '1'
+		)
+	";
+}
+
+/**
  * Returns meta query clauses that exclude blocked sitemap URLs.
+ *
+ * The canonical tri-state directive takes precedence over the legacy boolean.
+ * A recognized explicit `index` therefore remains eligible even if stale
+ * `_erankly_noindex` metadata is still present.
  *
  * @return array<int|string,mixed>
  */
@@ -328,6 +384,23 @@ function erankly_get_sitemap_exclusion_meta_query(): array {
 		'relation' => 'AND',
 		array(
 			'relation' => 'OR',
+			array(
+				'key'     => '_erankly_index_directive',
+				'compare' => 'NOT EXISTS',
+			),
+			array(
+				'key'     => '_erankly_index_directive',
+				'value'   => 'noindex',
+				'compare' => '!=',
+			),
+		),
+		array(
+			'relation' => 'OR',
+			array(
+				'key'     => '_erankly_index_directive',
+				'value'   => array( 'index', 'inherit', 'noindex' ),
+				'compare' => 'IN',
+			),
 			array(
 				'key'     => '_erankly_noindex',
 				'compare' => 'NOT EXISTS',
@@ -356,8 +429,8 @@ function erankly_get_sitemap_exclusion_meta_query(): array {
 /**
  * Returns meta query clauses that exclude noindex terms from taxonomy sitemaps.
  *
- * Terms use the same _erankly_noindex / _erankly_disable_sitemap keys as
- * posts, so the post exclusion clauses apply unchanged.
+ * Terms use the same canonical and legacy keys as posts, so the post exclusion
+ * clauses apply unchanged.
  *
  * @return array<int|string,mixed>
  */
@@ -442,19 +515,7 @@ function erankly_get_sitemap_user_stats(): array {
 		WHERE p.post_status = 'publish'
 			AND p.post_author > 0
 			AND p.post_type IN ({$placeholders})
-				" . "AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_noindex
-				WHERE pm_noindex.post_id = p.ID
-					AND pm_noindex.meta_key = '_erankly_noindex'
-					AND pm_noindex.meta_value = '1'
-			)
-			AND NOT EXISTS (
-				SELECT 1 FROM {$wpdb->postmeta} pm_sitemap
-				WHERE pm_sitemap.post_id = p.ID
-					AND pm_sitemap.meta_key = '_erankly_disable_sitemap'
-					AND pm_sitemap.meta_value = '1'
-			)" . '
-	';
+	" . erankly_get_sitemap_exclusion_sql( 'p' );
 
 	$prepared_sql = $wpdb->prepare( $sql, $post_types ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic post type placeholders are generated above and every value is bound here.
 	$row          = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- The aggregate query is prepared immediately above; table names and the exclusion clause are internal constants.

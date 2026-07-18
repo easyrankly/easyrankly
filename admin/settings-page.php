@@ -9,14 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once ERANKLY_PATH . 'admin/settings/renderers.php';
-
 /**
  * Registers settings.
  *
  * @return void
  */
 function erankly_register_settings(): void {
+	erankly_load_default_helpers();
+
 	register_setting(
 		'erankly',
 		ERANKLY_OPTION,
@@ -115,7 +115,7 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'global_schema_blocks'                => isset( $input['global_schema_blocks'] ) ? erankly_sanitize_schema_blocks( $input['global_schema_blocks'], true ) : array(),
 		'simplified_mode'                     => ! empty( $input['simplified_mode'] ) ? 1 : 0,
 		'resolve_placeholders'                => ! empty( $input['resolve_placeholders'] ) ? 1 : 0,
-		'ai_enabled'                          => ! empty( $input['ai_enabled'] ) ? 1 : 0,
+		'ai_enabled'                          => ! empty( $input['ai_enabled'] ) && erankly_ai_provider_available() ? 1 : 0,
 		// Preserve the saved prompt when the AI tab is not part of the submitted
 		// form (e.g. simplified mode, or AI disabled), so other saves never wipe it.
 		'ai_prompt_template'                  => isset( $input['ai_prompt_template'] ) && function_exists( 'erankly_ai_sanitize_prompt_template' )
@@ -573,6 +573,43 @@ function erankly_get_multilingual_notice_nav_subtabs(): array {
 }
 
 /**
+ * Returns a real, no-JavaScript URL for a top-level settings tab.
+ *
+ * @param string $tab Tab slug.
+ * @return string
+ */
+function erankly_settings_tab_url( string $tab ): string {
+	$base = is_network_admin()
+		? network_admin_url( 'settings.php' )
+		: admin_url( 'options-general.php' );
+
+	return add_query_arg(
+		array(
+			'page'        => 'erankly',
+			'erankly_tab' => sanitize_key( $tab ),
+		),
+		$base
+	);
+}
+
+/**
+ * Prints one server-routed settings navigation link.
+ *
+ * @param string $slug         Tab slug.
+ * @param string $label        Visible label.
+ * @param string $active_panel Active panel ID.
+ * @param bool   $hidden       Whether the link is currently unavailable.
+ * @return void
+ */
+function erankly_render_settings_nav_link( string $slug, string $label, string $active_panel, bool $hidden = false ): void {
+	$panel     = 'settings-' . $slug;
+	$is_active = $panel === $active_panel;
+	?>
+	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo 'advanced' === $slug ? 'data-erankly-advanced-tab' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo esc_html( $label ); ?></a>
+	<?php
+}
+
+/**
  * Renders settings page.
  *
  * @return void
@@ -584,19 +621,7 @@ function erankly_render_settings_page(): void {
 		return;
 	}
 
-	$settings = erankly_get_settings();
-
-	// Simplified mode's master toggle drives only the cleanups with no functional
-	// side effects; the riskier ones stay individually controlled in advanced mode.
-	$bloat_safe_keys   = array( 'bloat_remove_emoji', 'bloat_remove_generator', 'bloat_remove_rsd_link', 'bloat_remove_wlwmanifest', 'bloat_remove_shortlink', 'bloat_remove_rest_link', 'bloat_disable_self_pingbacks' );
-	$safe_bloat_active = array_reduce( $bloat_safe_keys, static fn( bool $carry, string $k ) => $carry && ! empty( $settings[ $k ] ), true );
-
-	$sitemap_url              = erankly_get_sitemap_url( '/wp-sitemap.xml' );
-	$global_schema_blocks     = isset( $settings['global_schema_blocks'] ) && is_array( $settings['global_schema_blocks'] ) ? $settings['global_schema_blocks'] : array();
-	$global_schema_name       = ERANKLY_OPTION . '[global_schema_blocks]';
-	$schema_person_user_id    = isset( $settings['schema_person_user_id'] ) ? absint( $settings['schema_person_user_id'] ) : 0;
-	$schema_person_user       = $schema_person_user_id > 0 ? get_userdata( $schema_person_user_id ) : false;
-	$show_organization_fields = 'person' !== $settings['schema_identity'];
+	$settings                 = erankly_get_settings();
 	$redirects_enabled        = erankly_redirects_enabled();
 	$sitemap_enabled          = erankly_sitemap_enabled();
 	$health_enabled           = erankly_health_enabled();
@@ -638,53 +663,59 @@ function erankly_render_settings_page(): void {
 	$active_panel           = $is_site_admin_on_network ? ( $site_panels[0] ?? '' ) : 'settings-general';
 	$active_subtab          = '';
 
-	$post_type_objects  = erankly_get_public_post_types();
-	$taxonomy_objects   = erankly_get_public_taxonomies();
-	$special_page_items = erankly_special_page_keys();
+	if ( '' !== $requested_tab ) {
+		$requested_tab = erankly_admin_resolve_settings_tab( $requested_tab );
+	}
 
-	$general_subtabs = array();
-	if ( ! $is_site_admin_on_network ) {
-		$general_subtabs = array_merge(
-			erankly_get_global_meta_nav_subtabs(
-				'global_post_type_meta',
-				$post_type_objects,
-				! array_key_exists( 'global_post_type_meta_linked', $settings ) || ! empty( $settings['global_post_type_meta_linked'] )
-			),
-			erankly_get_global_meta_nav_subtabs(
-				'global_taxonomy_meta',
-				$taxonomy_objects,
-				! array_key_exists( 'global_taxonomy_meta_linked', $settings ) || ! empty( $settings['global_taxonomy_meta_linked'] )
-			)
-		);
+	$subtab_panel_map = array();
+	if ( '' !== $requested_subtab ) {
+		$post_type_objects  = erankly_get_public_post_types();
+		$taxonomy_objects   = erankly_get_public_taxonomies();
+		$special_page_items = erankly_special_page_keys();
+		$general_subtabs    = array();
 
-		if ( ! is_multisite() && ! erankly_use_site_editor_special_page_panels() ) {
+		if ( ! $is_site_admin_on_network ) {
 			$general_subtabs = array_merge(
-				$general_subtabs,
-				erankly_get_special_page_nav_subtabs( $special_page_items )
+				erankly_get_global_meta_nav_subtabs(
+					'global_post_type_meta',
+					$post_type_objects,
+					! array_key_exists( 'global_post_type_meta_linked', $settings ) || ! empty( $settings['global_post_type_meta_linked'] )
+				),
+				erankly_get_global_meta_nav_subtabs(
+					'global_taxonomy_meta',
+					$taxonomy_objects,
+					! array_key_exists( 'global_taxonomy_meta_linked', $settings ) || ! empty( $settings['global_taxonomy_meta_linked'] )
+				)
 			);
-		}
-	}
 
-	$site_special_subtabs = $show_site_special_tab ? erankly_get_special_page_nav_subtabs( $special_page_items ) : array();
-	$social_subtabs       = $is_site_admin_on_network ? array() : erankly_get_social_nav_subtabs( $settings );
-	$multilingual_subtabs = ( is_network_admin() && $multilingual_enabled ) ? erankly_get_multilingual_notice_nav_subtabs() : array();
-	$subtab_panel_map     = array();
+			if ( ! is_multisite() && ! erankly_use_site_editor_special_page_panels() ) {
+				$general_subtabs = array_merge(
+					$general_subtabs,
+					erankly_get_special_page_nav_subtabs( $special_page_items )
+				);
+			}
+		}
 
-	foreach ( $general_subtabs as $item ) {
-		if ( empty( $item['disabled'] ) ) {
-			$subtab_panel_map[ $item['subtab'] ] = 'settings-general';
+		$site_special_subtabs = $show_site_special_tab ? erankly_get_special_page_nav_subtabs( $special_page_items ) : array();
+		$social_subtabs       = $is_site_admin_on_network ? array() : erankly_get_social_nav_subtabs( $settings );
+		$multilingual_subtabs = ( is_network_admin() && $multilingual_enabled ) ? erankly_get_multilingual_notice_nav_subtabs() : array();
+
+		foreach ( $general_subtabs as $item ) {
+			if ( empty( $item['disabled'] ) ) {
+				$subtab_panel_map[ $item['subtab'] ] = 'settings-general';
+			}
 		}
-	}
-	foreach ( $site_special_subtabs as $item ) {
-		$subtab_panel_map[ $item['subtab'] ] = 'settings-special-pages';
-	}
-	foreach ( $social_subtabs as $item ) {
-		if ( empty( $item['disabled'] ) ) {
-			$subtab_panel_map[ $item['subtab'] ] = 'settings-social';
+		foreach ( $site_special_subtabs as $item ) {
+			$subtab_panel_map[ $item['subtab'] ] = 'settings-special-pages';
 		}
-	}
-	foreach ( $multilingual_subtabs as $item ) {
-		$subtab_panel_map[ $item['subtab'] ] = 'settings-multilingual';
+		foreach ( $social_subtabs as $item ) {
+			if ( empty( $item['disabled'] ) ) {
+				$subtab_panel_map[ $item['subtab'] ] = 'settings-social';
+			}
+		}
+		foreach ( $multilingual_subtabs as $item ) {
+			$subtab_panel_map[ $item['subtab'] ] = 'settings-multilingual';
+		}
 	}
 
 	/**
@@ -776,6 +807,39 @@ function erankly_render_settings_page(): void {
 		$active_subtab = '';
 	}
 
+	if ( in_array( $active_panel, array( 'settings-general', 'settings-social', 'settings-schema', 'settings-advanced', 'settings-special-pages' ), true ) ) {
+		require_once ERANKLY_PATH . 'admin/field-renderers.php';
+	}
+
+	if ( in_array( $active_panel, array( 'settings-general', 'settings-social', 'settings-schema', 'settings-special-pages' ), true ) ) {
+		require_once ERANKLY_PATH . 'admin/settings/renderers.php';
+	}
+
+	// Compute panel-specific data only after routing has selected the one renderer
+	// that will execute on this request.
+	if ( 'settings-general' === $active_panel ) {
+		$schema_person_user_id    = isset( $settings['schema_person_user_id'] ) ? absint( $settings['schema_person_user_id'] ) : 0;
+		$schema_person_user       = $schema_person_user_id > 0 ? get_userdata( $schema_person_user_id ) : false;
+		$show_organization_fields = 'person' !== $settings['schema_identity'];
+	}
+
+	if ( 'settings-schema' === $active_panel ) {
+		$global_schema_blocks = isset( $settings['global_schema_blocks'] ) && is_array( $settings['global_schema_blocks'] ) ? $settings['global_schema_blocks'] : array();
+		$global_schema_name   = ERANKLY_OPTION . '[global_schema_blocks]';
+	}
+
+	if ( 'settings-sitemap' === $active_panel ) {
+		erankly_load_sitemap_helpers();
+		$sitemap_url = erankly_get_sitemap_url( '/wp-sitemap.xml' );
+	}
+
+	if ( 'settings-bloat' === $active_panel ) {
+		// Simplified mode's master toggle drives only cleanups with no functional
+		// side effects; riskier options remain individually controlled.
+		$bloat_safe_keys   = array( 'bloat_remove_emoji', 'bloat_remove_generator', 'bloat_remove_rsd_link', 'bloat_remove_wlwmanifest', 'bloat_remove_shortlink', 'bloat_remove_rest_link', 'bloat_disable_self_pingbacks' );
+		$safe_bloat_active = array_reduce( $bloat_safe_keys, static fn( bool $carry, string $key ) => $carry && ! empty( $settings[ $key ] ), true );
+	}
+
 	// With every built-in panel now autosaving, $show_settings_submit ends up
 	// false for every reachable $active_panel today — but the computation
 	// itself isn't dead: it's what keeps the button correctly hidden on the
@@ -841,41 +905,41 @@ function erankly_render_settings_page(): void {
 				<button type="button" class="erankly-settings-sidebar-toggle" aria-expanded="false" data-erankly-sidebar-toggle>
 					<span data-erankly-sidebar-toggle-label></span>
 				</button>
-				<div class="erankly-settings-nav-tablist" role="tablist" aria-orientation="vertical" aria-label="<?php esc_attr_e( 'Plugin settings', 'easyrankly' ); ?>" data-erankly-settings-tablist data-erankly-active-panel="<?php echo esc_attr( $active_panel ); ?>" data-erankly-active-subtab="<?php echo esc_attr( $active_subtab ); ?>">
+				<nav class="erankly-settings-nav-tablist" aria-label="<?php esc_attr_e( 'Plugin settings', 'easyrankly' ); ?>" data-erankly-settings-tablist data-erankly-server-tabs data-erankly-active-panel="<?php echo esc_attr( $active_panel ); ?>" data-erankly-active-subtab="<?php echo esc_attr( $active_subtab ); ?>">
 				<?php if ( ! $is_site_admin_on_network ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-general' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-general" role="tab" aria-selected="<?php echo 'settings-general' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-general" data-erankly-tab="settings-general"><?php esc_html_e( 'General', 'easyrankly' ); ?></button>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-features' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-features" role="tab" aria-selected="<?php echo 'settings-features' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-features" data-erankly-tab="settings-features"><?php esc_html_e( 'Features', 'easyrankly' ); ?></button>
-				<button type="button" class="erankly-settings-nav-item" id="erankly-settings-tab-social" role="tab" aria-selected="false" aria-controls="erankly-settings-panel-social" data-erankly-tab="settings-social"><?php esc_html_e( 'Social', 'easyrankly' ); ?></button>
-				<button type="button" class="erankly-settings-nav-item" id="erankly-settings-tab-schema" role="tab" aria-selected="false" aria-controls="erankly-settings-panel-schema" data-erankly-tab="settings-schema"><?php esc_html_e( 'Schema', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'general', __( 'General', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'features', __( 'Features', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'social', __( 'Social', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'schema', __( 'Schema', 'easyrankly' ), $active_panel ); ?>
 					<?php if ( $sitemap_enabled ) : ?>
-				<button type="button" class="erankly-settings-nav-item" id="erankly-settings-tab-sitemap" role="tab" aria-selected="false" aria-controls="erankly-settings-panel-sitemap" data-erankly-tab="settings-sitemap"><?php esc_html_e( 'Sitemap', 'easyrankly' ); ?></button>
-				<?php endif; ?>
+						<?php erankly_render_settings_nav_link( 'sitemap', __( 'Sitemap', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
 					<?php if ( is_multisite() && is_network_admin() && $multilingual_enabled ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-multilingual' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-multilingual" role="tab" aria-selected="<?php echo 'settings-multilingual' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-multilingual" data-erankly-tab="settings-multilingual"><?php esc_html_e( 'Multilingual', 'easyrankly' ); ?></button>
-				<?php endif; ?>
+						<?php erankly_render_settings_nav_link( 'multilingual', __( 'Multilingual', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
 				<?php endif; ?>
 				<?php if ( $show_site_special_tab ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-special-pages' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-special-pages" role="tab" aria-selected="<?php echo 'settings-special-pages' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-special-pages" data-erankly-tab="settings-special-pages"><?php esc_html_e( 'General', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'special-pages', __( 'General', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_health_tab ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-health' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-health" role="tab" aria-selected="<?php echo 'settings-health' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-health" data-erankly-tab="settings-health"><?php esc_html_e( 'Health', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'health', __( 'Health', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_links_tab ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-links' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-links" role="tab" aria-selected="<?php echo 'settings-links' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-links" data-erankly-tab="settings-links"><?php esc_html_e( 'Internal links', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'links', __( 'Internal links', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( ! $is_site_admin_on_network ) : ?>
-				<button type="button" class="erankly-settings-nav-item" id="erankly-settings-tab-settings" role="tab" aria-selected="false" aria-controls="erankly-settings-panel-settings" data-erankly-tab="settings-settings"><?php esc_html_e( 'Settings', 'easyrankly' ); ?></button>
-				<button type="button" class="erankly-settings-nav-item" id="erankly-settings-tab-advanced" role="tab" aria-selected="false" aria-controls="erankly-settings-panel-advanced" data-erankly-tab="settings-advanced" data-erankly-advanced-tab <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>><?php esc_html_e( 'Advanced', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'settings', __( 'Settings', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'advanced', __( 'Advanced', 'easyrankly' ), $active_panel, ! empty( $settings['simplified_mode'] ) ); ?>
 					<?php if ( $show_ai_tab ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-ai' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-ai" role="tab" aria-selected="<?php echo 'settings-ai' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-ai" data-erankly-tab="settings-ai"><?php esc_html_e( 'AI', 'easyrankly' ); ?></button>
-				<?php endif; ?>
-				<button type="button" class="erankly-settings-nav-item" id="erankly-settings-tab-bloat" role="tab" aria-selected="false" aria-controls="erankly-settings-panel-bloat" data-erankly-tab="settings-bloat"><?php esc_html_e( 'Bloat', 'easyrankly' ); ?></button>
+						<?php erankly_render_settings_nav_link( 'ai', __( 'AI', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+					<?php erankly_render_settings_nav_link( 'bloat', __( 'Bloat', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_import_export_tab ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-import-export' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-import-export" role="tab" aria-selected="<?php echo 'settings-import-export' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-import-export" data-erankly-tab="settings-import-export"><?php esc_html_e( 'Import / Export', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'import-export', __( 'Import / Export', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_redirects_tab ) : ?>
-				<button type="button" class="erankly-settings-nav-item<?php echo 'settings-redirects' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-redirects" role="tab" aria-selected="<?php echo 'settings-redirects' === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-redirects" data-erankly-tab="settings-redirects"><?php esc_html_e( 'Redirects', 'easyrankly' ); ?></button>
+					<?php erankly_render_settings_nav_link( 'redirects', __( 'Redirects', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php
 				foreach ( $extra_tabs as $extra_slug => $extra_tab ) :
@@ -884,9 +948,9 @@ function erankly_render_settings_page(): void {
 					}
 					$extra_panel = 'settings-' . $extra_slug;
 					?>
-				<button type="button" class="erankly-settings-nav-item<?php echo $extra_panel === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $extra_slug ); ?>" role="tab" aria-selected="<?php echo $extra_panel === $active_panel ? 'true' : 'false'; ?>" aria-controls="erankly-settings-panel-<?php echo esc_attr( $extra_slug ); ?>" data-erankly-tab="<?php echo esc_attr( $extra_panel ); ?>"><?php echo esc_html( $extra_tab['label'] ); ?></button>
+					<?php erankly_render_settings_nav_link( $extra_slug, $extra_tab['label'], $active_panel ); ?>
 				<?php endforeach; ?>
-				</div>
+				</nav>
 				<span class="erankly-autosave-status" data-erankly-autosave-status aria-live="polite"></span>
 			</div>
 
@@ -899,25 +963,39 @@ function erankly_render_settings_page(): void {
 					<?php settings_fields( 'erankly' ); ?>
 				<?php endif; ?>
 
-					<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $health_enabled, $multilingual_enabled, $ai_provider_available, $active_panel ); ?>
+					<?php if ( 'settings-features' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $health_enabled, $multilingual_enabled, $ai_provider_available, $active_panel ); ?>
+					<?php endif; ?>
 
-					<?php erankly_render_settings_panel_general( $settings, $schema_person_user_id, $schema_person_user, $show_organization_fields, $active_panel ); ?>
+					<?php if ( 'settings-general' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_general( $settings, $schema_person_user_id, $schema_person_user, $show_organization_fields, $active_panel ); ?>
+					<?php endif; ?>
 
-					<?php erankly_render_settings_panel_social( $settings ); ?>
+					<?php if ( 'settings-social' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_social( $settings ); ?>
+					<?php endif; ?>
 
-					<?php erankly_render_settings_panel_schema( $settings, $global_schema_blocks, $global_schema_name ); ?>
+					<?php if ( 'settings-schema' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_schema( $settings, $global_schema_blocks, $global_schema_name ); ?>
+					<?php endif; ?>
 
-				<?php if ( $sitemap_enabled ) : ?>
+				<?php if ( $sitemap_enabled && 'settings-sitemap' === $active_panel ) : ?>
 					<?php erankly_render_settings_panel_sitemap( $settings, $sitemap_url ); ?>
 				<?php endif; ?>
 
-					<?php erankly_render_settings_panel_settings( $settings, $redirects_enabled ); ?>
+					<?php if ( 'settings-settings' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_settings( $settings, $redirects_enabled ); ?>
+					<?php endif; ?>
 
-					<?php erankly_render_settings_panel_advanced( $settings ); ?>
+					<?php if ( 'settings-advanced' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_advanced( $settings ); ?>
+					<?php endif; ?>
 
-					<?php erankly_render_settings_panel_bloat( $settings, $safe_bloat_active ); ?>
+					<?php if ( 'settings-bloat' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_bloat( $settings, $safe_bloat_active ); ?>
+					<?php endif; ?>
 
-					<?php if ( $show_ai_tab ) : ?>
+					<?php if ( $show_ai_tab && 'settings-ai' === $active_panel ) : ?>
 						<?php erankly_ai_render_settings_panel( $active_panel ); ?>
 					<?php endif; ?>
 
@@ -928,13 +1006,13 @@ function erankly_render_settings_page(): void {
 				</form>
 				<?php endif; ?>
 
-			<?php if ( is_multisite() && is_network_admin() && $multilingual_enabled ) : ?>
+			<?php if ( is_multisite() && is_network_admin() && $multilingual_enabled && 'settings-multilingual' === $active_panel ) : ?>
 			<div class="erankly-tab-panel<?php echo 'settings-multilingual' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-multilingual" role="tabpanel" aria-labelledby="erankly-settings-tab-multilingual" data-erankly-settings-panel="settings-multilingual" data-erankly-standalone-panel <?php echo 'settings-multilingual' === $active_panel ? '' : 'hidden'; ?>>
 				<?php erankly_ml_render_network_panel(); ?>
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $show_site_special_tab ) : ?>
+			<?php if ( $show_site_special_tab && 'settings-special-pages' === $active_panel ) : ?>
 			<div class="erankly-tab-panel<?php echo 'settings-special-pages' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-special-pages" role="tabpanel" aria-labelledby="erankly-settings-tab-special-pages" data-erankly-settings-panel="settings-special-pages" data-erankly-standalone-panel <?php echo 'settings-special-pages' === $active_panel ? '' : 'hidden'; ?>>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<?php wp_nonce_field( 'erankly_site_special_meta' ); ?>
@@ -951,25 +1029,25 @@ function erankly_render_settings_page(): void {
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $show_import_export_tab ) : ?>
+			<?php if ( $show_import_export_tab && 'settings-import-export' === $active_panel && function_exists( 'erankly_import_export_render_panel' ) ) : ?>
 			<div class="erankly-tab-panel<?php echo 'settings-import-export' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-import-export" role="tabpanel" aria-labelledby="erankly-settings-tab-import-export" data-erankly-settings-panel="settings-import-export" <?php echo 'settings-import-export' === $active_panel ? '' : 'hidden'; ?>>
 				<?php erankly_import_export_render_panel(); ?>
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $show_health_tab && function_exists( 'erankly_health_render_panel' ) ) : ?>
+			<?php if ( $show_health_tab && 'settings-health' === $active_panel && function_exists( 'erankly_health_render_panel' ) ) : ?>
 			<div class="erankly-tab-panel<?php echo 'settings-health' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-health" role="tabpanel" aria-labelledby="erankly-settings-tab-health" data-erankly-settings-panel="settings-health" <?php echo 'settings-health' === $active_panel ? '' : 'hidden'; ?>>
 				<?php erankly_health_render_panel(); ?>
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $show_links_tab && function_exists( 'erankly_lb_render_panel' ) ) : ?>
+			<?php if ( $show_links_tab && 'settings-links' === $active_panel && function_exists( 'erankly_lb_render_panel' ) ) : ?>
 			<div class="erankly-tab-panel<?php echo 'settings-links' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-links" role="tabpanel" aria-labelledby="erankly-settings-tab-links" data-erankly-settings-panel="settings-links" <?php echo 'settings-links' === $active_panel ? '' : 'hidden'; ?>>
 				<?php erankly_lb_render_panel(); ?>
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $show_redirects_tab && function_exists( 'erankly_redirects_render_panel' ) ) : ?>
+			<?php if ( $show_redirects_tab && 'settings-redirects' === $active_panel && function_exists( 'erankly_redirects_render_panel' ) ) : ?>
 			<div class="erankly-tab-panel erankly-redirect-management<?php echo 'settings-redirects' === $active_panel ? ' is-active' : ''; ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-redirects" data-erankly-settings-panel="settings-redirects" <?php echo 'settings-redirects' === $active_panel ? '' : 'hidden'; ?>>
 				<?php erankly_redirects_render_panel(); ?>
 			</div>
@@ -981,6 +1059,9 @@ function erankly_render_settings_page(): void {
 					continue;
 				}
 				$extra_panel = 'settings-' . $extra_slug;
+				if ( $extra_panel !== $active_panel ) {
+					continue;
+				}
 				?>
 			<div class="erankly-tab-panel<?php echo $extra_panel === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-<?php echo esc_attr( $extra_slug ); ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-<?php echo esc_attr( $extra_slug ); ?>" data-erankly-settings-panel="<?php echo esc_attr( $extra_panel ); ?>" data-erankly-standalone-panel <?php echo $extra_panel === $active_panel ? '' : 'hidden'; ?>>
 				<?php
