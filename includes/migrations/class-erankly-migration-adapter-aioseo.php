@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** AIOSEO v3/v4 Free/Pro adapter. */
 final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
+	private const TABLE_SUFFIXES = array( 'aioseo_posts', 'aioseo_terms', 'aioseo_redirects' );
+
 	/**
 	 * Returns the adapter slug.
 	 *
@@ -551,6 +553,9 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	private function table_rows( string $suffix ): iterable {
 		global $wpdb;
 
+		if ( ! in_array( $suffix, self::TABLE_SUFFIXES, true ) ) {
+			return;
+		}
 		$table = $wpdb->prefix . $suffix;
 		if ( ! erankly_table_exists( $table ) ) {
 			return;
@@ -559,7 +564,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		$cursor = 0;
 		do {
 			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded third-party source scan.
-				$wpdb->prepare( "SELECT * FROM {$table} WHERE id > %d ORDER BY id ASC LIMIT 200", $cursor ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted WordPress prefix plus an internal suffix.
+				$wpdb->prepare( 'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200', $table, $cursor ),
 				ARRAY_A
 			);
 			if ( ! is_array( $rows ) || empty( $rows ) ) {
@@ -582,12 +587,15 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	private function table_has_rows( string $suffix ): bool {
 		global $wpdb;
 
+		if ( ! in_array( $suffix, self::TABLE_SUFFIXES, true ) ) {
+			return false;
+		}
 		$table = $wpdb->prefix . $suffix;
 		if ( ! erankly_table_exists( $table ) ) {
 			return false;
 		}
 
-		return null !== $wpdb->get_var( "SELECT id FROM {$table} LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Presence check against a trusted prefixed table.
+		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i LIMIT 1', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Presence check against a whitelisted prefixed table.
 	}
 
 	/**
@@ -616,7 +624,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			return false;
 		}
 
-		return null !== $wpdb->get_var( "SELECT id FROM {$table} WHERE `{$column}` IS NOT NULL AND `{$column}` <> '' LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table and column are selected from the internal whitelist above.
+		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE %i IS NOT NULL AND %i <> %s LIMIT 1', $table, $column, $column, '' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table and column are selected from the internal whitelist above and escaped as identifiers.
 	}
 
 	/**

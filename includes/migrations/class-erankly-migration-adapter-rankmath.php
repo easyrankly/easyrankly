@@ -284,7 +284,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		$cursor = 0;
 		do {
 			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the source plugin's redirect table in bounded batches.
-				$wpdb->prepare( "SELECT * FROM {$table} WHERE id > %d ORDER BY id ASC LIMIT 200", $cursor ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted WordPress prefix.
+				$wpdb->prepare( 'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200', $table, $cursor ),
 				ARRAY_A
 			);
 
@@ -366,7 +366,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		$operator     = $resume_id > 0 ? '>=' : '>';
 		$boundary     = $resume_id > 0 ? $resume_id : $after_id;
 		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset scan of third-party redirects.
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE id {$operator} %d ORDER BY id ASC LIMIT %d", $boundary, $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table and operator are selected from internal values.
+			$wpdb->prepare( "SELECT * FROM %i WHERE id {$operator} %d ORDER BY id ASC LIMIT %d", $table, $boundary, $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The comparison operator is selected from the two internal literals above.
 			ARRAY_A
 		);
 		if ( '' !== (string) $wpdb->last_error ) {
@@ -673,6 +673,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			return false;
 		}
 
-		return null !== $wpdb->get_var( "SELECT id FROM {$table} LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Presence check against the trusted prefixed source table.
+		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i LIMIT 1', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Presence check against the fixed prefixed source table.
 	}
 }

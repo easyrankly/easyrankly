@@ -4,7 +4,7 @@ Tags: seo, schema, sitemap, redirects, ai
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.8.0
+Stable tag: 2.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -98,6 +98,12 @@ You can also export and re-import EasyRankly settings, redirects, special-page d
 
 == Changelog ==
 
+= 2.9.0 =
+* Routed complete EasyRankly imports and third-party export uploads through the WordPress upload API while retaining per-site non-public storage, random filenames, strict size/type checks and restrictive permissions.
+* Hardened migration and import database queries with WordPress identifier placeholders and explicit source-table whitelists.
+* Preserved optional WordPress 7.0 Connectors support on the WordPress 6.2 baseline through guarded compatibility-safe calls.
+* Added a strict Plugin Check CI gate against the exact `.distignore` distribution tree and expanded regression contracts for upload and prepared-query boundaries.
+
 = 2.8.0 =
 * Added an authoritative fail-closed gate that is embedded in every migration report and distinguishes preflight authorization, full go-live, rollback-required and terminal rollback states.
 * Made invalid, conflicting, unsupported, preserved or semantically mismatched values, unresolved diagnostics, unsafe redirects, incomplete rollback coverage and missing frontend baselines explicit cutover blockers.
@@ -186,6 +192,9 @@ Major release: the admin interface has been rebuilt from the ground up, with AI-
 * First public release.
 
 == Upgrade Notice ==
+
+= 2.9.0 =
+Upload handling and dynamic migration queries are hardened for current WordPress.org Plugin Check requirements; no configuration changes are required.
 
 = 2.8.0 =
 Migration cutovers now use a fail-closed proof gate, while release GO-LIVE additionally requires a fresh clean Phase 7 record and authorized evidence for every supported PRO plugin.

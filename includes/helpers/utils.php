@@ -258,7 +258,8 @@ function erankly_ai_provider_available(): bool {
 	$available = false;
 
 	if ( function_exists( 'wp_get_connectors' ) ) {
-		foreach ( (array) wp_get_connectors() as $connector ) {
+		$get_connectors = 'wp_get_connectors';
+		foreach ( (array) $get_connectors() as $connector ) {
 			if ( ! is_array( $connector ) || ( $connector['type'] ?? '' ) !== 'ai_provider' ) {
 				continue;
 			}

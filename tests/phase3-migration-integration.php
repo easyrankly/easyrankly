@@ -106,7 +106,24 @@ final class ERankly_Phase3_WPDB {
 		if ( 1 === count( $args ) && is_array( $args[0] ) ) {
 			$args = $args[0];
 		}
-		return new ERankly_Phase3_Query( $sql, array_values( $args ) );
+
+		$index      = 0;
+		$value_args = array();
+		$prepared   = preg_replace_callback(
+			'/%[idsf]/',
+			static function ( array $match ) use ( &$args, &$index, &$value_args ): string {
+				$value = $args[ $index++ ] ?? null;
+				if ( '%i' === $match[0] ) {
+					return (string) $value;
+				}
+
+				$value_args[] = $value;
+				return $match[0];
+			},
+			$sql
+		);
+
+		return new ERankly_Phase3_Query( is_string( $prepared ) ? $prepared : $sql, $value_args );
 	}
 
 	public function esc_like( string $value ): string {
@@ -116,8 +133,8 @@ final class ERankly_Phase3_WPDB {
 	/** @return array<int,int> */
 	public function get_col( $query ): array {
 		list( $sql, $args ) = $this->unpack( $query );
-		if ( preg_match( '/SHOW COLUMNS FROM %i/i', $sql ) ) {
-			$table   = (string) ( $args[0] ?? '' );
+		if ( preg_match( '/SHOW COLUMNS FROM ([a-z0-9_]+)/i', $sql, $match ) ) {
+			$table   = $match[1];
 			$columns = array();
 			foreach ( $this->tables[ $table ] ?? array() as $row ) {
 				$columns = array_merge( $columns, array_keys( $row ) );

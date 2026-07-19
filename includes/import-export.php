@@ -376,14 +376,17 @@ function erankly_import_export_handle_actions(): void {
 function erankly_import_export_handle_import(): void {
 	check_admin_referer( 'erankly_io_import' );
 
+	$file = isset( $_FILES['erankly_import_file'] ) && is_array( $_FILES['erankly_import_file'] )
+		? $_FILES['erankly_import_file'] // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The bounded reader and private upload store validate the complete normalized upload entry.
+		: array();
 	if (
-		empty( $_FILES['erankly_import_file'] ) ||
-		! isset( $_FILES['erankly_import_file']['tmp_name'], $_FILES['erankly_import_file']['error'] )
+		empty( $file ) ||
+		! isset( $file['tmp_name'], $file['error'] )
 	) {
 		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$upload_error = (int) $_FILES['erankly_import_file']['error'];
+	$upload_error = (int) $file['error'];
 	if ( in_array( $upload_error, array( UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE ), true ) ) {
 		erankly_import_export_redirect( array( 'erankly_io_notice' => 'too-large' ) );
 	}
@@ -391,7 +394,7 @@ function erankly_import_export_handle_import(): void {
 		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$tmp_name = (string) $_FILES['erankly_import_file']['tmp_name']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	$tmp_name = (string) $file['tmp_name'];
 
 	// Defence in depth: only ever read a genuine PHP upload, never an arbitrary
 	// server path that could reach this handler through a crafted request.
@@ -399,7 +402,8 @@ function erankly_import_export_handle_import(): void {
 		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$read = erankly_import_export_read_bounded_upload( $tmp_name, erankly_import_export_max_bytes() );
+	$maximum = erankly_import_export_max_bytes();
+	$read    = erankly_import_export_read_bounded_upload( $tmp_name, $maximum );
 	if ( empty( $read['ok'] ) ) {
 		$notice = 'too-large' === (string) ( $read['error'] ?? '' ) ? 'too-large' : 'invalid';
 		erankly_import_export_redirect( array( 'erankly_io_notice' => $notice ) );
@@ -422,7 +426,7 @@ function erankly_import_export_handle_import(): void {
 		erankly_import_export_redirect( array( 'erankly_io_notice' => 'invalid' ) );
 	}
 
-	$started = ERankly_Import_Job_Runner::start( $tmp_name, $data );
+	$started = ERankly_Import_Job_Runner::start( $file, $data, $maximum );
 	unset( $data );
 	if ( empty( $started['ok'] ) ) {
 		$notice = 'import_already_running' === (string) ( $started['error'] ?? '' ) ? 'import-running' : 'import-error';
@@ -809,11 +813,13 @@ function erankly_export_page( string $stream, int $after_id, int $limit ): array
 	list( $table, $cursor_column, $object_column ) = $definitions[ $stream ];
 	$meta_keys                                     = array_keys( erankly_get_meta_keys() );
 	$placeholders                                  = implode( ', ', array_fill( 0, count( $meta_keys ), '%s' ) );
-	$sql    = $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The dynamic placeholder list and replacement array are constructed from the same fixed key map.
-		"SELECT {$cursor_column} AS _cursor, {$object_column} AS object_id, meta_key, meta_value FROM {$table} WHERE {$cursor_column} > %d AND meta_key IN ( {$placeholders} ) ORDER BY {$cursor_column} ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifiers come from the fixed internal map above.
-		array_merge( array( max( 0, $after_id ) ), $meta_keys, array( max( 1, min( 1000, $limit ) ) ) )
+	$rows   = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded keyset export page.
+		$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The dynamic placeholder list and replacement array are constructed from the same fixed key map.
+			"SELECT %i AS _cursor, %i AS object_id, meta_key, meta_value FROM %i WHERE %i > %d AND meta_key IN ( {$placeholders} ) ORDER BY %i ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Only the fixed meta-key placeholder list is interpolated; identifiers use %i.
+			array_merge( array( $cursor_column, $object_column, $table, $cursor_column, max( 0, $after_id ) ), $meta_keys, array( $cursor_column, max( 1, min( 1000, $limit ) ) ) )
+		),
+		ARRAY_A
 	);
-	$rows   = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded keyset export page.
 	$result = array();
 	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 		$result[] = array(

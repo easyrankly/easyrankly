@@ -94,9 +94,15 @@ $deep_json = str_repeat( '[', ERANKLY_IMPORT_JSON_MAX_DEPTH + 1 ) . '0' . str_re
 erankly_import_memory_assert( 'too-complex' === erankly_import_export_json_memory_error( $deep_json ), 'JSON deeper than the supported export schema must be rejected before decoding.' );
 erankly_import_memory_assert( 'invalid' === erankly_import_export_json_memory_error( '{"plugin":"erankly"]' ), 'Unbalanced JSON must remain an ordinary invalid-file error.' );
 
-$source = (string) file_get_contents( dirname( __DIR__ ) . '/includes/import-export.php' );
+$source       = (string) file_get_contents( dirname( __DIR__ ) . '/includes/import-export.php' );
+$upload_store = (string) file_get_contents( dirname( __DIR__ ) . '/includes/migrations/class-erankly-migration-upload-store.php' );
+$job_runner   = (string) file_get_contents( dirname( __DIR__ ) . '/includes/class-erankly-import-job-runner.php' );
 erankly_import_memory_assert( 1 === preg_match( '/file_get_contents\(\s*\$path,\s*false,\s*null,\s*0,\s*\$maximum\s*\+\s*1\s*\)/', $source ), 'The production read must remain byte-bounded even after the size stat.' );
-erankly_import_memory_assert( false !== strpos( $source, 'erankly_import_export_read_bounded_upload( $tmp_name, erankly_import_export_max_bytes() )' ), 'The HTTP import handler must use the bounded reader before decoding.' );
+erankly_import_memory_assert( false !== strpos( $source, 'erankly_import_export_read_bounded_upload( $tmp_name, $maximum )' ), 'The HTTP import handler must use the bounded reader before decoding.' );
+erankly_import_memory_assert( false !== strpos( $source, 'ERankly_Import_Job_Runner::start( $file, $data, $maximum )' ), 'The validated normalized upload entry and its byte cap must reach the private store.' );
+erankly_import_memory_assert( false !== strpos( $upload_store, 'wp_handle_upload(' ) && false === strpos( $upload_store, 'move_uploaded_file(' ), 'Genuine HTTP uploads must pass through the WordPress uploader instead of calling move_uploaded_file() directly.' );
+erankly_import_memory_assert( false !== strpos( $upload_store, "add_filter( 'upload_dir'" ) && false !== strpos( $upload_store, "remove_filter( 'upload_dir'" ), 'The private upload directory override must be installed and removed around one synchronous WordPress upload.' );
+erankly_import_memory_assert( false === strpos( $job_runner, 'move_uploaded_file(' ), 'The resumable import runner must delegate HTTP file movement to the shared WordPress uploader.' );
 $preflight_position = strpos( $source, 'erankly_import_export_json_memory_error( $contents )' );
 $decode_position    = strpos( $source, 'json_decode( $contents' );
 erankly_import_memory_assert( false !== $preflight_position && false !== $decode_position && $preflight_position < $decode_position, 'The structural memory preflight must run before json_decode().' );

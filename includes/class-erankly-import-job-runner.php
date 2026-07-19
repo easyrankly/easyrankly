@@ -16,13 +16,14 @@ final class ERankly_Import_Job_Runner {
 	private const STAGES      = array( 'settings', 'redirects', 'user_meta', 'post_meta', 'term_meta' );
 
 	/**
-	 * Moves a validated PHP upload into private storage and creates a checkpoint.
+	 * Stores a validated PHP upload in private storage and creates a checkpoint.
 	 *
-	 * @param string              $tmp_name Genuine PHP upload path.
+	 * @param array<string,mixed> $file     Normalized $_FILES entry.
 	 * @param array<string,mixed> $data     Already validated decoded payload.
+	 * @param int                 $maximum  Maximum accepted bytes.
 	 * @return array<string,mixed>
 	 */
-	public static function start( string $tmp_name, array $data ): array {
+	public static function start( array $file, array $data, int $maximum ): array {
 		$active = self::active_job();
 		if ( is_array( $active ) ) {
 			return array(
@@ -31,35 +32,21 @@ final class ERankly_Import_Job_Runner {
 				'job'   => $active,
 			);
 		}
-		if ( '' === $tmp_name || ! is_uploaded_file( $tmp_name ) || 'erankly' !== (string) ( $data['plugin'] ?? '' ) ) {
+		if ( 'erankly' !== (string) ( $data['plugin'] ?? '' ) ) {
 			return array(
 				'ok'    => false,
 				'error' => 'invalid_upload',
 			);
 		}
 
-		$directory = ERankly_Migration_Upload_Store::directory();
-		if ( '' === $directory ) {
+		$stored = ERankly_Migration_Upload_Store::store_import_http_upload( $file, $maximum );
+		if ( empty( $stored['ok'] ) ) {
 			return array(
 				'ok'    => false,
-				'error' => 'private_storage_unavailable',
+				'error' => sanitize_key( (string) ( $stored['error'] ?? 'private_storage_write_failed' ) ),
 			);
 		}
-		try {
-			$random = bin2hex( random_bytes( 16 ) );
-		} catch ( Exception ) {
-			$random = str_replace( '-', '', wp_generate_uuid4() );
-		}
-		$path = $directory . '/' . self::FILE_PREFIX . $random . '.json';
-		if ( ! move_uploaded_file( $tmp_name, $path ) || ! chmod( $path, 0600 ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Private OS-temp import file.
-			if ( is_file( $path ) ) {
-				unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Verified private destination created above.
-			}
-			return array(
-				'ok'    => false,
-				'error' => 'private_storage_write_failed',
-			);
-		}
+		$path = (string) $stored['path'];
 
 		$job_id = wp_generate_uuid4();
 		$job    = array(
@@ -305,9 +292,9 @@ final class ERankly_Import_Job_Runner {
 		}
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 		$existing_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One grouped identity resolution per bounded import batch.
-			$wpdb->prepare(
-				"SELECT {$id_column} FROM {$table} WHERE {$id_column} IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Identifiers come from the fixed internal map above.
-				$ids
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Three identifier replacements precede the dynamic bounded integer list.
+				"SELECT %i FROM %i WHERE %i IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Only the generated integer placeholder list is interpolated.
+				array_merge( array( $id_column, $table, $id_column ), $ids )
 			)
 		);
 		$existing     = array_fill_keys( array_map( 'absint', is_array( $existing_ids ) ? $existing_ids : array() ), true );

@@ -177,7 +177,7 @@ final class ERankly_Migration_Job_Store {
 		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 		$sql          = 'SELECT * FROM %i WHERE job_id = %s AND item_kind = %s AND identity_hash = %s AND discovery_status IN (' . $placeholders . ') ORDER BY id ASC LIMIT 1';
 		$params       = array_merge( array( self::table_name(), $job_id, $kind, hash( 'sha256', $identity ) ), $statuses );
-		$row          = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Queue identity lookup.
+		$row          = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- The table identifier and every dynamic status are represented by prepare placeholders below.
 			$wpdb->prepare( $sql, $params ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic status list is paired with placeholders.
 			ARRAY_A
 		);

@@ -449,9 +449,9 @@ abstract class ERankly_Migration_Adapter {
 			$meta_params[] = $wpdb->esc_like( $prefix ) . '%';
 		}
 
-		$sql = "SELECT DISTINCT {$id_column} FROM {$table} WHERE {$id_column} > %d AND (" . implode( ' OR ', $clauses ) . ") ORDER BY {$id_column} ASC LIMIT %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table and column names are selected from the internal whitelist above.
-		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Third-party migration source scan.
-			$wpdb->prepare( $sql, array_merge( array( $after_id ), $meta_params, array( $limit ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic placeholder list is paired with the internal key list.
+		$sql = 'SELECT DISTINCT %i FROM %i WHERE %i > %d AND (' . implode( ' OR ', $clauses ) . ') ORDER BY %i ASC LIMIT %d';
+		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Every identifier and value is passed to prepare below; only the internal placeholder clauses are assembled dynamically.
+			$wpdb->prepare( $sql, array_merge( array( $id_column, $table, $id_column, $after_id ), $meta_params, array( $id_column, $limit ) ) ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic placeholder list is paired with the internal key list.
 		);
 		if ( '' !== (string) $wpdb->last_error ) {
 			throw new RuntimeException( 'Source metadata page could not be read.' );
@@ -545,7 +545,7 @@ abstract class ERankly_Migration_Adapter {
 		}
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded third-party source scan.
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE id > %d ORDER BY id ASC LIMIT %d", $after_id, $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted WordPress prefix plus an internal suffix.
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d', $table, $after_id, $limit ),
 			ARRAY_A
 		);
 		if ( '' !== (string) $wpdb->last_error ) {
@@ -641,9 +641,10 @@ abstract class ERankly_Migration_Adapter {
 		}
 
 		list( $table, $row_id_column ) = $tables[ $object_type ];
-		$sql                           = "SELECT {$row_id_column} FROM {$table} WHERE " . implode( ' OR ', $clauses ) . ' LIMIT 1'; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table and row ID are selected from the internal whitelist.
+		$sql                           = 'SELECT %i FROM %i WHERE ' . implode( ' OR ', $clauses ) . ' LIMIT 1';
+		$params                        = array_merge( array( $row_id_column, $table ), $params );
 
-		return null !== $wpdb->get_var( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight third-party presence check.
+		return null !== $wpdb->get_var( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers and values are prepared; only internal placeholder clauses are assembled dynamically.
 	}
 
 	/**
@@ -941,8 +942,9 @@ abstract class ERankly_Migration_Adapter {
 			if ( ! $query ) {
 				return 0;
 			}
-			$sql = "SELECT COUNT(DISTINCT {$query['id_column']}) FROM {$query['table']} WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifiers and clauses are built from internal definitions.
-			return absint( $wpdb->get_var( $wpdb->prepare( $sql, $query['params'] ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only third-party inventory.
+			$sql    = "SELECT COUNT(DISTINCT %i) FROM %i WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the internal placeholder predicate is assembled here; identifiers use %i below.
+			$params = array_merge( array( $query['id_column'], $query['table'] ), $query['params'] );
+			return absint( $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared read-only inventory over an internal metadata predicate.
 		}
 
 		if ( 'table' === $type ) {
@@ -982,8 +984,9 @@ abstract class ERankly_Migration_Adapter {
 			if ( ! $query ) {
 				return array();
 			}
-			$sql = "SELECT COUNT(*) AS row_count, COALESCE(MAX({$query['row_id_column']}),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',{$query['row_id_column']},{$query['id_column']},meta_key,meta_value))),0) AS checksum FROM {$query['table']} WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifiers and clauses are built from internal definitions.
-			$row = $wpdb->get_row( $wpdb->prepare( $sql, $query['params'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One value-sensitive source fingerprint query.
+			$sql    = "SELECT COUNT(*) AS row_count, COALESCE(MAX(%i),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',%i,%i,meta_key,meta_value))),0) AS checksum FROM %i WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the internal placeholder predicate is assembled here; identifiers use %i below.
+			$params = array_merge( array( $query['row_id_column'], $query['row_id_column'], $query['id_column'], $query['table'] ), $query['params'] );
+			$row    = $wpdb->get_row( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared value-sensitive fingerprint over an internal metadata predicate.
 			return is_array( $row ) ? $row : array();
 		}
 
@@ -994,11 +997,11 @@ abstract class ERankly_Migration_Adapter {
 			if ( '' === $suffix || ! erankly_table_exists( $table ) || array_diff( $required, $this->table_columns( $table ) ) ) {
 				return array();
 			}
-			$columns = array_values( array_unique( array_merge( array( 'id' ), $required, is_array( $definition['fingerprint_columns'] ?? null ) ? array_map( 'sanitize_key', $definition['fingerprint_columns'] ) : array() ) ) );
-			$columns = array_values( array_intersect( $columns, $this->table_columns( $table ) ) );
-			$joined  = implode( ',', array_map( static fn( string $column ): string => '`' . $column . '`', $columns ) );
-			$sql     = "SELECT COUNT(*) AS row_count, COALESCE(MAX(id),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',{$joined}))),0) AS checksum FROM %i";
-			$row     = $wpdb->get_row( $wpdb->prepare( $sql, $table ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL is assembled exclusively from certified identifiers and prepared with an identifier placeholder.
+			$columns             = array_values( array_unique( array_merge( array( 'id' ), $required, is_array( $definition['fingerprint_columns'] ?? null ) ? array_map( 'sanitize_key', $definition['fingerprint_columns'] ) : array() ) ) );
+			$columns             = array_values( array_intersect( $columns, $this->table_columns( $table ) ) );
+			$column_placeholders = implode( ',', array_fill( 0, count( $columns ), '%i' ) );
+			$sql                 = "SELECT COUNT(*) AS row_count, COALESCE(MAX(id),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',{$column_placeholders}))),0) AS checksum FROM %i"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholder count matches the certified column list below.
+			$row                 = $wpdb->get_row( $wpdb->prepare( $sql, array_merge( $columns, array( $table ) ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Every certified column and table identifier is escaped through %i.
 			return is_array( $row ) ? $row : array();
 		}
 
