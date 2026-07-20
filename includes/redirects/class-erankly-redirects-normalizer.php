@@ -49,7 +49,7 @@ final class ERankly_Redirects_Normalizer {
 	public const VALID_TRAILING_SLASH_MODES = array( 'ignore', 'exact' );
 
 	/**
-	 * Status codes that terminate the request with a status header only —
+	 * Status codes that terminate the request with a status header only.
 	 * they carry no Location and therefore need no target URL.
 	 *
 	 * @var int[]
@@ -62,12 +62,12 @@ final class ERankly_Redirects_Normalizer {
 	 * @var array<int,string>
 	 */
 	public const STATUS_CODE_LABELS = array(
-		301 => '301 — Moved Permanently',
-		302 => '302 — Found (Temporary)',
-		307 => '307 — Temporary Redirect',
-		308 => '308 — Permanent Redirect',
-		410 => '410 — Gone',
-		451 => '451 — Unavailable For Legal Reasons',
+		301 => '301: Moved Permanently',
+		302 => '302: Found (Temporary)',
+		307 => '307: Temporary Redirect',
+		308 => '308: Permanent Redirect',
+		410 => '410: Gone',
+		451 => '451: Unavailable For Legal Reasons',
 	);
 
 	/**
@@ -141,7 +141,7 @@ final class ERankly_Redirects_Normalizer {
 	 */
 	public static function normalize_source( string $source_path, bool $is_regex, bool $is_wildcard = false, bool $case_sensitive = false, string $trailing_slash = 'ignore' ): string {
 		if ( $is_regex ) {
-			// Do NOT call wp_unslash() here — the caller has already unslashed the raw POST
+			// Do NOT call wp_unslash() here. The caller has already unslashed the raw POST
 			// value (admin path) or the data arrives from JSON with no WordPress-added slashes
 			// (import path). A second unslash would corrupt backslashes in patterns like \d, \..
 			// Do NOT strip a "query string" either: '?' is a common regex metacharacter

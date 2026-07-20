@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: EasyRankly 2.9.0\n"
+"Project-Id-Version: EasyRankly 2.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easyrankly-beta\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -189,14 +189,14 @@ msgid "Hide from search results"
 msgstr ""
 
 #: admin/meta-box.php:338
-msgid "Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive — use Advanced settings to control those separately."
+msgid "Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive. Use Advanced settings to control those separately."
 msgstr ""
 
 #: admin/meta-box.php:340
 #: admin/meta-box.php:719
 #: includes/seo-checklist.php:24
 #: assets/js/editor-shared.js:773
-#: assets/js/editor-shared.js:904
+#: assets/js/editor-shared.js:906
 msgid "Indexing"
 msgstr ""
 
@@ -381,7 +381,7 @@ msgstr ""
 #: admin/meta-box.php:456
 #: admin/meta-box.php:581
 #: includes/seo-checklist.php:23
-#: assets/js/editor-shared.js:903
+#: assets/js/editor-shared.js:905
 #: assets/js/editor.js:254
 #: assets/js/site-editor.js:293
 #: assets/js/site-editor.js:306
@@ -1007,7 +1007,7 @@ msgid "Open sitemap-news-1.xml"
 msgstr ""
 
 #: admin/settings/panels.php:407
-msgid "Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News — editorial review by Google is still required."
+msgid "Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News. Editorial review by Google is still required."
 msgstr ""
 
 #: admin/settings/panels.php:409
@@ -1053,7 +1053,7 @@ msgid "Open sitemap-video-1.xml"
 msgstr ""
 
 #: admin/settings/panels.php:461
-msgid "Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing — the player must also be crawlable."
+msgid "Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing. The player must also be crawlable."
 msgstr ""
 
 #: admin/settings/panels.php:490
@@ -1139,7 +1139,7 @@ msgid "robots.txt"
 msgstr ""
 
 #: admin/settings/panels.php:571
-msgid "robots.txt — custom rules"
+msgid "robots.txt: custom rules"
 msgstr ""
 
 #: admin/settings/panels.php:573
@@ -1176,7 +1176,7 @@ msgid "e.g. Page {{page_number}} of {{max_pages}}"
 msgstr ""
 
 #: admin/settings/panels.php:601
-msgid "Appended to the SEO title on page 2, 3, … — separated by a dash. Leave empty to keep the base title unchanged. Available variables: {{page_number}}, {{max_pages}}."
+msgid "Appended to the SEO title on page 2, 3, …, separated by a dash. Leave empty to keep the base title unchanged. Available variables: {{page_number}}, {{max_pages}}."
 msgstr ""
 
 #: admin/settings/panels.php:607
@@ -1237,7 +1237,7 @@ msgid "Remove RSS feed links"
 msgstr ""
 
 #: admin/settings/panels.php:665
-msgid "Removes the RSS feed links from the page header. The feeds still work — only the auto-discovery hints are hidden."
+msgid "Removes the RSS feed links from the page header. The feeds still work. Only the auto-discovery hints are hidden."
 msgstr ""
 
 #: admin/settings/panels.php:666
@@ -1269,7 +1269,7 @@ msgid "Remove REST API discovery link"
 msgstr ""
 
 #: admin/settings/panels.php:673
-msgid "Hides the link that advertises your REST API location. The API itself keeps working — only the public hint is removed."
+msgid "Hides the link that advertises your REST API location. The API itself keeps working. Only the public hint is removed."
 msgstr ""
 
 #: admin/settings/panels.php:674
@@ -2179,7 +2179,7 @@ msgid "When improving: the current title and description, plus your instructions
 msgstr ""
 
 #: includes/ai.php:1294
-msgid "Health redirect suggestions (when enabled) send only the broken URL slug words and a numbered list of existing page titles and paths from your site — never full post bodies."
+msgid "Health redirect suggestions (when enabled) send only the broken URL slug words and a numbered list of existing page titles and paths from your site, never full post bodies."
 msgstr ""
 
 #: includes/ai.php:1301
@@ -2336,7 +2336,7 @@ msgstr ""
 #. translators: 1: max pages crawled. 2: spider depth. 3: max links checked.
 #: includes/health/broken-links-admin.php:213
 #, php-format
-msgid "On demand, crawls the rendered HTML of your indexable pages (up to %1$d pages, %2$d levels deep) and checks the status of every distinct link found — internal and external, up to %3$d. Links returning 4xx/5xx are listed below with their anchor text and source page."
+msgid "On demand, crawls the rendered HTML of your indexable pages (up to %1$d pages, %2$d levels deep) and checks the status of every distinct link found, internal and external, up to %3$d. Links returning 4xx/5xx are listed below with their anchor text and source page."
 msgstr ""
 
 #: includes/health/broken-links-admin.php:221
@@ -2411,7 +2411,7 @@ msgstr ""
 #. translators: 1: date/time. 2: pages fetched over HTTP. 3: pages read from the database. 4: pages that failed. 5: links checked. 6: broken count.
 #: includes/health/broken-links-admin.php:310
 #, php-format
-msgid "Last scan: %1$s — %2$d pages fetched, %3$d read from database, %4$d unreadable; %5$d links checked, %6$d broken."
+msgid "Last scan: %1$s. %2$d pages fetched, %3$d read from database, %4$d unreadable; %5$d links checked, %6$d broken."
 msgstr ""
 
 #: includes/health/broken-links-admin.php:323
@@ -2561,7 +2561,7 @@ msgid "A heuristic, not a definitive SEO diagnosis. Pages are flagged as potenti
 msgstr ""
 
 #: includes/health/panel.php:260
-msgid "Elementor, Divi and WPBakery pages are excluded — their content lives in post meta, not the post body, causing false positives. Gutenberg block content is analysed correctly."
+msgid "Elementor, Divi and WPBakery pages are excluded. Their content lives in post meta, not the post body, causing false positives. Gutenberg block content is analysed correctly."
 msgstr ""
 
 #: includes/health/panel.php:264
@@ -2819,7 +2819,7 @@ msgid "Download a JSON backup of your EasyRankly settings, redirects and SEO met
 msgstr ""
 
 #: includes/import-export.php:1538
-msgid "On this network the file holds the network-wide settings plus this primary site's content (redirects, post/term metadata, special page defaults) — not a whole-network export of every site."
+msgid "On this network the file holds the network-wide settings plus this primary site's content (redirects, post/term metadata, special page defaults), not a whole-network export of every site."
 msgstr ""
 
 #: includes/import-export.php:1540
@@ -3121,7 +3121,7 @@ msgid "Rollback completed"
 msgstr ""
 
 #: includes/import-export.php:1833
-msgid "Rollback incomplete — manual recovery required"
+msgid "Rollback incomplete. Manual recovery required"
 msgstr ""
 
 #: includes/import-export.php:1845
@@ -3272,7 +3272,7 @@ msgid "Preview complete"
 msgstr ""
 
 #: includes/import-export.php:1947
-msgid "Step 1 of 3 — Import your SEO data"
+msgid "Step 1 of 3. Import your SEO data"
 msgstr ""
 
 #: includes/import-export.php:1948
@@ -3299,7 +3299,7 @@ msgstr ""
 #. translators: %s: source SEO plugin name.
 #: includes/import-export.php:1958
 #, php-format
-msgid "Step 2 of 3 — Deactivate %s"
+msgid "Step 2 of 3. Deactivate %s"
 msgstr ""
 
 #. translators: %s: source SEO plugin name.
@@ -3313,7 +3313,7 @@ msgid "The previous SEO plugin is no longer active"
 msgstr ""
 
 #: includes/import-export.php:1964
-msgid "Step 3 of 3 — Verify the site"
+msgid "Step 3 of 3. Verify the site"
 msgstr ""
 
 #: includes/import-export.php:1965
@@ -3413,7 +3413,7 @@ msgid "Open Plugins in a new tab"
 msgstr ""
 
 #: includes/import-export.php:2068
-msgid "I deactivated it — check again"
+msgid "I deactivated it. Check again"
 msgstr ""
 
 #: includes/import-export.php:2075
@@ -3654,7 +3654,7 @@ msgstr ""
 #. translators: 1: post count, 2: term count, 3: user count.
 #: includes/import-export.php:2343
 #, php-format
-msgid "Objects scanned — posts: %1$d; terms: %2$d; authors: %3$d."
+msgid "Objects scanned. Posts: %1$d; terms: %2$d; authors: %3$d."
 msgstr ""
 
 #: includes/import-export.php:2351
@@ -3666,7 +3666,7 @@ msgid "Failed"
 msgstr ""
 
 #: includes/import-export.php:2354
-msgid "every discovered occurrence is assigned to exactly one terminal outcome."
+msgid "Every discovered occurrence is assigned to exactly one terminal outcome."
 msgstr ""
 
 #: includes/import-export.php:2357
@@ -4314,7 +4314,7 @@ msgid "Search path or filter (e.g. key:value and key:value)"
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:134
-msgid "Free text matches the source path. Click for filter suggestions (status, code, type, visibility) — combine several with \"and\" or \"&\"."
+msgid "Free text matches the source path. Click for filter suggestions (status, code, type, visibility), then combine several with \"and\" or \"&\"."
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:138
@@ -4370,7 +4370,7 @@ msgid "Target URL"
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:297
-msgid "Not used for 410 (Gone) or 451 (Unavailable For Legal Reasons) — those codes end the request without redirecting."
+msgid "Not used for 410 (Gone) or 451 (Unavailable For Legal Reasons). Those codes end the request without redirecting."
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:302
@@ -4386,7 +4386,7 @@ msgid "Required role"
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:326
-msgid "— Any logged-in user —"
+msgid "Any logged-in user"
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:334
@@ -4502,7 +4502,7 @@ msgid "No redirects found."
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:447
-msgid "—"
+msgid "Not applicable"
 msgstr ""
 
 #: includes/redirects/class-erankly-redirects-admin.php:453
@@ -4685,42 +4685,42 @@ msgid "EasyRankly could not start the network reset, so no plugin data was chang
 msgstr ""
 
 #: includes/seo-checklist.php:210
-#: assets/js/editor-shared.js:912
+#: assets/js/editor-shared.js:914
 msgid "SEO title within recommended length"
 msgstr ""
 
 #: includes/seo-checklist.php:215
-#: assets/js/editor-shared.js:917
+#: assets/js/editor-shared.js:919
 msgid "Meta description within recommended length"
 msgstr ""
 
 #: includes/seo-checklist.php:220
-#: assets/js/editor-shared.js:922
+#: assets/js/editor-shared.js:924
 msgid "Preview image available"
 msgstr ""
 
 #: includes/seo-checklist.php:225
-#: assets/js/editor-shared.js:927
+#: assets/js/editor-shared.js:929
 msgid "Indexable by search engines"
 msgstr ""
 
 #: includes/seo-checklist.php:230
-#: assets/js/editor-shared.js:932
+#: assets/js/editor-shared.js:934
 msgid "Minimum content length"
 msgstr ""
 
 #: includes/seo-checklist.php:238
-#: assets/js/editor-shared.js:941
+#: assets/js/editor-shared.js:943
 msgid "Custom social image"
 msgstr ""
 
 #: includes/seo-checklist.php:243
-#: assets/js/editor-shared.js:946
+#: assets/js/editor-shared.js:948
 msgid "Canonical URL set"
 msgstr ""
 
 #: includes/seo-checklist.php:308
-#: assets/js/editor-shared.js:1072
+#: assets/js/editor-shared.js:1074
 msgid "Complete these items to improve this page's search appearance."
 msgstr ""
 
@@ -4822,15 +4822,23 @@ msgstr ""
 msgid "Sets noindex and removes this page from the sitemap."
 msgstr ""
 
-#: assets/js/editor-shared.js:874
+#: assets/js/editor-shared.js:875
 msgid "Exclude from site search queries"
 msgstr ""
 
-#: assets/js/editor-shared.js:880
+#: assets/js/editor-shared.js:873
+msgid "Removes this page from internal site search results."
+msgstr ""
+
+#: assets/js/editor-shared.js:882
 msgid "Exclude from archive queries"
 msgstr ""
 
-#: assets/js/editor-shared.js:890
+#: assets/js/editor-shared.js:880
+msgid "Removes this page from category, date, and other archive listings."
+msgstr ""
+
+#: assets/js/editor-shared.js:892
 msgid "Exclude from Google News sitemap"
 msgstr ""
 

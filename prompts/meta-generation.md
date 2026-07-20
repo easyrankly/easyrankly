@@ -1,5 +1,5 @@
 <!--
-  EasyRankly — AI meta generation prompt.
+  EasyRankly: AI meta generation prompt.
 
   This file is part of the plugin and defines how SEO and social title /
   description metadata are generated. It is NOT meant to be edited by site

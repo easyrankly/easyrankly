@@ -1,6 +1,6 @@
 <?php
 /**
- * XML sitemap generation — News sitemap.
+ * XML sitemap generation: News sitemap.
  *
  * Loaded only when the Google News feature is enabled (see erankly_bootstrap()),
  * so these functions are parsed only on sites that use this sitemap type.
@@ -185,7 +185,7 @@ function erankly_get_news_sitemap_xml(): string {
 	$pub_name = trim( (string) apply_filters( 'erankly_news_sitemap_publication_name', $pub_name ) );
 
 	if ( '' === $pub_name ) {
-		// No resolvable publication name — return empty rather than emit an invalid
+		// No resolvable publication name. Return empty rather than emit an invalid
 		// sitemap. The caller (render_sitemap_response) will send a 404 in this case.
 		set_transient( $cache_key, '', HOUR_IN_SECONDS );
 		return '';

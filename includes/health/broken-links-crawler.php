@@ -76,7 +76,7 @@ function erankly_health_bl_get_state(): array {
 }
 
 /**
- * Persists the crawl state (no autoload — it can grow large during a run).
+ * Persists the crawl state (no autoload, because it can grow large during a run).
  *
  * @param array<string,mixed> $state Crawl state.
  * @return void
@@ -141,7 +141,7 @@ function erankly_health_bl_seed_urls(): array {
 		);
 
 		foreach ( $query->posts as $post_id ) {
-			// Skip content explicitly marked noindex — it is not part of the
+			// Skip content explicitly marked noindex. It is not part of the
 			// indexable corpus and should not seed the crawl.
 			if ( '1' === (string) get_post_meta( (int) $post_id, '_erankly_noindex', true ) ) {
 				continue;
@@ -570,14 +570,14 @@ function erankly_health_bl_fetch_html( string $url ): ?string {
 }
 
 /**
- * Fallback link source for an internal page when the HTTP (loopback) fetch fails
- * — common on local/staging. Renders the post's stored content (blocks and
+ * Fallback link source for an internal page when the HTTP (loopback) fetch fails,
+ * as commonly happens on local/staging. Renders the post's stored content (blocks and
  * shortcodes expanded, anchors preserved) so links inside the body are still
  * discovered even when the site cannot make requests to itself.
  *
  * This is a degraded source: it only covers singular published content and its
  * body, so theme-level links (menus, footers, widgets) and page-builder layouts
- * stored in post meta are not seen here — those need a working HTTP fetch.
+ * stored in post meta are not seen here. Those need a working HTTP fetch.
  *
  * @param string $url Absolute internal page URL.
  * @return string|null Rendered HTML, or null when no usable content is available.
@@ -759,7 +759,7 @@ function erankly_health_bl_run_discovery_batch( array $state ): array {
 
 		if ( null === $html ) {
 			++$state['stats']['fetch_failed'];
-			continue; // Neither source available — nothing to extract.
+			continue; // Neither source is available, so there is nothing to extract.
 		}
 
 		if ( $via_fallback ) {
@@ -842,7 +842,7 @@ function erankly_health_bl_probe( string $url, bool $internal = false ): array {
 
 	if ( 0 === $code || 429 === $code ) {
 		// Network failure, DNS, timeout, or transient rate-limiting: not a
-		// definitive broken link — reported separately as "unreachable".
+		// definitive broken link. It is reported separately as "unreachable".
 		return array(
 			'code'  => $code,
 			'state' => 'unreachable',
@@ -881,7 +881,7 @@ function erankly_health_bl_check_url_status( string $url, bool $internal ): arra
 	$result = null;
 
 	// Internal links that resolve to a published post are healthy without an
-	// HTTP round-trip — this keeps valid internal links from being flagged as
+	// HTTP round-trip. This keeps valid internal links from being flagged as
 	// "unreachable" when loopback requests fail (local/staging).
 	if ( $internal ) {
 		$post_id = url_to_postid( $url );

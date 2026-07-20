@@ -1,5 +1,5 @@
 /**
- * EasyRankly — shared design tokens and cross-surface components.
+ * EasyRankly: shared design tokens and cross-surface components.
  *
  * Loaded before the surface-specific admin and editor styles so every context
  * shares the same palette, suggestion menus, and SEO checklist styling.
@@ -37,7 +37,7 @@
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
 
-/* Layout utilities — replace one-off inline styles in PHP templates. */
+/* Layout utilities. Replace one-off inline styles in PHP templates. */
 
 .erankly-inline-row {
 	align-items: center;
@@ -130,7 +130,7 @@
 	white-space: nowrap;
 }
 
-/* SEO checklist — classic meta box and block editor sidebar. */
+/* SEO checklist: classic meta box and block editor sidebar. */
 
 .erankly-panel--checklist .erankly-seo-checklist {
 	margin-top: 0;

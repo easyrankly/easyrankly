@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — miscellaneous utilities.
+ * Shared helpers: miscellaneous utilities.
  *
  * Loaded on SEO-rendering and rich admin surfaces.
  *
@@ -198,7 +198,7 @@ function erankly_render_multisite_status(): void {
  * status badge, mirroring erankly_render_multisite_status().
  *
  * The AI features depend on the WordPress 7.0 Connectors API. This shows the
- * requirement graphically — same visual language as the Multisite badge — so an
+ * requirement graphically, using the same visual language as the Multisite badge, so an
  * admin can immediately see whether the current install exposes it, instead of
  * reading a plain italic "Requires WordPress 7.0…" line.
  *

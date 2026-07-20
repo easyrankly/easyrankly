@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — dynamic template variables.
+ * Shared helpers: dynamic template variables.
  *
  * Part of the helpers.php loader; always loaded early on every request.
  *
@@ -290,7 +290,7 @@ function erankly_get_post_tag_names( int $post_id ): string {
 
 /**
  * Resolves a variable's example value for admin field previews, given an
- * explicit post/term instead of the global queried object — admin screens
+ * explicit post/term instead of the global queried object. Admin screens
  * (Settings defaults, classic meta boxes) don't have one to fall back on.
  *
  * @param string       $key  Variable key.

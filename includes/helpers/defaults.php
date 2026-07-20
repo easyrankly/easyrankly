@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — defaults and meta scaffolding.
+ * Shared helpers: defaults and meta scaffolding.
  *
  * Loaded lazily for full settings, activation, reset, and migration writes.
  *

@@ -54,7 +54,7 @@ Database migration preflight requires all of the following:
 - a captured old-plugin frontend baseline.
 
 Passing preflight produces `ready_for_cutover`, not `go_live`. The operator must
-deactivate—but not delete—the source plugin, purge WordPress/page/CDN/edge
+deactivate, but do not delete, the source plugin, purge WordPress/page/CDN/edge
 caches and run the report's live verifier. Only an exact sampled comparison of
 HTML semantics, redirect status and Location, robots.txt and sitemap promotes
 the report to full `go_live`. Differences produce `rollback_required`.

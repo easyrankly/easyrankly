@@ -542,7 +542,7 @@ final class ERankly_Redirects_Repository {
 		);
 
 		// A standalone "&" or the word "and" is just a visual separator between
-		// filter tokens, not an operator — collapse it into whitespace like any
+		// filter tokens, not an operator. Collapse it into whitespace like any
 		// other token boundary.
 		$search = preg_replace( '/(?:^|\s)(?:&|and)(?:\s|$)/i', ' ', (string) $search );
 

@@ -12,10 +12,12 @@
 	margin-bottom: 24px;
 }
 
-/* The "Search appearance" panel already sits under a bordered sibling, so its
-   own .components-panel__body border-top creates a visible double border. */
+/* Keep a visible edge after unbordered Core controls such as "Move to trash".
+   Pull it up by one pixel so it overlaps any existing sibling border instead
+   of rendering a double line. */
 .erankly-panel--appearance.components-panel__body {
-	border-top: none;
+	border-top: 1px solid var(--erankly-color-border);
+	margin-top: -1px;
 }
 
 /* The field wrapper owns the spacing, so its inner control must not add its own. */
@@ -42,7 +44,7 @@
 	resize: vertical;
 }
 
-/* Inline suggestion popover — surface styles live in shared.css. */
+/* Inline suggestion popover. Surface styles live in shared.css. */
 .erankly-editor-variable-popover .components-popover__content {
 	padding: 0;
 }
@@ -298,7 +300,7 @@
 	margin: 8px 0 0;
 }
 
-/* Internal link suggestions — flat Gutenberg-style list, no nested cards. */
+/* Internal link suggestions: flat Gutenberg-style list, no nested cards. */
 .erankly-panel--internal-links .erankly-internal-links-stack {
 	display: flex;
 	flex-direction: column;
@@ -432,9 +434,11 @@
 	border-radius: 2px;
 }
 
-.erankly-panel--internal-links .components-divider,
 .erankly-internal-links-divider {
+	width: 100%;
+	height: 1px;
 	margin: 4px 0;
+	background: rgba( 0, 0, 0, 0.08 );
 	border: 0;
-	border-top: 1px solid rgba( 0, 0, 0, 0.08 );
+	box-sizing: border-box;
 }

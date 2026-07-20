@@ -210,7 +210,7 @@ function erankly_health_bl_render_section(): void {
 			<?php
 			printf(
 				/* translators: 1: max pages crawled. 2: spider depth. 3: max links checked. */
-				esc_html__( 'On demand, crawls the rendered HTML of your indexable pages (up to %1$d pages, %2$d levels deep) and checks the status of every distinct link found — internal and external, up to %3$d. Links returning 4xx/5xx are listed below with their anchor text and source page.', 'easyrankly' ),
+				esc_html__( 'On demand, crawls the rendered HTML of your indexable pages (up to %1$d pages, %2$d levels deep) and checks the status of every distinct link found, internal and external, up to %3$d. Links returning 4xx/5xx are listed below with their anchor text and source page.', 'easyrankly' ),
 				absint( ERANKLY_HEALTH_BL_MAX_PAGES ),
 				absint( ERANKLY_HEALTH_BL_MAX_DEPTH ),
 				absint( ERANKLY_HEALTH_BL_MAX_LINKS )
@@ -307,7 +307,7 @@ function erankly_health_bl_render_section(): void {
 				<?php
 				printf(
 					/* translators: 1: date/time. 2: pages fetched over HTTP. 3: pages read from the database. 4: pages that failed. 5: links checked. 6: broken count. */
-					esc_html__( 'Last scan: %1$s — %2$d pages fetched, %3$d read from database, %4$d unreadable; %5$d links checked, %6$d broken.', 'easyrankly' ),
+					esc_html__( 'Last scan: %1$s. %2$d pages fetched, %3$d read from database, %4$d unreadable; %5$d links checked, %6$d broken.', 'easyrankly' ),
 					esc_html( erankly_health_format_timestamp( absint( $results['scanned_at'] ) ) ),
 					absint( $results['fetch_ok'] ),
 					absint( $results['fetch_fallback'] ),

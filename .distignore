@@ -1,6 +1,6 @@
 # Files and directories excluded from the distributed plugin build
 # (e.g. `wp dist-archive`). Runtime files such as prompts/meta-generation.md
-# are intentionally NOT listed here — they ship with the plugin.
+# are intentionally NOT listed here, because they ship with the plugin.
 
 # Version control and repo metadata
 /.git

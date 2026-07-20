@@ -31,7 +31,7 @@ const ERANKLY_AI_CONTENT_LIMIT_MAX = 64000;
 /**
  * Characters from the body sent to the model when no admin override is stored.
  *
- * @deprecated 2.1.0 Use ERANKLY_AI_CONTENT_LIMIT_DEFAULT or erankly_ai_get_content_limit().
+ * @deprecated 2.0.0 Use ERANKLY_AI_CONTENT_LIMIT_DEFAULT or erankly_ai_get_content_limit().
  */
 const ERANKLY_AI_CONTENT_LIMIT = ERANKLY_AI_CONTENT_LIMIT_DEFAULT;
 
@@ -78,7 +78,7 @@ function erankly_ai_boot(): void {
  * older WordPress. Static compatibility scanners (e.g. Plugin Check's
  * wp_function_not_compatible_with_requires_wp) match a *literal* call to a
  * function whose @since is newer than "Requires at least", without reasoning
- * about those guards — producing false "not compatible" errors.
+ * about those guards, producing false "not compatible" errors.
  *
  * Routing the call through a variable function keeps behaviour byte-for-byte
  * identical while making it invisible to that name-based match, letting the
@@ -145,9 +145,9 @@ function erankly_ai_available(): bool {
  * Prefers an explicit status the Connectors API itself may report (core is
  * the authority on whether a connector is really wired up) and only falls
  * back to inferring it from credential presence when no such status is
- * exposed. The fallback is a heuristic — a leftover env var, constant, or DB
+ * exposed. The fallback is a heuristic: a leftover env var, constant, or DB
  * option from a connector that was since removed or reset would still read
- * as "present" — so callers that hit false positives from it should fix the
+ * as "present", so callers that hit false positives from it should fix the
  * root cause (clear the stale value) or use the filter below rather than
  * relying on this being airtight.
  *
@@ -1388,7 +1388,7 @@ function erankly_ai_render_settings_privacy_notice(): void {
 				<li><?php esc_html_e( 'When improving: the current title and description, plus your instructions.', 'easyrankly' ); ?></li>
 			</ul>
 			<p>
-				<?php esc_html_e( 'Health redirect suggestions (when enabled) send only the broken URL slug words and a numbered list of existing page titles and paths from your site — never full post bodies.', 'easyrankly' ); ?>
+				<?php esc_html_e( 'Health redirect suggestions (when enabled) send only the broken URL slug words and a numbered list of existing page titles and paths from your site, never full post bodies.', 'easyrankly' ); ?>
 			</p>
 		</div>
 	</div>

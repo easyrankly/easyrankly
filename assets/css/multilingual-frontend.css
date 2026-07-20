@@ -1,28 +1,28 @@
 /**
- * EasyRankly — Frontend Multilingual Styles
+ * EasyRankly: Frontend Multilingual Styles
  *
  * Minimal-modern defaults. Uses :where() for zero-specificity selectors so
  * theme styles always win without !important. CSS custom properties let
  * users override colours, radius, and spacing without touching this file.
  *
  * BEM class reference:
- *  .erml-switcher          — [erankly_language_switcher] wrapper <form>
- *  .erml-switcher__label   — screen-reader label
- *  .erml-switcher__select  — <select> element
- *  .erml-switcher__option  — each <option>
+ *  .erml-switcher:         [erankly_language_switcher] wrapper <form>
+ *  .erml-switcher__label:  screen-reader label
+ *  .erml-switcher__select: <select> element
+ *  .erml-switcher__option: each <option>
  *
- *  .erml-notice            — [erankly_translation_notice] <div> wrapper
- *  .erml-notice__close     — dismiss × button
- *  .erml-notice__title     — configurable heading tag
- *  .erml-notice__text      — configurable paragraph tag
- *  .erml-notice__link      — link to the translated article
+ *  .erml-notice:           [erankly_translation_notice] <div> wrapper
+ *  .erml-notice__close:    dismiss × button
+ *  .erml-notice__title:    configurable heading tag
+ *  .erml-notice__text:     configurable paragraph tag
+ *  .erml-notice__link:     link to the translated article
  *
  * Handle: erankly-multilingual-frontend
  *
  * @package EasyRankly
  */
 
-/* Custom properties — override in your theme to restyle. */
+/* Custom properties. Override in your theme to restyle. */
 
 :where(.erml-switcher),
 :where(.erml-notice) {
@@ -41,7 +41,7 @@
 	--erml-gap:             0.625rem;
 }
 
-/* Language Switcher — [erankly_language_switcher] */
+/* Language Switcher: [erankly_language_switcher] */
 
 :where(.erml-switcher) {
 	position:    relative;
@@ -54,7 +54,7 @@
 	font-size:   var(--erml-font-size);
 }
 
-/* Custom chevron — positioned independently of the native control so it sits
+/* Custom chevron. Positioned independently of the native control so it sits
    comfortably clear of the right edge and scales with the font size. */
 :where(.erml-switcher)::after {
 	content:        "";
@@ -103,7 +103,7 @@
 	outline-offset: 2px;
 }
 
-/* Translation Notice — [erankly_translation_notice] */
+/* Translation Notice: [erankly_translation_notice] */
 
 :where(.erml-notice) {
 	position:         relative;

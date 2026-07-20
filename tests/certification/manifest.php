@@ -13,7 +13,7 @@
 
 return array(
 	'schema_version' => 1,
-	'plugin_version' => '2.9.0',
+	'plugin_version' => '2.0.0',
 	'runtime_matrix' => array(
 		'php'       => array( '8.0', '8.4', '8.5' ),
 		'wordpress' => array( '6.2', '7.0.1' ),

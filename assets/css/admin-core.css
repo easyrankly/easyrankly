@@ -36,6 +36,27 @@
 	gap: 2px;
 }
 
+.erankly-settings-nav-section {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-top: 10px;
+}
+
+.erankly-settings-nav-heading {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	line-height: 1.4;
+	padding: 4px 12px;
+	text-transform: uppercase;
+}
+
+.erankly-settings-nav-section + .erankly-settings-nav-item {
+	margin-top: 10px;
+}
+
 .erankly-settings-sidebar-toggle {
 	align-items: center;
 	background: #fff;
@@ -72,6 +93,7 @@
 	border: none;
 	border-left: 3px solid transparent;
 	border-radius: var(--erankly-radius-control);
+	box-sizing: border-box;
 	color: var(--erankly-color-text);
 	cursor: pointer;
 	font-size: 14px;
@@ -220,7 +242,7 @@
 }
 
 /*
- * Card — the single container class shared by every settings section on
+ * Card: the single container class shared by every settings section on
  * every screen (single-site, Network Admin and per-site on Multisite).
  * Restyle sections everywhere by editing this one block.
  */
@@ -262,7 +284,8 @@
 	margin-top: 0;
 }
 
-.erankly-card > :last-child {
+.erankly-card > :last-child,
+.erankly-card .erankly-field:last-child > :last-child {
 	margin-bottom: 0;
 }
 

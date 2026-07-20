@@ -1,6 +1,6 @@
 <?php
 /**
- * Multilingual module — hreflang resolver.
+ * Multilingual module: hreflang resolver.
  *
  * Determines which `<link rel="alternate" hreflang="…">` tags to output for
  * the current page by walking the object's translation group.

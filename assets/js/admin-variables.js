@@ -18,7 +18,7 @@
   }
 
   // Reads the "word" the caret currently sits in (from the previous whitespace
-  // up to the caret) — the fragment the suggestions filter against, mirroring
+  // up to the caret), the fragment the suggestions filter against, mirroring
   // the Redirect rules search filter behaviour.
   function getActiveVariableToken(control) {
     var value = control.value;
@@ -84,7 +84,7 @@
   // post's title as a stand-in for {{post_title}} on fields that aren't
   // tied to any single post) over a {{variable}} field while it's blurred,
   // and reveals the raw token again on focus so it stays editable. Only
-  // touches the overlay text node, never control.value itself — the
+  // touches the overlay text node, never control.value itself. The
   // autosave serializer (bindSettingsAutosave) reads field.value straight
   // off the DOM, so swapping the real value would risk saving the resolved
   // text instead of the token on a mistimed autosave. Any token with no

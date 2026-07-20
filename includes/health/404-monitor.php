@@ -71,7 +71,7 @@ function erankly_health_current_request_path(): string {
  *
  * Only internal (same-host) referrers are ever considered; external referrers
  * are discarded and never stored. The returned path is decoded and slash-
- * normalized but NOT yet anonymized — anonymization runs inside
+ * normalized but NOT yet anonymized. Anonymization runs inside
  * erankly_health_record_404_path() after the sampling gate, mirroring how the
  * 404 path itself is handled. Collection can be disabled with the
  * 'erankly_health_collect_referrers' filter.
@@ -660,7 +660,7 @@ function erankly_health_anonymize_path_segments( string $path ): string {
 			continue;
 		}
 
-		// Long numeric strings (≥ 8 digits) — likely user/order IDs or phone numbers.
+		// Long numeric strings (≥ 8 digits), likely user/order IDs or phone numbers.
 		if ( preg_match( '/^\d{8,}$/', $decoded ) ) {
 			$segment = '[n]';
 			continue;

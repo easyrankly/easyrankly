@@ -907,7 +907,7 @@ function erankly_export_download(): void {
  * @return array<string,mixed> Cumulative counts plus cursor and done.
  */
 function erankly_import_apply( array $data, array $checkpoint = array() ): array {
-	_deprecated_function( __FUNCTION__, '2.8.0', 'ERankly_Import_Job_Runner' );
+	_deprecated_function( __FUNCTION__, '2.0.0', 'ERankly_Import_Job_Runner' );
 
 	return ERankly_Import_Job_Runner::apply_payload_batch( $data, $checkpoint );
 }
@@ -941,7 +941,7 @@ function erankly_import_apply_legacy_unbounded( array $data ): array {
 		$counts['settings'] = 1;
 	}
 
-	// Redirects — restore regardless of whether the module is currently enabled.
+	// Redirects. Restore regardless of whether the module is currently enabled.
 	// The redirect table is created on demand so data is never lost.
 	if ( ! empty( $data['redirects'] ) && is_array( $data['redirects'] ) ) {
 		erankly_ensure_redirect_classes_available();
@@ -1050,7 +1050,7 @@ function erankly_import_apply_legacy_unbounded( array $data ): array {
  * @return array{post_meta:int,term_meta:int,queued:bool,job_id:string}
  */
 function erankly_import_third_party( string $source ): array {
-	_deprecated_function( __FUNCTION__, '2.8.0', 'erankly_migration_job_runner()->start()' );
+	_deprecated_function( __FUNCTION__, '2.0.0', 'erankly_migration_job_runner()->start()' );
 	$result = erankly_migration_job_runner()->start( $source, false );
 	$job    = is_array( $result['job'] ?? null ) ? $result['job'] : array();
 
@@ -1621,7 +1621,7 @@ function erankly_import_export_render_panel(): void {
 			<section class="erankly-io-section erankly-card">
 				<p class="description"><?php esc_html_e( 'Download a JSON backup of your EasyRankly settings, redirects and SEO metadata. Keep it as a backup or import it on another site.', 'easyrankly' ); ?></p>
 				<?php if ( is_multisite() ) : ?>
-					<p class="description"><?php esc_html_e( 'On this network the file holds the network-wide settings plus this primary site\'s content (redirects, post/term metadata, special page defaults) — not a whole-network export of every site.', 'easyrankly' ); ?></p>
+					<p class="description"><?php esc_html_e( 'On this network the file holds the network-wide settings plus this primary site\'s content (redirects, post/term metadata, special page defaults), not a whole-network export of every site.', 'easyrankly' ); ?></p>
 				<?php endif; ?>
 				<p><a class="button button-primary" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export data', 'easyrankly' ); ?></a></p>
 			</section>
@@ -1968,7 +1968,7 @@ function erankly_migration_render_go_live_gate( array $gate ): void {
 		'go_live'           => 'contract_only' === $scope ? __( 'Import contract verified', 'easyrankly' ) : __( 'Migration fully verified', 'easyrankly' ),
 		'rollback_required' => __( 'Recovery decision required', 'easyrankly' ),
 		'rolled_back'       => __( 'Rollback completed', 'easyrankly' ),
-		'rollback_failed'   => __( 'Rollback incomplete — manual recovery required', 'easyrankly' ),
+		'rollback_failed'   => __( 'Rollback incomplete. Manual recovery required', 'easyrankly' ),
 	);
 	$classes       = array(
 		'preview_only'      => 'info',
@@ -2036,7 +2036,7 @@ function erankly_migration_render_go_live_gate( array $gate ): void {
 					$count  = absint( $check['count'] ?? 0 );
 					?>
 					<?php if ( isset( $check_labels[ $code ], $status_labels[ $status ] ) ) : ?>
-						<li><strong><?php echo esc_html( $status_labels[ $status ] ); ?></strong> — <?php echo esc_html( $check_labels[ $code ] ); ?><?php echo $count > 0 ? esc_html( ' (' . $count . ')' ) : ''; ?></li>
+						<li><strong><?php echo esc_html( $status_labels[ $status ] ); ?></strong>: <?php echo esc_html( $check_labels[ $code ] ); ?><?php echo $count > 0 ? esc_html( ' (' . $count . ')' ) : ''; ?></li>
 					<?php endif; ?>
 				<?php endforeach; ?>
 			</ul>
@@ -2082,7 +2082,7 @@ function erankly_migration_guided_copy( array $ui ): array {
 	$copy         = array(
 		'preview_ready'       => array(
 			'title'       => __( 'Preview complete', 'easyrankly' ),
-			'instruction' => __( 'Step 1 of 3 — Import your SEO data', 'easyrankly' ),
+			'instruction' => __( 'Step 1 of 3. Import your SEO data', 'easyrankly' ),
 			'body'        => __( 'No blocking issue was found. Existing EasyRankly values will still be preserved and reported.', 'easyrankly' ),
 		),
 		'preview_blocked'     => array(
@@ -2093,13 +2093,13 @@ function erankly_migration_guided_copy( array $ui ): array {
 		'source_active'       => array(
 			'title'       => __( 'Import complete', 'easyrankly' ),
 			/* translators: %s: source SEO plugin name. */
-			'instruction' => sprintf( __( 'Step 2 of 3 — Deactivate %s', 'easyrankly' ), $source_label ),
+			'instruction' => sprintf( __( 'Step 2 of 3. Deactivate %s', 'easyrankly' ), $source_label ),
 			/* translators: %s: source SEO plugin name. */
 			'body'        => sprintf( __( 'Do not delete %s or its data yet. Keep this report open while you deactivate it from the Plugins screen.', 'easyrankly' ), $source_label ),
 		),
 		'ready_to_verify'     => array(
 			'title'       => __( 'The previous SEO plugin is no longer active', 'easyrankly' ),
-			'instruction' => __( 'Step 3 of 3 — Verify the site', 'easyrankly' ),
+			'instruction' => __( 'Step 3 of 3. Verify the site', 'easyrankly' ),
 			'body'        => __( 'Clear any WordPress, page or CDN cache you use, then let EasyRankly compare the current site with the saved baseline.', 'easyrankly' ),
 		),
 		'complete'            => array(
@@ -2203,7 +2203,7 @@ function erankly_migration_render_guided_action( array $ui, array $report ): voi
 			?>
 			<a class="button button-primary" href="<?php echo esc_url( $plugins_url ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $button_label ); ?></a>
 			<?php if ( 'source_active' === (string) ( $ui['state'] ?? '' ) ) : ?>
-				<a class="button" href="<?php echo esc_url( $recheck_url ); ?>"><?php esc_html_e( 'I deactivated it — check again', 'easyrankly' ); ?></a>
+				<a class="button" href="<?php echo esc_url( $recheck_url ); ?>"><?php esc_html_e( 'I deactivated it. Check again', 'easyrankly' ); ?></a>
 			<?php endif; ?>
 		<?php elseif ( 'verify_live' === $action && ! empty( $ui['can_verify_live'] ) ) : ?>
 			<form method="post" action="<?php echo esc_url( erankly_import_export_url() ); ?>">
@@ -2478,7 +2478,7 @@ function erankly_migration_render_report(): void {
 				<?php
 				printf(
 					/* translators: 1: post count, 2: term count, 3: user count. */
-					esc_html__( 'Objects scanned — posts: %1$d; terms: %2$d; authors: %3$d.', 'easyrankly' ),
+					esc_html__( 'Objects scanned. Posts: %1$d; terms: %2$d; authors: %3$d.', 'easyrankly' ),
 					(int) ( $counts['posts_found'] ?? 0 ),
 					(int) ( $counts['terms_found'] ?? 0 ),
 					(int) ( $counts['users_found'] ?? 0 )
@@ -2488,8 +2488,7 @@ function erankly_migration_render_report(): void {
 			<?php if ( $accounting ) : ?>
 				<h4><?php esc_html_e( 'Evidence ledger', 'easyrankly' ); ?></h4>
 				<p>
-					<strong><?php echo 'pass' === (string) ( $evidence['invariant']['status'] ?? '' ) ? esc_html__( 'Passed', 'easyrankly' ) : esc_html__( 'Failed', 'easyrankly' ); ?></strong>
-					— <?php esc_html_e( 'every discovered occurrence is assigned to exactly one terminal outcome.', 'easyrankly' ); ?>
+					<strong><?php echo 'pass' === (string) ( $evidence['invariant']['status'] ?? '' ) ? esc_html__( 'Passed', 'easyrankly' ) : esc_html__( 'Failed', 'easyrankly' ); ?></strong>. <?php esc_html_e( 'Every discovered occurrence is assigned to exactly one terminal outcome.', 'easyrankly' ); ?>
 				</p>
 				<table class="widefat striped">
 					<thead><tr><th><?php esc_html_e( 'Area', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Discovered', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Imported', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Identical', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Preserved', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Conflict / invalid / failed', 'easyrankly' ); ?></th></tr></thead>
@@ -2531,7 +2530,7 @@ function erankly_migration_render_report(): void {
 					<summary><?php esc_html_e( 'Normalized before/after comparison', 'easyrankly' ); ?></summary>
 					<ul>
 						<?php foreach ( $semantic as $domain => $result ) : ?>
-							<li><strong><?php echo esc_html( strtoupper( (string) $domain ) ); ?></strong> — <?php echo esc_html( sprintf( /* translators: 1: matches, 2: mismatches, 3: planned. */ __( '%1$d match; %2$d mismatch; %3$d planned.', 'easyrankly' ), absint( $result['matched'] ?? 0 ), absint( $result['mismatch'] ?? 0 ), absint( $result['planned'] ?? 0 ) ) ); ?></li>
+							<li><strong><?php echo esc_html( strtoupper( (string) $domain ) ); ?></strong>: <?php echo esc_html( sprintf( /* translators: 1: matches, 2: mismatches, 3: planned. */ __( '%1$d match; %2$d mismatch; %3$d planned.', 'easyrankly' ), absint( $result['matched'] ?? 0 ), absint( $result['mismatch'] ?? 0 ), absint( $result['planned'] ?? 0 ) ) ); ?></li>
 						<?php endforeach; ?>
 					</ul>
 				</details>
@@ -2566,7 +2565,7 @@ function erankly_migration_render_report(): void {
 					<summary><?php esc_html_e( 'Warnings requiring review', 'easyrankly' ); ?> (<?php echo esc_html( (string) count( $report['warnings'] ) ); ?>)</summary>
 					<ul>
 						<?php foreach ( array_slice( $report['warnings'], 0, 20 ) as $warning ) : ?>
-							<li><?php echo esc_html( (string) ( $warning['message'] ?? $warning['code'] ?? '' ) ); ?><?php echo ! empty( $warning['reference'] ) ? ' — ' . esc_html( (string) $warning['reference'] ) : ''; ?></li>
+							<li><?php echo esc_html( (string) ( $warning['message'] ?? $warning['code'] ?? '' ) ); ?><?php echo ! empty( $warning['reference'] ) ? ': ' . esc_html( (string) $warning['reference'] ) : ''; ?></li>
 						<?php endforeach; ?>
 					</ul>
 				</details>
@@ -2578,8 +2577,8 @@ function erankly_migration_render_report(): void {
 						<?php foreach ( array_slice( $report['details'], 0, 20 ) as $detail ) : ?>
 							<li>
 								<code><?php echo esc_html( (string) ( $detail['code'] ?? '' ) ); ?></code>
-								<?php echo ! empty( $detail['reference'] ) ? ' — ' . esc_html( (string) $detail['reference'] ) : ''; ?>
-								<?php echo ! empty( $detail['field'] ) ? ' — ' . esc_html( (string) $detail['field'] ) : ''; ?>
+								<?php echo ! empty( $detail['reference'] ) ? ': ' . esc_html( (string) $detail['reference'] ) : ''; ?>
+								<?php echo ! empty( $detail['field'] ) ? ', ' . esc_html( (string) $detail['field'] ) : ''; ?>
 							</li>
 						<?php endforeach; ?>
 					</ul>
@@ -2633,9 +2632,7 @@ function erankly_migration_render_report(): void {
 							);
 							?>
 							<li>
-								<a href="<?php echo esc_url( $recent_url ); ?>"><?php echo esc_html( (string) ( $recent['source_label'] ?? $recent['source'] ?? '' ) ); ?></a>
-								— <?php echo 'preview' === (string) ( $recent['mode'] ?? '' ) ? esc_html__( 'Preview', 'easyrankly' ) : esc_html__( 'Import', 'easyrankly' ); ?>
-								— <?php echo esc_html( erankly_migration_format_datetime( (string) ( $recent['completed_at'] ?? '' ) ) ); ?>
+								<a href="<?php echo esc_url( $recent_url ); ?>"><?php echo esc_html( (string) ( $recent['source_label'] ?? $recent['source'] ?? '' ) ); ?></a>. <?php echo 'preview' === (string) ( $recent['mode'] ?? '' ) ? esc_html__( 'Preview', 'easyrankly' ) : esc_html__( 'Import', 'easyrankly' ); ?>. <?php echo esc_html( erankly_migration_format_datetime( (string) ( $recent['completed_at'] ?? '' ) ) ); ?>
 							</li>
 						<?php endforeach; ?>
 					</ul>

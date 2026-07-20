@@ -678,7 +678,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 
 	// Drives the "show resolved value, revert to raw {{token}} on focus"
 	// behavior for every plain PHP-rendered {{variable}} field (settings
-	// page defaults, classic meta boxes, term forms) — see bindVariablePicker()
+	// page defaults, classic meta boxes, term forms). See bindVariablePicker()
 	// in admin.js. The block editor's React fields get the same preference
 	// through eranklyEditor/eranklySiteEditor instead.
 	if ( in_array( 'variables', $asset_modules, true ) ) {
@@ -767,7 +767,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	// erankly_settings_autosave_panels() in admin/settings-page.php); each
 	// entry below is added the same turn its panel starts autosaving, so the
 	// JS bootstrap (bindSettingsAutosave in admin.js) only ever binds panels
-	// that actually have a config here — unconditional on multisite/network
+	// that actually have a config here. It is unconditional on multisite/network
 	// state because different panels are reachable in each: General/Features/
 	// etc. only on single-site or Network Admin, but Special pages is the
 	// opposite (only a per-site admin on Multisite ever sees that tab).
@@ -817,11 +817,11 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 					'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
 					// Multisite-only (a per-site admin's "General" tab there);
 					// its own bespoke route, not part of erankly_settings_autosave_panels()
-					// — see erankly_rest_save_special_pages() in easyrankly.php.
+					// See erankly_rest_save_special_pages() in easyrankly.php.
 					'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
 					// Network-Admin-only; its form posts a different top-level field
 					// ('erankly_ml_sites', not 'erankly_settings') into a dedicated
-					// network option — see ERankly_ML_Admin::rest_save_ml_sites().
+					// network option. See ERankly_ML_Admin::rest_save_ml_sites().
 					'multilingual'  => array(
 						'restUrl'   => esc_url_raw( rest_url( 'erankly/v1/settings/multilingual' ) ),
 						'fieldRoot' => 'erankly_ml_sites',

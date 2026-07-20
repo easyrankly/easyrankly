@@ -341,7 +341,7 @@
 
         // Every built-in panel now has data-erankly-standalone-panel or matches
         // one of the four slugs below, so this always evaluates to hidden=true
-        // today — kept as-is rather than simplified, since it's still what
+        // today. It is kept as-is rather than simplified, since it's still what
         // correctly hides the button for a third-party extension tab (no
         // control over whether those carry the standalone attribute) and for
         // any future built-in panel that doesn't autosave.

@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — post, term and global entity metadata.
+ * Shared helpers: post, term and global entity metadata.
  *
  * Part of the helpers.php loader; always loaded early on every request.
  *

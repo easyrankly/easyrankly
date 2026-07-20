@@ -225,7 +225,7 @@ function erankly_general_panel_setting_keys(): array {
  * Registry of settings panels that autosave via REST (see
  * erankly_rest_save_settings_panel() in easyrankly.php). Each entry lists the
  * top-level erankly_settings[...] keys that panel owns, and an optional
- * 'normalize' callback — a callable( array $merged, array $changes ): array —
+ * 'normalize' callback, a callable( array $merged, array $changes ): array,
  * run on the merged array before sanitizing, for panels whose sanitizer
  * branches on isset() in a way that only makes sense for a full-page
  * submission (see erankly_normalize_head_credit_for_autosave() for the
@@ -334,7 +334,7 @@ function erankly_settings_autosave_panels(): array {
  *
  * The classic full-page form never submits a hide_head_credit key (only a
  * live add_head_credit checkbox), and a legacy import always carries
- * hide_head_credit but never add_head_credit — the sanitizer relies on that
+ * hide_head_credit but never add_head_credit. The sanitizer relies on that
  * either/or to know which one to trust. Autosave's merge onto
  * erankly_get_settings() breaks that invariant: hide_head_credit is a normal
  * stored key, so it's always present after the merge, which would make the
@@ -635,7 +635,10 @@ function erankly_render_settings_page(): void {
 	$show_links_tab     = erankly_link_building_enabled() && ! is_network_admin();
 	// The AI tab (prompt editor) lives in the main settings form, shown only in
 	// advanced mode while AI features are enabled.
-	$show_ai_tab = ! $is_site_admin_on_network && erankly_ai_module_enabled() && empty( $settings['simplified_mode'] );
+	$show_ai_tab              = ! $is_site_admin_on_network && erankly_ai_module_enabled() && empty( $settings['simplified_mode'] );
+	$show_sitemap_tab         = ! $is_site_admin_on_network && $sitemap_enabled;
+	$show_multilingual_tab    = is_multisite() && is_network_admin() && $multilingual_enabled;
+	$show_feature_modules_nav = $show_redirects_tab || $show_sitemap_tab || $show_health_tab || $show_links_tab || $show_ai_tab || $show_multilingual_tab;
 	// Special-page metadata is per site on Multisite: edited from each subsite's
 	// "General" tab unless the block-theme Site Editor panels are available.
 	$show_site_special_tab = $is_site_admin_on_network && ! erankly_use_site_editor_special_page_panels();
@@ -730,7 +733,7 @@ function erankly_render_settings_page(): void {
 	 */
 	$extra_tabs = erankly_normalize_settings_tabs( apply_filters( 'erankly_settings_tabs', array() ) );
 
-	// Map short tab names to panel IDs so server-side routing works for every tab —
+	// Map short tab names to panel IDs so server-side routing works for every tab.
 	// used by the post-save redirect and the no-JS fallback.
 	$tab_panel_map = array(
 		'general'       => 'settings-general',
@@ -841,17 +844,17 @@ function erankly_render_settings_page(): void {
 	}
 
 	// With every built-in panel now autosaving, $show_settings_submit ends up
-	// false for every reachable $active_panel today — but the computation
+	// false for every reachable $active_panel today, but the computation
 	// itself isn't dead: it's what keeps the button correctly hidden on the
 	// very first server-rendered paint (the JS in bindSettingsTabs()'s
 	// activate() only corrects it after DOMContentLoaded, which would
 	// otherwise flash the button briefly), and it'll matter again the moment
-	// a future panel — built-in or a third-party extension tab — doesn't
+	// a future panel, built-in or a third-party extension tab, doesn't
 	// autosave.
 	$show_settings_submit = ! $is_site_admin_on_network && ! in_array( $active_panel, array( 'settings-health', 'settings-links', 'settings-import-export', 'settings-redirects', 'settings-multilingual' ), true );
 
 	// Panels that autosave via REST (see erankly_settings_autosave_panels())
-	// no longer need the shared button once they're actually reachable —
+	// no longer need the shared button once they're actually reachable.
 	// single-site, or Network Admin on Multisite (a per-site admin on
 	// Multisite never gets these tabs at all, mirroring $is_site_admin_on_network).
 	// Driven entirely by the registry so this never needs editing again as
@@ -911,35 +914,40 @@ function erankly_render_settings_page(): void {
 					<?php erankly_render_settings_nav_link( 'features', __( 'Features', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'social', __( 'Social', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'schema', __( 'Schema', 'easyrankly' ), $active_panel ); ?>
-					<?php if ( $sitemap_enabled ) : ?>
-						<?php erankly_render_settings_nav_link( 'sitemap', __( 'Sitemap', 'easyrankly' ), $active_panel ); ?>
-					<?php endif; ?>
-					<?php if ( is_multisite() && is_network_admin() && $multilingual_enabled ) : ?>
-						<?php erankly_render_settings_nav_link( 'multilingual', __( 'Multilingual', 'easyrankly' ), $active_panel ); ?>
-					<?php endif; ?>
 				<?php endif; ?>
 				<?php if ( $show_site_special_tab ) : ?>
 					<?php erankly_render_settings_nav_link( 'special-pages', __( 'General', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
-				<?php if ( $show_health_tab ) : ?>
-					<?php erankly_render_settings_nav_link( 'health', __( 'Health', 'easyrankly' ), $active_panel ); ?>
-				<?php endif; ?>
-				<?php if ( $show_links_tab ) : ?>
-					<?php erankly_render_settings_nav_link( 'links', __( 'Internal links', 'easyrankly' ), $active_panel ); ?>
-				<?php endif; ?>
 				<?php if ( ! $is_site_admin_on_network ) : ?>
 					<?php erankly_render_settings_nav_link( 'settings', __( 'Settings', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'advanced', __( 'Advanced', 'easyrankly' ), $active_panel, ! empty( $settings['simplified_mode'] ) ); ?>
-					<?php if ( $show_ai_tab ) : ?>
-						<?php erankly_render_settings_nav_link( 'ai', __( 'AI', 'easyrankly' ), $active_panel ); ?>
-					<?php endif; ?>
 					<?php erankly_render_settings_nav_link( 'bloat', __( 'Bloat', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_import_export_tab ) : ?>
 					<?php erankly_render_settings_nav_link( 'import-export', __( 'Import / Export', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
-				<?php if ( $show_redirects_tab ) : ?>
-					<?php erankly_render_settings_nav_link( 'redirects', __( 'Redirects', 'easyrankly' ), $active_panel ); ?>
+				<?php if ( $show_feature_modules_nav ) : ?>
+				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-feature-modules">
+					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-feature-modules"><?php esc_html_e( 'Feature modules', 'easyrankly' ); ?></span>
+					<?php if ( $show_redirects_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'redirects', __( 'Redirects', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+					<?php if ( $show_sitemap_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'sitemap', __( 'Sitemap', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+					<?php if ( $show_health_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'health', __( 'Health', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+					<?php if ( $show_links_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'links', __( 'Internal links', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+					<?php if ( $show_ai_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'ai', __( 'AI', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+					<?php if ( $show_multilingual_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'multilingual', __( 'Multilingual', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
+				</div>
 				<?php endif; ?>
 				<?php
 				foreach ( $extra_tabs as $extra_slug => $extra_tab ) :

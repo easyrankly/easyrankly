@@ -697,7 +697,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 /* Single-class on/off toggle: overlays any input[type="checkbox"], no
-   extra markup required — appearance:none turns it into a plain box that
+   extra markup required. appearance:none turns it into a plain box that
    ::before can render the knob on top of. The input[type="checkbox"]
    prefix is needed to out-specificity wp-admin/css/forms.css, which
    styles that same attribute selector with a border/background. */
@@ -747,8 +747,8 @@ input[type="checkbox"].erankly-toggle:checked {
 }
 
 /* Re-declares content/width/height/margin (not just left): wp-admin's own
-   input[type="checkbox"]:checked::before rule — which paints a 21px
-   checkmark icon — outranks our unchecked-state ::before here, so those
+   input[type="checkbox"]:checked::before rule, which paints a 21px
+   checkmark icon, outranks our unchecked-state ::before here, so those
    properties must be repeated at this higher specificity to stay 16px. */
 input[type="checkbox"].erankly-toggle:checked::before {
 	content: "";
@@ -819,7 +819,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	width: 100%;
 }
 
-/* The preview never paints a background/border of its own — it only draws
+/* The preview never paints a background/border of its own. It only draws
  * text over the real field, whose own text is made transparent while it's
  * showing (see .erankly-variable-field.erankly-is-previewing below). That
  * keeps the field's native border/box-shadow untouched instead of an opaque
@@ -860,7 +860,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	white-space: pre-wrap;
 }
 
-/* Suggestion dropdown positioning — surface/row styles live in shared.css. */
+/* Suggestion dropdown positioning. Surface/row styles live in shared.css. */
 .erankly-variable-menu {
 	left: 0;
 	margin-top: 4px;

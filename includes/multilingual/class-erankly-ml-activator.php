@@ -1,6 +1,6 @@
 <?php
 /**
- * Multilingual module — database activation.
+ * Multilingual module: database activation.
  *
  * @package EasyRankly
  */

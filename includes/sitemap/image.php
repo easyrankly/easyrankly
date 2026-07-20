@@ -1,6 +1,6 @@
 <?php
 /**
- * XML sitemap generation — Image sitemap.
+ * XML sitemap generation: Image sitemap.
  *
  * Loaded only when the image feature is enabled (see erankly_bootstrap()),
  * so these functions are parsed only on sites that use this sitemap type.

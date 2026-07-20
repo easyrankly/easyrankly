@@ -1,6 +1,6 @@
 <?php
 /**
- * Multilingual module — admin UI, REST endpoint, and save handlers.
+ * Multilingual module: admin UI, REST endpoint, and save handlers.
  *
  * @package EasyRankly
  */
@@ -60,7 +60,7 @@ final class ERankly_ML_Admin {
 		// save_ml_sites(). Registering it again here would double-bind the action.
 	}
 
-	// REST — cross-site title search.
+	// REST: cross-site title search.
 
 	/**
 	 * Registers the REST search route.
@@ -127,7 +127,7 @@ final class ERankly_ML_Admin {
 
 		// Autosaves the Network Admin site-language map (see
 		// erankly_register_settings_autosave_route() in easyrankly.php for the
-		// equivalent ERANKLY_OPTION-backed panels) — kept as its own route
+		// equivalent ERANKLY_OPTION-backed panels). It is kept as its own route
 		// rather than joining that registry, since this form posts a
 		// completely different top-level field ('erankly_ml_sites', not
 		// 'erankly_settings') into a dedicated network option, not ERANKLY_OPTION.
@@ -157,7 +157,7 @@ final class ERankly_ML_Admin {
 	 *
 	 * The JS binder strips the form's field-name root before sending, so the
 	 * payload here already has the [ blog_id => [...] ] shape
-	 * ERankly_ML_Sites::save() expects directly — no unwrapping needed. That
+	 * ERankly_ML_Sites::save() expects directly, with no unwrapping needed. That
 	 * method fully sanitizes every field itself, so nothing else has to.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -557,7 +557,7 @@ final class ERankly_ML_Admin {
 					continue;
 				}
 
-				// Capability gate: site membership alone is not enough — the user
+				// Capability gate: site membership alone is not enough. The user
 				// must be able to edit the target object on its own site, so a
 				// member who cannot edit a given post/term cannot link it.
 				if ( ! $this->user_can_edit_target( $blog_id, $object_type, $object_id ) ) {
@@ -697,7 +697,7 @@ final class ERankly_ML_Admin {
 		ERankly_ML_Sites::remove_site( (int) $site->blog_id );
 	}
 
-	// Network settings — language map.
+	// Network settings: language map.
 
 	/**
 	 * Saves the site-language map submitted from the network settings page.

@@ -1,6 +1,6 @@
 <?php
 /**
- * XML sitemap generation — Video sitemap.
+ * XML sitemap generation: Video sitemap.
  *
  * Loaded only when the video feature is enabled (see erankly_bootstrap()),
  * so these functions are parsed only on sites that use this sitemap type.

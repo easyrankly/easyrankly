@@ -44,7 +44,7 @@
 
       // The trigger button lives inside the settings page's own <form>, so
       // the POST is sent through a standalone form assembled here and
-      // appended to <body> — nesting a <form> inside the settings form is
+      // appended to <body>. Nesting a <form> inside the settings form is
       // invalid HTML and browsers would route the submit to the wrong
       // (outer) form.
       var postForm = document.createElement("form");

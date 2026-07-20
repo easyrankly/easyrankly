@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings page — per-panel renderers.
+ * Settings page: per-panel renderers.
  *
  * Each function renders one tab panel of the EasyRankly settings screen. The
  * markup was extracted verbatim from erankly_render_settings_page() to keep
@@ -404,7 +404,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 							<p class="description">
 								<a href="<?php echo esc_url( erankly_get_sitemap_url( '/sitemap-news-1.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open sitemap-news-1.xml', 'easyrankly' ); ?></a>
 							</p>
-							<p class="description"><?php esc_html_e( 'Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News — editorial review by Google is still required.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News. Editorial review by Google is still required.', 'easyrankly' ); ?></p>
 							<div class="erankly-field erankly-visibility-defaults">
 								<p><strong><?php esc_html_e( 'Included post types', 'easyrankly' ); ?></strong></p>
 								<div class="erankly-checkbox-options">
@@ -458,7 +458,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 							<p class="description">
 								<a href="<?php echo esc_url( erankly_get_sitemap_url( '/sitemap-video-1.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open sitemap-video-1.xml', 'easyrankly' ); ?></a>
 							</p>
-							<p class="description"><?php esc_html_e( 'Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing — the player must also be crawlable.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing. The player must also be crawlable.', 'easyrankly' ); ?></p>
 							</fieldset>
 						</div>
 					</div>
@@ -568,7 +568,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 					<h3 class="erankly-section-title"><?php esc_html_e( 'robots.txt', 'easyrankly' ); ?></h3>
 					<div class="erankly-card">
 						<div class="erankly-field">
-						<label for="erankly-robots-txt-extra"><strong><?php esc_html_e( 'robots.txt — custom rules', 'easyrankly' ); ?></strong></label>
+						<label for="erankly-robots-txt-extra"><strong><?php esc_html_e( 'robots.txt: custom rules', 'easyrankly' ); ?></strong></label>
 						<textarea id="erankly-robots-txt-extra" class="widefat code" rows="12" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_txt_extra]"><?php echo esc_textarea( (string) $settings['robots_txt_extra'] ); ?></textarea>
 						<p class="description"><?php esc_html_e( 'Extra directives appended to the virtual robots.txt after the auto-generated rules (User-agent, Disallow, Sitemap). One directive per line.', 'easyrankly' ); ?></p>
 						</div>
@@ -598,7 +598,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 							<input id="erankly-paginated-title-format" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[paginated_title_format]" value="<?php echo esc_attr( (string) $settings['paginated_title_format'] ); ?>" placeholder="<?php esc_attr_e( 'e.g. Page {{page_number}} of {{max_pages}}', 'easyrankly' ); ?>">
 							<?php erankly_render_variable_picker(); ?>
 						</div>
-						<p class="description"><?php esc_html_e( 'Appended to the SEO title on page 2, 3, … — separated by a dash. Leave empty to keep the base title unchanged. Available variables: {{page_number}}, {{max_pages}}.', 'easyrankly' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Appended to the SEO title on page 2, 3, …, separated by a dash. Leave empty to keep the base title unchanged. Available variables: {{page_number}}, {{max_pages}}.', 'easyrankly' ); ?></p>
 						</div>
 					</div>
 					</div>
@@ -662,7 +662,7 @@ function erankly_render_settings_panel_bloat( array $settings, bool $safe_bloat_
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_generator]" value="1" <?php checked( $settings['bloat_remove_generator'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <strong><?php esc_html_e( 'Remove WP Generator meta tag', 'easyrankly' ); ?></strong></label>
 								<p class="description"><?php esc_html_e( 'Hides your WordPress version number from the page source, so it is not an easy clue for bots scanning for known vulnerabilities.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_feed_links]" value="1" <?php checked( $settings['bloat_remove_feed_links'], 1 ); ?> data-erankly-bloat-item> <strong><?php esc_html_e( 'Remove RSS feed links', 'easyrankly' ); ?></strong></label>
-								<p class="description"><?php esc_html_e( 'Removes the RSS feed links from the page header. The feeds still work — only the auto-discovery hints are hidden.', 'easyrankly' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Removes the RSS feed links from the page header. The feeds still work. Only the auto-discovery hints are hidden.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_rsd_link]" value="1" <?php checked( $settings['bloat_remove_rsd_link'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <strong><?php esc_html_e( 'Remove Really Simple Discovery link', 'easyrankly' ); ?></strong></label>
 								<p class="description"><?php esc_html_e( 'Removes an old XML-RPC discovery link that almost no modern tool uses. Safe to remove.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_wlwmanifest]" value="1" <?php checked( $settings['bloat_remove_wlwmanifest'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <strong><?php esc_html_e( 'Remove Windows Live Writer manifest link', 'easyrankly' ); ?></strong></label>
@@ -670,7 +670,7 @@ function erankly_render_settings_panel_bloat( array $settings, bool $safe_bloat_
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_shortlink]" value="1" <?php checked( $settings['bloat_remove_shortlink'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <strong><?php esc_html_e( 'Remove shortlink', 'easyrankly' ); ?></strong></label>
 								<p class="description"><?php esc_html_e( 'Removes the ?p=123 short URL hint from the page header and HTTP headers. Your normal permalinks keep working.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_rest_link]" value="1" <?php checked( $settings['bloat_remove_rest_link'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <strong><?php esc_html_e( 'Remove REST API discovery link', 'easyrankly' ); ?></strong></label>
-								<p class="description"><?php esc_html_e( 'Hides the link that advertises your REST API location. The API itself keeps working — only the public hint is removed.', 'easyrankly' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Hides the link that advertises your REST API location. The API itself keeps working. Only the public hint is removed.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_oembed]" value="1" <?php checked( $settings['bloat_remove_oembed'], 1 ); ?> data-erankly-bloat-item> <strong><?php esc_html_e( 'Remove oEmbed discovery links', 'easyrankly' ); ?></strong></label>
 								<p class="description"><?php esc_html_e( 'Stops WordPress from auto-embedding other sites and from loading the related embed script. Leave on if you paste other WordPress posts as live embeds.', 'easyrankly' ); ?></p>
 								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_jquery_migrate]" value="1" <?php checked( $settings['bloat_remove_jquery_migrate'], 1 ); ?> data-erankly-bloat-item> <strong><?php esc_html_e( 'Remove jQuery Migrate', 'easyrankly' ); ?></strong></label>

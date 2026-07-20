@@ -321,10 +321,10 @@
 
   // Autosaves a settings panel via REST instead of the shared "Save Changes"
   // button (see erankly_rest_save_settings_panel()). Serializes every
-  // config.fieldRoot[...] field under the panel — including ones inside
-  // hidden inner tabs, since those still hold real values — into a nested
+  // config.fieldRoot[...] field under the panel, including ones inside
+  // hidden inner tabs, since those still hold real values, into a nested
   // object from its bracket-notation name, then debounces a POST.
-  // config: { restUrl, nonce, i18n, fieldRoot? } — fieldRoot defaults to
+  // config: { restUrl, nonce, i18n, fieldRoot? }. fieldRoot defaults to
   // 'erankly_settings' (every ERANKLY_OPTION-backed panel); Multilingual
 
   ER.bindUserSearch = bindUserSearch;

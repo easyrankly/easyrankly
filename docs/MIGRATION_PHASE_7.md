@@ -35,9 +35,9 @@ The authoritative matrix is
 
 | Layer | PHP | WordPress | Database | Topology |
 |---|---:|---:|---|---|
-| Contract | 8.0 | — | — | standalone |
-| Contract | 8.4 | — | — | standalone |
-| Static quality | 8.4 | — | — | PHPCS, PHPCompatibility and PHP 8.0 syntax |
+| Contract | 8.0 | N/A | N/A | standalone |
+| Contract | 8.4 | N/A | N/A | standalone |
+| Static quality | 8.4 | N/A | N/A | PHPCS, PHPCompatibility and PHP 8.0 syntax |
 | Runtime | 8.0 | 6.2 | MariaDB 10.11 | single-site |
 | Runtime | 8.0 | 7.0.1 | MariaDB 10.11 | single-site |
 | Runtime | 8.4 | 7.0.1 | MariaDB 10.11 | single-site |

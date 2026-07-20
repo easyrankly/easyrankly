@@ -11,7 +11,6 @@
 		FlexBlock,
 		FlexItem,
 		Notice,
-		__experimentalDivider: Divider,
 		__experimentalVStack: VStack,
 	} = wp.components;
 	const { createElement: el, Fragment, useEffect, useState } = wp.element;
@@ -189,8 +188,8 @@
 
 		if ( ! config.graphBuilt ) {
 			return el(
-				Notice,
-				{ isDismissible: false, status: 'warning' },
+				'p',
+				null,
 				__( 'The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → Internal links.', 'easyrankly' )
 			);
 		}
@@ -206,17 +205,6 @@
 		return el(
 			Stack,
 			stackProps,
-			el(
-				Button,
-				{
-					disabled: busy,
-					isBusy: busy,
-					onClick: () => generate( hasLoaded ),
-					variant: 'secondary',
-					__next40pxDefaultSize: true,
-				},
-				hasLoaded ? __( 'Refresh', 'easyrankly' ) : __( 'Get suggestions', 'easyrankly' )
-			),
 			status && 'error' === status.type && el(
 				Notice,
 				{
@@ -235,13 +223,24 @@
 					title: __( 'Add on this page', 'easyrankly' ),
 					type: 'outbound',
 				} ),
-				Divider && el( Divider, null ),
+				el( 'div', { className: 'erankly-internal-links-divider', role: 'separator' } ),
 				el( SuggestionSection, {
 					emptyMessage: __( 'None suggested.', 'easyrankly' ),
 					items: inbound,
 					title: __( 'Add on other pages', 'easyrankly' ),
 					type: 'inbound',
 				} )
+			),
+			el(
+				Button,
+				{
+					disabled: busy,
+					isBusy: busy,
+					onClick: () => generate( hasLoaded ),
+					variant: 'secondary',
+					__next40pxDefaultSize: true,
+				},
+				hasLoaded ? __( 'Refresh', 'easyrankly' ) : __( 'Get suggestions', 'easyrankly' )
 			)
 		);
 	}

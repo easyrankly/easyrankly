@@ -131,7 +131,7 @@ final class ERankly_Redirects_Admin {
 						<?php if ( $show_search_filters ) : ?>
 							<label for="erankly-redirects-search-source" class="screen-reader-text"><?php esc_html_e( 'Search source path, or use structured filters such as status:on or code:301', 'easyrankly' ); ?></label>
 							<div class="erankly-redirects-search-field">
-								<input id="erankly-redirects-search-source" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search path or filter (e.g. key:value and key:value)', 'easyrankly' ); ?>" title="<?php esc_attr_e( 'Free text matches the source path. Click for filter suggestions (status, code, type, visibility) — combine several with "and" or "&".', 'easyrankly' ); ?>" autocomplete="off">
+								<input id="erankly-redirects-search-source" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search path or filter (e.g. key:value and key:value)', 'easyrankly' ); ?>" title="<?php esc_attr_e( 'Free text matches the source path. Click for filter suggestions (status, code, type, visibility), then combine several with "and" or "&".', 'easyrankly' ); ?>" autocomplete="off">
 								<div id="erankly-redirects-search-suggest" class="erankly-redirects-search-suggest" hidden></div>
 							</div>
 						<?php else : ?>
@@ -294,7 +294,7 @@ final class ERankly_Redirects_Admin {
 					<span><?php esc_html_e( 'Target URL', 'easyrankly' ); ?></span>
 					<input type="text" name="target_url" value="<?php echo esc_attr( $target_url ); ?>" placeholder="/new-page or https://example.com/new-page">
 				</label>
-				<p class="description"><?php esc_html_e( 'Not used for 410 (Gone) or 451 (Unavailable For Legal Reasons) — those codes end the request without redirecting.', 'easyrankly' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Not used for 410 (Gone) or 451 (Unavailable For Legal Reasons). Those codes end the request without redirecting.', 'easyrankly' ); ?></p>
 			</div>
 
 			<div class="erankly-redirects-grid">
@@ -323,7 +323,7 @@ final class ERankly_Redirects_Admin {
 				<label>
 					<span><?php esc_html_e( 'Required role', 'easyrankly' ); ?></span>
 					<select name="required_role">
-						<option value="" <?php selected( $required_role, '' ); ?>><?php esc_html_e( '— Any logged-in user —', 'easyrankly' ); ?></option>
+						<option value="" <?php selected( $required_role, '' ); ?>><?php esc_html_e( 'Any logged-in user', 'easyrankly' ); ?></option>
 						<?php foreach ( $roles as $role_slug => $role_data ) : ?>
 							<option value="<?php echo esc_attr( $role_slug ); ?>" <?php selected( $required_role, $role_slug ); ?>>
 								<?php echo esc_html( translate_user_role( $role_data['name'] ) ); ?>
@@ -444,7 +444,7 @@ final class ERankly_Redirects_Admin {
 									<br><span class="description erankly-redirects-note"><?php echo esc_html( wp_trim_words( (string) $redirect['note'], 12, '…' ) ); ?></span>
 								<?php endif; ?>
 							</td>
-							<td><?php echo '' !== (string) $redirect['target_url'] ? '<code>' . esc_html( (string) $redirect['target_url'] ) . '</code>' : esc_html__( '—', 'easyrankly' ); ?></td>
+							<td><?php echo '' !== (string) $redirect['target_url'] ? '<code>' . esc_html( (string) $redirect['target_url'] ) . '</code>' : esc_html__( 'Not applicable', 'easyrankly' ); ?></td>
 							<td><?php echo esc_html( (string) (int) $redirect['status_code'] ); ?></td>
 							<td class="erankly-redirects-col-optional"><?php echo esc_html( $this->format_match_type( $redirect ) ); ?></td>
 							<td class="erankly-redirects-active-cell"><?php echo $is_active ? esc_html__( 'Yes', 'easyrankly' ) : esc_html__( 'No', 'easyrankly' ); ?></td>
@@ -739,7 +739,7 @@ final class ERankly_Redirects_Admin {
 			$visibility = 'all';
 		}
 
-		// Required role — only meaningful for logged_in, and only when the role exists.
+		// Required role. It is only meaningful for logged_in, and only when the role exists.
 		$required_role = isset( $input['required_role'] ) ? sanitize_key( wp_unslash( $input['required_role'] ) ) : '';
 
 		if ( 'logged_in' !== $visibility || ( '' !== $required_role && ! array_key_exists( $required_role, get_editable_roles() ) ) ) {

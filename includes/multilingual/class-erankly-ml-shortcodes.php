@@ -3,9 +3,9 @@
  * Frontend shortcodes for the Multilingual module.
  *
  * Registers:
- *  - [erankly_language_switcher] — a <select> to navigate between
+ *  - [erankly_language_switcher]: a <select> to navigate between
  *    translations of the current article.
- *  - [erankly_translation_notice] — a dismissible <div> card that appears
+ *  - [erankly_translation_notice]: a dismissible <div> card that appears
  *    only when the visitor's browser language matches an available translation.
  *    Its texts are managed globally per language in the network settings, so the
  *    notice is shown in the reader's own language.
@@ -163,9 +163,9 @@ final class ERankly_ML_Shortcodes {
 	 * globally per language in the network settings (Network Admin → Settings →
 	 * EasyRankly → Multilingual). Each enabled site supplies the title, body and
 	 * link label in its own language, so the banner is shown to the reader in the
-	 * reader's language — the language of the matched translation.
+	 * reader's language, the language of the matched translation.
 	 *
-	 * Supported attributes (presentation only — no text):
+	 * Supported attributes (presentation only, no text):
 	 *  - title_tag  (string) HTML tag for the heading: h1–h6, p, span, div. Default: h6.
 	 *  - text_tag   (string) HTML tag for the paragraph: p, span, div. Default: p.
 	 *  - class      (string) Extra CSS class(es) for the <div> wrapper.
@@ -210,7 +210,7 @@ final class ERankly_ML_Shortcodes {
 
 		// Build the JSON payload: for each alternative language, attach the texts
 		// configured globally for that language's site. Languages without any
-		// configured text are skipped — there is nothing to show in that language.
+		// configured text are skipped. There is nothing to show in that language.
 		$json_data = array();
 
 		foreach ( $others as $t ) {
@@ -361,7 +361,7 @@ final class ERankly_ML_Shortcodes {
 	 * Resolves the navigable permalink for a post on a given blog.
 	 *
 	 * The switcher is a human-facing navigation control, so it intentionally links
-	 * to any *published* translation regardless of its `_erankly_noindex` flag —
+	 * to any *published* translation regardless of its `_erankly_noindex` flag.
 	 * a reader must still be able to reach a published page even when it is hidden
 	 * from search engines. This differs from ERankly_ML_Resolver::resolve_url(),
 	 * which builds the hreflang <head> alternates and must exclude noindex pages.

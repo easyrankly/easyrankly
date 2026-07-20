@@ -257,7 +257,7 @@ function erankly_health_render_panel(): void {
 				?>
 			</p>
 			<p class="description">
-				<?php esc_html_e( 'Elementor, Divi and WPBakery pages are excluded — their content lives in post meta, not the post body, causing false positives. Gutenberg block content is analysed correctly.', 'easyrankly' ); ?>
+				<?php esc_html_e( 'Elementor, Divi and WPBakery pages are excluded. Their content lives in post meta, not the post body, causing false positives. Gutenberg block content is analysed correctly.', 'easyrankly' ); ?>
 			</p>
 
 			<?php if ( null === $thin_content ) : ?>

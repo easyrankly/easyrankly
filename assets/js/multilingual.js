@@ -29,7 +29,7 @@
 		sync();
 	}
 
-	// Editor — cross-site translation search.
+	// Editor: cross-site translation search.
 	function initSearch() {
 		if ( typeof eranklyML === 'undefined' ) {
 			return;

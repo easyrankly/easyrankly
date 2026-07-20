@@ -28,7 +28,7 @@ const ERANKLY_SITEMAP_PER_PAGE = 1000;
  * @return array<string,mixed>
  */
 function erankly_filter_core_sitemap_posts_query_args( array $args, string $post_type ): array {
-	// Skip attachment queries — attachment pages are handled separately or suppressed.
+	// Skip attachment queries. Attachment pages are handled separately or suppressed.
 	if ( 'attachment' === $post_type ) {
 		return $args;
 	}
@@ -184,7 +184,7 @@ function erankly_render_sitemap_response( string $type, int $page = 1 ) {
 
 		$xml = erankly_get_video_sitemap_xml( $page );
 	} else {
-		// Unknown type — 404.
+		// Unknown type. Return a 404.
 		status_header( 404 );
 		exit;
 	}

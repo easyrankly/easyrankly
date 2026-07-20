@@ -1,6 +1,6 @@
 <?php
 /**
- * Multilingual module — relation repository.
+ * Multilingual module: relation repository.
  *
  * CRUD for hreflang translation groups in the network-wide table.
  *
@@ -135,7 +135,7 @@ final class ERankly_ML_Repository {
 		if ( ! $create_group ) {
 			// One member per blog per group. The UNIQUE key stops the same object
 			// appearing twice, but not two different objects from the same blog (e.g. a
-			// translation re-pointed to another post) — that would show the same
+			// translation re-pointed to another post). That would show the same
 			// language twice in the switcher, so drop any stale slot for this blog first.
 			$this->clear_blog_slot( $group_id, $blog_id, $object_type, $object_id );
 		}

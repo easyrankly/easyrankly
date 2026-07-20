@@ -1,5 +1,5 @@
 /**
- * EasyRankly — Frontend Multilingual Script
+ * EasyRankly: Frontend Multilingual Script
  *
  * Handles two shortcodes:
  *
@@ -81,7 +81,7 @@
 
 			// Reached the article's own language in the preference walk: every
 			// remaining preference ranks lower, so the current version already
-			// is the best available match — no banner needed.
+			// is the best available match. No banner is needed.
 			if ( prim === currentPrimary ) {
 				return;
 			}
@@ -104,7 +104,7 @@
 			}
 		} catch ( storageErr ) {
 			// localStorage not available (private mode, cross-origin iframe, etc.)
-			// — show the notice anyway.
+			// show the notice anyway.
 		}
 
 		// Replace {language} tokens with the matched translation's native name.
@@ -119,7 +119,7 @@
 		var bodyText  = withLang( match.text );
 		var linkText  = withLang( match.link );
 
-		// Nothing to show in this language — keep the card invisible.
+		// Nothing to show in this language. Keep the card invisible.
 		if ( '' === titleText && '' === bodyText && '' === linkText ) {
 			return;
 		}

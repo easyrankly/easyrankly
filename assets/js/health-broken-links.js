@@ -61,7 +61,7 @@
 
 		if ( state.status === 'checking' ) {
 			return ( t( 'checking', 'Checking links:' ) + ' ' + state.checks_done + '/' +
-				state.check_total + ' — ' + ( s.broken || 0 ) + ' ' + t( 'broken', 'broken' ) );
+				state.check_total + '. ' + ( s.broken || 0 ) + ' ' + t( 'broken', 'broken' ) );
 		}
 
 		return t( 'starting', 'Starting…' );

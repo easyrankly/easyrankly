@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — sitemap URLs and cache invalidation.
+ * Shared helpers: sitemap URLs and cache invalidation.
  *
  * Loaded only for sitemap, robots, lifecycle and related settings work.
  *

@@ -4,7 +4,7 @@
  *
  * Restores EasyRankly to a clean state without deactivating the plugin: wipes
  * settings, redirects, and post/term/special-page metadata. On Multisite a
- * Network Admin gets two scopes — a local reset for the primary site's own
+ * Network Admin gets two scopes: a local reset for the primary site's own
  * content, and a global reset that also sweeps every site on the network.
  *
  * @package EasyRankly
@@ -70,7 +70,7 @@ function erankly_reset_handle_actions(): void {
 		}
 	}
 
-	// The network-wide reset is only ever reachable from Network Admin — a
+	// The network-wide reset is only ever reachable from Network Admin. A
 	// per-site admin on Multisite never sees this button (see erankly_reset_render_panel()).
 	if ( 'reset_global' === $action && is_multisite() && is_network_admin() ) {
 		check_admin_referer( 'erankly_reset_global' );
@@ -104,7 +104,7 @@ function erankly_reset_redirect( array $args ): void {
  *
  * On single-site this also resets the plugin settings themselves, since those
  * are stored per site there. On Multisite the settings option is network-wide,
- * so a per-site reset must leave it untouched — erankly_reset_network()
+ * so a per-site reset must leave it untouched. erankly_reset_network()
  * handles that scope separately.
  *
  * @return void
@@ -447,7 +447,7 @@ function erankly_reset_render_panel(): void {
 			/*
 			 * This panel is rendered inside the main settings <form> (options.php or
 			 * the Network Admin save form), so these actions cannot be their own
-			 * nested <form> — browsers do not support nested forms and a button
+			 * nested <form>. Browsers do not support nested forms and a button
 			 * inside one would end up submitting the outer settings form instead.
 			 * A confirmation modal opens first (see erankly-confirm-modal in
 			 * admin.js); its own Delete button then assembles and submits a

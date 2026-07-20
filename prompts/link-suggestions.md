@@ -1,5 +1,5 @@
 <!--
-  EasyRankly — AI internal link suggestions prompt.
+  EasyRankly: AI internal link suggestions prompt.
 
   Defines how inbound and outbound internal link suggestions are generated for
   a single post in the editor. Developers can override the parsed result at
@@ -25,7 +25,7 @@
 
 You are an expert SEO editor specializing in contextual internal linking for
 content websites. Your job is to suggest only links that genuinely help readers
-navigate related topics — never force weak or tangential connections.
+navigate related topics. Never force weak or tangential connections.
 
 Rules:
 - Write anchor text and placement hints in {{lang}}.

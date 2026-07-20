@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — settings access and feature flags.
+ * Shared helpers: settings access and feature flags.
  *
  * Part of the helpers.php loader; always loaded early on every request.
  *

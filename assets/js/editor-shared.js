@@ -189,7 +189,7 @@
 		// interaction. Relying on the field's blur is unreliable here: the
 		// resolve-placeholders overlay swaps the field to its raw {{tag}} on
 		// focus, and the suggestion popover renders in a portal, so a click can
-		// momentarily blur the input — which previously closed the popup right
+		// momentarily blur the input, which previously closed the popup right
 		// after it opened. A pointer-down check against both the field and the
 		// popover keeps it open through those internal focus shifts.
 		useEffect( () => {
@@ -228,7 +228,7 @@
 
 		// Flatten the grouped variables into a single suggestion list. Rather than
 		// a separate "<>" button + popover, the field itself surfaces matching
-		// variables as you type — the same interaction as the Redirect rules
+		// variables as you type, the same interaction as the Redirect rules
 		// search filter (focus/click/type opens a menu filtered by the token the
 		// caret sits in; picking one replaces that token).
 		const flatVariables = [];
@@ -309,7 +309,7 @@
 				const next = event.relatedTarget;
 
 				// Focus moved into the suggestion popover or stayed within the
-				// field wrapper — keep the raw tag + popup active.
+				// field wrapper. Keep the raw tag + popup active.
 				if ( next && typeof next.closest === 'function' && (
 					next.closest( '.erankly-editor-variable-popover' ) ||
 					( fieldRef.current && fieldRef.current.contains( next ) )
@@ -870,12 +870,14 @@
 			fields.push(
 				el( ToggleControl, {
 					checked: Boolean( data.get( 'exclude_search' ) ),
+					help: __( 'Removes this page from internal site search results.', 'easyrankly' ),
 					key: 'exclude_search',
 					label: __( 'Exclude from site search queries', 'easyrankly' ),
 					onChange: toggle( 'exclude_search' ),
 				} ),
 				el( ToggleControl, {
 					checked: Boolean( data.get( 'exclude_archive' ) ),
+					help: __( 'Removes this page from category, date, and other archive listings.', 'easyrankly' ),
 					key: 'exclude_archive',
 					label: __( 'Exclude from archive queries', 'easyrankly' ),
 					onChange: toggle( 'exclude_archive' ),

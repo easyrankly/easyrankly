@@ -1,6 +1,6 @@
 <?php
 /**
- * Multilingual module — site language map.
+ * Multilingual module: site language map.
  *
  * Stores and retrieves the per-site hreflang code for each blog in the
  * network. If no override is set, the code is derived from the site locale.
@@ -65,8 +65,8 @@ final class ERankly_ML_Sites {
 	 * Returns the Translation Notice texts configured for a blog.
 	 *
 	 * These are managed globally (per site/language) in the network settings, so
-	 * the notice shown to a visitor is rendered in the reader's own language —
-	 * the language of the matched translation — rather than being authored inline
+	 * the notice shown to a visitor is rendered in the reader's own language,
+	 * the language of the matched translation, rather than being authored inline
 	 * in the shortcode.
 	 *
 	 * @param int $blog_id Blog ID.
@@ -375,8 +375,8 @@ final class ERankly_ML_Sites {
 	 * Switches to another blog AND realigns the rewrite engine with it.
 	 *
 	 * WordPress core's switch_to_blog() swaps the options table but leaves the
-	 * global $wp_rewrite — together with the category/tag/post-type permastructs
-	 * that bake in the site front and category_base/tag_base — pointing at the
+	 * global $wp_rewrite, together with the category/tag/post-type permastructs
+	 * that bake in the site front and category_base/tag_base, pointing at the
 	 * site that was active before the switch. As a result get_permalink() and
 	 * get_term_link() build URLs with the *calling* site's permalink structure,
 	 * not the target site's. This is why a linked translation keeps showing the

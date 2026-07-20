@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared helpers — input sanitization.
+ * Shared helpers: input sanitization.
  *
  * Common text and URL primitives loaded early on every request. LocalBusiness
  * and schema-specific sanitizers live in sanitization-schema.php.

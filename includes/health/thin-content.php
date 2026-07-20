@@ -39,7 +39,7 @@ function erankly_health_run_thin_content_scan(): void {
 
 	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
 
-	// Collect candidate post IDs only — post_content is streamed in batches below so
+	// Collect candidate post IDs only. post_content is streamed in batches below so
 	// the full corpus is never loaded into memory at once (large-site safe).
 	$post_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- On-demand thin-content scan; IDs only.
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The placeholder list is generated from the validated number of public post types and values are passed separately to prepare().
@@ -143,8 +143,8 @@ function erankly_health_run_thin_content_scan(): void {
 			$post_id      = (int) $row['ID'];
 			$post_content = (string) $row['post_content'];
 
-			// Inbound/outbound link graph. Runs for every post — including page-builder
-			// posts — so their links still count toward the pages they reference.
+			// Inbound/outbound link graph. Runs for every post, including page-builder
+			// posts, so their links still count toward the pages they reference.
 			$found_out = false;
 
 			preg_match_all( '/<a\s[^>]*\bhref=["\']([^"\']+)["\'][^>]*>/i', $post_content, $matches );

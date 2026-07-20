@@ -338,7 +338,7 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 			<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
 			<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
 			<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <strong><?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></strong></label>
-			<span class="description"><?php esc_html_e( 'Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive — use Advanced settings to control those separately.', 'easyrankly' ); ?></span>
+			<span class="description"><?php esc_html_e( 'Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive. Use Advanced settings to control those separately.', 'easyrankly' ); ?></span>
 		<?php else : ?>
 			<?php erankly_render_robots_directive_select( 'erankly_index_directive', $index_directive, __( 'Indexing', 'easyrankly' ), __( 'Index', 'easyrankly' ), __( 'Noindex', 'easyrankly' ) ); ?>
 			<?php erankly_render_robots_directive_select( 'erankly_follow_directive', $follow_directive, __( 'Link following', 'easyrankly' ), __( 'Follow', 'easyrankly' ), __( 'Nofollow', 'easyrankly' ) ); ?>
@@ -773,7 +773,7 @@ function erankly_save_meta_box( int $post_id ): void {
 		'_erankly_breadcrumb_name' => 'erankly_breadcrumb_name',
 	);
 
-	// The field isn't rendered when breadcrumbs are off, so its POST key is absent —
+	// The field isn't rendered when breadcrumbs are off, so its POST key is absent.
 	// skip it to keep any previously stored value.
 	if ( ! (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
 		unset( $fields['_erankly_breadcrumb_name'] );

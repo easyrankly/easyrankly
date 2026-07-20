@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.9.0
+ * Version:     2.0.0
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:      EasyRankly
@@ -25,7 +25,7 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.9.0' );
+define( 'ERANKLY_VERSION', '2.0.0' );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ERANKLY_URL', plugin_dir_url( __FILE__ ) );
@@ -879,7 +879,7 @@ function erankly_rest_user_search( WP_REST_Request $request ): WP_REST_Response 
  * erankly_settings_autosave_panels() in admin/settings-page.php for the
  * per-panel whitelist registry); the `panel` slug is validated against that
  * registry inside the handler, not the route pattern, so this never needs
- * editing again as panels are added — the char class is just a safe charset
+ * editing again as panels are added. The char class is just a safe charset
  * for a path segment, not an allowlist (the registry lookup is what actually
  * prevents an unknown or cross-panel request from touching anything).
  *
@@ -894,7 +894,7 @@ function erankly_register_settings_autosave_route(): void {
 			'callback'            => 'erankly_rest_save_settings_panel',
 			// Multisite stores these settings network-wide (see erankly_get_settings()),
 			// so editing them there requires the network capability, not just the
-			// per-site one — a subsite admin must not be able to reach this route.
+			// per-site one. A subsite admin must not be able to reach this route.
 			'permission_callback' => static fn() => current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' ),
 			'args'                => array(
 				'settings' => array(
@@ -922,7 +922,7 @@ function erankly_register_settings_autosave_route(): void {
  * On Multisite, erankly_get_settings()/erankly_update_plugin_option() already
  * route through the network-wide site option regardless of which admin
  * screen the request came from, so no Network Admin detection is needed
- * here — the permission_callback is what keeps subsite admins out.
+ * here. The permission_callback is what keeps subsite admins out.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
@@ -964,11 +964,11 @@ function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
 
 /**
  * Registers the REST route that autosaves the per-site "Special pages and
- * archives" panel — the Multisite fallback for sites that can't use the Site
+ * archives" panel, the Multisite fallback for sites that can't use the Site
  * Editor panels (see erankly_use_site_editor_special_page_panels()). Kept
  * separate from erankly_register_settings_autosave_route(): this panel
  * doesn't merge into ERANKLY_OPTION/erankly_get_settings() the way every
- * other panel does — erankly_update_special_meta_map() already owns reading,
+ * other panel does. erankly_update_special_meta_map() already owns reading,
  * sanitizing and writing this data (a dedicated per-site option on
  * Multisite), so it doesn't fit the shared registry's shape.
  *
@@ -1002,7 +1002,7 @@ function erankly_register_special_pages_autosave_route(): void {
  * Uses erankly_update_special_meta_map() (includes/special-meta.php, always
  * loaded), which already sanitizes its input and routes the write to the
  * correct storage, so the whitelisted map is passed straight through with no merge
- * step — unlike erankly_rest_save_settings_panel(), there's no risk of this
+ * step. Unlike erankly_rest_save_settings_panel(), there's no risk of this
  * payload clobbering another panel's fields since this data isn't part of
  * ERANKLY_OPTION on Multisite at all.
  *

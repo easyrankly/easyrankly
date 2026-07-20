@@ -154,7 +154,7 @@
       );
 
       // Pass 1: pre-seed every "[]" group as an empty array, even when
-      // nothing ends up checked — otherwise an all-unchecked group would
+      // nothing ends up checked. Otherwise, an all-unchecked group would
       // omit its key entirely, and the server-side merge would silently
       // keep whatever was selected last time.
       fields.forEach(function (field) {
@@ -174,7 +174,7 @@
 
       // Pass 2: fill in every field's actual value. Checkboxes always send
       // an explicit value (checked -> '1'/pushed, unchecked -> '') instead
-      // of being omitted like native HTML form submission would — omitting
+      // of being omitted like native HTML form submission would. Omitting
       // them would make the server-side merge treat "unchecked" the same
       // as "not part of this payload" and silently keep the old value.
       // Radios correctly keep the native skip-when-unchecked behavior:
@@ -262,7 +262,7 @@
       })
         .then(function (res) {
           // 4xx (expired nonce, permission, invalid payload) can't be
-          // fixed by retrying the same request — stop and ask for a reload.
+          // fixed by retrying the same request. Stop and ask for a reload.
           if (!res.ok) {
             if (res.status >= 400 && res.status < 500) {
               setStatus(
@@ -291,7 +291,7 @@
           );
 
           // window.eranklyVariablePreview is only ever localized once, at
-          // the page's initial render — toggling this field via autosave
+          // the page's initial render. Toggling this field via autosave
           // never re-runs wp_localize_script, so bindVariablePreview() would
           // otherwise keep using the stale value (even across the
           // reloadOnSave DOM refresh below) until a real browser reload.
@@ -350,7 +350,7 @@
 
   // Binds every settings panel that has a matching entry in the config
   // PHP localized (see eranklySettingsAutosave in erankly_admin_enqueue_assets()).
-  // A panel with no entry there — because its tier hasn't landed yet — is
+  // A panel with no entry there, because its tier hasn't landed yet, is
   // simply left alone, so this loop never needs to change as panels are
   // wired up one at a time.
   function bindAllSettingsAutosave(root) {
