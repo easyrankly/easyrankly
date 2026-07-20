@@ -702,7 +702,7 @@
       if (isLinked) {
         tab.setAttribute("tabindex", "-1");
       } else {
-        tab.removeAttribute("tabindex");
+        tab.setAttribute("tabindex", isActive ? "0" : "-1");
       }
     });
 

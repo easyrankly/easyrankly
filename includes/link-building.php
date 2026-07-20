@@ -112,9 +112,9 @@ function erankly_lb_enqueue_editor_assets( string $hook_suffix ): void { // phpc
 		'erankly-link-suggestions',
 		'eranklyLinkSuggestions',
 		array(
-			'aiEnabled'         => erankly_internal_links_available(),
-			'graphBuilt'        => null !== erankly_lb_get_graph(),
-			'i18n'              => array(
+			'aiEnabled'        => erankly_internal_links_available(),
+			'graphBuilt'       => null !== erankly_lb_get_graph(),
+			'i18n'             => array(
 				'cached'        => __( 'Showing cached suggestions.', 'easyrankly' ),
 				'editSource'    => __( 'Edit source', 'easyrankly' ),
 				'empty'         => __( 'No strong link opportunities found.', 'easyrankly' ),
@@ -127,9 +127,9 @@ function erankly_lb_enqueue_editor_assets( string $hook_suffix ): void { // phpc
 				'updated'       => __( 'Suggestions updated.', 'easyrankly' ),
 				'working'       => __( 'Generating…', 'easyrankly' ),
 			),
-			'internalLinksUrl'  => esc_url_raw( admin_url( 'options-general.php?page=erankly&erankly_tab=links' ) ),
-			'nonce'             => wp_create_nonce( 'wp_rest' ),
-			'restUrl'           => esc_url_raw( rest_url( 'erankly/v1/links/ai-suggestions' ) ),
+			'internalLinksUrl' => esc_url_raw( admin_url( 'options-general.php?page=erankly&erankly_tab=links' ) ),
+			'nonce'            => wp_create_nonce( 'wp_rest' ),
+			'restUrl'          => esc_url_raw( rest_url( 'erankly/v1/links/ai-suggestions' ) ),
 		)
 	);
 }

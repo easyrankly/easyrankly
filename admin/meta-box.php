@@ -126,7 +126,7 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	$title_placeholder       = erankly_get_post_global_meta_placeholder( $post, 'title', 70 );
 	$description_placeholder = erankly_get_post_global_meta_placeholder( $post, 'description', 160 );
 	// Same fallback as an empty breadcrumb_name: post title (SEO title only in simplified mode, where this field is hidden).
-	$breadcrumb_placeholder  = get_the_title( $post );
+	$breadcrumb_placeholder = get_the_title( $post );
 
 	if ( ! is_string( $canonical_placeholder ) || '' === $canonical_placeholder ) {
 		$canonical_placeholder = get_permalink( $post );
@@ -240,7 +240,7 @@ function erankly_render_post_content_analysis_fields( WP_Post $post ): void {
 			<div class="erankly-keyword-ui" data-erankly-keyword-ui hidden>
 				<div class="erankly-keyword-tags" role="list" data-erankly-keyword-tags></div>
 				<div class="erankly-keyword-entry">
-				<input type="text" class="widefat" data-erankly-keyword-entry placeholder="<?php esc_attr_e( 'Add a keyword, then press Enter', 'easyrankly' ); ?>">
+				<input type="text" class="widefat" data-erankly-keyword-entry aria-label="<?php esc_attr_e( 'Focus keywords', 'easyrankly' ); ?>" placeholder="<?php esc_attr_e( 'Add a keyword, then press Enter', 'easyrankly' ); ?>">
 					<button type="button" class="button" data-erankly-keyword-add><?php esc_html_e( 'Add', 'easyrankly' ); ?></button>
 				</div>
 				<label class="erankly-keyword-primary" data-erankly-keyword-primary hidden>
@@ -257,6 +257,11 @@ function erankly_render_post_content_analysis_fields( WP_Post $post ): void {
 		</div>
 	</div>
 	<div class="erankly-field erankly-content-analysis-launcher" data-erankly-content-analysis-root>
+		<?php if ( $ai_enabled ) : ?>
+		<p class="description erankly-ai-privacy">
+			<?php esc_html_e( 'Analyzing or suggesting a keyword shares the current editor content and measured signals with your configured WordPress AI provider. EasyRankly does not operate the AI service.', 'easyrankly' ); ?>
+		</p>
+		<?php endif; ?>
 		<div class="erankly-content-analysis-launcher__buttons">
 			<button
 				type="button"
@@ -687,8 +692,8 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	$title_placeholder        = erankly_get_term_global_meta_placeholder( $taxonomy, 'title' );
 	$description_placeholder  = erankly_get_term_global_meta_placeholder( $taxonomy, 'description' );
 	// The term being edited is its own {{term_name}}-style example.
-	$term_object = $term_id > 0 ? get_term( $term_id, $taxonomy ) : null;
-	$examples    = erankly_get_admin_variable_examples( null, $term_object instanceof WP_Term ? $term_object : null );
+	$term_object           = $term_id > 0 ? get_term( $term_id, $taxonomy ) : null;
+	$examples              = erankly_get_admin_variable_examples( null, $term_object instanceof WP_Term ? $term_object : null );
 	$canonical_placeholder = '';
 
 	if ( $term_object instanceof WP_Term ) {

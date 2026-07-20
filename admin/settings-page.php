@@ -941,7 +941,7 @@ function erankly_render_settings_page(): void {
 				<?php if ( ! $is_site_admin_on_network ) : ?>
 					<?php erankly_render_settings_nav_link( 'bloat', __( 'Bloat', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'advanced', __( 'Advanced', 'easyrankly' ), $active_panel, ! empty( $settings['simplified_mode'] ) ); ?>
-					<?php erankly_render_settings_nav_link( 'features', __( 'Feature', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'features', __( 'Features', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'settings', __( 'Settings', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_import_export_tab ) : ?>

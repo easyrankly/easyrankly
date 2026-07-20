@@ -785,7 +785,7 @@
 	function normalizeRobotsDirectiveToken( value ) {
 		const token = value && 'object' === typeof value ? value.value : value;
 
-		return String( token || '' ).trim().toLocaleLowerCase();
+		return String( token || '' ).trim().toLowerCase();
 	}
 
 	/**

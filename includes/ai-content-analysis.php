@@ -713,7 +713,7 @@ function erankly_content_analysis_sanitize_report( array $data, array $keywords,
 
 	return array(
 		'verdict'             => $verdict,
-		'score'               => max( 0, min( 100, absint( $data['score'] ?? 0 ) ) ),
+		'score'               => max( 0, min( 100, (int) ( $data['score'] ?? 0 ) ) ),
 		'summary'             => $summary,
 		'search_intent'       => erankly_content_analysis_clean_string( $data['search_intent'] ?? '', 320, true ),
 		'strengths'           => erankly_content_analysis_clean_string_list( $data['strengths'] ?? array(), 5, 220 ),
@@ -985,10 +985,18 @@ function erankly_content_analysis_rest_suggest_keyword( WP_REST_Request $request
  * Deletes the latest report without changing editorial post metadata.
  *
  * @param WP_REST_Request $request Request.
- * @return WP_REST_Response
+ * @return WP_REST_Response|WP_Error
  */
-function erankly_content_analysis_rest_delete( WP_REST_Request $request ): WP_REST_Response {
-	delete_post_meta( absint( $request['post_id'] ), ERANKLY_CONTENT_ANALYSIS_META_KEY );
+function erankly_content_analysis_rest_delete( WP_REST_Request $request ) {
+	$post_id = absint( $request['post_id'] );
+
+	if (
+		metadata_exists( 'post', $post_id, ERANKLY_CONTENT_ANALYSIS_META_KEY )
+		&& ! delete_post_meta( $post_id, ERANKLY_CONTENT_ANALYSIS_META_KEY )
+		&& metadata_exists( 'post', $post_id, ERANKLY_CONTENT_ANALYSIS_META_KEY )
+	) {
+		return new WP_Error( 'erankly_content_analysis_delete', __( 'The content analysis could not be deleted.', 'easyrankly' ), array( 'status' => 500 ) );
+	}
 
 	return erankly_content_analysis_response( null );
 }

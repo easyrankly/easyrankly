@@ -509,24 +509,31 @@
 		let busy = false;
 		let busyAction = '';
 		let editorChanged = false;
-		let keywordSummary = '';
+		let loadingStored = true;
+		let statusSummary = '';
 		let lastFocused = null;
 
 		function updateControls() {
 			const hasAnalysis = !! analysis;
 			openButton.textContent = hasAnalysis ? i18n.openAnalysis : i18n.analyze;
-			openButton.disabled = busy || ( ! hasAnalysis && ! config.aiEnabled );
+			openButton.disabled = loadingStored || busy || ( ! hasAnalysis && ! config.aiEnabled );
 			suggestButton.textContent = 'keyword' === busyAction ? i18n.suggesting : i18n.suggestKeyword;
 			suggestButton.disabled = busy || ! config.aiEnabled;
 			rerun.hidden = ! hasAnalysis;
 			rerun.disabled = busy || ! config.aiEnabled;
-			deleteButton.hidden = ! hasAnalysis;
-			deleteConfirm.hidden = true;
+			deleteButton.hidden = ! hasAnalysis || busy || ! deleteConfirm.hidden;
+			deleteButton.disabled = busy;
+			deleteYes.disabled = busy;
+			deleteNo.disabled = busy;
+			closeButtons.forEach( ( button ) => {
+				button.disabled = busy;
+			} );
+			overlay.setAttribute( 'aria-busy', busy ? 'true' : 'false' );
 
 			if ( 'keyword' === busyAction ) {
 				summary.textContent = i18n.suggesting;
-			} else if ( keywordSummary ) {
-				summary.textContent = keywordSummary;
+			} else if ( statusSummary ) {
+				summary.textContent = statusSummary;
 			} else if ( stale && hasAnalysis ) {
 				summary.textContent = i18n.analysisStale;
 			} else if ( hasAnalysis ) {
@@ -543,7 +550,11 @@
 			modal.focus();
 		}
 
-		function closeModal() {
+		function closeModal( force = false ) {
+			if ( busy && true !== force ) {
+				return;
+			}
+
 			overlay.hidden = true;
 			document.body.classList.remove( 'erankly-analysis-modal-open' );
 			deleteConfirm.hidden = true;
@@ -589,6 +600,7 @@
 			const data = payload();
 
 			openModal();
+			deleteConfirm.hidden = true;
 			if ( ! data.keywords.length ) {
 				setError( i18n.keywordRequired );
 				return;
@@ -600,7 +612,7 @@
 
 			busy = true;
 			busyAction = 'analysis';
-			keywordSummary = '';
+			statusSummary = '';
 			editorChanged = false;
 			setLoading();
 			updateControls();
@@ -622,7 +634,7 @@
 
 			busy = true;
 			busyAction = 'keyword';
-			keywordSummary = '';
+			statusSummary = '';
 			updateControls();
 			request(
 				'POST',
@@ -636,12 +648,12 @@
 				}
 
 				const applied = keywordController.setSuggestedKeyword( keyword );
-				keywordSummary = applied ? '' : i18n.suggestLimit;
+				statusSummary = applied ? '' : i18n.suggestLimit;
 				if ( applied && analysis ) {
 					stale = true;
 				}
 			} ).catch( ( error ) => {
-				keywordSummary = error.message || i18n.suggestError;
+				statusSummary = error.message || i18n.suggestError;
 			} ).finally( () => {
 				busy = false;
 				busyAction = '';
@@ -659,7 +671,7 @@
 		} );
 		suggestButton.addEventListener( 'click', suggestKeyword );
 		rerun.addEventListener( 'click', analyze );
-		closeButtons.forEach( ( button ) => button.addEventListener( 'click', closeModal ) );
+		closeButtons.forEach( ( button ) => button.addEventListener( 'click', () => closeModal() ) );
 		overlay.addEventListener( 'mousedown', ( event ) => {
 			if ( event.target === overlay ) {
 				closeModal();
@@ -682,9 +694,10 @@
 			request( 'DELETE' ).then( () => {
 				analysis = null;
 				stale = false;
-				summary.textContent = i18n.analysisDeleted;
-				closeModal();
+				statusSummary = i18n.analysisDeleted;
+				closeModal( true );
 			} ).catch( ( error ) => {
+				deleteConfirm.hidden = true;
 				setError( error.message );
 			} ).finally( () => {
 				busy = false;
@@ -744,11 +757,15 @@
 			tinymce.on( 'AddEditor', ( event ) => attachEditor( event.editor ) );
 		}
 
+		// Prevent a first-run POST from racing the initial stored-report request.
+		openButton.disabled = true;
 		request( 'GET' ).then( ( result ) => {
 			analysis = result.analysis || null;
 			stale = !! result.stale || editorChanged;
-			updateControls();
 		} ).catch( () => {
+			statusSummary = i18n.loadError;
+		} ).finally( () => {
+			loadingStored = false;
 			updateControls();
 		} );
 	}

@@ -354,7 +354,7 @@ function erankly_bloat_remove_block_library_css(): void {
  * @param WP_Post $post Post object.
  * @return int
  */
-function erankly_bloat_limit_revisions( $num, $post ): int { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed
+function erankly_bloat_limit_revisions( $num, $post ): int { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by the filter signature.
 	$num   = (int) $num;
 	$limit = (int) ERANKLY_BLOAT_REVISIONS_LIMIT;
 	if ( $limit < 1 ) {

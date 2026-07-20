@@ -1347,6 +1347,11 @@ function erankly_ai_consume_rate_limit( string $bucket ) {
  * @return void
  */
 function erankly_ai_render_editor_privacy_notice(): void {
+	?>
+	<p class="description erankly-ai-privacy">
+		<?php esc_html_e( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' ); ?>
+	</p>
+	<?php
 }
 
 /**

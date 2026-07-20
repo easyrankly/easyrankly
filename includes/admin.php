@@ -732,6 +732,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 							'analysisUpdated'  => __( 'Analysis updated.', 'easyrankly' ),
 							'analysisDeleted'  => __( 'Analysis deleted.', 'easyrankly' ),
 							'analysisStale'    => __( 'Content changed after this analysis.', 'easyrankly' ),
+							'loadError'        => __( 'Could not load the saved analysis.', 'easyrankly' ),
 							'error'            => __( 'The content analysis failed. Please try again.', 'easyrankly' ),
 							'keywordRequired'  => __( 'Add at least one focus keyword before analyzing.', 'easyrankly' ),
 							'keywordLimit'     => __( 'Use no more than ten focus keywords for one analysis.', 'easyrankly' ),
@@ -1326,7 +1327,7 @@ function erankly_admin_get_site_editor_special_title_placeholders(): array {
 		'author'   => __( 'Author archive', 'easyrankly' ),
 		'date'     => __( 'Date archive', 'easyrankly' ),
 		'search'   => sprintf(
-			/* translators: %s: example search query. */
+			/* translators: %s: Search query. */
 			__( 'Search results for %s', 'easyrankly' ),
 			__( 'example', 'easyrankly' )
 		),

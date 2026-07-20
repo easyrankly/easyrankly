@@ -213,6 +213,11 @@
 			'div',
 			{ className: 'erankly-ai-field' },
 			el(
+				'p',
+				{ className: 'description erankly-ai-privacy' },
+				__( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' )
+			),
+			el(
 				Button,
 				{ variant: 'secondary', isBusy: busy, disabled: busy, onClick: () => generate( false ) },
 				'generate' === busyAction ? __( 'Generating…', 'easyrankly' ) : __( 'Generate with AI', 'easyrankly' )

@@ -203,6 +203,11 @@
 			'div',
 			{ className: 'erankly-ai-field' },
 			el(
+				'p',
+				{ className: 'description erankly-ai-privacy' },
+				__( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' )
+			),
+			el(
 				Button,
 				{ variant: 'secondary', isBusy: busy, disabled: busy, onClick: () => generate( false ) },
 				'generate' === busyAction ? __( 'Generating…', 'easyrankly' ) : __( 'Generate with AI', 'easyrankly' )
@@ -861,6 +866,11 @@
 					{ className: 'erankly-analysis-panel-status' },
 					stale ? __( 'Content changed since this analysis.', 'easyrankly' ) : panelMessage
 				)
+			),
+			config.aiEnabled && el(
+				'p',
+				{ className: 'description erankly-ai-privacy' },
+				__( 'Analyzing or suggesting a keyword shares the current editor content and measured signals with your configured WordPress AI provider. EasyRankly does not operate the AI service.', 'easyrankly' )
 			),
 			! config.aiEnabled && ! analysis && el(
 				Notice,
