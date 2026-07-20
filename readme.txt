@@ -12,13 +12,13 @@ Lightweight, modular, developer-first SEO essentials for WordPress.
 
 == Description ==
 
-EasyRankly handles the SEO essentials your WordPress site actually needs. Nothing bloated, nothing you have to configure to death.
+EasyRankly brings together the SEO essentials for WordPress in a modular toolkit with sensible defaults and optional features you can enable when needed.
 
 Here's what it does:
 
-* **The basics on every page.** SEO titles, meta descriptions, canonical URLs, and robots directives, set up sensibly out of the box.
+* **Core metadata across your site.** SEO titles, meta descriptions, canonical URLs, and robots directives, set up sensibly out of the box.
 * **Great social previews.** Open Graph and Twitter (X) cards so your links look right when shared.
-* **Structured data that search engines understand.** A modular JSON-LD schema graph covering your Organization or Person, optional local business details, articles, breadcrumbs, FAQs, and WooCommerce products, plus reusable custom schema blocks you can target to specific pages.
+* **Structured data that search engines understand.** A modular JSON-LD schema graph covering your Organization or Person, optional local business details, articles, breadcrumbs, FAQs, and WooCommerce product compatibility, plus reusable custom schema blocks you can target to specific pages.
 * **Sitemaps, when you want them.** An optional XML sitemap index with sitemaps for your content (including images), taxonomies, and authors.
 * **Control over what gets indexed.** Simple noindex, nofollow, noarchive, and sitemap-exclusion controls, per page or across your site.
 * **Smart redirects built in.** An optional redirect manager with exact, wildcard, and regex matching, with per-pattern safeguards that keep even complex regex rules fast and safe.
@@ -30,8 +30,6 @@ Here's what it does:
 
 All of it lives in a redesigned, streamlined admin interface with a short setup wizard to get you configured in minutes.
 
-And what it leaves out, on purpose: no keyword scoring, no readability nags, no analytics or tracking, no marketing widgets, and no upsells.
-
 == Installation ==
 
 1. Upload the `easyrankly` folder to `/wp-content/plugins/`.
@@ -42,15 +40,15 @@ And what it leaves out, on purpose: no keyword scoring, no readability nags, no 
 
 = Can I run EasyRankly alongside another SEO plugin such as Yoast SEO or Rank Math? =
 
-Yes. EasyRankly detects active SEO plugins and automatically steps back from overlapping output (document title, meta description, canonical, robots meta, sitemaps, and robots.txt) so you never get duplicate tags. You can force any of it back on with the `erankly_enable_head_output`, `erankly_enable_sitemaps_with_external_seo`, and `erankly_enable_robots_txt_with_external_seo` filters.
+No, running two full SEO plugins at the same time is not recommended because their overlapping features can produce conflicts or inconsistent output. If EasyRankly detects a recognised SEO plugin, it displays an admin notice and disables its own head metadata, structured data, sitemaps, and robots.txt customisations to reduce the risk of duplicates; redirects, health monitoring, and breadcrumbs remain available. If you are switching from Yoast SEO, Rank Math, All in One SEO, or SEOPress, use EasyRankly's migration tools and complete the guided checks before deactivating the previous plugin.
 
 = Does it support WooCommerce? =
 
-Yes. EasyRankly can output Product JSON-LD structured data for WooCommerce products. It is controlled by the `erankly_woocommerce_structured_data_enabled` and `erankly_render_woocommerce_product_schema` filters.
+Yes. EasyRankly supports Product JSON-LD for WooCommerce products, including the product name, description, image, SKU, brand, GTIN, price and currency, stock status, sale end date, aggregate rating, and approved reviews when those values are available. Variable products can use an AggregateOffer with their price range and offer count. To avoid duplicate structured data, EasyRankly leaves Product schema to WooCommerce when WooCommerce's native structured data is active; developers can change this behaviour with the `erankly_woocommerce_structured_data_enabled` and `erankly_render_woocommerce_product_schema` filters.
 
 = Does EasyRankly work on WordPress Multisite? =
 
-Yes. There is full Multisite support with network-level global settings, plus an optional multilingual module that links posts, pages, and terms across network sites and outputs hreflang alternates in the head and XML sitemaps.
+Yes. EasyRankly supports WordPress Multisite with network-level global settings, plus an optional multilingual module that links posts, pages, and terms across network sites and outputs hreflang alternates in the head and XML sitemaps.
 
 After activation, an upgrade, or a sitemap setting change, each site refreshes its own rewrite rules on its next request; no network-wide scan is required. Network resets run in small background batches and report their status in Network Admin. On installations with more than 100 sites, network deactivation and uninstall are intentionally routed through WP-CLI so every site can be cleaned without an HTTP timeout. Run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly` (replace `easyrankly` if the installed plugin directory uses a different name).
 
@@ -58,7 +56,7 @@ After activation, an upgrade, or a sitemap setting change, each site refreshes i
 
 No analytics, tracking, telemetry, or EasyRankly phone-home calls are added. The optional Health 404 monitor stores request paths in your own database only, with emails, long IDs, tokens, and usernames stripped on a best-effort basis before saving.
 
-If you enable AI meta generation, EasyRankly sends page context to the AI provider connected in WordPress only when an editor clicks the Generate with AI button. EasyRankly does not provide its own AI service or receive that content.
+If you enable AI meta generation, EasyRankly sends page context to the AI provider connected in WordPress only when an editor clicks Generate with AI or Improve results. EasyRankly does not provide its own AI service or receive that content.
 
 = What data does EasyRankly send to the AI provider? =
 
@@ -68,7 +66,7 @@ This happens only when someone explicitly triggers an AI action, never automatic
 
 **Health redirect suggestions (optional):** when Suggest with AI is used for a 404, EasyRankly sends only the broken URL slug words and a numbered list of existing page titles and paths from your site. Full post bodies are never included. Anonymized 404 paths (containing privacy placeholders) are skipped.
 
-**Link Building suggestions (optional):** when Suggest with AI is used on the Links tab, EasyRankly sends the target page title and path plus a numbered list of candidate source page titles and paths (rule-based matches only). Full post bodies are never included.
+**Link Building suggestions (optional):** when Get suggestions or Refresh is clicked in the post editor, EasyRankly sends the site name and language; the current page title, path, a plain-text excerpt of up to 1,200 characters, existing outbound links and inbound-link count; and up to 30 rule-selected candidate pages with their titles, paths, and plain-text excerpts of up to 220 characters each. Full post bodies are never included.
 
 All AI requests go through the provider configured on Settings → Connectors in WordPress. Review that provider's terms and data processing policy for retention and training use.
 
@@ -78,7 +76,7 @@ In Advanced mode, Settings → EasyRankly → AI lets you set how many plain-tex
 
 = What do I need for AI meta generation to work? =
 
-AI meta generation relies on WordPress' native AI and Connectors APIs, which are available in WordPress 7.0 and later. On earlier WordPress versions, or when no AI provider is connected, the feature stays completely inactive and EasyRankly falls back to its built-in, non-AI title and description logic. Nothing else changes. Even where the APIs are available, the feature is off until you enable it under Settings > EasyRankly > AI and connect a provider on the WordPress Connectors screen.
+AI meta generation relies on WordPress' native AI and Connectors APIs, which are available in WordPress 7.0 and later. On earlier WordPress versions, or when no AI provider is connected, the feature stays inactive and EasyRankly continues to use its built-in, non-AI title and description logic. Even where the APIs are available, the feature is off until you enable it under Settings > EasyRankly > AI and connect a provider on the WordPress Connectors screen.
 
 = How do I display breadcrumbs? =
 
@@ -108,7 +106,7 @@ Major release bringing together EasyRankly's complete modular SEO toolkit, a reb
 * Upgraded redirects with exact, wildcard, and regex matching, additional status and scheduling controls, loop and chain diagnostics, safer pattern execution, and bulk-friendly cache handling.
 * Added comprehensive, conflict-safe migrations from Yoast SEO, Rank Math, AIOSEO, and SEOPress, including Free and paid editions and official exports, resumable background processing, private uploads, source validation, detailed reports, live verification, cutover gates, and conditional rollback.
 * Strengthened Multisite and multilingual support with network settings, hreflang and sitemap integration, translation workflows, per-site isolation, and resumable maintenance operations.
-* Improved modular loading, performance, privacy, security, and compatibility throughout, including WordPress.org Plugin Check hardening, guarded support for newer WordPress APIs, broader PHP and WordPress test coverage, developer API compatibility, interface polish, and updated translations.
+* Improved modular loading, performance, privacy, security, and compatibility throughout, including WordPress.org Plugin Check hardening, guarded support for newer WordPress APIs, broader PHP and WordPress test coverage, developer API compatibility, interface polish, and updated translation support.
 
 = 1.0.0 =
 * First public release.
