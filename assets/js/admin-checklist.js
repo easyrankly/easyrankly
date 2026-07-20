@@ -76,8 +76,6 @@
       return;
     }
 
-    var count = checklist.querySelector("[data-erankly-seo-checklist-count]");
-    var statusClasses = ["is-incomplete", "is-partial", "is-complete"];
     var titleLimit = config.titleLimit || 65;
     var descriptionLimit = config.descriptionLimit || 160;
     var minContentLength = config.minContentLength || 300;
@@ -195,16 +193,6 @@
 
     function apply() {
       var keys = Object.keys(state);
-      var done = keys.filter(function (key) {
-        return state[key];
-      }).length;
-      var status = "is-partial";
-
-      if (done === 0) {
-        status = "is-incomplete";
-      } else if (done === keys.length) {
-        status = "is-complete";
-      }
 
       keys.forEach(function (key) {
         var item = checklist.querySelector(
@@ -215,14 +203,6 @@
           item.classList.toggle("is-done", state[key]);
         }
       });
-
-      statusClasses.forEach(function (statusClass) {
-        checklist.classList.toggle(statusClass, statusClass === status);
-      });
-
-      if (count) {
-        count.textContent = done + "/" + keys.length;
-      }
     }
 
     function refresh() {

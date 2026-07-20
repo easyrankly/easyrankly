@@ -24,6 +24,7 @@ Here's what it does:
 * **Smart redirects built in.** An optional redirect manager with exact, wildcard, and regex matching, with per-pattern safeguards that keep even complex regex rules fast and safe.
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
 * **Optional AI meta generation.** Generate or improve SEO titles and descriptions right from the editor when WordPress has a connected AI provider. It's off by default and uses WordPress' native AI/Connectors APIs (available in WordPress 7.0 and later); on earlier versions it stays inactive and EasyRankly uses its built-in, non-AI logic instead.
+* **Optional persistent AI content analysis.** Enable it from Features, target several focus keyphrases as WordPress-style tags, choose the primary keyword, and get an editorial focus report with measured signals, prioritized improvements, ready-to-use sentences, structure ideas, possible keyword cannibalization, and stricter pillar-content guidance.
 * **Optional internal linking assistant.** Build a site-wide link graph, find orphan pages, get rule-based suggestions, and optionally refine with AI when AI features are enabled.
 * **Private health monitoring.** Optional 404 tracking that stays on your server. EasyRankly stores no IP address or user agent; path identifiers are redacted on a best-effort basis and aggregate records are cleaned up automatically.
 * **Dynamic variables** for filling in titles, social tags, and schema fields automatically.
@@ -56,7 +57,7 @@ After activation, an upgrade, or a sitemap setting change, each site refreshes i
 
 No analytics, tracking, telemetry, or EasyRankly phone-home calls are added. The optional Health 404 monitor stores request paths in your own database only, with emails, long IDs, tokens, and usernames stripped on a best-effort basis before saving.
 
-If you enable AI meta generation, EasyRankly sends page context to the AI provider connected in WordPress only when an editor clicks Generate with AI or Improve results. EasyRankly does not provide its own AI service or receive that content.
+If you enable an AI feature, EasyRankly sends page context to the AI provider connected in WordPress only when an editor explicitly clicks its generation or analysis button. EasyRankly does not provide its own AI service or receive that content.
 
 = What data does EasyRankly send to the AI provider? =
 
@@ -64,19 +65,23 @@ This happens only when someone explicitly triggers an AI action, never automatic
 
 **Meta generation (editor):** when Generate with AI or Improve results is clicked, EasyRankly may send the site name, the site language (locale), the post/term/special-page title, plain-text body or description truncated to your configured character limit (shortcodes removed), and, when improving, the current title, description, and your instructions. Nothing is sent until the button is clicked.
 
+**Content analysis (post editor):** when Analyze or Analyze again is clicked, EasyRankly sends the current editor title and ordered focus keyphrases, whether the post is marked as pillar content, measured keyword and link signals, the document outline, image alt text, internal anchor text, and a plain-text beginning/middle/end sample bounded by the configured AI content limit. This includes unsaved editor changes so the report reflects what is currently on screen. Possible cannibalization signals include the titles and overlapping keyphrases of editable posts; private admin edit URLs and post IDs are not sent to the provider. When Suggest keyword is clicked, EasyRankly sends only the current title, outline, word count, coverage and the same bounded text sample. The proposed keyphrase is placed first in the unsaved focus-keyword field and is not stored until the editor saves the post.
+
 **Health redirect suggestions (optional):** when Suggest with AI is used for a 404, EasyRankly sends only the broken URL slug words and a numbered list of existing page titles and paths from your site. Full post bodies are never included. Anonymized 404 paths (containing privacy placeholders) are skipped.
 
 **Link Building suggestions (optional):** when Get suggestions or Refresh is clicked in the post editor, EasyRankly sends the site name and language; the current page title, path, a plain-text excerpt of up to 1,200 characters, existing outbound links and inbound-link count; and up to 30 rule-selected candidate pages with their titles, paths, and plain-text excerpts of up to 220 characters each. Full post bodies are never included.
 
 All AI requests go through the provider configured on Settings → Connectors in WordPress. Review that provider's terms and data processing policy for retention and training use.
 
-= What is the body character limit for AI meta generation? =
+For content analysis, EasyRankly stores only the latest bounded, structured report in private post metadata. It does not duplicate the raw post content, prompt, or raw model response. Turning the Content analysis feature off does not delete reports, focus keywords or pillar settings; they return when the feature is enabled again. A report remains available without another AI request until an editor deletes it in the analysis popup, deletes all stored analyses under Settings → EasyRankly, resets the plugin, or uninstalls it.
 
-In Advanced mode, Settings → EasyRankly → AI lets you set how many plain-text characters of body or description are included in the prompt (4,000–64,000 in ×4 steps; default 4,000). Lower values use fewer tokens; higher values give the model more context.
+= What is the body character limit for AI features? =
 
-= What do I need for AI meta generation to work? =
+In Advanced mode, Settings → EasyRankly → AI lets you set how many plain-text characters of body or description are included in a prompt (4,000–64,000 in ×4 steps; default 4,000). Content analysis distributes that budget across the beginning, middle, and end of longer posts. Lower values use fewer tokens; higher values give the model more context.
 
-AI meta generation relies on WordPress' native AI and Connectors APIs, which are available in WordPress 7.0 and later. On earlier WordPress versions, or when no AI provider is connected, the feature stays inactive and EasyRankly continues to use its built-in, non-AI title and description logic. Even where the APIs are available, the feature is off until you enable it under Settings > EasyRankly > AI and connect a provider on the WordPress Connectors screen.
+= What do I need for AI features to work? =
+
+AI features rely on WordPress' native AI and Connectors APIs, which are available in WordPress 7.0 and later. On earlier WordPress versions, or when no AI provider is connected, generation stays inactive and EasyRankly continues to use its built-in, non-AI logic. Previously saved content-analysis reports remain readable and deletable while the Content analysis feature is enabled. Even where the APIs are available, AI is off until you enable AI features—and Content analysis when you want that editor module—under Settings > EasyRankly > Features and connect a provider on the WordPress Connectors screen.
 
 = How do I display breadcrumbs? =
 
@@ -102,6 +107,7 @@ Major release bringing together EasyRankly's complete modular SEO toolkit, a reb
 * Expanded the SEO foundation across titles and descriptions, canonicals and indexing controls, Open Graph and X cards, dynamic variables, breadcrumbs, reusable JSON-LD schema, WooCommerce data, robots.txt, and XML sitemaps for standard content, images, news, video, and multilingual alternates.
 * Rebuilt setup, settings, editor, and Site Editor workflows with Simplified and Advanced modes, contextual panels, clearer guidance, SEO checklists, and a more consistent, Multisite-aware interface.
 * Added opt-in AI tools through WordPress' native AI and Connectors APIs for generating or improving metadata and assisting with redirects and internal links, with non-AI fallbacks, bounded context, and rate limits.
+* Added persistent AI content analysis with multi-keyword tags, primary-keyword targeting, pillar guidance, measured focus signals, copy-ready recommendations, stale-report detection, and explicit per-post or site-wide cleanup.
 * Expanded site health and content discovery with privacy-conscious 404 monitoring, broken-link crawling, thin-content checks, orphan-page detection, and rule-based internal-link suggestions.
 * Upgraded redirects with exact, wildcard, and regex matching, additional status and scheduling controls, loop and chain diagnostics, safer pattern execution, and bulk-friendly cache handling.
 * Added comprehensive, conflict-safe migrations from Yoast SEO, Rank Math, AIOSEO, and SEOPress, including Free and paid editions and official exports, resumable background processing, private uploads, source validation, detailed reports, live verification, cutover gates, and conditional rollback.

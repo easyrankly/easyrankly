@@ -207,27 +207,27 @@ function erankly_get_seo_checklist_items( int $post_id ): array {
 
 	$items = array(
 		'title'         => array(
-			'label' => __( 'SEO title within recommended length', 'easyrankly' ),
+			'label' => __( 'SEO title length', 'easyrankly' ),
 			'done'  => erankly_seo_checklist_text_within_limit( $title, ERANKLY_SEO_CHECKLIST_TITLE_LIMIT ),
 			'group' => 'appearance',
 		),
 		'description'   => array(
-			'label' => __( 'Meta description within recommended length', 'easyrankly' ),
+			'label' => __( 'Meta description length', 'easyrankly' ),
 			'done'  => erankly_seo_checklist_text_within_limit( $description, ERANKLY_SEO_CHECKLIST_DESCRIPTION_LIMIT ),
 			'group' => 'appearance',
 		),
 		'preview_image' => array(
-			'label' => __( 'Preview image available', 'easyrankly' ),
+			'label' => __( 'Preview image', 'easyrankly' ),
 			'done'  => erankly_post_has_preview_image( $post_id ),
 			'group' => 'appearance',
 		),
 		'indexable'     => array(
-			'label' => __( 'Indexable by search engines', 'easyrankly' ),
+			'label' => __( 'Search engine indexing', 'easyrankly' ),
 			'done'  => erankly_post_is_indexable( $post_id ),
 			'group' => 'indexing',
 		),
 		'content'       => array(
-			'label' => __( 'Minimum content length', 'easyrankly' ),
+			'label' => __( 'Content length', 'easyrankly' ),
 			'done'  => erankly_post_has_minimum_content( $post_id ),
 			'group' => 'indexing',
 		),
@@ -235,12 +235,12 @@ function erankly_get_seo_checklist_items( int $post_id ): array {
 
 	if ( ! $simplified_mode ) {
 		$items['social_image'] = array(
-			'label' => __( 'Custom social image', 'easyrankly' ),
+			'label' => __( 'Social image', 'easyrankly' ),
 			'done'  => erankly_post_has_custom_social_image( $post_id ),
 			'group' => 'appearance',
 		);
 		$items['canonical']    = array(
-			'label' => __( 'Canonical URL set', 'easyrankly' ),
+			'label' => __( 'Canonical URL', 'easyrankly' ),
 			'done'  => erankly_post_has_canonical( $post_id ),
 			'group' => 'appearance',
 		);
@@ -288,8 +288,6 @@ function erankly_get_seo_checklist_editor_config( WP_Post $post ): array { // ph
  */
 function erankly_render_post_seo_checklist( WP_Post $post ): void {
 	$items        = erankly_get_seo_checklist_items( $post->ID );
-	$status       = erankly_get_seo_checklist_status( $items );
-	$done         = count( array_filter( wp_list_pluck( $items, 'done' ) ) );
 	$group_labels = erankly_get_seo_checklist_group_labels();
 	$grouped      = array();
 
@@ -303,20 +301,17 @@ function erankly_render_post_seo_checklist( WP_Post $post ): void {
 		$grouped[ $group ][ $key ] = $item;
 	}
 	?>
-	<div class="erankly-seo-checklist is-<?php echo esc_attr( $status ); ?>" data-erankly-seo-checklist>
-		<div class="erankly-seo-checklist-intro">
-			<p class="description erankly-seo-checklist-help"><?php esc_html_e( 'Complete these items to improve this page\'s search appearance.', 'easyrankly' ); ?></p>
-			<span class="erankly-seo-checklist-count" data-erankly-seo-checklist-count><?php echo esc_html( $done . '/' . count( $items ) ); ?></span>
-		</div>
+	<div class="erankly-seo-checklist" data-erankly-seo-checklist>
 		<?php foreach ( $grouped as $group_key => $group_items ) : ?>
 		<div class="erankly-seo-checklist-group">
 			<p class="erankly-seo-checklist-group-label"><?php echo esc_html( $group_labels[ $group_key ] ?? $group_key ); ?></p>
 			<ul class="erankly-seo-checklist-items">
 				<?php foreach ( $group_items as $key => $item ) : ?>
 				<li class="erankly-seo-checklist-item<?php echo $item['done'] ? ' is-done' : ''; ?>" data-erankly-seo-checklist-item="<?php echo esc_attr( $key ); ?>">
-					<span class="erankly-seo-checklist-check" aria-hidden="true">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
-					</span>
+					<svg class="erankly-seo-checklist-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+						<path class="erankly-seo-checklist-icon-cross" d="M4 4l8 8m0-8-8 8"></path>
+						<path class="erankly-seo-checklist-icon-check" d="M3.25 8.25 6.5 11.5 12.75 4.75"></path>
+					</svg>
 					<span class="erankly-seo-checklist-label"><?php echo esc_html( $item['label'] ); ?></span>
 				</li>
 				<?php endforeach; ?>

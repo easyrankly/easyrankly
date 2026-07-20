@@ -10,6 +10,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Hard cap applied when "Limit post revisions" is enabled.
+ *
+ * Override in wp-config.php before the plugin loads if needed.
+ */
+if ( ! defined( 'ERANKLY_BLOAT_REVISIONS_LIMIT' ) ) {
+	define( 'ERANKLY_BLOAT_REVISIONS_LIMIT', 5 );
+}
+
+/**
+ * Admin Heartbeat interval (seconds) when "Limit Heartbeat in admin" is enabled.
+ */
+if ( ! defined( 'ERANKLY_BLOAT_HEARTBEAT_ADMIN_INTERVAL' ) ) {
+	define( 'ERANKLY_BLOAT_HEARTBEAT_ADMIN_INTERVAL', 60 );
+}
+
+/**
  * Registers all bloat-removal hooks based on saved settings.
  *
  * @return void
@@ -65,12 +81,30 @@ function erankly_bloat_bootstrap(): void {
 		add_filter( 'embed_oembed_discover', '__return_false' );
 	}
 
+	if ( ! empty( $settings['bloat_remove_wp_embed'] ) ) {
+		add_action( 'wp_enqueue_scripts', 'erankly_bloat_remove_wp_embed', 100 );
+		add_action( 'wp_footer', 'erankly_bloat_remove_wp_embed', 1 );
+	}
+
+	if ( ! empty( $settings['bloat_remove_adjacent_posts'] ) ) {
+		// Unused in core since 5.6, but still remove if a theme/plugin re-hooks it.
+		remove_action( 'wp_head', 'adjacent_posts_rel_link_wp_head', 10 );
+		remove_action( 'wp_head', 'adjacent_posts_rel_link_wp_head' );
+	}
+
 	if ( ! empty( $settings['bloat_remove_jquery_migrate'] ) ) {
 		add_action( 'wp_default_scripts', 'erankly_bloat_remove_jquery_migrate' );
 	}
 
 	if ( ! empty( $settings['bloat_disable_self_pingbacks'] ) ) {
 		add_action( 'pre_ping', 'erankly_bloat_disable_self_pingbacks' );
+	}
+
+	if ( ! empty( $settings['bloat_disable_trackbacks'] ) ) {
+		add_filter( 'pings_open', '__return_false', 20 );
+		add_filter( 'pre_option_default_ping_status', 'erankly_bloat_closed_ping_status' );
+		add_filter( 'xmlrpc_methods', 'erankly_bloat_remove_pingback_methods' );
+		add_filter( 'wp_headers', 'erankly_bloat_remove_x_pingback_header' );
 	}
 
 	if ( ! empty( $settings['bloat_remove_dashicons'] ) ) {
@@ -81,10 +115,34 @@ function erankly_bloat_bootstrap(): void {
 		add_action( 'wp_enqueue_scripts', 'erankly_bloat_disable_heartbeat', 1 );
 	}
 
+	if ( ! empty( $settings['bloat_limit_heartbeat_admin'] ) ) {
+		add_filter( 'heartbeat_settings', 'erankly_bloat_limit_heartbeat_admin' );
+	}
+
 	if ( ! empty( $settings['bloat_disable_xmlrpc'] ) ) {
 		add_filter( 'xmlrpc_enabled', '__return_false' );
 		add_filter( 'xmlrpc_methods', 'erankly_bloat_remove_pingback_methods' );
 		add_filter( 'wp_headers', 'erankly_bloat_remove_x_pingback_header' );
+	}
+
+	if ( ! empty( $settings['bloat_remove_global_styles'] ) ) {
+		erankly_bloat_remove_global_styles();
+	}
+
+	if ( ! empty( $settings['bloat_remove_duotone'] ) ) {
+		erankly_bloat_remove_duotone();
+	}
+
+	if ( ! empty( $settings['bloat_remove_block_library_css'] ) ) {
+		add_action( 'wp_enqueue_scripts', 'erankly_bloat_remove_block_library_css', 100 );
+	}
+
+	if ( ! empty( $settings['bloat_limit_revisions'] ) ) {
+		add_filter( 'wp_revisions_to_keep', 'erankly_bloat_limit_revisions', 10, 2 );
+	}
+
+	if ( ! empty( $settings['bloat_disable_speculative_loading'] ) && function_exists( 'wp_get_speculation_rules_configuration' ) ) {
+		add_filter( 'wp_speculation_rules_configuration', '__return_null' );
 	}
 }
 
@@ -119,6 +177,20 @@ function erankly_bloat_remove_emoji_dns_prefetch( array $urls, string $relation_
  */
 function erankly_bloat_disable_emoji_tinymce( array $plugins ): array {
 	return array_values( array_filter( $plugins, static fn( string $p ) => 'wpemoji' !== $p ) );
+}
+
+/**
+ * Dequeues the wp-embed script on the frontend.
+ *
+ * @return void
+ */
+function erankly_bloat_remove_wp_embed(): void {
+	if ( is_admin() ) {
+		return;
+	}
+
+	wp_dequeue_script( 'wp-embed' );
+	wp_deregister_script( 'wp-embed' );
 }
 
 /**
@@ -158,6 +230,15 @@ function erankly_bloat_disable_self_pingbacks( array &$links ): void {
 }
 
 /**
+ * Forces the default ping status option to closed.
+ *
+ * @return string
+ */
+function erankly_bloat_closed_ping_status(): string {
+	return 'closed';
+}
+
+/**
  * Dequeues Dashicons for non-logged-in users.
  *
  * @return void
@@ -177,6 +258,115 @@ function erankly_bloat_remove_dashicons(): void {
 function erankly_bloat_disable_heartbeat(): void {
 	wp_dequeue_script( 'heartbeat' );
 	wp_deregister_script( 'heartbeat' );
+}
+
+/**
+ * Slows Heartbeat in wp-admin without disabling it (keeps autosave / locking).
+ *
+ * @param array<string,mixed> $settings Heartbeat settings.
+ * @return array<string,mixed>
+ */
+function erankly_bloat_limit_heartbeat_admin( array $settings ): array {
+	if ( ! is_admin() ) {
+		return $settings;
+	}
+
+	$interval = (int) ERANKLY_BLOAT_HEARTBEAT_ADMIN_INTERVAL;
+	if ( $interval < 15 ) {
+		$interval = 15;
+	}
+
+	$settings['interval'] = $interval;
+
+	return $settings;
+}
+
+/**
+ * Removes classic-theme-styles and global-styles on classic themes.
+ *
+ * Block themes rely on global styles for design tokens, so they are left alone.
+ *
+ * @return void
+ */
+function erankly_bloat_remove_global_styles(): void {
+	remove_action( 'wp_enqueue_scripts', 'wp_enqueue_classic_theme_styles' );
+	remove_action( 'enqueue_block_assets', 'wp_enqueue_classic_theme_styles' );
+
+	if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+		return;
+	}
+
+	remove_action( 'wp_enqueue_scripts', 'wp_enqueue_global_styles' );
+	remove_action( 'wp_footer', 'wp_enqueue_global_styles', 1 );
+}
+
+/**
+ * Unhooks frontend duotone SVG / CSS output without touching the block editor.
+ *
+ * @return void
+ */
+function erankly_bloat_remove_duotone(): void {
+	if ( ! class_exists( 'WP_Duotone', false ) ) {
+		return;
+	}
+
+	remove_filter( 'render_block', array( 'WP_Duotone', 'render_duotone_support' ), 10 );
+	remove_action( 'wp_enqueue_scripts', array( 'WP_Duotone', 'output_block_styles' ), 9 );
+	remove_action( 'wp_enqueue_scripts', array( 'WP_Duotone', 'output_global_styles' ), 11 );
+	remove_action( 'wp_footer', array( 'WP_Duotone', 'output_footer_assets' ), 10 );
+}
+
+/**
+ * Dequeues the combined block library CSS when it is safe to do so.
+ *
+ * Skips block themes and any singular view whose content contains blocks.
+ * Archives and other multi-post views are left unchanged.
+ *
+ * @return void
+ */
+function erankly_bloat_remove_block_library_css(): void {
+	if ( is_admin() ) {
+		return;
+	}
+
+	if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+		return;
+	}
+
+	if ( ! is_singular() ) {
+		return;
+	}
+
+	$post = get_post();
+	if ( ! $post instanceof WP_Post || has_blocks( $post ) ) {
+		return;
+	}
+
+	wp_dequeue_style( 'wp-block-library' );
+	wp_dequeue_style( 'wp-block-library-theme' );
+	wp_dequeue_style( 'classic-theme-styles' );
+}
+
+/**
+ * Caps stored revisions without overriding a stricter existing limit.
+ *
+ * @param int     $num  Current revisions-to-keep value (-1 = unlimited).
+ * @param WP_Post $post Post object.
+ * @return int
+ */
+function erankly_bloat_limit_revisions( $num, $post ): int { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed
+	$num   = (int) $num;
+	$limit = (int) ERANKLY_BLOAT_REVISIONS_LIMIT;
+	if ( $limit < 1 ) {
+		$limit = 5;
+	}
+
+	// Honour a stricter existing cap (including 0 = revisions disabled).
+	if ( $num >= 0 && $num < $limit ) {
+		return $num;
+	}
+
+	return $limit;
 }
 
 /**

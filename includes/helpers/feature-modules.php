@@ -61,6 +61,19 @@ function erankly_ai_module_enabled(): bool {
 }
 
 /**
+ * Whether the Content Analysis editor module is enabled.
+ *
+ * This toggle is intentionally independent from simplified mode and AI
+ * provider availability. The latter controls report generation, while the
+ * module flag controls whether the editor surface and its REST routes exist.
+ *
+ * @return bool
+ */
+function erankly_content_analysis_enabled(): bool {
+	return (bool) erankly_get_setting( 'enable_content_analysis', 0 );
+}
+
+/**
  * Turns off AI features when their last provider is no longer available.
  *
  * Provider discovery is complete only after WordPress has run `init`, so this
@@ -82,8 +95,9 @@ function erankly_maybe_disable_ai_without_provider(): void {
 		return;
 	}
 
-	$settings               = erankly_get_settings();
-	$settings['ai_enabled'] = 0;
+	$settings                         = erankly_get_settings();
+	$settings['ai_enabled']           = 0;
+	$settings['enable_link_building'] = 0;
 
 	erankly_update_plugin_option( ERANKLY_OPTION, $settings );
 }
@@ -91,10 +105,14 @@ function erankly_maybe_disable_ai_without_provider(): void {
 /**
  * Whether the Link Building module is enabled.
  *
+ * Internal link suggestions are an AI-dependent module. Keeping the
+ * dependency in this lightweight runtime check prevents stale or imported
+ * settings from booting Link Building while AI features are off.
+ *
  * @return bool
  */
 function erankly_link_building_enabled(): bool {
-	return (bool) erankly_get_setting( 'enable_link_building', 0 );
+	return erankly_ai_module_enabled() && (bool) erankly_get_setting( 'enable_link_building', 0 );
 }
 
 /**

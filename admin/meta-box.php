@@ -122,8 +122,17 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	$breadcrumb_name         = erankly_get_post_meta_string( $post->ID, 'breadcrumb_name' );
 	$breadcrumbs_enabled     = (bool) erankly_get_setting( 'enable_breadcrumbs', 1 );
 	$simplified_mode         = (bool) erankly_get_setting( 'simplified_mode', 1 );
+	$canonical_placeholder   = wp_get_canonical_url( $post->ID );
 	$title_placeholder       = erankly_get_post_global_meta_placeholder( $post, 'title', 70 );
 	$description_placeholder = erankly_get_post_global_meta_placeholder( $post, 'description', 160 );
+	// Same fallback as an empty breadcrumb_name: post title (SEO title only in simplified mode, where this field is hidden).
+	$breadcrumb_placeholder  = get_the_title( $post );
+
+	if ( ! is_string( $canonical_placeholder ) || '' === $canonical_placeholder ) {
+		$canonical_placeholder = get_permalink( $post );
+	}
+
+	$canonical_placeholder = is_string( $canonical_placeholder ) ? $canonical_placeholder : '';
 	// The post being edited is its own {{post_title}}-style example, so the
 	// preview shows this post's real title/excerpt/etc., not a stand-in.
 	$examples = erankly_get_admin_variable_examples( $post );
@@ -148,7 +157,7 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	<div class="erankly-field">
 		<label for="erankly-canonical"><strong><?php esc_html_e( 'Canonical URL', 'easyrankly' ); ?></strong></label>
 		<div class="erankly-variable-field" data-erankly-variable-field>
-			<input id="erankly-canonical" class="widefat" type="text" name="erankly_canonical" value="<?php echo esc_attr( $canonical ); ?>">
+			<input id="erankly-canonical" class="widefat" type="text" name="erankly_canonical" value="<?php echo esc_attr( $canonical ); ?>" placeholder="<?php echo esc_attr( $canonical_placeholder ); ?>">
 			<?php erankly_render_variable_picker( $examples ); ?>
 		</div>
 	</div>
@@ -156,18 +165,10 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	<?php if ( $breadcrumbs_enabled && ! $simplified_mode ) : ?>
 	<div class="erankly-field">
 		<label for="erankly-breadcrumb-name"><strong><?php esc_html_e( 'Breadcrumb name', 'easyrankly' ); ?></strong></label>
-		<input id="erankly-breadcrumb-name" class="widefat" type="text" name="erankly_breadcrumb_name" value="<?php echo esc_attr( $breadcrumb_name ); ?>" placeholder="<?php echo esc_attr( get_the_title( $post ) ); ?>" maxlength="120">
-		<span class="description"><?php esc_html_e( 'Optional short name used in visible breadcrumbs and BreadcrumbList schema.', 'easyrankly' ); ?></span>
+		<input id="erankly-breadcrumb-name" class="widefat" type="text" name="erankly_breadcrumb_name" value="<?php echo esc_attr( $breadcrumb_name ); ?>" placeholder="<?php echo esc_attr( $breadcrumb_placeholder ); ?>" maxlength="120">
 	</div>
 	<?php endif; ?>
 	<?php if ( ! $simplified_mode ) : ?>
-	<div class="erankly-field">
-		<label for="erankly-focus-keywords"><strong><?php esc_html_e( 'Focus keywords', 'easyrankly' ); ?></strong></label>
-		<input id="erankly-focus-keywords" class="widefat" type="text" name="erankly_focus_keywords" value="<?php echo esc_attr( implode( ', ', (array) get_post_meta( $post->ID, '_erankly_focus_keywords', true ) ) ); ?>" placeholder="<?php esc_attr_e( 'Separate multiple keywords with commas', 'easyrankly' ); ?>">
-	</div>
-	<div class="erankly-field">
-		<label><input type="checkbox" class="erankly-toggle" name="erankly_cornerstone" value="1" <?php checked( get_post_meta( $post->ID, '_erankly_cornerstone', true ), '1' ); ?>> <?php esc_html_e( 'Cornerstone / pillar content', 'easyrankly' ); ?></label>
-	</div>
 		<?php
 		$primary_terms = get_post_meta( $post->ID, '_erankly_primary_terms', true );
 		$primary_terms = is_array( $primary_terms ) ? $primary_terms : array();
@@ -210,6 +211,100 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 }
 
 /**
+ * Renders focus targeting and the persistent AI analysis launcher.
+ *
+ * This panel stays available in simplified mode. AI availability controls only
+ * generation; saved reports can always be reopened or deleted.
+ *
+ * @param WP_Post $post Post object.
+ * @return void
+ */
+function erankly_render_post_content_analysis_fields( WP_Post $post ): void {
+	$keywords     = erankly_sanitize_string_list( get_post_meta( $post->ID, '_erankly_focus_keywords', true ) );
+	$has_analysis = is_array( get_post_meta( $post->ID, '_erankly_content_analysis_v1', true ) );
+	$ai_enabled   = function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled();
+	$modal_title  = 'erankly-content-analysis-title-' . $post->ID;
+	?>
+	<div class="erankly-analysis-targeting">
+		<div class="erankly-field erankly-keyword-field erankly-analysis-targeting__keywords" data-erankly-keyword-field>
+			<label for="erankly-focus-keywords"><strong><?php esc_html_e( 'Focus keywords', 'easyrankly' ); ?></strong></label>
+			<input
+				id="erankly-focus-keywords"
+				class="widefat"
+				type="text"
+				name="erankly_focus_keywords"
+				value="<?php echo esc_attr( implode( ', ', $keywords ) ); ?>"
+				placeholder="<?php esc_attr_e( 'Separate multiple keywords with commas', 'easyrankly' ); ?>"
+				data-erankly-keyword-source
+			>
+			<div class="erankly-keyword-ui" data-erankly-keyword-ui hidden>
+				<div class="erankly-keyword-tags" role="list" data-erankly-keyword-tags></div>
+				<div class="erankly-keyword-entry">
+				<input type="text" class="widefat" data-erankly-keyword-entry placeholder="<?php esc_attr_e( 'Add a keyword, then press Enter', 'easyrankly' ); ?>">
+					<button type="button" class="button" data-erankly-keyword-add><?php esc_html_e( 'Add', 'easyrankly' ); ?></button>
+				</div>
+				<label class="erankly-keyword-primary" data-erankly-keyword-primary hidden>
+					<span><?php esc_html_e( 'Primary keyword', 'easyrankly' ); ?></span>
+					<select data-erankly-keyword-primary-select></select>
+				</label>
+			</div>
+		<span class="description"><?php esc_html_e( 'First keyword is primary. Add up to 10 related keyphrases.', 'easyrankly' ); ?></span>
+			<span class="description erankly-field-error" data-erankly-keyword-error aria-live="polite"></span>
+		</div>
+		<div class="erankly-field erankly-analysis-targeting__cornerstone">
+			<label><input type="checkbox" class="erankly-toggle" name="erankly_cornerstone" value="1" <?php checked( get_post_meta( $post->ID, '_erankly_cornerstone', true ), '1' ); ?> data-erankly-cornerstone> <?php esc_html_e( 'Cornerstone / pillar content', 'easyrankly' ); ?></label>
+		<span class="description"><?php esc_html_e( 'Uses stricter checks for depth, supporting content and internal links.', 'easyrankly' ); ?></span>
+		</div>
+	</div>
+	<div class="erankly-field erankly-content-analysis-launcher" data-erankly-content-analysis-root>
+		<div class="erankly-content-analysis-launcher__buttons">
+			<button
+				type="button"
+				class="button button-secondary"
+				data-erankly-content-analysis-open
+				<?php disabled( ! $has_analysis && ! $ai_enabled ); ?>
+			><?php echo esc_html( $has_analysis ? __( 'Open analysis', 'easyrankly' ) : __( 'Analyze', 'easyrankly' ) ); ?></button>
+			<button
+				type="button"
+				class="button button-secondary"
+				data-erankly-keyword-suggestion
+				<?php disabled( ! $ai_enabled ); ?>
+			><?php esc_html_e( 'Suggest keyword', 'easyrankly' ); ?></button>
+		</div>
+		<span class="description" data-erankly-content-analysis-summary aria-live="polite">
+			<?php if ( ! $ai_enabled && ! $has_analysis ) : ?>
+				<?php esc_html_e( 'Enable AI and connect a provider.', 'easyrankly' ); ?>
+			<?php endif; ?>
+		</span>
+
+		<div class="erankly-content-analysis-overlay" data-erankly-content-analysis-modal hidden>
+			<div class="erankly-content-analysis-modal" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $modal_title ); ?>" tabindex="-1">
+				<header class="erankly-content-analysis-modal__header">
+					<h2 id="<?php echo esc_attr( $modal_title ); ?>"><?php esc_html_e( 'Content analysis', 'easyrankly' ); ?></h2>
+					<button type="button" class="erankly-content-analysis-close" data-erankly-content-analysis-close aria-label="<?php esc_attr_e( 'Close analysis', 'easyrankly' ); ?>">&times;</button>
+				</header>
+				<div class="erankly-content-analysis-modal__body" data-erankly-content-analysis-body aria-live="polite"></div>
+				<footer class="erankly-content-analysis-modal__footer">
+					<div class="erankly-content-analysis-delete-group">
+						<button type="button" class="button-link-delete" data-erankly-content-analysis-delete hidden><?php esc_html_e( 'Delete analysis', 'easyrankly' ); ?></button>
+						<span data-erankly-content-analysis-delete-confirm hidden>
+							<?php esc_html_e( 'Delete this report?', 'easyrankly' ); ?>
+							<button type="button" class="button button-small" data-erankly-content-analysis-delete-yes><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
+							<button type="button" class="button-link" data-erankly-content-analysis-delete-no><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></button>
+						</span>
+					</div>
+					<div class="erankly-content-analysis-modal__actions">
+						<button type="button" class="button button-secondary" data-erankly-content-analysis-rerun <?php disabled( ! $ai_enabled ); ?> hidden><?php esc_html_e( 'Analyze again', 'easyrankly' ); ?></button>
+						<button type="button" class="button" data-erankly-content-analysis-close><?php esc_html_e( 'Close', 'easyrankly' ); ?></button>
+					</div>
+				</footer>
+			</div>
+		</div>
+	</div>
+	<?php
+}
+
+/**
  * Renders the Social fields shared by the tabbed box and the sidebar box.
  *
  * @param WP_Post $post Post object.
@@ -223,7 +318,7 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 	$twitter_card               = erankly_get_post_meta_string( $post->ID, 'twitter_card_type' );
 	$legacy_image_url           = erankly_get_post_meta_string( $post->ID, 'social_image_url' );
 	$og_image_url               = erankly_get_post_meta_string( $post->ID, 'og_image_url' );
-	$og_image_alt               = erankly_get_post_meta_string( $post->ID, 'og_image_alt' );
+	$social_image_alt           = erankly_get_post_meta_string( $post->ID, 'og_image_alt' );
 	$twitter_image_url          = erankly_get_post_meta_string( $post->ID, 'twitter_image_url' );
 	$twitter_image_alt          = erankly_get_post_meta_string( $post->ID, 'twitter_image_alt' );
 	$og_title_placeholder       = erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 );
@@ -282,7 +377,9 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 			'' !== $legacy_image_url ? $legacy_image_url : ( '' !== $social_image_placeholder ? $social_image_placeholder : erankly_default_social_image_placeholder() )
 		);
 		?>
-		<input class="widefat" type="text" name="erankly_og_image_alt" value="<?php echo esc_attr( $og_image_alt ); ?>" placeholder="<?php esc_attr_e( 'Open Graph image alt text', 'easyrankly' ); ?>">
+		<label for="erankly-social-image-alt"><strong><?php esc_html_e( 'Social image alt text', 'easyrankly' ); ?></strong></label>
+		<input id="erankly-social-image-alt" class="widefat" type="text" name="erankly_og_image_alt" value="<?php echo esc_attr( $social_image_alt ); ?>">
+		<span class="description"><?php esc_html_e( 'Shared by Open Graph and X. If blank, uses the Media Library alt text.', 'easyrankly' ); ?></span>
 	</div>
 	<div class="erankly-field">
 		<label for="erankly-twitter-image-url"><strong><?php esc_html_e( 'X (Twitter) image URL', 'easyrankly' ); ?></strong></label>
@@ -294,7 +391,11 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 			'' !== $legacy_image_url ? $legacy_image_url : ( '' !== $social_image_placeholder ? $social_image_placeholder : erankly_default_social_image_placeholder() )
 		);
 		?>
-		<input class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>" placeholder="<?php esc_attr_e( 'X image alt text', 'easyrankly' ); ?>">
+		<details class="erankly-social-image-alt-override"<?php echo '' !== $twitter_image_alt ? ' open' : ''; ?>>
+			<summary><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></summary>
+			<input id="erankly-twitter-image-alt" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>" aria-label="<?php esc_attr_e( 'X image alt text override', 'easyrankly' ); ?>">
+			<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
+		</details>
 	</div>
 	<?php if ( function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) : ?>
 	<div class="erankly-field erankly-ai-field">
@@ -338,7 +439,7 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 			<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
 			<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
 			<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <strong><?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></strong></label>
-			<span class="description"><?php esc_html_e( 'Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive. Use Advanced settings to control those separately.', 'easyrankly' ); ?></span>
+			<span class="description"><?php esc_html_e( 'Adds noindex and removes this page from the sitemap; other robots rules stay unchanged.', 'easyrankly' ); ?></span>
 		<?php else : ?>
 			<?php erankly_render_robots_directive_select( 'erankly_index_directive', $index_directive, __( 'Indexing', 'easyrankly' ), __( 'Index', 'easyrankly' ), __( 'Noindex', 'easyrankly' ) ); ?>
 			<?php erankly_render_robots_directive_select( 'erankly_follow_directive', $follow_directive, __( 'Link following', 'easyrankly' ), __( 'Follow', 'easyrankly' ), __( 'Nofollow', 'easyrankly' ) ); ?>
@@ -357,13 +458,13 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 		<?php endif; ?>
 	</fieldset>
 	<fieldset class="erankly-field erankly-checkboxes">
-		<legend><strong><?php esc_html_e( 'Archive Settings', 'easyrankly' ); ?></strong></legend>
-		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude this page from all search queries on this site', 'easyrankly' ); ?></label><br>
-		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_archive" value="1" <?php checked( $exclude_archive ); ?>> <?php esc_html_e( 'Exclude this page from all archive queries on this site.', 'easyrankly' ); ?></label>
+		<legend><strong><?php esc_html_e( 'Archives', 'easyrankly' ); ?></strong></legend>
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude from site search', 'easyrankly' ); ?></label><br>
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_archive" value="1" <?php checked( $exclude_archive ); ?>> <?php esc_html_e( 'Exclude from archives', 'easyrankly' ); ?></label>
 	</fieldset>
 	<?php if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) : ?>
 	<fieldset class="erankly-field erankly-checkboxes">
-		<legend><strong><?php esc_html_e( 'Google News Settings', 'easyrankly' ); ?></strong></legend>
+		<legend><strong><?php esc_html_e( 'Google News', 'easyrankly' ); ?></strong></legend>
 		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_from_news" value="1" <?php checked( $exclude_from_news ); ?>> <?php esc_html_e( 'Exclude this page from Google News sitemap', 'easyrankly' ); ?></label>
 	</fieldset>
 	<?php endif; ?>
@@ -452,11 +553,15 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
  */
 function erankly_render_meta_box( WP_Post $post ): void {
 	wp_nonce_field( 'erankly_save_meta_box', 'erankly_meta_box_nonce' );
-	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
+	$simplified_mode          = (bool) erankly_get_setting( 'simplified_mode', 1 );
+	$content_analysis_enabled = erankly_content_analysis_enabled();
 	?>
 	<div class="erankly-meta-box">
-		<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
-			<button type="button" class="nav-tab nav-tab-active erankly-tab is-active" id="erankly-tab-general" role="tab" aria-selected="true" aria-controls="erankly-panel-general" data-erankly-tab="general"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
+			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
+				<button type="button" class="nav-tab nav-tab-active erankly-tab is-active" id="erankly-tab-general" role="tab" aria-selected="true" aria-controls="erankly-panel-general" data-erankly-tab="general"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
+				<?php if ( $content_analysis_enabled ) : ?>
+				<button type="button" class="nav-tab erankly-tab" id="erankly-tab-content-analysis" role="tab" aria-selected="false" aria-controls="erankly-panel-content-analysis" data-erankly-tab="content-analysis"><?php esc_html_e( 'Content analysis', 'easyrankly' ); ?></button>
+				<?php endif; ?>
 			<?php if ( ! $simplified_mode ) : ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-social" role="tab" aria-selected="false" aria-controls="erankly-panel-social" data-erankly-tab="social"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-schema" role="tab" aria-selected="false" aria-controls="erankly-panel-schema" data-erankly-tab="schema"><?php esc_html_e( 'Schema', 'easyrankly' ); ?></button>
@@ -471,9 +576,15 @@ function erankly_render_meta_box( WP_Post $post ): void {
 			<?php endif; ?>
 		</div>
 
-		<div class="erankly-tab-panel is-active" id="erankly-panel-general" role="tabpanel" aria-labelledby="erankly-tab-general" data-erankly-panel="general">
-			<?php erankly_render_post_general_fields( $post ); ?>
-		</div>
+			<div class="erankly-tab-panel is-active" id="erankly-panel-general" role="tabpanel" aria-labelledby="erankly-tab-general" data-erankly-panel="general">
+				<?php erankly_render_post_general_fields( $post ); ?>
+			</div>
+
+			<?php if ( $content_analysis_enabled ) : ?>
+			<div class="erankly-tab-panel" id="erankly-panel-content-analysis" role="tabpanel" aria-labelledby="erankly-tab-content-analysis" data-erankly-panel="content-analysis" hidden>
+				<?php erankly_render_post_content_analysis_fields( $post ); ?>
+			</div>
+			<?php endif; ?>
 
 		<?php if ( ! $simplified_mode ) : ?>
 		<div class="erankly-tab-panel" id="erankly-panel-social" role="tabpanel" aria-labelledby="erankly-tab-social" data-erankly-panel="social" hidden>
@@ -569,7 +680,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	$twitter_card             = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_card_type' ) : '';
 	$social_image_url         = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'social_image_url' ) : '';
 	$og_image_url             = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'og_image_url' ) : '';
-	$og_image_alt             = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'og_image_alt' ) : '';
+	$social_image_alt         = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'og_image_alt' ) : '';
 	$twitter_image_url        = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_image_url' ) : '';
 	$twitter_image_alt        = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_image_alt' ) : '';
 	$id_suffix                = $term_id > 0 ? (string) $term_id : sanitize_key( $taxonomy );
@@ -578,6 +689,12 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	// The term being edited is its own {{term_name}}-style example.
 	$term_object = $term_id > 0 ? get_term( $term_id, $taxonomy ) : null;
 	$examples    = erankly_get_admin_variable_examples( null, $term_object instanceof WP_Term ? $term_object : null );
+	$canonical_placeholder = '';
+
+	if ( $term_object instanceof WP_Term ) {
+		$term_link             = get_term_link( $term_object );
+		$canonical_placeholder = is_wp_error( $term_link ) ? '' : $term_link;
+	}
 	?>
 	<div class="erankly-meta-box erankly-term-meta-box">
 		<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
@@ -612,7 +729,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 			<div class="erankly-field">
 				<label for="erankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Canonical URL', 'easyrankly' ); ?></strong></label>
 				<div class="erankly-variable-field" data-erankly-variable-field>
-					<input id="erankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_canonical" value="<?php echo esc_attr( $canonical ); ?>">
+					<input id="erankly-term-canonical-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_canonical" value="<?php echo esc_attr( $canonical ); ?>" placeholder="<?php echo esc_attr( $canonical_placeholder ); ?>">
 					<?php erankly_render_variable_picker( $examples ); ?>
 				</div>
 			</div>
@@ -682,7 +799,9 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 					'' !== $social_image_url ? $social_image_url : erankly_default_social_image_placeholder()
 				);
 				?>
-				<input class="widefat" type="text" name="erankly_og_image_alt" value="<?php echo esc_attr( $og_image_alt ); ?>" placeholder="<?php esc_attr_e( 'Open Graph image alt text', 'easyrankly' ); ?>">
+				<label for="erankly-term-social-image-alt-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'Social image alt text', 'easyrankly' ); ?></strong></label>
+				<input id="erankly-term-social-image-alt-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_og_image_alt" value="<?php echo esc_attr( $social_image_alt ); ?>">
+				<span class="description"><?php esc_html_e( 'Shared by Open Graph and X. If blank, uses the Media Library alt text.', 'easyrankly' ); ?></span>
 			</div>
 			<div class="erankly-field">
 				<label for="erankly-term-twitter-image-url-<?php echo esc_attr( $id_suffix ); ?>"><strong><?php esc_html_e( 'X (Twitter) image URL', 'easyrankly' ); ?></strong></label>
@@ -694,7 +813,11 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 					'' !== $social_image_url ? $social_image_url : erankly_default_social_image_placeholder()
 				);
 				?>
-				<input class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>" placeholder="<?php esc_attr_e( 'X image alt text', 'easyrankly' ); ?>">
+				<details class="erankly-social-image-alt-override"<?php echo '' !== $twitter_image_alt ? ' open' : ''; ?>>
+					<summary><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></summary>
+					<input id="erankly-term-twitter-image-alt-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>" aria-label="<?php esc_attr_e( 'X image alt text override', 'easyrankly' ); ?>">
+					<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
+				</details>
 			</div>
 			<?php if ( $term_id > 0 && function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) : ?>
 			<div class="erankly-field erankly-ai-field">
@@ -717,7 +840,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 					<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
 					<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
 					<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <strong><?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></strong></label>
-					<span class="description"><?php esc_html_e( 'Sets noindex and removes this term from the sitemap. Does not affect nofollow or noarchive.', 'easyrankly' ); ?></span>
+					<span class="description"><?php esc_html_e( 'Adds noindex and removes this term from the sitemap; other robots rules stay unchanged.', 'easyrankly' ); ?></span>
 				<?php else : ?>
 					<?php erankly_render_robots_directive_select( 'erankly_index_directive', $index_directive, __( 'Indexing', 'easyrankly' ), __( 'Index', 'easyrankly' ), __( 'Noindex', 'easyrankly' ) ); ?>
 					<?php erankly_render_robots_directive_select( 'erankly_follow_directive', $follow_directive, __( 'Link following', 'easyrankly' ), __( 'Follow', 'easyrankly' ), __( 'Nofollow', 'easyrankly' ) ); ?>
@@ -899,9 +1022,23 @@ function erankly_save_meta_box( int $post_id ): void {
 		}
 	}
 
+	if ( erankly_content_analysis_enabled() ) {
+		$focus_keywords = erankly_sanitize_registered_meta( isset( $_POST['erankly_focus_keywords'] ) ? wp_unslash( $_POST['erankly_focus_keywords'] ) : array(), '_erankly_focus_keywords' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by the called field-specific sanitizer.
+		if ( empty( $focus_keywords ) ) {
+			delete_post_meta( $post_id, '_erankly_focus_keywords' );
+		} else {
+			update_post_meta( $post_id, '_erankly_focus_keywords', wp_slash( $focus_keywords ) );
+		}
+
+		if ( isset( $_POST['erankly_cornerstone'] ) ) {
+			update_post_meta( $post_id, '_erankly_cornerstone', '1' );
+		} else {
+			delete_post_meta( $post_id, '_erankly_cornerstone' );
+		}
+	}
+
 	if ( ! $simplified_mode ) {
 		$complex_fields = array(
-			'_erankly_focus_keywords'        => isset( $_POST['erankly_focus_keywords'] ) ? wp_unslash( $_POST['erankly_focus_keywords'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
 			'_erankly_primary_terms'         => isset( $_POST['erankly_primary_terms'] ) ? wp_unslash( $_POST['erankly_primary_terms'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
 			'_erankly_schema_blocks'         => isset( $_POST['erankly_schema_blocks'] ) ? wp_unslash( $_POST['erankly_schema_blocks'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
 			'_erankly_schema_disabled_types' => isset( $_POST['erankly_schema_disabled_types'] ) ? preg_split( '/[\r\n,]+/', wp_unslash( $_POST['erankly_schema_disabled_types'] ) ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
@@ -924,12 +1061,6 @@ function erankly_save_meta_box( int $post_id ): void {
 			delete_post_meta( $post_id, '_erankly_schema_mode' );
 		} else {
 			update_post_meta( $post_id, '_erankly_schema_mode', $schema_mode );
-		}
-
-		if ( isset( $_POST['erankly_cornerstone'] ) ) {
-			update_post_meta( $post_id, '_erankly_cornerstone', '1' );
-		} else {
-			delete_post_meta( $post_id, '_erankly_cornerstone' );
 		}
 	}
 }

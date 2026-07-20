@@ -131,7 +131,13 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 				<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled ); ?>
 			<?php endif; ?>
 			<?php erankly_render_schema_textarea_field( $index, $name_prefix, 'custom_json', __( 'JSON-LD code', 'easyrankly' ), $custom_json, 10 ); ?>
-			<p class="description"><?php esc_html_e( 'Paste one JSON-LD object or use a top-level @graph array for multiple schemas. Supports {{variables}}.', 'easyrankly' ); ?></p>
+			<p class="description">
+				<?php if ( $is_global ) : ?>
+					<?php esc_html_e( 'Paste one JSON-LD object or use a top-level @graph array for multiple schemas. Supports {{variables}}.', 'easyrankly' ); ?>
+				<?php else : ?>
+					<?php esc_html_e( 'One JSON-LD object or @graph array; supports {{variables}}.', 'easyrankly' ); ?>
+				<?php endif; ?>
+			</p>
 		</div>
 	</details>
 	<?php

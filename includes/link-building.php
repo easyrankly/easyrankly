@@ -112,9 +112,9 @@ function erankly_lb_enqueue_editor_assets( string $hook_suffix ): void { // phpc
 		'erankly-link-suggestions',
 		'eranklyLinkSuggestions',
 		array(
-			'aiEnabled'  => erankly_internal_links_available(),
-			'graphBuilt' => null !== erankly_lb_get_graph(),
-			'i18n'       => array(
+			'aiEnabled'         => erankly_internal_links_available(),
+			'graphBuilt'        => null !== erankly_lb_get_graph(),
+			'i18n'              => array(
 				'cached'        => __( 'Showing cached suggestions.', 'easyrankly' ),
 				'editSource'    => __( 'Edit source', 'easyrankly' ),
 				'empty'         => __( 'No strong link opportunities found.', 'easyrankly' ),
@@ -127,8 +127,9 @@ function erankly_lb_enqueue_editor_assets( string $hook_suffix ): void { // phpc
 				'updated'       => __( 'Suggestions updated.', 'easyrankly' ),
 				'working'       => __( 'Generating…', 'easyrankly' ),
 			),
-			'nonce'      => wp_create_nonce( 'wp_rest' ),
-			'restUrl'    => esc_url_raw( rest_url( 'erankly/v1/links/ai-suggestions' ) ),
+			'internalLinksUrl'  => esc_url_raw( admin_url( 'options-general.php?page=erankly&erankly_tab=links' ) ),
+			'nonce'             => wp_create_nonce( 'wp_rest' ),
+			'restUrl'           => esc_url_raw( rest_url( 'erankly/v1/links/ai-suggestions' ) ),
 		)
 	);
 }
@@ -875,10 +876,22 @@ function erankly_lb_ai_suggest_for_post( int $post_id, bool $force = false ) {
  */
 function erankly_render_post_internal_links_panel( WP_Post $post ): void {
 	$graph_built = null !== erankly_lb_get_graph();
+	$links_url   = admin_url( 'options-general.php?page=erankly&erankly_tab=links' );
 	?>
 	<div class="erankly-internal-links-panel" data-erankly-internal-links data-erankly-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
 		<?php if ( ! $graph_built ) : ?>
-			<div class="notice notice-warning inline"><p><?php esc_html_e( 'The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → Internal links.', 'easyrankly' ); ?></p></div>
+			<div class="notice notice-warning inline">
+				<p>
+					<?php
+					printf(
+						/* translators: 1: opening anchor tag, 2: closing anchor tag */
+						esc_html__( 'The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → %1$sInternal links%2$s.', 'easyrankly' ),
+						'<a href="' . esc_url( $links_url ) . '">',
+						'</a>'
+					);
+					?>
+				</p>
+			</div>
 		<?php endif; ?>
 		<?php if ( function_exists( 'erankly_ai_render_editor_privacy_notice' ) ) : ?>
 			<?php erankly_ai_render_editor_privacy_notice(); ?>

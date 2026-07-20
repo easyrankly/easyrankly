@@ -27,6 +27,7 @@ function erankly_contextual_modules_included( string $relative_path ): bool {
 $original_settings = get_option( 'erankly_contextual_modules_original_settings', null );
 erankly_contextual_modules_assert( is_array( $original_settings ), 'The contextual module fixture snapshot is missing.' );
 erankly_contextual_modules_assert( erankly_ai_module_enabled(), 'AI must be enabled for the contextual boundary request.' );
+erankly_contextual_modules_assert( erankly_content_analysis_enabled(), 'Content Analysis must be enabled for the contextual boundary request.' );
 erankly_contextual_modules_assert( erankly_health_enabled(), 'Health must be enabled for the contextual boundary request.' );
 erankly_contextual_modules_assert( erankly_link_building_enabled(), 'Link Building must be enabled for the contextual boundary request.' );
 
@@ -52,6 +53,7 @@ foreach (
 }
 
 erankly_contextual_modules_assert( false !== has_action( 'rest_api_init', 'erankly_bootstrap_ai_rest_routes' ), 'AI must register its lightweight REST dispatcher.' );
+erankly_contextual_modules_assert( false !== has_action( 'rest_api_init', 'erankly_bootstrap_content_analysis_rest_routes' ), 'Content Analysis must register its lightweight REST dispatcher when enabled.' );
 erankly_contextual_modules_assert( false !== has_action( 'rest_api_init', 'erankly_health_bootstrap_rest_routes' ), 'Health must register its lightweight REST dispatcher.' );
 
 $server = rest_get_server();
@@ -65,6 +67,7 @@ erankly_contextual_modules_assert( ! erankly_contextual_modules_included( 'inclu
 
 $routes = $server->get_routes();
 erankly_contextual_modules_assert( isset( $routes['/erankly/v1/ai/generate'] ), 'AI generation route must remain registered.' );
+erankly_contextual_modules_assert( isset( $routes['/erankly/v1/ai/content-analysis/(?P<post_id>\\d+)'] ), 'Content Analysis routes must be registered when the feature is enabled.' );
 erankly_contextual_modules_assert( isset( $routes['/erankly/v1/health/broken-links/start'] ), 'Health crawler start route must remain registered.' );
 
 $cancel_response = erankly_health_bl_rest_cancel();

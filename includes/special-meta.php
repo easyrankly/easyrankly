@@ -38,7 +38,6 @@ function erankly_register_special_meta_setting(): void {
 		array(
 			'type'              => 'object',
 			'label'             => __( 'Special pages and archives', 'easyrankly' ),
-			'description'       => __( 'Set the default SEO metadata for WordPress contexts that are not individual posts or terms: homepage, blog, author and date archives, search results and the 404 page.', 'easyrankly' ),
 			'default'           => erankly_normalize_special_meta_map( erankly_default_global_special_meta() ),
 			'sanitize_callback' => 'erankly_sanitize_special_meta_map',
 			'show_in_rest'      => array(

@@ -266,13 +266,17 @@
 	max-width: none;
 }
 
-/* Shared small heading (card titles + section sub-headings). */
+/* Shared section heading (settings titles + card titles). */
 .erankly-card h3,
 .erankly-section-title,
 .erankly-global-meta-default h4,
 .erankly-additional-contexts h4 {
-	font-size: 14px;
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
 	margin: 0 0 8px;
+	text-transform: uppercase;
 }
 
 .erankly-card h3,
@@ -371,7 +375,7 @@
 }
 
 .erankly-panel-table {
-	border-radius: var(--erankly-radius-surface, 8px);
+	border-radius: var(--erankly-radius-surface, 2px);
 	overflow: hidden;
 }
 

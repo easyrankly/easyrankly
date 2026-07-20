@@ -164,12 +164,10 @@ function erankly_send_response( string $body, string $content_type ) {
  */
 function erankly_render_inline_status_badge( string $message, bool $success ): void {
 	$class = $success ? 'is-success' : 'is-error';
-	$icon  = $success ? 'dashicons-yes' : 'dashicons-no-alt';
 
 	printf(
-		'<span class="erankly-inline-status %1$s"><span class="dashicons %2$s" aria-hidden="true"></span>%3$s</span>',
+		'<span class="erankly-inline-status %1$s"><svg class="erankly-inline-status-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="erankly-inline-status-icon-cross" d="M4 4l8 8m0-8-8 8"></path><path class="erankly-inline-status-icon-check" d="M3.25 8.25 6.5 11.5 12.75 4.75"></path></svg>%2$s</span>',
 		esc_attr( $class ),
-		esc_attr( $icon ),
 		esc_html( $message )
 	);
 }
@@ -230,6 +228,25 @@ function erankly_render_ai_provider_status(): void {
 			? __( 'AI provider: Connected', 'easyrankly' )
 			: __( 'AI provider: Not connected', 'easyrankly' ),
 		erankly_ai_provider_available()
+	);
+}
+
+/**
+ * Renders an inline "AI features: Enabled / Not enabled" status badge.
+ *
+ * Features that depend on the AI module (e.g. internal link suggestions) use
+ * this so the admin can see why the related toggle is disabled.
+ *
+ * @return void
+ */
+function erankly_render_ai_features_requirement_status(): void {
+	$ready = erankly_ai_module_enabled() && erankly_ai_provider_available();
+
+	erankly_render_inline_status_badge(
+		$ready
+			? __( 'AI features: Enabled', 'easyrankly' )
+			: __( 'AI features: Not enabled', 'easyrankly' ),
+		$ready
 	);
 }
 

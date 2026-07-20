@@ -6,10 +6,10 @@
  */
 
 :root {
-	--erankly-radius-surface: 8px;
-	--erankly-radius-control: 6px;
-	--erankly-radius-compact: 5px;
-	--erankly-radius-popover: 4px;
+	--erankly-radius-surface: 2px;
+	--erankly-radius-control: 2px;
+	--erankly-radius-compact: 2px;
+	--erankly-radius-popover: 2px;
 	--erankly-color-border: #dcdcde;
 	--erankly-color-border-strong: #949494;
 	--erankly-color-text: #1d2327;
@@ -137,37 +137,11 @@
 }
 
 .erankly-seo-checklist-intro {
-	align-items: flex-start;
-	display: flex;
-	gap: 10px;
 	margin-bottom: 12px;
 }
 
 .erankly-seo-checklist-help {
-	flex: 1;
 	margin: 0;
-}
-
-.erankly-seo-checklist-count {
-	border-radius: 999px;
-	color: var(--erankly-color-surface);
-	flex-shrink: 0;
-	font-size: 12px;
-	font-weight: 600;
-	line-height: 1.4;
-	padding: 2px 8px;
-}
-
-.erankly-seo-checklist.is-incomplete .erankly-seo-checklist-count {
-	background: var(--erankly-color-danger);
-}
-
-.erankly-seo-checklist.is-partial .erankly-seo-checklist-count {
-	background: var(--erankly-color-checklist-partial);
-}
-
-.erankly-seo-checklist.is-complete .erankly-seo-checklist-count {
-	background: var(--erankly-color-success);
 }
 
 .erankly-seo-checklist-items {
@@ -190,39 +164,36 @@
 }
 
 .erankly-seo-checklist-item {
-	align-items: center;
+	align-items: flex-start;
 	display: flex;
-	gap: 10px;
+	gap: 6px;
 	margin: 0;
 	padding: 6px 0;
 }
 
-.erankly-seo-checklist-check {
-	align-items: center;
-	border: 2px solid var(--erankly-color-control-border);
-	border-radius: 50%;
-	box-sizing: border-box;
-	color: var(--erankly-color-surface);
-	display: flex;
+.erankly-seo-checklist-icon {
+	color: var(--erankly-color-error);
+	display: block;
 	flex: 0 0 auto;
-	height: 18px;
-	justify-content: center;
-	width: 18px;
+	height: 14px;
+	margin-top: 2px;
+	width: 14px;
 }
 
-.erankly-seo-checklist-check svg {
-	height: 10px;
-	opacity: 0;
-	width: 10px;
+.erankly-seo-checklist-icon-check {
+	display: none;
 }
 
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check {
-	background: var(--erankly-color-success);
-	border-color: var(--erankly-color-success);
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-icon {
+	color: var(--erankly-color-success);
 }
 
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-check svg {
-	opacity: 1;
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-icon-cross {
+	display: none;
+}
+
+.erankly-seo-checklist-item.is-done .erankly-seo-checklist-icon-check {
+	display: inline;
 }
 
 .erankly-seo-checklist-label {
@@ -231,6 +202,30 @@
 	line-height: 1.4;
 }
 
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-label {
-	color: var(--erankly-color-text-muted);
+/* Hide native number steppers; values are typed, not clicked. */
+.erankly-settings input[type="number"],
+.erankly-meta-box input[type="number"],
+.erankly-term-meta-box input[type="number"],
+.erankly-setup input[type="number"],
+.erankly-panel input[type="number"],
+.erankly-redirects-form input[type="number"] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.erankly-settings input[type="number"]::-webkit-outer-spin-button,
+.erankly-settings input[type="number"]::-webkit-inner-spin-button,
+.erankly-meta-box input[type="number"]::-webkit-outer-spin-button,
+.erankly-meta-box input[type="number"]::-webkit-inner-spin-button,
+.erankly-term-meta-box input[type="number"]::-webkit-outer-spin-button,
+.erankly-term-meta-box input[type="number"]::-webkit-inner-spin-button,
+.erankly-setup input[type="number"]::-webkit-outer-spin-button,
+.erankly-setup input[type="number"]::-webkit-inner-spin-button,
+.erankly-panel input[type="number"]::-webkit-outer-spin-button,
+.erankly-panel input[type="number"]::-webkit-inner-spin-button,
+.erankly-redirects-form input[type="number"]::-webkit-outer-spin-button,
+.erankly-redirects-form input[type="number"]::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	appearance: none;
+	margin: 0;
 }

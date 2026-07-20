@@ -92,8 +92,8 @@ function erankly_render_local_business_settings( array $settings ): void {
 	}
 	?>
 	<fieldset class="erankly-field erankly-checkboxes erankly-local-business" data-erankly-local-business>
-		<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_local_business]" value="1" <?php checked( $enabled ); ?> data-erankly-local-business-toggle> <strong><?php esc_html_e( 'Add LocalBusiness schema for one physical location', 'easyrankly' ); ?></strong></label>
-		<p class="description"><?php esc_html_e( 'Use only when the selected page visibly contains the same business details. Keep them consistent with your Google Business Profile.', 'easyrankly' ); ?></p>
+		<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_local_business]" value="1" <?php checked( $enabled ); ?> data-erankly-local-business-toggle> <strong><?php esc_html_e( 'Add one physical business location for search engines', 'easyrankly' ); ?></strong></label>
+		<p class="description"><?php esc_html_e( 'Search engines can read its address, opening hours and contact details. Nothing new is shown to visitors. Use the same details as your Google Business Profile.', 'easyrankly' ); ?></p>
 		<div class="erankly-local-business-fields" data-erankly-local-business-fields <?php echo $enabled ? '' : 'hidden'; ?>>
 			<div class="erankly-inline-fields erankly-inline-fields-two-columns">
 				<div class="erankly-field">
@@ -231,7 +231,7 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 
 	$tabs_id           = 'erankly-' . sanitize_key( $setting_key ) . '-tabs';
 	$toggle_id         = 'erankly-' . sanitize_key( $setting_key ) . '-linked';
-	$toggle_base_label = $is_taxonomy ? __( 'Link taxonomy templates', 'easyrankly' ) : __( 'Link post type templates', 'easyrankly' );
+	$toggle_base_label = __( 'Same for all', 'easyrankly' );
 	$toggle_on_label   = sprintf(
 		/* translators: %s: linked templates label. */
 		__( '%s: Yes', 'easyrankly' ),
@@ -246,7 +246,7 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 	?>
 	<div class="erankly-default-tabs erankly-entity-default-tabs <?php echo $is_linked ? 'is-linked' : ''; ?>" data-erankly-tabs-root data-erankly-linked-defaults>
 		<div class="erankly-default-tabs-bar">
-			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="<?php echo esc_attr( $tabs_id ); ?>" role="tablist" aria-label="<?php esc_attr_e( 'Default metadata by content type', 'easyrankly' ); ?>">
+			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="<?php echo esc_attr( $tabs_id ); ?>" role="tablist" aria-label="<?php esc_attr_e( 'Default metadata by content type', 'easyrankly' ); ?>" data-erankly-sliding-tabs>
 				<span class="erankly-tab erankly-linked-tabs-summary" aria-hidden="true"><?php echo esc_html( $linked_panel_label ); ?></span>
 				<?php
 				$is_first = true;
@@ -358,7 +358,7 @@ function erankly_render_social_meta_defaults( array $settings ): void {
 		&& $og_title === $twitter_title
 		&& $og_description === $twitter_description;
 
-	$toggle_base_label = __( 'Link social templates', 'easyrankly' );
+	$toggle_base_label = __( 'Same for all', 'easyrankly' );
 	$toggle_on_label   = sprintf(
 		/* translators: %s: linked templates label. */
 		__( '%s: Yes', 'easyrankly' ),
@@ -373,7 +373,7 @@ function erankly_render_social_meta_defaults( array $settings ): void {
 	?>
 	<div class="erankly-default-tabs <?php echo $is_linked ? 'is-linked' : ''; ?>" data-erankly-tabs-root data-erankly-linked-defaults>
 		<div class="erankly-default-tabs-bar">
-			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="erankly-social-defaults-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Default social metadata by network', 'easyrankly' ); ?>">
+			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="erankly-social-defaults-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Default social metadata by network', 'easyrankly' ); ?>" data-erankly-sliding-tabs>
 				<span class="erankly-tab erankly-linked-tabs-summary" aria-hidden="true"><?php echo esc_html( $linked_panel_label ); ?></span>
 				<?php
 				$is_first = true;
@@ -456,9 +456,6 @@ function erankly_render_special_page_defaults( array $entities, array $settings 
 
 	$setting_key = 'global_special_meta';
 	$values      = isset( $settings[ $setting_key ] ) && is_array( $settings[ $setting_key ] ) ? $settings[ $setting_key ] : array();
-	?>
-	<p class="description"><?php esc_html_e( 'Set the default SEO metadata for WordPress contexts that are not individual posts or terms: homepage, blog, author and date archives, search results and the 404 page.', 'easyrankly' ); ?></p>
-	<?php
 
 	erankly_render_special_page_defaults_group( $entities, $values, $setting_key, 'all', __( 'Default metadata by WordPress context', 'easyrankly' ) );
 }
@@ -479,7 +476,7 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 	?>
 	<div class="erankly-default-tabs erankly-entity-default-tabs erankly-special-page-default-tabs" data-erankly-tabs-root>
 		<div class="erankly-default-tabs-bar">
-			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="<?php echo esc_attr( $tabs_id ); ?>" role="tablist" aria-label="<?php echo esc_attr( $aria_label ); ?>">
+			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" id="<?php echo esc_attr( $tabs_id ); ?>" role="tablist" aria-label="<?php echo esc_attr( $aria_label ); ?>" data-erankly-sliding-tabs>
 				<?php
 				$is_first = true;
 				foreach ( $entities as $key => $label ) :
@@ -497,7 +494,7 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 
 		<?php
 		$is_first = true;
-		foreach ( $entities as $key => $label ) :
+		foreach ( array_keys( $entities ) as $key ) :
 			$row             = isset( $values[ $key ] ) && is_array( $values[ $key ] ) ? $values[ $key ] : array();
 			$title           = isset( $row['title'] ) ? (string) $row['title'] : '';
 			$description     = isset( $row['description'] ) ? (string) $row['description'] : '';
@@ -512,9 +509,6 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 			?>
 			<div class="erankly-tab-panel erankly-default-tab-panel <?php echo $is_first ? 'is-active' : ''; ?>" id="<?php echo esc_attr( $panel_id ); ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_id ); ?>" data-erankly-panel="<?php echo esc_attr( $panel_key ); ?>" <?php echo $is_first ? '' : 'hidden'; ?>>
 				<div class="erankly-global-meta-default">
-					<h4>
-						<span class="erankly-default-entity-label"><?php echo esc_html( $label ); ?></span>
-					</h4>
 					<div class="erankly-field">
 						<label for="<?php echo esc_attr( $id_prefix ); ?>-title"><strong><?php esc_html_e( 'Meta title', 'easyrankly' ); ?></strong></label>
 						<div class="erankly-variable-field" data-erankly-variable-field>

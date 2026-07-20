@@ -13,7 +13,10 @@
 
 	const { MediaUpload, MediaUploadCheck } = wp.blockEditor;
 	const {
+		__experimentalSpacer: Spacer,
 		Button,
+		FormTokenField,
+		Notice,
 		Popover,
 		SelectControl,
 		TextControl,
@@ -24,6 +27,7 @@
 	const { __, sprintf } = wp.i18n;
 	const PANEL_ORDER = [
 		'erankly-panel--appearance',
+		'erankly-panel--analysis',
 		'erankly-panel--social',
 		'erankly-panel--schema',
 		'erankly-panel--visibility',
@@ -486,6 +490,38 @@
 		} );
 	}
 
+	function XImageAltOverride( { data } ) {
+		const [ isOpen, setIsOpen ] = useState( '' !== data.get( 'twitter_image_alt' ) );
+		const ogImage = data.get( 'og_image_url' ) || data.get( 'social_image_url' );
+		const twitterImage = data.get( 'twitter_image_url' ) || data.get( 'social_image_url' );
+		const hasOverride = '' !== data.get( 'twitter_image_alt' );
+		const imagesDiffer = '' !== twitterImage && twitterImage !== ogImage;
+
+		if ( ! hasOverride && ! imagesDiffer ) {
+			return null;
+		}
+
+		return el(
+			'div',
+			{ className: 'erankly-social-image-alt-override' },
+			el(
+				Button,
+				{
+					'aria-expanded': isOpen,
+					onClick: () => setIsOpen( ! isOpen ),
+					variant: 'tertiary',
+				},
+				__( 'X image alt text override', 'easyrankly' )
+			),
+			isOpen && el( TextControl, {
+				help: __( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ),
+				label: __( 'X image alt text override', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'twitter_image_alt', value ),
+				value: data.get( 'twitter_image_alt' ),
+			} )
+		);
+	}
+
 	// Resolves the variables a preview can know about in the editor; the rest
 	// are stripped so raw {{tokens}} never show up in the SERP preview.
 	function serpResolveVariables( text, postTitle, siteName ) {
@@ -623,6 +659,7 @@
 				key: 'canonical',
 				label: __( 'Canonical URL', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'canonical', value ),
+				placeholder: config.canonicalPlaceholder || '',
 				resolveDisplay,
 				value: data.get( 'canonical' ),
 				variables: config.variables,
@@ -631,10 +668,10 @@
 
 		if ( features.breadcrumbName ) {
 			fields.push( el( TextControl, {
-				help: __( 'Optional short name used in visible breadcrumbs and BreadcrumbList schema.', 'easyrankly' ),
 				key: 'breadcrumb',
 				label: __( 'Breadcrumb name', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'breadcrumb_name', value ),
+				placeholder: config.postTitle || '',
 				value: data.get( 'breadcrumb_name' ),
 			} ) );
 		}
@@ -694,6 +731,7 @@
 
 		if ( features.cardType ) {
 			fields.push( el( SelectControl, {
+				__next40pxDefaultSize: true,
 				key: 'card_type',
 				label: __( 'X (Twitter) card type', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'twitter_card_type', value ),
@@ -716,7 +754,8 @@
 			} ) );
 			fields.push( el( TextControl, {
 				key: 'og_image_alt',
-				label: __( 'Open Graph image alt text', 'easyrankly' ),
+				help: __( 'Shared by Open Graph and X. If blank, uses the Media Library alt text.', 'easyrankly' ),
+				label: __( 'Social image alt text', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'og_image_alt', value ),
 				value: data.get( 'og_image_alt' ),
 			} ) );
@@ -729,12 +768,7 @@
 				value: data.get( 'twitter_image_url' ),
 				variables: config.variables,
 			} ) );
-			fields.push( el( TextControl, {
-				key: 'twitter_image_alt',
-				label: __( 'X image alt text', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'twitter_image_alt', value ),
-				value: data.get( 'twitter_image_alt' ),
-			} ) );
+			fields.push( el( XImageAltOverride, { data, key: 'twitter_image_alt_override' } ) );
 		} else {
 			fields.push( el( SocialImageControl, {
 				key: 'image',
@@ -748,6 +782,204 @@
 		return fields;
 	}
 
+	function normalizeRobotsDirectiveToken( value ) {
+		const token = value && 'object' === typeof value ? value.value : value;
+
+		return String( token || '' ).trim().toLocaleLowerCase();
+	}
+
+	/**
+	 * Resolves the next value emitted by a single-rule token field.
+	 *
+	 * FormTokenField briefly returns both the existing token and the newly
+	 * selected suggestion. Treat the new token as a replacement so opposite
+	 * robots rules can never be persisted together.
+	 *
+	 * @param {Array<string|Object>} values  Tokens emitted by FormTokenField.
+	 * @param {string}               current Current directive value.
+	 * @param {Array<string>}        allowed Allowed rules for this axis.
+	 * @return {{ conflict: boolean, value: string }} Normalized selection.
+	 */
+	function selectRobotsDirectiveToken( values, current, allowed ) {
+		const normalizedCurrent = allowed.includes( normalizeRobotsDirectiveToken( current ) )
+			? normalizeRobotsDirectiveToken( current )
+			: 'inherit';
+		const valid = ( Array.isArray( values ) ? values : [] )
+			.map( normalizeRobotsDirectiveToken )
+			.filter( ( value ) => allowed.includes( value ) );
+
+		if ( ! valid.length ) {
+			return { conflict: false, value: 'inherit' };
+		}
+
+		const replacements = valid.filter( ( value ) => value !== normalizedCurrent );
+
+		return {
+			conflict: new Set( valid ).size > 1,
+			value: replacements.length ? replacements[ replacements.length - 1 ] : valid[ valid.length - 1 ],
+		};
+	}
+
+	/**
+	 * Resolves every robots axis from one shared token field.
+	 *
+	 * @param {Array<string|Object>} values     Tokens emitted by FormTokenField.
+	 * @param {Object}               current    Current value keyed by meta field.
+	 * @param {Array<Object>}        directives Robots directive definitions.
+	 * @return {{ conflicts: Array<Object>, selections: Object }} Resolved values.
+	 */
+	function resolveRobotsDirectiveTokens( values, current, directives ) {
+		const conflicts = [];
+		const selections = {};
+
+		directives.forEach( ( directive ) => {
+			const selection = selectRobotsDirectiveToken(
+				values,
+				current[ directive.key ],
+				[ directive.allow, directive.deny ]
+			);
+
+			selections[ directive.key ] = selection.value;
+			if ( selection.conflict ) {
+				conflicts.push( {
+					current: current[ directive.key ],
+					key: directive.key,
+					value: selection.value,
+				} );
+			}
+		} );
+
+		return { conflicts, selections };
+	}
+
+	/**
+	 * Finds advanced robots combinations whose second setting has no effect.
+	 * Codes are translated by the UI, keeping this helper deterministic and
+	 * independently testable.
+	 *
+	 * @param {Object} values Current robots values.
+	 * @return {Array<string>} Inconsistency codes.
+	 */
+	function getRobotsDirectiveInconsistencies( values ) {
+		const issues = [];
+		const maxSnippet = String(
+			undefined === values.maxSnippet || null === values.maxSnippet ? '' : values.maxSnippet
+		).trim();
+		const maxImagePreview = String(
+			undefined === values.maxImagePreview || null === values.maxImagePreview ? '' : values.maxImagePreview
+		).trim();
+
+		if ( 'nosnippet' === values.snippet && '' !== maxSnippet ) {
+			issues.push( 'nosnippet_max_snippet' );
+		} else if ( 'snippet' === values.snippet && '0' === maxSnippet ) {
+			issues.push( 'snippet_zero' );
+		}
+
+		if (
+			'noimageindex' === values.image
+			&& [ 'none', 'standard', 'large' ].includes( maxImagePreview )
+		) {
+			issues.push( 'noimageindex_max_image_preview' );
+		}
+
+		if ( 'index' === values.index && Boolean( values.indexIfEmbedded ) ) {
+			issues.push( 'index_indexifembedded' );
+		}
+
+		return issues;
+	}
+
+	function RobotsDirectivesTokenControl( { data, directives } ) {
+		const allowed = [];
+		const current = {};
+
+		directives.forEach( ( directive ) => {
+			const pair = [ directive.allow, directive.deny ];
+			const legacyValue = directive.legacy && data.get( directive.legacy )
+				? directive.deny
+				: 'inherit';
+			const storedValue = normalizeRobotsDirectiveToken( data.get( directive.key ) || legacyValue );
+
+			allowed.push( ...pair );
+			current[ directive.key ] = pair.includes( storedValue ) ? storedValue : 'inherit';
+		} );
+
+		const value = directives
+			.map( ( directive ) => current[ directive.key ] )
+			.filter( ( directive ) => 'inherit' !== directive );
+		const [ feedback, setFeedback ] = useState( null );
+
+		function updateDirective( directive, nextValue ) {
+			if ( current[ directive.key ] === nextValue ) {
+				return;
+			}
+
+			data.set( directive.key, nextValue );
+
+			if ( directive.legacy ) {
+				data.set( directive.legacy, directive.deny === nextValue );
+			}
+		}
+
+		function validateInput( input ) {
+			const valid = allowed.includes( normalizeRobotsDirectiveToken( input ) );
+
+			if ( ! valid ) {
+				setFeedback( {
+					message: __( 'Use one of the suggested robots rules.', 'easyrankly' ),
+					status: 'error',
+				} );
+			}
+
+			return valid;
+		}
+
+		function onChange( values ) {
+			const result = resolveRobotsDirectiveTokens( values, current, directives );
+
+			directives.forEach( ( directive ) => {
+				updateDirective( directive, result.selections[ directive.key ] );
+			} );
+			setFeedback( null );
+		}
+
+		return el(
+			Spacer,
+			{ marginBottom: 4 },
+			el( FormTokenField, {
+				__experimentalExpandOnFocus: true,
+				__experimentalShowHowTo: false,
+				__experimentalValidateInput: validateInput,
+				__next40pxDefaultSize: true,
+				autoCapitalize: 'none',
+				autoComplete: 'off',
+				label: __( 'Robots directives', 'easyrankly' ),
+				messages: {
+					__experimentalInvalid: __( 'Unknown robots rule.', 'easyrankly' ),
+					added: __( 'Robots rule applied.', 'easyrankly' ),
+					remove: __( 'Remove robots rule', 'easyrankly' ),
+					removed: __( 'Robots rule removed. The global setting is inherited.', 'easyrankly' ),
+				},
+				onChange,
+				onInputChange: ( input ) => {
+					const normalized = normalizeRobotsDirectiveToken( input );
+
+					if ( ! normalized || allowed.some( ( rule ) => rule.startsWith( normalized ) ) ) {
+						setFeedback( null );
+					}
+				},
+				placeholder: __( 'Add robots rule', 'easyrankly' ),
+				saveTransform: normalizeRobotsDirectiveToken,
+				suggestions: allowed,
+				value,
+			} ),
+			feedback && el( Notice, {
+				isDismissible: false,
+				status: feedback.status,
+			}, feedback.message )
+		);
+	}
+
 	// Builds the "Search visibility" controls.
 	function visibilityFields( { config, data, features = {} } ) {
 		const toggle = ( key ) => ( value ) => data.set( key, value );
@@ -756,7 +988,7 @@
 		if ( config.simplifiedMode ) {
 			fields.push( el( ToggleControl, {
 				checked: Boolean( ( features.triStateRobots ? 'noindex' === ( data.get( 'index_directive' ) || ( data.get( 'noindex' ) ? 'noindex' : 'inherit' ) ) : data.get( 'noindex' ) ) && data.get( 'disable_sitemap' ) ),
-				help: __( 'Sets noindex and removes this page from the sitemap.', 'easyrankly' ),
+				help: __( 'Adds noindex and removes this page from the XML sitemap.', 'easyrankly' ),
 				key: 'hide',
 				label: __( 'Hide from search results', 'easyrankly' ),
 				onChange: ( value ) => {
@@ -769,33 +1001,19 @@
 			} ) );
 		} else {
 			if ( features.triStateRobots ) {
-				[
-					[ 'index_directive', __( 'Indexing', 'easyrankly' ), 'index', 'noindex' ],
-					[ 'follow_directive', __( 'Link following', 'easyrankly' ), 'follow', 'nofollow' ],
-					[ 'archive_directive', __( 'Cached copy', 'easyrankly' ), 'archive', 'noarchive' ],
-					[ 'snippet_directive', __( 'Text snippet', 'easyrankly' ), 'snippet', 'nosnippet' ],
-					[ 'image_directive', __( 'Image indexing', 'easyrankly' ), 'imageindex', 'noimageindex' ],
-				].forEach( ( directive ) => {
-					const legacy = { index_directive: 'noindex', follow_directive: 'nofollow', archive_directive: 'noarchive' }[ directive[ 0 ] ];
+				const robotsDirectives = [
+					{ allow: 'index', deny: 'noindex', key: 'index_directive', legacy: 'noindex' },
+					{ allow: 'follow', deny: 'nofollow', key: 'follow_directive', legacy: 'nofollow' },
+					{ allow: 'archive', deny: 'noarchive', key: 'archive_directive', legacy: 'noarchive' },
+					{ allow: 'snippet', deny: 'nosnippet', key: 'snippet_directive' },
+					{ allow: 'imageindex', deny: 'noimageindex', key: 'image_directive' },
+				];
 
-					fields.push( el( SelectControl, {
-						key: directive[ 0 ],
-						label: directive[ 1 ],
-						onChange: ( value ) => {
-							data.set( directive[ 0 ], value );
-
-							if ( legacy ) {
-								data.set( legacy, value === directive[ 3 ] );
-							}
-						},
-						options: [
-							{ label: __( 'Inherit', 'easyrankly' ), value: 'inherit' },
-							{ label: directive[ 2 ], value: directive[ 2 ] },
-							{ label: directive[ 3 ], value: directive[ 3 ] },
-						],
-						value: data.get( directive[ 0 ] ) || ( legacy && data.get( legacy ) ? directive[ 3 ] : 'inherit' ),
-					} ) );
-				} );
+				fields.push( el( RobotsDirectivesTokenControl, {
+					data,
+					directives: robotsDirectives,
+					key: 'robots_directives',
+				} ) );
 
 				fields.push(
 					el( TextControl, {
@@ -815,6 +1033,7 @@
 						value: data.get( 'max_video_preview' ),
 					} ),
 					el( SelectControl, {
+						__next40pxDefaultSize: true,
 						key: 'max_image_preview',
 						label: __( 'Max image preview', 'easyrankly' ),
 						onChange: ( value ) => data.set( 'max_image_preview', value ),
@@ -828,11 +1047,35 @@
 					} ),
 					el( ToggleControl, {
 						checked: Boolean( data.get( 'indexifembedded' ) ),
+						help: __( 'Indexes embedded content despite noindex.', 'easyrankly' ),
 						key: 'indexifembedded',
 						label: __( 'Index if embedded when noindex applies', 'easyrankly' ),
 						onChange: toggle( 'indexifembedded' ),
 					} )
 				);
+
+				const inconsistencyMessages = {
+					index_indexifembedded: __( 'indexifembedded requires noindex; ignored while index is selected.', 'easyrankly' ),
+					noimageindex_max_image_preview: __( 'noimageindex disables image previews.', 'easyrankly' ),
+					nosnippet_max_snippet: __( 'nosnippet disables text snippets, so Max snippet has no effect.', 'easyrankly' ),
+					snippet_zero: __( 'Max snippet 0 disables text snippets.', 'easyrankly' ),
+				};
+				const inconsistencies = getRobotsDirectiveInconsistencies( {
+					image: data.get( 'image_directive' ),
+					index: data.get( 'index_directive' ),
+					indexIfEmbedded: data.get( 'indexifembedded' ),
+					maxImagePreview: data.get( 'max_image_preview' ),
+					maxSnippet: data.get( 'max_snippet' ),
+					snippet: data.get( 'snippet_directive' ),
+				} );
+
+				inconsistencies.forEach( ( issue ) => {
+					fields.push( el( Notice, {
+						isDismissible: false,
+						key: 'robots-inconsistency-' + issue,
+						status: 'warning',
+					}, inconsistencyMessages[ issue ] ) );
+				} );
 			} else {
 				fields.push(
 					el( ToggleControl, {
@@ -859,6 +1102,7 @@
 			if ( false !== features.disableSitemap ) {
 				fields.push( el( ToggleControl, {
 					checked: Boolean( data.get( 'disable_sitemap' ) ),
+					help: __( 'Removes content from the XML sitemap; robots unchanged.', 'easyrankly' ),
 					key: 'disable_sitemap',
 					label: __( 'Disable sitemap', 'easyrankly' ),
 					onChange: toggle( 'disable_sitemap' ),
@@ -870,14 +1114,14 @@
 			fields.push(
 				el( ToggleControl, {
 					checked: Boolean( data.get( 'exclude_search' ) ),
-					help: __( 'Removes this page from internal site search results.', 'easyrankly' ),
+					help: __( 'Internal site search only.', 'easyrankly' ),
 					key: 'exclude_search',
 					label: __( 'Exclude from site search queries', 'easyrankly' ),
 					onChange: toggle( 'exclude_search' ),
 				} ),
 				el( ToggleControl, {
 					checked: Boolean( data.get( 'exclude_archive' ) ),
-					help: __( 'Removes this page from category, date, and other archive listings.', 'easyrankly' ),
+					help: __( 'Category, date and other archive listings.', 'easyrankly' ),
 					key: 'exclude_archive',
 					label: __( 'Exclude from archive queries', 'easyrankly' ),
 					onChange: toggle( 'exclude_archive' ),
@@ -888,6 +1132,7 @@
 		if ( features.newsSitemap ) {
 			fields.push( el( ToggleControl, {
 				checked: Boolean( data.get( 'exclude_from_news' ) ),
+				help: __( 'Google News sitemap only.', 'easyrankly' ),
 				key: 'exclude_from_news',
 				label: __( 'Exclude from Google News sitemap', 'easyrankly' ),
 				onChange: toggle( 'exclude_from_news' ),
@@ -911,27 +1156,27 @@
 			{
 				group: 'appearance',
 				key: 'title',
-				label: __( 'SEO title within recommended length', 'easyrankly' ),
+				label: __( 'SEO title length', 'easyrankly' ),
 			},
 			{
 				group: 'appearance',
 				key: 'description',
-				label: __( 'Meta description within recommended length', 'easyrankly' ),
+				label: __( 'Meta description length', 'easyrankly' ),
 			},
 			{
 				group: 'appearance',
 				key: 'preview_image',
-				label: __( 'Preview image available', 'easyrankly' ),
+				label: __( 'Preview image', 'easyrankly' ),
 			},
 			{
 				group: 'indexing',
 				key: 'indexable',
-				label: __( 'Indexable by search engines', 'easyrankly' ),
+				label: __( 'Search engine indexing', 'easyrankly' ),
 			},
 			{
 				group: 'indexing',
 				key: 'content',
-				label: __( 'Minimum content length', 'easyrankly' ),
+				label: __( 'Content length', 'easyrankly' ),
 			},
 		];
 
@@ -940,12 +1185,12 @@
 				{
 					group: 'appearance',
 					key: 'social_image',
-					label: __( 'Custom social image', 'easyrankly' ),
+					label: __( 'Social image', 'easyrankly' ),
 				},
 				{
 					group: 'appearance',
 					key: 'canonical',
-					label: __( 'Canonical URL set', 'easyrankly' ),
+					label: __( 'Canonical URL', 'easyrankly' ),
 				}
 			);
 		}
@@ -1051,30 +1296,11 @@
 	}
 
 	function SeoChecklistView( { items } ) {
-		const done = items.filter( ( item ) => item.done ).length;
-		let status = 'is-partial';
-
-		if ( 0 === done ) {
-			status = 'is-incomplete';
-		} else if ( done === items.length ) {
-			status = 'is-complete';
-		}
-
 		const groups = groupSeoChecklistItems( items );
 
 		return el(
 			'div',
-			{ className: 'erankly-seo-checklist ' + status },
-			el(
-				'div',
-				{ className: 'erankly-seo-checklist-intro' },
-				el(
-					'p',
-					{ className: 'description erankly-seo-checklist-help' },
-					__( 'Complete these items to improve this page\'s search appearance.', 'easyrankly' )
-				),
-				el( 'span', { className: 'erankly-seo-checklist-count' }, done + '/' + items.length )
-			),
+			{ className: 'erankly-seo-checklist' },
 			groups.map( ( group ) => el(
 				'div',
 				{ className: 'erankly-seo-checklist-group', key: group.key },
@@ -1089,16 +1315,20 @@
 							key: item.key,
 						},
 						el(
-							'span',
-							{ 'aria-hidden': true, className: 'erankly-seo-checklist-check' },
-							el( 'svg', {
+							'svg',
+							{
+								'aria-hidden': true,
+								className: 'erankly-seo-checklist-icon',
 								fill: 'none',
+								focusable: false,
 								stroke: 'currentColor',
 								strokeLinecap: 'round',
 								strokeLinejoin: 'round',
-								strokeWidth: 3,
-								viewBox: '0 0 24 24',
-							}, el( 'path', { d: 'M5 12.5l4.5 4.5L19 7.5' } ) )
+								strokeWidth: 1.75,
+								viewBox: '0 0 16 16',
+							},
+							el( 'path', { className: 'erankly-seo-checklist-icon-cross', d: 'M4 4l8 8m0-8-8 8' } ),
+							el( 'path', { className: 'erankly-seo-checklist-icon-check', d: 'M3.25 8.25 6.5 11.5 12.75 4.75' } )
 						),
 						el( 'span', { className: 'erankly-seo-checklist-label' }, item.label )
 					) )
@@ -1146,7 +1376,11 @@
 		buildSeoChecklistItems,
 		evaluateSeoChecklistState,
 		getSeoChecklistItemDefinitions,
+		getRobotsDirectiveInconsistencies,
+		normalizeRobotsDirectiveToken,
+		resolveRobotsDirectiveTokens,
 		searchAppearanceFields,
+		selectRobotsDirectiveToken,
 		seoChecklistFields,
 		serpBreadcrumb,
 		serpFirstContentImage,

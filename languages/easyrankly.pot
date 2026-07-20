@@ -3,13 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: EasyRankly 2.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easyrankly-beta\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easyrankly\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-17T10:58:27+00:00\n"
+"POT-Creation-Date: 2026-07-20T17:44:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easyrankly\n"
@@ -17,14 +17,14 @@ msgstr ""
 #. Plugin Name of the plugin
 #. Author of the plugin
 #: easyrankly.php
-#: admin/meta-box.php:32
-#: admin/meta-box.php:517
-#: admin/meta-box.php:532
-#: admin/settings-page.php:812
-#: includes/admin.php:92
-#: includes/admin.php:93
-#: includes/admin.php:108
-#: includes/admin.php:109
+#: admin/meta-box.php:35
+#: admin/meta-box.php:623
+#: admin/meta-box.php:638
+#: admin/settings-page.php:882
+#: includes/admin.php:181
+#: includes/admin.php:182
+#: includes/admin.php:197
+#: includes/admin.php:198
 #: assets/js/accordion-faq-schema.js:54
 msgid "EasyRankly"
 msgstr ""
@@ -44,1280 +44,1415 @@ msgstr ""
 msgid "https://easyrankly.com/"
 msgstr ""
 
-#: admin/meta-box.php:129
-#: admin/meta-box.php:593
-#: admin/settings/renderers.php:300
-#: admin/settings/renderers.php:519
-#: assets/js/editor-shared.js:600
-msgid "Meta title"
-msgstr ""
-
-#: admin/meta-box.php:131
-#: admin/meta-box.php:139
-#: admin/meta-box.php:236
-#: admin/meta-box.php:244
-#: admin/meta-box.php:252
-#: admin/meta-box.php:260
-#: admin/meta-box.php:595
-#: admin/meta-box.php:603
-#: admin/meta-box.php:636
-#: admin/meta-box.php:644
-#: admin/meta-box.php:652
-#: admin/meta-box.php:660
-msgid "recommended max"
-msgstr ""
-
-#: admin/meta-box.php:137
-#: admin/meta-box.php:601
-#: admin/meta-box.php:787
-#: admin/settings/renderers.php:307
-#: admin/settings/renderers.php:526
-#: assets/js/editor-shared.js:610
-msgid "Meta description"
-msgstr ""
-
-#: admin/meta-box.php:146
-#: admin/meta-box.php:610
-#: admin/meta-box.php:788
-#: assets/js/editor-shared.js:624
-msgid "Canonical URL"
-msgstr ""
-
-#: admin/meta-box.php:155
-#: assets/js/editor-shared.js:636
-msgid "Breadcrumb name"
-msgstr ""
-
-#: admin/meta-box.php:157
-#: assets/js/editor-shared.js:634
-msgid "Optional short name used in visible breadcrumbs and BreadcrumbList schema."
-msgstr ""
-
-#: admin/meta-box.php:162
-#: assets/js/editor.js:259
-msgid "Focus keywords"
-msgstr ""
-
-#: admin/meta-box.php:163
-msgid "Separate multiple keywords with commas"
-msgstr ""
-
-#: admin/meta-box.php:166
-#: assets/js/editor.js:265
-msgid "Cornerstone / pillar content"
-msgstr ""
-
-#. translators: %s: singular taxonomy label, for example Category.
-#: admin/meta-box.php:178
-#, php-format
-msgid "Primary %s"
-msgstr ""
-
-#: admin/meta-box.php:185
-msgid "Automatic"
-msgstr ""
-
-#: admin/meta-box.php:202
-#: admin/meta-box.php:304
-#: admin/meta-box.php:625
-#: admin/meta-box.php:704
-#: assets/js/editor.js:202
-#: assets/js/site-editor.js:223
-msgid "Generate with AI"
-msgstr ""
-
-#: admin/meta-box.php:234
-#: admin/meta-box.php:634
-msgid "Open Graph Title"
-msgstr ""
-
-#: admin/meta-box.php:242
-#: admin/meta-box.php:642
-msgid "Open Graph Description"
-msgstr ""
-
-#: admin/meta-box.php:250
-#: admin/meta-box.php:650
-msgid "X (Twitter) Title"
-msgstr ""
-
-#: admin/meta-box.php:258
-#: admin/meta-box.php:658
-msgid "X (Twitter) Description"
-msgstr ""
-
-#: admin/meta-box.php:266
-#: admin/meta-box.php:666
-msgid "X (Twitter) Card Type"
-msgstr ""
-
-#: admin/meta-box.php:268
-#: admin/meta-box.php:668
-#: assets/js/editor-shared.js:701
-msgid "Default (summary_large_image)"
-msgstr ""
-
-#: admin/meta-box.php:273
-#: admin/meta-box.php:673
-#: assets/js/editor-shared.js:711
-msgid "Open Graph image URL"
-msgstr ""
-
-#: admin/meta-box.php:282
-#: admin/meta-box.php:682
-#: assets/js/editor-shared.js:719
-msgid "Open Graph image alt text"
-msgstr ""
-
-#: admin/meta-box.php:285
-#: admin/meta-box.php:685
-#: assets/js/editor-shared.js:726
-msgid "X (Twitter) image URL"
-msgstr ""
-
-#: admin/meta-box.php:294
-#: admin/meta-box.php:694
-#: assets/js/editor-shared.js:734
-msgid "X image alt text"
-msgstr ""
-
-#: admin/meta-box.php:337
-#: admin/meta-box.php:716
-#: admin/settings/renderers.php:661
-#: assets/js/editor-shared.js:761
-msgid "Hide from search results"
-msgstr ""
-
-#: admin/meta-box.php:338
-msgid "Sets noindex and removes this page from the sitemap. Does not affect nofollow or noarchive. Use Advanced settings to control those separately."
-msgstr ""
-
-#: admin/meta-box.php:340
-#: admin/meta-box.php:719
-#: includes/seo-checklist.php:24
-#: assets/js/editor-shared.js:773
-#: assets/js/editor-shared.js:906
-msgid "Indexing"
-msgstr ""
-
-#: admin/meta-box.php:340
-#: admin/meta-box.php:719
-msgid "Index"
-msgstr ""
-
-#: admin/meta-box.php:340
-#: admin/meta-box.php:719
-#: admin/settings/renderers.php:666
-#: assets/js/editor-shared.js:841
-msgid "Noindex"
-msgstr ""
-
-#: admin/meta-box.php:341
-#: admin/meta-box.php:720
-#: assets/js/editor-shared.js:774
-msgid "Link following"
-msgstr ""
-
-#: admin/meta-box.php:341
-#: admin/meta-box.php:720
-msgid "Follow"
-msgstr ""
-
-#: admin/meta-box.php:341
-#: admin/meta-box.php:720
-#: admin/settings/renderers.php:667
-#: assets/js/editor-shared.js:847
-msgid "Nofollow"
-msgstr ""
-
-#: admin/meta-box.php:342
-#: admin/meta-box.php:721
-#: assets/js/editor-shared.js:775
-msgid "Cached copy"
-msgstr ""
-
-#: admin/meta-box.php:342
-#: admin/meta-box.php:721
-msgid "Allow archive"
-msgstr ""
-
-#: admin/meta-box.php:342
-#: admin/meta-box.php:721
-#: admin/settings/renderers.php:668
-#: assets/js/editor-shared.js:853
-msgid "Noarchive"
-msgstr ""
-
-#: admin/meta-box.php:343
-#: admin/meta-box.php:722
-#: assets/js/editor-shared.js:776
-msgid "Text snippet"
-msgstr ""
-
-#: admin/meta-box.php:343
-#: admin/meta-box.php:722
-msgid "Allow snippet"
-msgstr ""
-
-#: admin/meta-box.php:343
-#: admin/meta-box.php:722
-msgid "Nosnippet"
-msgstr ""
-
-#: admin/meta-box.php:344
-#: admin/meta-box.php:723
-#: assets/js/editor-shared.js:777
-msgid "Image indexing"
-msgstr ""
-
-#: admin/meta-box.php:344
-#: admin/meta-box.php:723
-msgid "Allow image indexing"
-msgstr ""
-
-#: admin/meta-box.php:344
-#: admin/meta-box.php:723
-msgid "Noimageindex"
-msgstr ""
-
-#: admin/meta-box.php:345
-#: admin/meta-box.php:724
-#: assets/js/editor-shared.js:803
-msgid "Max snippet"
-msgstr ""
-
-#: admin/meta-box.php:346
-#: admin/meta-box.php:725
-#: assets/js/editor-shared.js:811
-msgid "Max video preview"
-msgstr ""
-
-#: admin/meta-box.php:347
-#: admin/meta-box.php:726
-#: assets/js/editor-shared.js:819
-msgid "Max image preview"
-msgstr ""
-
-#: admin/meta-box.php:347
-#: admin/meta-box.php:399
-#: admin/meta-box.php:726
-#: assets/js/editor-shared.js:792
-#: assets/js/editor-shared.js:822
-msgid "Inherit"
-msgstr ""
-
-#: admin/meta-box.php:352
-#: admin/meta-box.php:730
-#: assets/js/editor-shared.js:832
-msgid "Index if embedded when noindex applies"
-msgstr ""
-
-#: admin/meta-box.php:353
-#: admin/meta-box.php:731
-#: admin/settings/renderers.php:670
-#: assets/js/editor-shared.js:863
-msgid "Disable sitemap"
-msgstr ""
-
-#: admin/meta-box.php:357
-msgid "Archive Settings"
-msgstr ""
-
-#: admin/meta-box.php:358
-msgid "Exclude this page from all search queries on this site"
-msgstr ""
-
-#: admin/meta-box.php:359
-msgid "Exclude this page from all archive queries on this site."
-msgstr ""
-
-#: admin/meta-box.php:363
-msgid "Google News Settings"
-msgstr ""
-
-#: admin/meta-box.php:364
-msgid "Exclude this page from Google News sitemap"
-msgstr ""
-
-#: admin/meta-box.php:420
-#: assets/js/editor.js:320
-msgid "Schema mode"
-msgstr ""
-
-#: admin/meta-box.php:422
-#: assets/js/editor.js:323
-msgid "Automatic schema"
-msgstr ""
-
-#: admin/meta-box.php:423
-#: assets/js/editor.js:324
-msgid "Automatic + custom schema"
-msgstr ""
-
-#: admin/meta-box.php:424
-#: assets/js/editor.js:325
-msgid "Custom schema only"
-msgstr ""
-
-#: admin/meta-box.php:425
-msgid "Disable schema for this content"
-msgstr ""
-
-#: admin/meta-box.php:429
-#: assets/js/editor.js:331
-msgid "Suppress automatic schema types"
-msgstr ""
-
-#: admin/meta-box.php:439
-#: assets/js/editor.js:359
-msgid "Add JSON-LD schema"
-msgstr ""
-
-#: admin/meta-box.php:455
-#: admin/meta-box.php:580
-msgid "SEO settings"
-msgstr ""
-
-#: admin/meta-box.php:456
-#: admin/meta-box.php:581
-#: includes/seo-checklist.php:23
-#: assets/js/editor-shared.js:905
-#: assets/js/editor.js:254
-#: assets/js/site-editor.js:293
-#: assets/js/site-editor.js:306
-#: assets/js/site-editor.js:317
-msgid "Search appearance"
-msgstr ""
-
-#: admin/meta-box.php:458
-#: admin/meta-box.php:583
-#: admin/settings/renderers.php:587
-#: assets/js/editor.js:281
-#: assets/js/site-editor.js:325
-msgid "Social sharing"
-msgstr ""
-
-#: admin/meta-box.php:459
-#: admin/settings-page.php:849
-#: assets/js/editor.js:317
-msgid "Schema"
-msgstr ""
-
-#: admin/meta-box.php:461
-#: admin/meta-box.php:585
-#: assets/js/editor.js:301
-#: assets/js/site-editor.js:337
-msgid "Search visibility"
-msgstr ""
-
-#: admin/meta-box.php:462
-#: assets/js/editor.js:369
-msgid "SEO checklist"
-msgstr ""
-
-#: admin/meta-box.php:464
-#: admin/settings-page.php:864
-#: assets/js/link-suggestions.js:255
-msgid "Internal links"
-msgstr ""
-
-#: admin/meta-box.php:467
-#: admin/meta-box.php:587
-#: assets/js/editor.js:507
-msgid "Translations"
-msgstr ""
-
-#: admin/meta-box.php:717
-msgid "Sets noindex and removes this term from the sitemap. Does not affect nofollow or noarchive."
-msgstr ""
-
-#: admin/meta-box.php:755
+#: admin/field-renderers.php:20
 msgid "Content"
 msgstr ""
 
-#: admin/meta-box.php:757
+#: admin/field-renderers.php:22
 msgid "Post title"
 msgstr ""
 
-#: admin/meta-box.php:758
+#: admin/field-renderers.php:23
 msgid "Post excerpt"
 msgstr ""
 
-#: admin/meta-box.php:759
+#: admin/field-renderers.php:24
 msgid "Post content"
 msgstr ""
 
-#: admin/meta-box.php:760
+#: admin/field-renderers.php:25
 msgid "Post URL"
 msgstr ""
 
-#: admin/meta-box.php:761
+#: admin/field-renderers.php:26
 msgid "Post date"
 msgstr ""
 
-#: admin/meta-box.php:762
+#: admin/field-renderers.php:27
 msgid "Post year"
 msgstr ""
 
-#: admin/meta-box.php:763
+#: admin/field-renderers.php:28
 msgid "Post month"
 msgstr ""
 
-#: admin/meta-box.php:764
+#: admin/field-renderers.php:29
 msgid "Post day"
 msgstr ""
 
-#: admin/meta-box.php:765
+#: admin/field-renderers.php:30
 msgid "Post modified date"
 msgstr ""
 
-#: admin/meta-box.php:766
+#: admin/field-renderers.php:31
 msgid "Post author"
 msgstr ""
 
-#: admin/meta-box.php:767
+#: admin/field-renderers.php:32
 msgid "Post categories"
 msgstr ""
 
-#: admin/meta-box.php:768
+#: admin/field-renderers.php:33
 msgid "Post tags"
 msgstr ""
 
-#: admin/meta-box.php:769
+#: admin/field-renderers.php:34
 msgid "Featured image URL"
 msgstr ""
 
-#: admin/meta-box.php:770
+#: admin/field-renderers.php:35
 msgid "Post type name"
 msgstr ""
 
-#: admin/meta-box.php:774
+#: admin/field-renderers.php:39
 msgid "Taxonomy"
 msgstr ""
 
-#: admin/meta-box.php:776
+#: admin/field-renderers.php:41
 msgid "Term name"
 msgstr ""
 
-#: admin/meta-box.php:777
+#: admin/field-renderers.php:42
 msgid "Term description"
 msgstr ""
 
-#: admin/meta-box.php:778
+#: admin/field-renderers.php:43
 msgid "Term slug"
 msgstr ""
 
-#: admin/meta-box.php:779
+#: admin/field-renderers.php:44
 msgid "Term URL"
 msgstr ""
 
-#: admin/meta-box.php:780
+#: admin/field-renderers.php:45
 msgid "Taxonomy name"
 msgstr ""
 
-#: admin/meta-box.php:784
+#: admin/field-renderers.php:49
 msgid "SEO"
 msgstr ""
 
-#: admin/meta-box.php:786
+#: admin/field-renderers.php:51
 msgid "SEO title"
 msgstr ""
 
-#: admin/meta-box.php:789
+#: admin/field-renderers.php:52
+#: admin/meta-box.php:149
+#: admin/meta-box.php:713
+#: admin/settings/renderers.php:307
+#: admin/settings/renderers.php:526
+#: assets/js/editor-shared.js:646
+msgid "Meta description"
+msgstr ""
+
+#: admin/field-renderers.php:53
+#: admin/meta-box.php:158
+#: admin/meta-box.php:722
+#: includes/seo-checklist.php:246
+#: assets/js/editor-shared.js:660
+#: assets/js/editor-shared.js:1193
+msgid "Canonical URL"
+msgstr ""
+
+#: admin/field-renderers.php:54
 msgid "Search query"
 msgstr ""
 
-#: admin/meta-box.php:793
-#: admin/settings/panels.php:586
+#: admin/field-renderers.php:58
+#: admin/settings/panels.php:590
 msgid "Pagination"
 msgstr ""
 
-#: admin/meta-box.php:795
+#: admin/field-renderers.php:60
 msgid "Current page number"
 msgstr ""
 
-#: admin/meta-box.php:796
+#: admin/field-renderers.php:61
 msgid "Total pages"
 msgstr ""
 
-#: admin/meta-box.php:800
+#: admin/field-renderers.php:65
 #: includes/multilingual/class-erankly-ml-admin.php:992
 msgid "Site"
 msgstr ""
 
-#: admin/meta-box.php:802
+#: admin/field-renderers.php:67
 msgid "Site name"
 msgstr ""
 
-#: admin/meta-box.php:803
+#: admin/field-renderers.php:68
 msgid "Current year"
 msgstr ""
 
-#: admin/meta-box.php:804
+#: admin/field-renderers.php:69
 msgid "Current month"
 msgstr ""
 
-#: admin/meta-box.php:805
+#: admin/field-renderers.php:70
 msgid "Current day"
 msgstr ""
 
-#: admin/meta-box.php:806
+#: admin/field-renderers.php:71
 msgid "Current date"
 msgstr ""
 
-#: admin/meta-box.php:807
+#: admin/field-renderers.php:72
 msgid "Site description"
 msgstr ""
 
-#: admin/meta-box.php:808
+#: admin/field-renderers.php:73
 msgid "Site URL"
 msgstr ""
 
-#: admin/meta-box.php:809
+#: admin/field-renderers.php:74
 msgid "Site language"
 msgstr ""
 
-#: admin/meta-box.php:810
+#: admin/field-renderers.php:75
 msgid "Organization name"
 msgstr ""
 
-#: admin/meta-box.php:811
+#: admin/field-renderers.php:76
 msgid "Organization logo URL"
 msgstr ""
 
-#: admin/meta-box.php:812
+#: admin/field-renderers.php:77
 msgid "Site icon URL"
 msgstr ""
 
-#: admin/meta-box.php:813
+#: admin/field-renderers.php:78
 msgid "Schema identity ID"
 msgstr ""
 
-#: admin/meta-box.php:862
+#: admin/field-renderers.php:123
 msgid "JSON-LD schema"
 msgstr ""
 
-#: admin/meta-box.php:864
+#: admin/field-renderers.php:125
+#: admin/meta-box.php:284
 #: includes/redirects/class-erankly-redirects-admin.php:457
+#: assets/js/editor.js:872
 msgid "Delete"
 msgstr ""
 
-#: admin/meta-box.php:873
+#: admin/field-renderers.php:133
 msgid "JSON-LD code"
 msgstr ""
 
-#: admin/meta-box.php:874
+#: admin/field-renderers.php:136
 msgid "Paste one JSON-LD object or use a top-level @graph array for multiple schemas. Supports {{variables}}."
 msgstr ""
 
-#: admin/meta-box.php:895
+#: admin/field-renderers.php:138
+msgid "One JSON-LD object or @graph array; supports {{variables}}."
+msgstr ""
+
+#: admin/field-renderers.php:161
 msgid "Front page"
 msgstr ""
 
-#: admin/meta-box.php:896
-#: includes/ai.php:709
+#: admin/field-renderers.php:162
+#: includes/ai.php:715
 msgid "Posts page"
 msgstr ""
 
-#: admin/meta-box.php:897
+#: admin/field-renderers.php:163
 msgid "Singular content"
 msgstr ""
 
-#: admin/meta-box.php:898
+#: admin/field-renderers.php:164
 msgid "Post type archives"
 msgstr ""
 
-#: admin/meta-box.php:899
-#: includes/helpers/defaults.php:219
+#: admin/field-renderers.php:165
+#: includes/helpers/content-defaults.php:114
 msgid "Search results"
 msgstr ""
 
-#: admin/meta-box.php:903
+#: admin/field-renderers.php:169
 msgid "Global application rules"
 msgstr ""
 
-#: admin/meta-box.php:906
+#: admin/field-renderers.php:170
 msgid "Enable this schema block"
 msgstr ""
 
-#: admin/meta-box.php:911
+#: admin/field-renderers.php:173
 msgid "Apply on"
 msgstr ""
 
-#: admin/meta-box.php:921
+#: admin/field-renderers.php:179
 msgid "Post types"
 msgstr ""
 
-#: admin/meta-box.php:933
+#: admin/field-renderers.php:186
 msgid "Include IDs or slugs"
 msgstr ""
 
-#: admin/meta-box.php:937
+#: admin/field-renderers.php:187
 msgid "Exclude IDs or slugs"
 msgstr ""
 
-#: admin/meta-box.php:993
-#: assets/js/editor-shared.js:471
+#: admin/field-renderers.php:240
+#: assets/js/editor-shared.js:475
 msgid "Select image"
 msgstr ""
 
-#: admin/meta-box.php:994
-#: admin/settings/panels.php:159
-#: admin/setup-wizard.php:282
-#: includes/admin.php:450
-#: includes/admin.php:772
+#: admin/field-renderers.php:241
+#: admin/settings/panels.php:163
+#: admin/setup-wizard.php:182
+#: includes/admin.php:656
+#: includes/admin.php:1064
 #: includes/multilingual/class-erankly-ml-admin.php:923
-#: assets/js/editor-shared.js:478
-#: assets/js/editor.js:458
+#: assets/js/editor-shared.js:482
+#: assets/js/editor.js:1074
 msgid "Remove"
 msgstr ""
 
-#: admin/settings-page.php:372
-#: admin/settings-page.php:415
-#: admin/setup-wizard.php:121
-#: admin/setup-wizard.php:153
-#: admin/setup-wizard.php:169
+#: admin/meta-box.php:141
+#: admin/meta-box.php:705
+#: admin/settings/renderers.php:300
+#: admin/settings/renderers.php:519
+#: assets/js/editor-shared.js:636
+msgid "Meta title"
+msgstr ""
+
+#: admin/meta-box.php:143
+#: admin/meta-box.php:151
+#: admin/meta-box.php:326
+#: admin/meta-box.php:334
+#: admin/meta-box.php:342
+#: admin/meta-box.php:350
+#: admin/meta-box.php:707
+#: admin/meta-box.php:715
+#: admin/meta-box.php:748
+#: admin/meta-box.php:756
+#: admin/meta-box.php:764
+#: admin/meta-box.php:772
+msgid "recommended max"
+msgstr ""
+
+#: admin/meta-box.php:167
+#: assets/js/editor-shared.js:672
+msgid "Breadcrumb name"
+msgstr ""
+
+#. translators: %s: singular taxonomy label, for example Category.
+#: admin/meta-box.php:182
+#, php-format
+msgid "Primary %s"
+msgstr ""
+
+#: admin/meta-box.php:189
+msgid "Automatic"
+msgstr ""
+
+#: admin/meta-box.php:206
+#: admin/meta-box.php:400
+#: admin/meta-box.php:737
+#: admin/meta-box.php:822
+#: assets/js/editor.js:208
+#: assets/js/site-editor.js:218
+msgid "Generate with AI"
+msgstr ""
+
+#: admin/meta-box.php:230
+#: assets/js/editor.js:764
+msgid "Focus keywords"
+msgstr ""
+
+#: admin/meta-box.php:237
+msgid "Separate multiple keywords with commas"
+msgstr ""
+
+#: admin/meta-box.php:243
+msgid "Add a keyword, then press Enter"
+msgstr ""
+
+#: admin/meta-box.php:244
+msgid "Add"
+msgstr ""
+
+#: admin/meta-box.php:247
+#: assets/js/editor.js:771
+msgid "Primary keyword"
+msgstr ""
+
+#: admin/meta-box.php:251
+msgid "First keyword is primary. Add up to 10 related keyphrases."
+msgstr ""
+
+#: admin/meta-box.php:255
+#: assets/js/editor.js:783
+msgid "Cornerstone / pillar content"
+msgstr ""
+
+#: admin/meta-box.php:256
+#: assets/js/editor.js:782
+msgid "Uses stricter checks for depth, supporting content and internal links."
+msgstr ""
+
+#: admin/meta-box.php:265
+#: includes/admin.php:725
+#: assets/js/editor.js:806
+msgid "Open analysis"
+msgstr ""
+
+#: admin/meta-box.php:265
+#: includes/admin.php:723
+#: assets/js/editor.js:806
+msgid "Analyze"
+msgstr ""
+
+#: admin/meta-box.php:268
+#: includes/ai-content-analysis.php:781
+#: assets/js/editor.js:694
+#: assets/js/editor.js:818
+msgid "Enable AI and connect a provider."
+msgstr ""
+
+#: admin/meta-box.php:275
+#: admin/meta-box.php:555
+#: assets/js/editor.js:753
+#: assets/js/editor.js:831
+msgid "Content analysis"
+msgstr ""
+
+#: admin/meta-box.php:276
+msgid "Close analysis"
+msgstr ""
+
+#: admin/meta-box.php:281
+#: assets/js/editor.js:866
+msgid "Delete analysis"
+msgstr ""
+
+#: admin/meta-box.php:283
+#: assets/js/editor.js:871
+msgid "Delete this report?"
+msgstr ""
+
+#: admin/meta-box.php:285
+#: includes/health/broken-links-admin.php:238
+#: includes/redirects/class-erankly-redirects-admin.php:380
+#: includes/reset.php:565
+#: assets/js/editor.js:873
+msgid "Cancel"
+msgstr ""
+
+#: admin/meta-box.php:289
+#: assets/js/editor.js:879
+msgid "Analyze again"
+msgstr ""
+
+#: admin/meta-box.php:290
+#: assets/js/editor.js:880
+msgid "Close"
+msgstr ""
+
+#: admin/meta-box.php:324
+#: admin/meta-box.php:746
+msgid "Open Graph Title"
+msgstr ""
+
+#: admin/meta-box.php:332
+#: admin/meta-box.php:754
+msgid "Open Graph Description"
+msgstr ""
+
+#: admin/meta-box.php:340
+#: admin/meta-box.php:762
+msgid "X (Twitter) Title"
+msgstr ""
+
+#: admin/meta-box.php:348
+#: admin/meta-box.php:770
+msgid "X (Twitter) Description"
+msgstr ""
+
+#: admin/meta-box.php:356
+#: admin/meta-box.php:778
+msgid "X (Twitter) Card Type"
+msgstr ""
+
+#: admin/meta-box.php:358
+#: admin/meta-box.php:780
+#: assets/js/editor-shared.js:739
+msgid "Default (summary_large_image)"
+msgstr ""
+
+#: admin/meta-box.php:363
+#: admin/meta-box.php:785
+#: assets/js/editor-shared.js:749
+msgid "Open Graph image URL"
+msgstr ""
+
+#: admin/meta-box.php:372
+#: admin/meta-box.php:794
+#: assets/js/editor-shared.js:758
+msgid "Social image alt text"
+msgstr ""
+
+#: admin/meta-box.php:374
+#: admin/meta-box.php:796
+#: assets/js/editor-shared.js:757
+msgid "Shared by Open Graph and X. If blank, uses the Media Library alt text."
+msgstr ""
+
+#: admin/meta-box.php:377
+#: admin/meta-box.php:799
+#: assets/js/editor-shared.js:765
+msgid "X (Twitter) image URL"
+msgstr ""
+
+#: admin/meta-box.php:387
+#: admin/meta-box.php:388
+#: admin/meta-box.php:809
+#: admin/meta-box.php:810
+#: assets/js/editor-shared.js:514
+#: assets/js/editor-shared.js:518
+msgid "X image alt text override"
+msgstr ""
+
+#: admin/meta-box.php:389
+#: admin/meta-box.php:811
+#: assets/js/editor-shared.js:517
+msgid "For a different X image only. If blank, uses that image’s Media Library alt text."
+msgstr ""
+
+#: admin/meta-box.php:433
+#: admin/meta-box.php:834
+#: admin/settings/renderers.php:661
+#: assets/js/editor-shared.js:993
+msgid "Hide from search results"
+msgstr ""
+
+#: admin/meta-box.php:434
+msgid "Adds noindex and removes this page from the sitemap; other robots rules stay unchanged."
+msgstr ""
+
+#: admin/meta-box.php:436
+#: admin/meta-box.php:837
+#: includes/seo-checklist.php:24
+#: assets/js/editor-shared.js:1151
+msgid "Indexing"
+msgstr ""
+
+#: admin/meta-box.php:436
+#: admin/meta-box.php:837
+msgid "Index"
+msgstr ""
+
+#: admin/meta-box.php:436
+#: admin/meta-box.php:837
+#: admin/settings/renderers.php:666
+#: assets/js/editor-shared.js:1084
+msgid "Noindex"
+msgstr ""
+
+#: admin/meta-box.php:437
+#: admin/meta-box.php:838
+msgid "Link following"
+msgstr ""
+
+#: admin/meta-box.php:437
+#: admin/meta-box.php:838
+msgid "Follow"
+msgstr ""
+
+#: admin/meta-box.php:437
+#: admin/meta-box.php:838
+#: admin/settings/renderers.php:667
+#: assets/js/editor-shared.js:1090
+msgid "Nofollow"
+msgstr ""
+
+#: admin/meta-box.php:438
+#: admin/meta-box.php:839
+msgid "Cached copy"
+msgstr ""
+
+#: admin/meta-box.php:438
+#: admin/meta-box.php:839
+msgid "Allow archive"
+msgstr ""
+
+#: admin/meta-box.php:438
+#: admin/meta-box.php:839
+#: admin/settings/renderers.php:668
+#: assets/js/editor-shared.js:1096
+msgid "Noarchive"
+msgstr ""
+
+#: admin/meta-box.php:439
+#: admin/meta-box.php:840
+msgid "Text snippet"
+msgstr ""
+
+#: admin/meta-box.php:439
+#: admin/meta-box.php:840
+msgid "Allow snippet"
+msgstr ""
+
+#: admin/meta-box.php:439
+#: admin/meta-box.php:840
+msgid "Nosnippet"
+msgstr ""
+
+#: admin/meta-box.php:440
+#: admin/meta-box.php:841
+msgid "Image indexing"
+msgstr ""
+
+#: admin/meta-box.php:440
+#: admin/meta-box.php:841
+msgid "Allow image indexing"
+msgstr ""
+
+#: admin/meta-box.php:440
+#: admin/meta-box.php:841
+msgid "Noimageindex"
+msgstr ""
+
+#: admin/meta-box.php:441
+#: admin/meta-box.php:842
+#: assets/js/editor-shared.js:1021
+msgid "Max snippet"
+msgstr ""
+
+#: admin/meta-box.php:442
+#: admin/meta-box.php:843
+#: assets/js/editor-shared.js:1029
+msgid "Max video preview"
+msgstr ""
+
+#: admin/meta-box.php:443
+#: admin/meta-box.php:844
+#: assets/js/editor-shared.js:1038
+msgid "Max image preview"
+msgstr ""
+
+#: admin/meta-box.php:443
+#: admin/meta-box.php:495
+#: admin/meta-box.php:844
+#: assets/js/editor-shared.js:1041
+msgid "Inherit"
+msgstr ""
+
+#: admin/meta-box.php:448
+#: admin/meta-box.php:848
+#: assets/js/editor-shared.js:1052
+msgid "Index if embedded when noindex applies"
+msgstr ""
+
+#: admin/meta-box.php:449
+#: admin/meta-box.php:849
+#: admin/settings/renderers.php:670
+#: assets/js/editor-shared.js:1107
+msgid "Disable sitemap"
+msgstr ""
+
+#: admin/meta-box.php:453
+msgid "Archives"
+msgstr ""
+
+#: admin/meta-box.php:454
+msgid "Exclude from site search"
+msgstr ""
+
+#: admin/meta-box.php:455
+msgid "Exclude from archives"
+msgstr ""
+
+#: admin/meta-box.php:459
+msgid "Google News"
+msgstr ""
+
+#: admin/meta-box.php:460
+#: assets/js/editor-shared.js:1137
+msgid "Exclude from Google News sitemap"
+msgstr ""
+
+#: admin/meta-box.php:516
+#: assets/js/editor.js:936
+msgid "Schema mode"
+msgstr ""
+
+#: admin/meta-box.php:518
+#: assets/js/editor.js:939
+msgid "Automatic schema"
+msgstr ""
+
+#: admin/meta-box.php:519
+#: assets/js/editor.js:940
+msgid "Automatic + custom schema"
+msgstr ""
+
+#: admin/meta-box.php:520
+#: assets/js/editor.js:941
+msgid "Custom schema only"
+msgstr ""
+
+#: admin/meta-box.php:521
+msgid "Disable schema for this content"
+msgstr ""
+
+#: admin/meta-box.php:525
+#: assets/js/editor.js:947
+msgid "Suppress automatic schema types"
+msgstr ""
+
+#: admin/meta-box.php:535
+#: assets/js/editor.js:975
+msgid "Add JSON-LD schema"
+msgstr ""
+
+#: admin/meta-box.php:552
+#: admin/meta-box.php:692
+msgid "SEO settings"
+msgstr ""
+
+#: admin/meta-box.php:553
+#: admin/meta-box.php:693
+#: includes/seo-checklist.php:23
+#: assets/js/editor-shared.js:1150
+#: assets/js/editor.js:266
+#: assets/js/site-editor.js:289
+#: assets/js/site-editor.js:302
+#: assets/js/site-editor.js:313
+msgid "Search appearance"
+msgstr ""
+
+#: admin/meta-box.php:558
+#: admin/meta-box.php:695
+#: admin/settings/renderers.php:587
+#: assets/js/editor.js:896
+#: assets/js/site-editor.js:321
+msgid "Social sharing"
+msgstr ""
+
+#: admin/meta-box.php:559
+#: admin/settings-page.php:919
+#: assets/js/editor.js:932
+msgid "Schema"
+msgstr ""
+
+#: admin/meta-box.php:561
+#: admin/meta-box.php:697
+#: assets/js/editor.js:916
+#: assets/js/site-editor.js:333
+msgid "Search visibility"
+msgstr ""
+
+#: admin/meta-box.php:562
+#: assets/js/editor.js:985
+msgid "SEO checklist"
+msgstr ""
+
+#: admin/meta-box.php:564
+#: admin/settings-page.php:945
+#: assets/js/link-suggestions.js:254
+msgid "Internal links"
+msgstr ""
+
+#: admin/meta-box.php:567
+#: admin/meta-box.php:699
+#: assets/js/editor.js:1123
+msgid "Translations"
+msgstr ""
+
+#: admin/meta-box.php:835
+msgid "Adds noindex and removes this term from the sitemap; other robots rules stay unchanged."
+msgstr ""
+
+#: admin/settings-page.php:375
+#: admin/settings-page.php:418
+#: admin/setup-wizard.php:21
+#: admin/setup-wizard.php:53
+#: admin/setup-wizard.php:69
 #: includes/multilingual/class-erankly-ml-admin.php:711
 msgid "Permission denied."
 msgstr ""
 
-#: admin/settings-page.php:816
-#: admin/settings-page.php:821
+#: admin/settings-page.php:886
+#: admin/settings-page.php:891
 msgid "Settings saved."
 msgstr ""
 
 #. translators: %s: Network Admin settings URL.
-#: admin/settings-page.php:832
+#: admin/settings-page.php:902
 #, php-format
 msgid "Global SEO settings are managed from the %s."
 msgstr ""
 
-#: admin/settings-page.php:833
+#: admin/settings-page.php:903
 msgid "Network Admin"
 msgstr ""
 
-#: admin/settings-page.php:844
+#: admin/settings-page.php:914
 msgid "Plugin settings"
 msgstr ""
 
-#: admin/settings-page.php:846
-#: admin/settings-page.php:858
+#: admin/settings-page.php:916
+#: admin/settings-page.php:922
 msgid "General"
 msgstr ""
 
-#: admin/settings-page.php:847
+#: admin/settings-page.php:917
 msgid "Features"
 msgstr ""
 
-#: admin/settings-page.php:848
+#: admin/settings-page.php:918
 msgid "Social"
 msgstr ""
 
-#: admin/settings-page.php:851
-msgid "Sitemap"
-msgstr ""
-
-#: admin/settings-page.php:854
-msgid "Multilingual"
-msgstr ""
-
-#: admin/settings-page.php:861
-msgid "Health"
-msgstr ""
-
-#: admin/settings-page.php:867
-#: includes/admin.php:292
+#: admin/settings-page.php:925
+#: includes/admin.php:399
 msgid "Settings"
 msgstr ""
 
-#: admin/settings-page.php:868
-#: admin/setup-wizard.php:316
+#: admin/settings-page.php:926
+#: admin/setup-wizard.php:216
 msgid "Advanced"
 msgstr ""
 
-#: admin/settings-page.php:870
-msgid "AI"
-msgstr ""
-
-#: admin/settings-page.php:872
+#: admin/settings-page.php:927
 msgid "Bloat"
 msgstr ""
 
-#: admin/settings-page.php:875
+#: admin/settings-page.php:930
 msgid "Import / Export"
 msgstr ""
 
-#: admin/settings-page.php:878
-#: includes/import-export.php:2331
-#: includes/import-export.php:2362
+#: admin/settings-page.php:934
+#: admin/settings/panels.php:38
+msgid "Feature modules"
+msgstr ""
+
+#: admin/settings-page.php:936
+#: includes/import-export.php:2469
+#: includes/import-export.php:2499
 msgid "Redirects"
 msgstr ""
 
-#: admin/settings-page.php:944
-#: admin/settings/panels.php:202
-#: admin/settings/panels.php:211
-#: includes/special-meta.php:38
-msgid "Special pages and archives"
+#: admin/settings-page.php:939
+msgid "Sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:38
-msgid "Feature modules"
+#: admin/settings-page.php:942
+msgid "Health"
+msgstr ""
+
+#: admin/settings-page.php:948
+msgid "AI"
+msgstr ""
+
+#: admin/settings-page.php:951
+msgid "Multilingual"
+msgstr ""
+
+#: admin/settings-page.php:1033
+#: admin/settings/panels.php:206
+#: admin/settings/panels.php:215
+#: includes/special-meta.php:40
+msgid "Special pages and archives"
 msgstr ""
 
 #: admin/settings/panels.php:41
 msgid "Enable the redirect manager"
 msgstr ""
 
-#: admin/settings/panels.php:42
-msgid "Activates the redirect engine. Manage rules from the Redirects tab."
-msgstr ""
-
-#: admin/settings/panels.php:45
+#: admin/settings/panels.php:44
 msgid "Enable the sitemap module"
 msgstr ""
 
-#: admin/settings/panels.php:46
-msgid "Activates the XML sitemap generator and replaces WordPress core sitemaps. Configure from the Sitemap tab."
-msgstr ""
-
-#: admin/settings/panels.php:49
+#: admin/settings/panels.php:47
 msgid "Enable Health monitoring"
 msgstr ""
 
-#: admin/settings/panels.php:50
-msgid "Activates site health monitoring. Review findings from the Health tab."
-msgstr ""
-
-#: admin/settings/panels.php:53
+#: admin/settings/panels.php:51
 msgid "Enable internal link suggestions"
 msgstr ""
 
-#: admin/settings/panels.php:54
-msgid "AI-powered inbound and outbound link suggestions in the post editor. Requires AI features to be enabled. Manage the link graph from the Internal links tab."
+#: includes/helpers/utils.php:247
+msgid "AI features: Enabled"
 msgstr ""
 
-#: admin/settings/panels.php:58
+#: includes/helpers/utils.php:248
+msgid "AI features: Not enabled"
+msgstr ""
+
+#: admin/settings/panels.php:61
 msgid "Enable AI features"
 msgstr ""
 
-#: admin/settings/panels.php:69
-msgid "Turns on the plugin's AI features."
-msgstr ""
-
-#. translators: %s: link to the WordPress Connectors settings screen.
-#: admin/settings/panels.php:74
-#, php-format
-msgid "Connect a provider on the %s screen to enable."
-msgstr ""
-
-#: admin/settings/panels.php:75
-#: includes/ai.php:1263
+#: includes/ai.php:1362
 msgid "Connectors"
 msgstr ""
 
-#: admin/settings/panels.php:83
+#: admin/settings/panels.php:72
+msgid "Enable content analysis"
+msgstr ""
+
+#: admin/settings/panels.php:76
 msgid "Enable multilingual"
 msgstr ""
 
-#: admin/settings/panels.php:89
-msgid "Lets visitors switch between translated versions of your content across sites. Requires WordPress Multisite."
-msgstr ""
-
-#: admin/settings/panels.php:117
-#: admin/setup-wizard.php:239
-#: admin/setup-wizard.php:319
+#: admin/settings/panels.php:121
+#: admin/setup-wizard.php:139
+#: admin/setup-wizard.php:219
 msgid "Site identity"
 msgstr ""
 
-#: admin/settings/panels.php:120
-#: admin/setup-wizard.php:290
+#: admin/settings/panels.php:124
+#: admin/setup-wizard.php:190
 msgid "Organization or person name"
 msgstr ""
 
-#: admin/settings/panels.php:128
+#: admin/settings/panels.php:132
 msgid "Identity type"
 msgstr ""
 
-#: admin/settings/panels.php:130
-#: admin/setup-wizard.php:244
-#: admin/setup-wizard.php:320
+#: admin/settings/panels.php:134
+#: admin/setup-wizard.php:144
+#: admin/setup-wizard.php:220
 msgid "Organization"
 msgstr ""
 
-#: admin/settings/panels.php:131
-#: admin/setup-wizard.php:251
-#: admin/setup-wizard.php:320
+#: admin/settings/panels.php:135
+#: admin/setup-wizard.php:151
+#: admin/setup-wizard.php:220
 msgid "Person"
 msgstr ""
 
-#: admin/settings/panels.php:135
-#: admin/setup-wizard.php:258
+#: admin/settings/panels.php:139
+#: admin/setup-wizard.php:158
 msgid "Person reference user"
 msgstr ""
 
 #. translators: 1: User display name, 2: User ID.
-#: admin/settings/panels.php:146
-#: admin/setup-wizard.php:269
-#: easyrankly.php:684
+#: admin/settings/panels.php:150
+#: admin/setup-wizard.php:169
+#: easyrankly.php:886
 #, php-format
 msgid "%1$s (ID: %2$d)"
 msgstr ""
 
-#: admin/settings/panels.php:152
-#: admin/setup-wizard.php:275
+#: admin/settings/panels.php:156
+#: admin/setup-wizard.php:175
 msgid "Search users…"
 msgstr ""
 
-#: admin/settings/panels.php:155
-#: admin/setup-wizard.php:278
+#: admin/settings/panels.php:159
+#: admin/setup-wizard.php:178
 msgid "Search users"
 msgstr ""
 
-#: admin/settings/panels.php:163
-msgid "Uses the selected WordPress profile for the global Person JSON-LD schema."
-msgstr ""
-
-#: admin/settings/panels.php:167
+#: admin/settings/panels.php:170
 msgid "Organization description"
 msgstr ""
 
-#: admin/settings/panels.php:172
+#: admin/settings/panels.php:175
 msgid "Business email"
 msgstr ""
 
-#: admin/settings/panels.php:176
+#: admin/settings/panels.php:179
 msgid "Business telephone"
 msgstr ""
 
-#: admin/settings/panels.php:178
-msgid "Include country and area codes."
-msgstr ""
-
-#: admin/settings/panels.php:187
+#: admin/settings/panels.php:189
 msgid "Post type defaults"
 msgstr ""
 
-#: admin/settings/panels.php:194
+#: admin/settings/panels.php:196
 msgid "Taxonomy defaults"
 msgstr ""
 
-#: admin/settings/panels.php:204
+#: admin/settings/panels.php:208
 msgid "Special pages and archives are configured individually on each site: use the Site Editor with block themes on WordPress 6.6 or later, or Settings → EasyRankly otherwise."
 msgstr ""
 
-#: admin/settings/panels.php:238
+#: admin/settings/panels.php:242
 msgid "Default images"
 msgstr ""
 
-#: admin/settings/panels.php:241
+#: admin/settings/panels.php:245
 msgid "Organization logo"
 msgstr ""
 
-#: admin/settings/panels.php:266
+#: admin/settings/panels.php:270
 msgid "Default social image URL"
 msgstr ""
 
-#: admin/settings/panels.php:282
+#: admin/settings/panels.php:286
 msgid "Social defaults"
 msgstr ""
 
-#: admin/settings/panels.php:288
-#: admin/settings/panels.php:296
+#: admin/settings/panels.php:292
+#: admin/settings/panels.php:300
 msgid "Social profiles"
 msgstr ""
 
-#: admin/settings/panels.php:291
-#: admin/setup-wizard.php:296
-#: admin/setup-wizard.php:327
+#: admin/settings/panels.php:293
+#: admin/setup-wizard.php:196
+#: admin/setup-wizard.php:227
 msgid "X (Twitter) Site"
 msgstr ""
 
-#: admin/settings/panels.php:293
-msgid "Used for the twitter:site meta tag."
-msgstr ""
-
-#: admin/settings/panels.php:298
+#: admin/settings/panels.php:299
 msgid "One absolute URL per line."
 msgstr ""
 
-#: admin/settings/panels.php:304
+#: admin/settings/panels.php:308
 msgid "oEmbed JSON"
 msgstr ""
 
-#: admin/settings/panels.php:306
+#: admin/settings/panels.php:310
 msgid "Active by default on public pages: outputs an oEmbed JSON discovery link (e.g. for LinkedIn) so platforms can fetch rich previews. Disable via \"Remove oEmbed discovery links\" in the Bloat tab."
 msgstr ""
 
-#: admin/settings/panels.php:333
-msgid "Schema basics"
-msgstr ""
-
-#: admin/settings/panels.php:336
-msgid "Enable breadcrumbs function"
-msgstr ""
-
 #: admin/settings/panels.php:337
-msgid "Outputs BreadcrumbList schema and enables the breadcrumbs template function."
+msgid "Information for Google and other search engines"
 msgstr ""
 
-#: admin/settings/panels.php:343
+#: admin/settings/panels.php:340
+msgid "Show search engines how your pages are organized"
+msgstr ""
+
+#: admin/settings/panels.php:341
+msgid "Example: Home → Blog → Article. Search engines can read this information in the background. Visitors see it only if the site is already set up to show it."
+msgstr ""
+
+#: admin/settings/panels.php:347
 msgid "Post Date Settings"
 msgstr ""
 
-#: admin/settings/panels.php:345
+#: admin/settings/panels.php:349
 msgid "Active by default on every page of the site. EasyRankly includes published and modified dates in automatic post schema when post data is available."
 msgstr ""
 
-#: admin/settings/panels.php:349
+#: admin/settings/panels.php:353
 msgid "Custom JSON-LD Schema"
 msgstr ""
 
-#: admin/settings/panels.php:361
+#: admin/settings/panels.php:365
 msgid "Add Schema"
 msgstr ""
 
-#: admin/settings/panels.php:386
-#: admin/settings/panels.php:389
+#: admin/settings/panels.php:390
+#: admin/settings/panels.php:393
 msgid "XML sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:391
+#: admin/settings/panels.php:395
 msgid "Open wp-sitemap.xml"
 msgstr ""
 
-#: admin/settings/panels.php:393
+#: admin/settings/panels.php:397
 msgid "Author sitemap: included only when at least two authors have sitemap-eligible published content. On single-author sites it is disabled to avoid duplicate archive URLs for SEO."
 msgstr ""
 
-#: admin/settings/panels.php:394
+#: admin/settings/panels.php:398
 msgid "Image, Video and News sitemaps are integrated directly into the core wp-sitemap.xml index when enabled."
 msgstr ""
 
-#: admin/settings/panels.php:399
-#: admin/settings/panels.php:402
+#: admin/settings/panels.php:403
+#: admin/settings/panels.php:406
 msgid "Google News sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:403
+#: admin/settings/panels.php:407
 msgid "Generate Google News sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:405
+#: admin/settings/panels.php:409
 msgid "Open sitemap-news-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:407
+#: admin/settings/panels.php:411
 msgid "Includes only posts published in the last 48 hours. Submitting a News sitemap does not guarantee inclusion in Google News. Editorial review by Google is still required."
 msgstr ""
 
-#: admin/settings/panels.php:409
+#: admin/settings/panels.php:413
 msgid "Included post types"
 msgstr ""
 
-#: admin/settings/panels.php:423
+#: admin/settings/panels.php:427
 msgid "News publication name"
 msgstr ""
 
-#: admin/settings/panels.php:433
+#: admin/settings/panels.php:437
 msgid "Publication name for the Google News sitemap. Leave blank to use the organization name or site title; without a name the sitemap is not generated."
 msgstr ""
 
-#: admin/settings/panels.php:440
-#: admin/settings/panels.php:443
+#: admin/settings/panels.php:444
+#: admin/settings/panels.php:447
 msgid "Image sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:444
+#: admin/settings/panels.php:448
 msgid "Generate image sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:446
+#: admin/settings/panels.php:450
 msgid "Open sitemap-image-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:448
+#: admin/settings/panels.php:452
 msgid "Links images to the pages that contain them, extracted from post content (featured, embedded, and Gutenberg image/gallery blocks). Attachment pages are not used as URLs."
 msgstr ""
 
-#: admin/settings/panels.php:453
-#: admin/settings/panels.php:456
+#: admin/settings/panels.php:457
+#: admin/settings/panels.php:460
 msgid "Video sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:457
+#: admin/settings/panels.php:461
 msgid "Generate video sitemap"
 msgstr ""
 
-#: admin/settings/panels.php:459
+#: admin/settings/panels.php:463
 msgid "Open sitemap-video-1.xml"
 msgstr ""
 
-#: admin/settings/panels.php:461
+#: admin/settings/panels.php:465
 msgid "Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing. The player must also be crawlable."
 msgstr ""
 
-#: admin/settings/panels.php:490
-#: admin/setup-wizard.php:198
+#: admin/settings/panels.php:494
+#: admin/setup-wizard.php:98
 msgid "Preferences"
 msgstr ""
 
-#: admin/settings/panels.php:493
-#: admin/setup-wizard.php:225
+#: admin/settings/panels.php:497
+#: admin/setup-wizard.php:125
 msgid "Simplified mode"
 msgstr ""
 
-#: admin/settings/panels.php:494
+#: admin/settings/panels.php:498
 msgid "Shows the essential controls and automates advanced SEO defaults."
 msgstr ""
 
-#: admin/settings/panels.php:497
+#: admin/settings/panels.php:501
 msgid "Add the \"optimized with EasyRankly\" comment to the page source"
 msgstr ""
 
-#: admin/settings/panels.php:498
+#: admin/settings/panels.php:502
 msgid "Wraps the plugin's <head> output in an HTML comment that identifies EasyRankly in the page source."
 msgstr ""
 
-#: admin/settings/panels.php:501
+#: admin/settings/panels.php:505
 msgid "Show resolved values for variables like {{site_name}}"
 msgstr ""
 
-#: admin/settings/panels.php:502
+#: admin/settings/panels.php:506
 msgid "Displays the resolved value (e.g. your site name) in editor fields instead of the raw {{variable}} tag. Click the field to edit the raw tag again."
 msgstr ""
 
-#: admin/settings/panels.php:506
+#: admin/settings/panels.php:510
 msgid "Do not apply any redirect to administrators"
 msgstr ""
 
-#: admin/settings/panels.php:507
+#: admin/settings/panels.php:511
 msgid "Exempts users with the \"manage_options\" capability (typically Administrators) from all redirects."
 msgstr ""
 
-#: admin/settings/panels.php:537
+#: admin/settings/panels.php:541
 msgid "Indexing & robots directives"
 msgstr ""
 
-#: admin/settings/panels.php:540
+#: admin/settings/panels.php:544
 msgid "Noindex for search results, the 404 page and author/date archives is set per site: in the Site Editor for block themes on WordPress 6.6+, or under Settings → EasyRankly otherwise."
 msgstr ""
 
-#: admin/settings/panels.php:542
+#: admin/settings/panels.php:546
 msgid "Noindex for search results, the 404 page, and WordPress author/date archive contexts is configured in the corresponding Site Editor template."
 msgstr ""
 
-#: admin/settings/panels.php:544
+#: admin/settings/panels.php:548
 msgid "Noindex for search results, the 404 page, and WordPress author/date archive contexts is now configured per page under General → Special pages and archives."
 msgstr ""
 
-#: admin/settings/panels.php:547
+#: admin/settings/panels.php:551
 msgid "Robots preview directives"
 msgstr ""
 
-#: admin/settings/panels.php:548
+#: admin/settings/panels.php:552
 msgid "Allow max-image-preview:large"
 msgstr ""
 
-#: admin/settings/panels.php:551
+#: admin/settings/panels.php:555
 msgid "max-snippet"
 msgstr ""
 
-#: admin/settings/panels.php:555
+#: admin/settings/panels.php:559
 msgid "max-video-preview"
 msgstr ""
 
-#: admin/settings/panels.php:560
+#: admin/settings/panels.php:564
 msgid "Add nosnippet"
 msgstr ""
 
-#: admin/settings/panels.php:561
+#: admin/settings/panels.php:565
 msgid "Add indexifembedded when noindex is active"
 msgstr ""
 
-#: admin/settings/panels.php:568
+#: admin/settings/panels.php:572
 msgid "robots.txt"
 msgstr ""
 
-#: admin/settings/panels.php:571
+#: admin/settings/panels.php:575
 msgid "robots.txt: custom rules"
 msgstr ""
 
-#: admin/settings/panels.php:573
+#: admin/settings/panels.php:577
 msgid "Extra directives appended to the virtual robots.txt after the auto-generated rules (User-agent, Disallow, Sitemap). One directive per line."
 msgstr ""
 
-#: admin/settings/panels.php:576
-#: admin/settings/panels.php:577
+#: admin/settings/panels.php:580
+#: admin/settings/panels.php:581
 msgid "robots.txt preview"
 msgstr ""
 
-#: admin/settings/panels.php:579
+#: admin/settings/panels.php:583
 msgid "Open robots.txt"
 msgstr ""
 
-#: admin/settings/panels.php:589
+#: admin/settings/panels.php:593
 msgid "Paginated archive pages"
 msgstr ""
 
-#: admin/settings/panels.php:591
+#: admin/settings/panels.php:595
 msgid "Noindex page 2, 3, … of archives"
 msgstr ""
 
-#: admin/settings/panels.php:593
+#: admin/settings/panels.php:597
 msgid "Adds noindex to pages beyond the first of any archive (category, tag, author, date, blog). Canonicals are already self-referencing, so leave off unless you must block deep pagination."
 msgstr ""
 
-#: admin/settings/panels.php:596
+#: admin/settings/panels.php:600
 msgid "Paginated title suffix"
 msgstr ""
 
-#: admin/settings/panels.php:598
+#: admin/settings/panels.php:602
 msgid "e.g. Page {{page_number}} of {{max_pages}}"
 msgstr ""
 
-#: admin/settings/panels.php:601
+#: admin/settings/panels.php:605
 msgid "Appended to the SEO title on page 2, 3, …, separated by a dash. Leave empty to keep the base title unchanged. Available variables: {{page_number}}, {{max_pages}}."
 msgstr ""
 
-#: admin/settings/panels.php:607
+#: admin/settings/panels.php:611
 msgid "Attachment pages"
 msgstr ""
 
-#: admin/settings/panels.php:610
+#: admin/settings/panels.php:614
 msgid "Redirect attachment pages"
 msgstr ""
 
-#: admin/settings/panels.php:612
+#: admin/settings/panels.php:616
 msgid "Redirect to parent post (fallback: media file)"
 msgstr ""
 
-#: admin/settings/panels.php:613
+#: admin/settings/panels.php:617
 msgid "Redirect to media file"
 msgstr ""
 
-#: admin/settings/panels.php:614
+#: admin/settings/panels.php:618
 msgid "Leave attachment pages unchanged"
 msgstr ""
 
-#: admin/settings/panels.php:616
+#: admin/settings/panels.php:620
 msgid "Attachment pages are thin-content pages WordPress generates for each uploaded file. Redirecting them is the recommended SEO practice."
 msgstr ""
 
-#: admin/settings/panels.php:644
-#: admin/settings/panels.php:656
+#: admin/settings/panels.php:648
+#: admin/settings/panels.php:660
 msgid "WordPress cleanup"
 msgstr ""
 
-#: admin/settings/panels.php:647
+#: admin/settings/panels.php:651
 msgid "Lighten WordPress"
 msgstr ""
 
-#: admin/settings/panels.php:648
+#: admin/settings/panels.php:652
 msgid "Removes safe WordPress bloat in one click. Turn off Simplified mode for advanced cleanups."
 msgstr ""
 
-#: admin/settings/panels.php:660
+#: admin/settings/panels.php:649
 msgid "Remove WordPress emojis"
 msgstr ""
 
-#: admin/settings/panels.php:661
-msgid "Stops the emoji script and styles from loading on every page. Browsers already render emojis natively, so this just removes an unused request."
+#: admin/settings/panels.php:650
+msgid "Removes the WordPress emoji script and styles."
 msgstr ""
 
-#: admin/settings/panels.php:662
+#: admin/settings/panels.php:651
 msgid "Remove WP Generator meta tag"
 msgstr ""
 
-#: admin/settings/panels.php:663
-msgid "Hides your WordPress version number from the page source, so it is not an easy clue for bots scanning for known vulnerabilities."
+#: admin/settings/panels.php:652
+msgid "Removes the WordPress version meta tag from the page source."
 msgstr ""
 
-#: admin/settings/panels.php:664
+#: admin/settings/panels.php:653
 msgid "Remove RSS feed links"
 msgstr ""
 
-#: admin/settings/panels.php:665
-msgid "Removes the RSS feed links from the page header. The feeds still work. Only the auto-discovery hints are hidden."
+#: admin/settings/panels.php:654
+msgid "Removes RSS feed auto-discovery links from the page header."
 msgstr ""
 
-#: admin/settings/panels.php:666
+#: admin/settings/panels.php:655
 msgid "Remove Really Simple Discovery link"
 msgstr ""
 
-#: admin/settings/panels.php:667
-msgid "Removes an old XML-RPC discovery link that almost no modern tool uses. Safe to remove."
+#: admin/settings/panels.php:656
+msgid "Removes the Really Simple Discovery (RSD) link from the page header."
 msgstr ""
 
-#: admin/settings/panels.php:668
+#: admin/settings/panels.php:657
 msgid "Remove Windows Live Writer manifest link"
 msgstr ""
 
-#: admin/settings/panels.php:669
-msgid "Removes a link left over for the long-discontinued Windows Live Writer editor. No current software needs it."
+#: admin/settings/panels.php:658
+msgid "Removes the Windows Live Writer manifest link from the page header."
 msgstr ""
 
-#: admin/settings/panels.php:670
+#: admin/settings/panels.php:659
 msgid "Remove shortlink"
 msgstr ""
 
-#: admin/settings/panels.php:671
-msgid "Removes the ?p=123 short URL hint from the page header and HTTP headers. Your normal permalinks keep working."
+#: admin/settings/panels.php:660
+msgid "Removes the shortlink from the page header and HTTP headers."
 msgstr ""
 
-#: admin/settings/panels.php:672
+#: admin/settings/panels.php:661
 msgid "Remove REST API discovery link"
 msgstr ""
 
-#: admin/settings/panels.php:673
-msgid "Hides the link that advertises your REST API location. The API itself keeps working. Only the public hint is removed."
+#: admin/settings/panels.php:662
+msgid "Removes the REST API discovery link from the page header."
 msgstr ""
 
-#: admin/settings/panels.php:674
+#: admin/settings/panels.php:663
 msgid "Remove oEmbed discovery links"
 msgstr ""
 
-#: admin/settings/panels.php:675
-msgid "Stops WordPress from auto-embedding other sites and from loading the related embed script. Leave on if you paste other WordPress posts as live embeds."
+#: admin/settings/panels.php:664
+msgid "Removes oEmbed discovery links and disables auto-embeds."
 msgstr ""
 
-#: admin/settings/panels.php:676
+#: admin/settings/panels.php:665
+msgid "Remove wp-embed script"
+msgstr ""
+
+#: admin/settings/panels.php:666
+msgid "Removes the frontend wp-embed script."
+msgstr ""
+
+#: admin/settings/panels.php:667
+msgid "Remove adjacent posts links"
+msgstr ""
+
+#: admin/settings/panels.php:668
+msgid "Removes adjacent post rel=prev/next links from the page header."
+msgstr ""
+
+#: admin/settings/panels.php:669
 msgid "Remove jQuery Migrate"
 msgstr ""
 
-#: admin/settings/panels.php:677
-msgid "Drops the compatibility script that patches outdated jQuery code. Modern themes do not need it, but test your site afterward in case an older theme or plugin does."
+#: admin/settings/panels.php:670
+msgid "Removes the jQuery Migrate compatibility script."
 msgstr ""
 
-#: admin/settings/panels.php:678
+#: admin/settings/panels.php:671
 msgid "Remove Dashicons for guests"
 msgstr ""
 
-#: admin/settings/panels.php:679
-msgid "Stops loading the admin icon font for visitors who are not logged in. Admins still see it. Skip this if your theme uses Dashicons on the frontend."
+#: admin/settings/panels.php:672
+msgid "Removes Dashicons for visitors who are not logged in."
 msgstr ""
 
-#: admin/settings/panels.php:680
+#: admin/settings/panels.php:673
 msgid "Disable self-pingbacks"
 msgstr ""
 
-#: admin/settings/panels.php:681
-msgid "Stops WordPress from notifying itself every time you link to one of your own posts, avoiding useless self-comments."
+#: admin/settings/panels.php:674
+msgid "Disables pingbacks when linking to your own posts."
 msgstr ""
 
-#: admin/settings/panels.php:682
+#: admin/settings/panels.php:675
+msgid "Disable trackbacks and pingbacks"
+msgstr ""
+
+#: admin/settings/panels.php:676
+msgid "Disables pingbacks and trackbacks site-wide and removes related XML-RPC methods."
+msgstr ""
+
+#: admin/settings/panels.php:677
 msgid "Disable Heartbeat on frontend"
 msgstr ""
 
-#: admin/settings/panels.php:683
-msgid "Stops the background script that repeatedly pings the server on public pages, lowering server load. Admin autosave and post-locking are unaffected."
+#: admin/settings/panels.php:678
+msgid "Disables the Heartbeat API on public pages."
 msgstr ""
 
-#: admin/settings/panels.php:684
+#: admin/settings/panels.php:679
+msgid "Limit Heartbeat in admin"
+msgstr ""
+
+#: admin/settings/panels.php:680
+msgid "Limits the Heartbeat API in wp-admin to every 60 seconds."
+msgstr ""
+
+#: admin/settings/panels.php:681
 msgid "Disable XML-RPC"
 msgstr ""
 
+#: admin/settings/panels.php:682
+msgid "Disables the XML-RPC interface."
+msgstr ""
+
+#: admin/settings/panels.php:683
+msgid "Remove global and classic theme styles"
+msgstr ""
+
+#: admin/settings/panels.php:684
+msgid "Removes global-styles and classic-theme-styles CSS on classic themes."
+msgstr ""
+
 #: admin/settings/panels.php:685
-msgid "Turns off the legacy remote-access interface, a common brute-force and pingback-spam target. Leave on if you use the WordPress mobile app, Jetpack or remote publishing tools."
+msgid "Remove duotone SVG filters"
+msgstr ""
+
+#: admin/settings/panels.php:686
+msgid "Removes frontend duotone SVG filters and related CSS."
+msgstr ""
+
+#: admin/settings/panels.php:687
+msgid "Remove block library CSS when unused"
+msgstr ""
+
+#: admin/settings/panels.php:688
+msgid "Removes wp-block-library CSS on singular pages that do not contain blocks."
+msgstr ""
+
+#: admin/settings/panels.php:689
+msgid "Limit post revisions"
+msgstr ""
+
+#: admin/settings/panels.php:690
+msgid "Limits post revisions to 5 per post."
+msgstr ""
+
+#: admin/settings/panels.php:691
+msgid "Disable speculative loading"
+msgstr ""
+
+#: admin/settings/panels.php:692
+msgid "Disables the Speculation Rules API (prefetch/prerender)."
 msgstr ""
 
 #: admin/settings/renderers.php:21
@@ -1365,11 +1500,11 @@ msgid "Two-letter ISO 3166-1 code."
 msgstr ""
 
 #: admin/settings/renderers.php:95
-msgid "Add LocalBusiness schema for one physical location"
+msgid "Add one physical business location for search engines"
 msgstr ""
 
 #: admin/settings/renderers.php:96
-msgid "Use only when the selected page visibly contains the same business details. Keep them consistent with your Google Business Profile."
+msgid "Search engines can read its address, opening hours and contact details. Nothing new is shown to visitors. Use the same details as your Google Business Profile."
 msgstr ""
 
 #: admin/settings/renderers.php:100
@@ -1479,11 +1614,8 @@ msgid "No public items available."
 msgstr ""
 
 #: admin/settings/renderers.php:234
-msgid "Link taxonomy templates"
-msgstr ""
-
-#: admin/settings/renderers.php:234
-msgid "Link post type templates"
+#: admin/settings/renderers.php:361
+msgid "Same for all"
 msgstr ""
 
 #. translators: %s: linked templates label.
@@ -1511,19 +1643,27 @@ msgstr ""
 
 #: admin/settings/renderers.php:269
 #: admin/settings/renderers.php:395
-#: includes/admin.php:730
+#: includes/admin.php:775
+#: includes/admin.php:1022
 #: includes/health/panel.php:292
 #: includes/health/panel.php:299
 #: includes/redirects/class-erankly-redirects-admin.php:450
+#: assets/js/editor.js:515
+#: assets/js/editor.js:516
+#: assets/js/editor.js:517
 msgid "No"
 msgstr ""
 
 #: admin/settings/renderers.php:270
 #: admin/settings/renderers.php:396
-#: includes/admin.php:729
+#: includes/admin.php:774
+#: includes/admin.php:1021
 #: includes/health/panel.php:290
 #: includes/health/panel.php:297
 #: includes/redirects/class-erankly-redirects-admin.php:450
+#: assets/js/editor.js:515
+#: assets/js/editor.js:516
+#: assets/js/editor.js:517
 msgid "Yes"
 msgstr ""
 
@@ -1533,10 +1673,6 @@ msgstr ""
 
 #: admin/settings/renderers.php:342
 msgid "X (Twitter)"
-msgstr ""
-
-#: admin/settings/renderers.php:361
-msgid "Link social templates"
 msgstr ""
 
 #: admin/settings/renderers.php:376
@@ -1552,11 +1688,6 @@ msgid "Default description"
 msgstr ""
 
 #: admin/settings/renderers.php:460
-#: includes/special-meta.php:39
-msgid "Set the default SEO metadata for WordPress contexts that are not individual posts or terms: homepage, blog, author and date archives, search results and the 404 page."
-msgstr ""
-
-#: admin/settings/renderers.php:463
 msgid "Default metadata by WordPress context"
 msgstr ""
 
@@ -1569,16 +1700,18 @@ msgid "Social description"
 msgstr ""
 
 #: admin/settings/renderers.php:603
-#: assets/js/editor-shared.js:674
+#: assets/js/editor-shared.js:711
 msgid "X (Twitter) title"
 msgstr ""
 
 #: admin/settings/renderers.php:610
-#: assets/js/editor-shared.js:684
+#: assets/js/editor-shared.js:721
 msgid "X (Twitter) description"
 msgstr ""
 
 #: admin/settings/renderers.php:617
+#: includes/seo-checklist.php:241
+#: assets/js/editor-shared.js:1188
 msgid "Social image"
 msgstr ""
 
@@ -1586,634 +1719,930 @@ msgstr ""
 msgid "Visibility defaults"
 msgstr ""
 
-#: admin/setup-wizard.php:60
-#: admin/setup-wizard.php:61
-#: admin/setup-wizard.php:192
+#: admin/setup-wizard-loader.php:60
+#: admin/setup-wizard-loader.php:61
+#: admin/setup-wizard.php:92
 msgid "EasyRankly setup"
 msgstr ""
 
-#: admin/setup-wizard.php:193
+#: admin/setup-wizard.php:93
 msgid "Configure the few preferences that EasyRankly cannot determine automatically."
 msgstr ""
 
-#: admin/setup-wizard.php:196
+#: admin/setup-wizard.php:96
 msgid "Setup progress"
 msgstr ""
 
-#: admin/setup-wizard.php:197
+#: admin/setup-wizard.php:97
 msgid "Welcome"
 msgstr ""
 
-#: admin/setup-wizard.php:199
+#: admin/setup-wizard.php:99
 msgid "Ready"
 msgstr ""
 
-#: admin/setup-wizard.php:204
+#: admin/setup-wizard.php:104
 msgid "Welcome to EasyRankly"
 msgstr ""
 
-#: admin/setup-wizard.php:205
+#: admin/setup-wizard.php:105
 msgid "This short wizard asks for your preferred interface mode, whether the site represents an organization or a person, and a few optional details EasyRankly cannot detect on its own."
 msgstr ""
 
-#: admin/setup-wizard.php:206
+#: admin/setup-wizard.php:106
 msgid "You can change every choice later from the EasyRankly settings."
 msgstr ""
 
-#: admin/setup-wizard.php:208
+#: admin/setup-wizard.php:108
 msgid "Start setup"
 msgstr ""
 
-#: admin/setup-wizard.php:212
+#: admin/setup-wizard.php:112
 msgid "Skip for now"
 msgstr ""
 
-#: admin/setup-wizard.php:221
-#: admin/setup-wizard.php:315
+#: admin/setup-wizard.php:121
+#: admin/setup-wizard.php:215
 msgid "Interface mode"
 msgstr ""
 
-#: admin/setup-wizard.php:226
+#: admin/setup-wizard.php:126
 msgid "Recommended. Shows the essential controls and automates advanced SEO defaults."
 msgstr ""
 
-#: admin/setup-wizard.php:232
+#: admin/setup-wizard.php:132
 msgid "Advanced mode"
 msgstr ""
 
-#: admin/setup-wizard.php:233
+#: admin/setup-wizard.php:133
 msgid "Shows every available control for manual configuration."
 msgstr ""
 
-#: admin/setup-wizard.php:240
+#: admin/setup-wizard.php:140
 msgid "Tells search engines whether the site represents a company or brand, or a single individual. This is the basis of the JSON-LD knowledge graph and the publisher node."
 msgstr ""
 
-#: admin/setup-wizard.php:245
+#: admin/setup-wizard.php:145
 msgid "A company, brand, store, or any team-run site."
 msgstr ""
 
-#: admin/setup-wizard.php:252
+#: admin/setup-wizard.php:152
 msgid "A personal blog or portfolio run by a single individual."
 msgstr ""
 
-#: admin/setup-wizard.php:285
+#: admin/setup-wizard.php:185
 msgid "The WordPress profile used for the global Person JSON-LD schema."
 msgstr ""
 
-#: admin/setup-wizard.php:292
+#: admin/setup-wizard.php:192
 msgid "Leave blank to use the site name automatically."
 msgstr ""
 
-#: admin/setup-wizard.php:298
+#: admin/setup-wizard.php:198
 msgid "Optional. Enter an @handle or an x.com profile URL. It is used for the twitter:site meta tag."
 msgstr ""
 
-#: admin/setup-wizard.php:303
+#: admin/setup-wizard.php:203
 msgid "Save and continue"
 msgstr ""
 
-#: admin/setup-wizard.php:304
+#: admin/setup-wizard.php:204
 msgid "Back"
 msgstr ""
 
-#: admin/setup-wizard.php:310
+#: admin/setup-wizard.php:210
 msgid "EasyRankly is ready"
 msgstr ""
 
-#: admin/setup-wizard.php:312
+#: admin/setup-wizard.php:212
 msgid "Your preferences have been saved. You can now review the complete plugin settings or return to the dashboard."
 msgstr ""
 
-#: admin/setup-wizard.php:316
+#: admin/setup-wizard.php:216
 msgid "Simplified"
 msgstr ""
 
-#: admin/setup-wizard.php:323
+#: admin/setup-wizard.php:223
 msgid "Name"
 msgstr ""
 
-#: admin/setup-wizard.php:324
-#: admin/setup-wizard.php:328
+#: admin/setup-wizard.php:224
+#: admin/setup-wizard.php:228
 msgid "Not configured"
 msgstr ""
 
-#: admin/setup-wizard.php:332
+#: admin/setup-wizard.php:232
 msgid "Open EasyRankly settings"
 msgstr ""
 
-#: admin/setup-wizard.php:333
+#: admin/setup-wizard.php:233
 msgid "Return to dashboard"
 msgstr ""
 
-#: easyrankly.php:319
+#: easyrankly.php:510
 msgid "EasyRankly could not initialize its rewrite generation."
 msgstr ""
 
-#: easyrankly.php:382
+#: easyrankly.php:574
 msgid "EasyRankly could not retrieve the next network site batch."
 msgstr ""
 
-#: easyrankly.php:406
+#: easyrankly.php:598
 msgid "EasyRankly could not count the current network sites."
 msgstr ""
 
-#: easyrankly.php:520
+#: easyrankly.php:721
 msgid "EasyRankly could not remove its scheduled tasks during deactivation."
 msgstr ""
 
-#: easyrankly.php:547
+#: easyrankly.php:749
 msgid "EasyRankly could not cancel the active network reset during deactivation."
 msgstr ""
 
-#: easyrankly.php:565
+#: easyrankly.php:767
 msgid "This network is too large to deactivate EasyRankly safely in one web request."
 msgstr ""
 
-#: easyrankly.php:566
+#: easyrankly.php:768
 msgid "Run the following WP-CLI command so every site can remove its scheduled tasks and rewrite rules:"
 msgstr ""
 
-#: easyrankly.php:571
-#: uninstall.php:164
+#: easyrankly.php:773
+#: uninstall.php:199
 msgid "EasyRankly network cleanup required"
 msgstr ""
 
 #. translators: %d: User ID.
-#: easyrankly.php:678
+#: easyrankly.php:880
 #, php-format
 msgid "ID %d"
 msgstr ""
 
-#: easyrankly.php:758
+#: easyrankly.php:961
 msgid "Unknown settings panel."
 msgstr ""
 
-#: includes/admin.php:297
+#: includes/admin.php:404
 msgid "Setup wizard"
 msgstr ""
 
-#: includes/admin.php:315
-#: includes/admin.php:328
-#: includes/admin.php:548
+#: includes/admin.php:422
+#: includes/admin.php:435
+#: includes/admin.php:840
 msgid "Expand table"
 msgstr ""
 
-#: includes/admin.php:448
-#: includes/admin.php:770
+#: includes/admin.php:654
+#: includes/admin.php:1062
 msgid "Searching…"
 msgstr ""
 
-#: includes/admin.php:449
-#: includes/admin.php:771
+#: includes/admin.php:655
+#: includes/admin.php:1063
 msgid "No matches found."
 msgstr ""
 
-#: includes/admin.php:451
+#: includes/admin.php:657
 msgid "No user selected"
 msgstr ""
 
-#: includes/admin.php:527
+#: includes/admin.php:724
+#: assets/js/editor.js:838
+msgid "Analyzing content…"
+msgstr ""
+
+#: includes/admin.php:726
+#: assets/js/editor.js:712
+msgid "Analysis updated."
+msgstr ""
+
+#: includes/admin.php:727
+#: assets/js/editor.js:733
+msgid "Analysis deleted."
+msgstr ""
+
+#: includes/admin.php:728
+#: assets/js/editor.js:426
+#: assets/js/editor.js:812
+msgid "Content changed since this analysis."
+msgstr ""
+
+#: includes/admin.php:729
+#: assets/js/editor.js:715
+msgid "Analysis failed. Try again."
+msgstr ""
+
+#: includes/admin.php:730
+#: includes/ai-content-analysis.php:788
+#: assets/js/editor.js:698
+msgid "Add a focus keyword first."
+msgstr ""
+
+#: includes/admin.php:731
+#: includes/ai-content-analysis.php:792
+#: assets/js/editor.js:674
+msgid "Use up to 10 focus keywords."
+msgstr ""
+
+#: includes/admin.php:732
+#: assets/js/editor.js:509
+msgid "Primary"
+msgstr ""
+
+#: includes/admin.php:733
+msgid "Remove keyword"
+msgstr ""
+
+#: includes/admin.php:734
+#: assets/js/editor.js:365
+msgid "In focus"
+msgstr ""
+
+#: includes/admin.php:735
+#: assets/js/editor.js:367
+msgid "Partially in focus"
+msgstr ""
+
+#: includes/admin.php:736
+#: assets/js/editor.js:366
+msgid "Out of focus"
+msgstr ""
+
+#: includes/admin.php:737
+#: assets/js/editor.js:420
+msgid "Focus score"
+msgstr ""
+
+#: includes/admin.php:738
+#: assets/js/editor.js:489
+msgid "Search intent"
+msgstr ""
+
+#: includes/admin.php:739
+#: assets/js/editor.js:493
+msgid "Strengths"
+msgstr ""
+
+#: includes/admin.php:740
+#: assets/js/editor.js:497
+msgid "Keyword review"
+msgstr ""
+
+#: includes/admin.php:741
+#: assets/js/editor.js:442
+msgid "Priorities"
+msgstr ""
+
+#: includes/admin.php:742
+#: assets/js/editor.js:474
+msgid "More improvements"
+msgstr ""
+
+#: includes/admin.php:743
+#: assets/js/editor.js:526
+msgid "Missing topics"
+msgstr ""
+
+#: includes/admin.php:744
+#: assets/js/editor.js:530
+msgid "Suggested structure"
+msgstr ""
+
+#: includes/admin.php:745
+#: assets/js/editor.js:539
+msgid "Suggested sentences"
+msgstr ""
+
+#: includes/admin.php:746
+#: assets/js/editor.js:553
+msgid "Pillar readiness"
+msgstr ""
+
+#: includes/admin.php:747
+#: assets/js/editor.js:556
+msgid "Supporting ideas"
+msgstr ""
+
+#: includes/admin.php:748
+#: assets/js/editor.js:558
+msgid "Internal-link actions"
+msgstr ""
+
+#: includes/admin.php:749
+#: assets/js/editor.js:578
+msgid "Watch-outs"
+msgstr ""
+
+#: includes/admin.php:750
+#: assets/js/editor.js:429
+msgid "Metrics"
+msgstr ""
+
+#: includes/admin.php:751
+msgid "Coverage"
+msgstr ""
+
+#: includes/admin.php:752
+#: assets/js/editor.js:370
+msgid "Words"
+msgstr ""
+
+#: includes/admin.php:753
+#: assets/js/editor.js:372
+#: assets/js/editor.js:517
+msgid "Headings"
+msgstr ""
+
+#: includes/admin.php:754
+#: includes/health/panel.php:273
+#: assets/js/editor.js:394
+msgid "Inbound links"
+msgstr ""
+
+#: includes/admin.php:755
+#: includes/health/panel.php:274
+#: assets/js/editor.js:395
+msgid "Outbound links"
+msgstr ""
+
+#: includes/admin.php:756
+#: assets/js/editor.js:562
+msgid "Possible cannibalization"
+msgstr ""
+
+#: includes/admin.php:757
+#: assets/js/editor.js:548
+msgid "Copy"
+msgstr ""
+
+#: includes/admin.php:758
+#: assets/js/editor.js:548
+msgid "Copied"
+msgstr ""
+
+#: includes/admin.php:759
+#: assets/js/editor.js:468
+msgid "Show details"
+msgstr ""
+
+#: includes/admin.php:760
+#: assets/js/editor.js:468
+msgid "Hide details"
+msgstr ""
+
+#: includes/admin.php:761
+#: assets/js/editor.js:584
+#: assets/js/editor.js:591
+msgid "Analyzed"
+msgstr ""
+
+#: includes/admin.php:762
+#: assets/js/editor.js:330
+msgid "Strong"
+msgstr ""
+
+#: includes/admin.php:763
+#: assets/js/editor.js:329
+msgid "Partial"
+msgstr ""
+
+#: includes/admin.php:764
+#: assets/js/editor.js:331
+msgid "Weak"
+msgstr ""
+
+#: includes/admin.php:765
+#: assets/js/editor.js:326
+msgid "Missing"
+msgstr ""
+
+#: includes/admin.php:766
+#: assets/js/editor.js:328
+msgid "Overused"
+msgstr ""
+
+#: includes/admin.php:767
+#: includes/redirects/class-erankly-redirects-admin.php:447
+#: assets/js/editor.js:327
+msgid "Not applicable"
+msgstr ""
+
+#: includes/admin.php:768
+#: assets/js/editor.js:323
+msgid "High priority"
+msgstr ""
+
+#: includes/admin.php:769
+#: assets/js/editor.js:325
+msgid "Medium priority"
+msgstr ""
+
+#: includes/admin.php:770
+#: assets/js/editor.js:324
+msgid "Low priority"
+msgstr ""
+
+#: includes/admin.php:771
+#: assets/js/editor.js:514
+msgid "Exact mentions"
+msgstr ""
+
+#: includes/admin.php:772
+#: includes/multilingual/class-erankly-ml-admin.php:1103
+#: assets/js/editor.js:515
+msgid "Title"
+msgstr ""
+
+#: includes/admin.php:773
+#: assets/js/editor.js:516
+msgid "Opening"
+msgstr ""
+
+#: includes/admin.php:819
 msgid "Starting…"
 msgstr ""
 
-#: includes/admin.php:528
+#: includes/admin.php:820
 msgid "Crawling pages:"
 msgstr ""
 
-#: includes/admin.php:529
+#: includes/admin.php:821
 msgid "queued"
 msgstr ""
 
-#: includes/admin.php:530
+#: includes/admin.php:822
 msgid "Checking links:"
 msgstr ""
 
-#: includes/admin.php:531
+#: includes/admin.php:823
 msgid "broken"
 msgstr ""
 
-#: includes/admin.php:532
+#: includes/admin.php:824
 msgid "Scan complete. Reloading…"
 msgstr ""
 
-#: includes/admin.php:533
+#: includes/admin.php:825
 msgid "Stopping…"
 msgstr ""
 
-#: includes/admin.php:534
+#: includes/admin.php:826
 msgid "Scan stopped."
 msgstr ""
 
-#: includes/admin.php:535
+#: includes/admin.php:827
 msgid "The scan failed. Please try again."
 msgstr ""
 
-#: includes/admin.php:549
+#: includes/admin.php:841
 msgid "Collapse table"
 msgstr ""
 
-#: includes/admin.php:569
+#: includes/admin.php:861
 msgid "Saving…"
 msgstr ""
 
-#: includes/admin.php:570
+#: includes/admin.php:862
 msgid "Saved"
 msgstr ""
 
-#: includes/admin.php:571
+#: includes/admin.php:863
 msgid "Saved with warnings"
 msgstr ""
 
-#: includes/admin.php:572
+#: includes/admin.php:864
 msgid "Saving failed. Retrying…"
 msgstr ""
 
-#: includes/admin.php:573
+#: includes/admin.php:865
 msgid "Could not save. Reload the page."
 msgstr ""
 
-#: includes/admin.php:644
+#: includes/admin.php:936
 #: includes/health/broken-links-admin.php:253
 #: includes/health/panel.php:217
 msgid "Status"
 msgstr ""
 
-#: includes/admin.php:648
+#: includes/admin.php:940
 msgid "On (active)"
 msgstr ""
 
-#: includes/admin.php:652
+#: includes/admin.php:944
 msgid "Off (inactive)"
 msgstr ""
 
-#: includes/admin.php:658
+#: includes/admin.php:950
 msgid "HTTP code"
 msgstr ""
 
-#: includes/admin.php:671
+#: includes/admin.php:963
 #: includes/redirects/class-erankly-redirects-admin.php:338
 msgid "Match type"
 msgstr ""
 
-#: includes/admin.php:675
+#: includes/admin.php:967
 msgid "Exact path"
 msgstr ""
 
-#: includes/admin.php:679
+#: includes/admin.php:971
 #: includes/redirects/class-erankly-redirects-admin.php:342
 #: includes/redirects/class-erankly-redirects-admin.php:546
 #: includes/redirects/class-erankly-redirects-admin.php:561
 msgid "Regex"
 msgstr ""
 
-#: includes/admin.php:683
+#: includes/admin.php:975
 #: includes/redirects/class-erankly-redirects-admin.php:545
 #: includes/redirects/class-erankly-redirects-admin.php:557
 msgid "Wildcard"
 msgstr ""
 
-#: includes/admin.php:687
+#: includes/admin.php:979
 #: includes/redirects/class-erankly-redirects-admin.php:343
 #: includes/redirects/class-erankly-redirects-admin.php:547
 msgid "Contains"
 msgstr ""
 
-#: includes/admin.php:691
+#: includes/admin.php:983
 #: includes/redirects/class-erankly-redirects-admin.php:344
 #: includes/redirects/class-erankly-redirects-admin.php:548
 msgid "Starts with"
 msgstr ""
 
-#: includes/admin.php:695
+#: includes/admin.php:987
 #: includes/redirects/class-erankly-redirects-admin.php:345
 #: includes/redirects/class-erankly-redirects-admin.php:549
 msgid "Ends with"
 msgstr ""
 
-#: includes/admin.php:701
+#: includes/admin.php:993
 msgid "Visibility"
 msgstr ""
 
-#: includes/admin.php:705
+#: includes/admin.php:997
 #: includes/redirects/class-erankly-redirects-admin.php:315
 #: includes/redirects/class-erankly-redirects-admin.php:532
 msgid "Everyone"
 msgstr ""
 
-#: includes/admin.php:709
+#: includes/admin.php:1001
 #: includes/redirects/class-erankly-redirects-admin.php:316
 msgid "Logged-out users only"
 msgstr ""
 
-#: includes/admin.php:713
+#: includes/admin.php:1005
 #: includes/redirects/class-erankly-redirects-admin.php:317
 msgid "Logged-in users only"
 msgstr ""
 
-#: includes/admin.php:726
+#: includes/admin.php:1018
 msgid "Delete this redirect?"
 msgstr ""
 
-#: includes/admin.php:727
+#: includes/admin.php:1019
 #: includes/redirects/class-erankly-redirects-admin.php:456
 msgid "Enable"
 msgstr ""
 
-#: includes/admin.php:728
+#: includes/admin.php:1020
 #: includes/redirects/class-erankly-redirects-admin.php:456
 msgid "Disable"
 msgstr ""
 
-#: includes/admin.php:731
+#: includes/admin.php:1023
 #: includes/redirects/class-erankly-redirects-admin.php:170
 #: includes/redirects/class-erankly-redirects-rest.php:100
 msgid "The redirect status could not be changed."
 msgstr ""
 
-#: includes/admin.php:732
+#: includes/admin.php:1024
 #: includes/redirects/class-erankly-redirects-admin.php:169
 #: includes/redirects/class-erankly-redirects-rest.php:128
 msgid "The redirect could not be deleted."
 msgstr ""
 
-#: includes/admin.php:1003
-#: includes/admin.php:1023
+#: includes/admin.php:1305
+#: includes/admin.php:1325
 msgid "example"
 msgstr ""
 
-#: includes/admin.php:1018
-#: includes/helpers/defaults.php:217
+#: includes/admin.php:1320
+#: includes/helpers/content-defaults.php:112
 msgid "Author archive"
 msgstr ""
 
-#: includes/admin.php:1019
-#: includes/helpers/defaults.php:218
+#: includes/admin.php:1321
+#: includes/helpers/content-defaults.php:113
 msgid "Date archive"
 msgstr ""
 
 #. translators: %s: example search query.
 #. translators: %s: Search query.
-#: includes/admin.php:1022
+#: includes/admin.php:1324
 #: includes/title-description.php:134
 #, php-format
 msgid "Search results for %s"
 msgstr ""
 
-#: includes/admin.php:1025
+#: includes/admin.php:1327
 #: includes/breadcrumbs.php:244
 #: includes/title-description.php:144
 msgid "Page not found"
 msgstr ""
 
-#: includes/ai.php:362
+#: includes/ai-content-analysis-routes.php:118
+msgid "Content not found."
+msgstr ""
+
+#: includes/ai-content-analysis-routes.php:123
+msgid "This content type cannot be analyzed."
+msgstr ""
+
+#: includes/ai-content-analysis-routes.php:127
+msgid "You cannot analyze this content."
+msgstr ""
+
+#: includes/ai-content-analysis.php:513
+msgid "Could not read the AI analysis."
+msgstr ""
+
+#: includes/ai-content-analysis.php:565
+msgid "The AI returned an invalid verdict."
+msgstr ""
+
+#: includes/ai-content-analysis.php:570
+msgid "The AI returned an incomplete analysis."
+msgstr ""
+
+#: includes/ai-content-analysis.php:600
+msgid "The AI returned an incomplete keyword analysis."
+msgstr ""
+
+#: includes/ai-content-analysis.php:712
+msgid "The AI analysis was too large to store."
+msgstr ""
+
+#: includes/ai-content-analysis.php:803
+msgid "Add content before analyzing."
+msgstr ""
+
+#: includes/ai-content-analysis.php:809
+msgid "Analysis already in progress. Wait a moment."
+msgstr ""
+
+#: includes/ai-content-analysis.php:830
+msgid "The content-analysis prompt is missing."
+msgstr ""
+
+#: includes/ai-content-analysis.php:867
+msgid "Could not save the analysis."
+msgstr ""
+
+#: includes/ai.php:368
 #: includes/link-building.php:128
-#: assets/js/editor.js:202
-#: assets/js/site-editor.js:223
+#: assets/js/editor.js:208
+#: assets/js/site-editor.js:218
 msgid "Generating…"
 msgstr ""
 
-#: includes/ai.php:363
-#: assets/js/editor.js:222
-#: assets/js/site-editor.js:243
+#: includes/ai.php:369
+#: assets/js/editor.js:228
+#: assets/js/site-editor.js:238
 msgid "Improving…"
 msgstr ""
 
-#: includes/ai.php:364
-#: assets/js/editor.js:176
+#: includes/ai.php:370
+#: assets/js/editor.js:187
 #: assets/js/site-editor.js:197
 msgid "Done."
 msgstr ""
 
-#: includes/ai.php:365
-#: assets/js/editor.js:176
+#: includes/ai.php:371
+#: assets/js/editor.js:187
 #: assets/js/site-editor.js:197
-msgid "Results improved."
+msgid "Improved."
 msgstr ""
 
-#: includes/ai.php:366
-#: assets/js/editor.js:182
+#: includes/ai.php:372
+#: assets/js/editor.js:193
 #: assets/js/site-editor.js:203
-msgid "Generation failed. Please try again."
+msgid "Generation failed. Try again."
 msgstr ""
 
-#: includes/ai.php:367
-#: assets/js/editor.js:145
-msgid "Save a draft first, then generate."
+#: includes/ai.php:373
+#: includes/link-building.php:126
+#: assets/js/editor.js:156
+#: assets/js/link-suggestions.js:151
+msgid "Save a draft first."
 msgstr ""
 
-#: includes/ai.php:368
-#: assets/js/editor.js:208
-#: assets/js/site-editor.js:229
-msgid "Improvement instructions"
+#: includes/ai.php:374
+#: assets/js/editor.js:214
+#: assets/js/site-editor.js:224
+msgid "How to improve"
 msgstr ""
 
-#: includes/ai.php:369
-#: assets/js/editor.js:210
-#: assets/js/site-editor.js:231
-msgid "Make the title more specific, shorten the description, change the tone…"
+#: includes/ai.php:375
+#: assets/js/editor.js:216
+#: assets/js/site-editor.js:226
+msgid "Make the title specific, shorten the description, or change the tone…"
 msgstr ""
 
-#: includes/ai.php:370
-#: assets/js/editor.js:222
-#: assets/js/site-editor.js:243
+#: includes/ai.php:376
+#: assets/js/editor.js:228
+#: assets/js/site-editor.js:238
 msgid "Improve results"
 msgstr ""
 
-#: includes/ai.php:371
-#: assets/js/editor.js:150
+#: includes/ai.php:377
+#: assets/js/editor.js:161
 #: assets/js/site-editor.js:171
-msgid "Add instructions before improving the results."
+msgid "Add improvement instructions."
 msgstr ""
 
-#: includes/ai.php:451
+#: includes/ai.php:457
 msgid "AI meta generation is not available."
 msgstr ""
 
-#: includes/ai.php:461
-#: includes/ai.php:653
+#: includes/ai.php:467
+#: includes/ai.php:659
 msgid "Invalid Site Editor context."
 msgstr ""
 
-#: includes/ai.php:468
+#: includes/ai.php:474
 msgid "Invalid object ID."
 msgstr ""
 
-#: includes/ai.php:606
+#: includes/ai.php:612
 msgid "Term not found."
 msgstr ""
 
-#: includes/ai.php:615
+#: includes/ai.php:621
 #: includes/link-building.php:813
 msgid "Post not found."
 msgstr ""
 
 #. translators: %s: site name.
-#: includes/ai.php:687
+#: includes/ai.php:693
 #, php-format
 msgid "Site name: %s"
 msgstr ""
 
 #. translators: %s: special page label.
-#: includes/ai.php:692
+#: includes/ai.php:698
 #, php-format
 msgid "Page type: %s"
 msgstr ""
 
-#: includes/ai.php:700
+#: includes/ai.php:706
 msgid "Homepage source page"
 msgstr ""
 
-#: includes/ai.php:702
+#: includes/ai.php:708
 msgid "This homepage lists the latest published posts from the site."
 msgstr ""
 
-#: includes/ai.php:708
+#: includes/ai.php:714
 msgid "This blog page lists recent posts from the site."
 msgstr ""
 
-#: includes/ai.php:714
+#: includes/ai.php:720
 msgid "This archive lists posts written by an author on the site."
 msgstr ""
 
-#: includes/ai.php:719
+#: includes/ai.php:725
 msgid "This archive lists posts published during a selected date period."
 msgstr ""
 
-#: includes/ai.php:724
+#: includes/ai.php:730
 msgid "This is the site search results page shown after visitors search for keywords."
 msgstr ""
 
-#: includes/ai.php:728
+#: includes/ai.php:734
 msgid "This is the not found page shown when a requested URL does not exist on the site."
 msgstr ""
 
 #. translators: 1: page context label. 2: page title.
-#: includes/ai.php:760
+#: includes/ai.php:766
 #, php-format
 msgid "%1$s title: %2$s"
 msgstr ""
 
 #. translators: 1: page context label. 2: page content excerpt.
-#: includes/ai.php:769
+#: includes/ai.php:775
 #, php-format
 msgid "%1$s content: %2$s"
 msgstr ""
 
 #. translators: %s: comma-separated recent post summaries.
-#: includes/ai.php:824
+#: includes/ai.php:830
 #, php-format
 msgid "Recent posts: %s"
 msgstr ""
 
-#: includes/ai.php:1028
+#: includes/ai.php:1034
 msgid "The AI prompt template is missing."
 msgstr ""
 
-#: includes/ai.php:1052
-#: includes/ai.php:1155
+#: includes/ai.php:1058
+#: includes/ai.php:1161
 msgid "The AI returned an empty result."
 msgstr ""
 
-#: includes/ai.php:1085
+#: includes/ai.php:1091
 msgid "Could not read the AI response."
 msgstr ""
 
-#: includes/ai.php:1109
+#: includes/ai.php:1115
 #: includes/link-building.php:795
 msgid "AI features are not enabled."
 msgstr ""
 
-#: includes/ai.php:1132
+#: includes/ai.php:1138
 msgid "No AI client is available to run the generation."
 msgstr ""
 
-#: includes/ai.php:1136
+#: includes/ai.php:1142
 msgid "AI features are disabled in this environment."
 msgstr ""
 
-#: includes/ai.php:1170
+#: includes/ai.php:1247
 msgid "You must be signed in to use AI features."
 msgstr ""
 
-#: includes/ai.php:1227
+#: includes/ai.php:1308
+msgid "Another AI request is being checked. Please retry in a moment."
+msgstr ""
+
+#: includes/ai.php:1322
 msgid "Too many AI requests. Please wait a few minutes and try again."
 msgstr ""
 
-#: includes/ai.php:1248
-#: assets/js/editor.js:197
-#: assets/js/site-editor.js:218
-msgid "Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service."
+#: includes/ai.php:1333
+msgid "The AI usage limit could not be recorded. Please try again later."
 msgstr ""
 
-#: includes/ai.php:1268
+#: includes/ai.php:1367
 msgid "Data sent to your AI provider"
 msgstr ""
 
 #. translators: %s: link to the WordPress Connectors settings screen.
-#: includes/ai.php:1273
+#: includes/ai.php:1372
 #, php-format
 msgid "When an editor clicks Generate with AI or Improve results, EasyRankly sends context to the AI provider configured on the %s screen. EasyRankly does not operate that service and does not receive a copy of the content."
 msgstr ""
 
-#: includes/ai.php:1278
+#: includes/ai.php:1377
 msgid "Meta generation may include:"
 msgstr ""
 
-#: includes/ai.php:1280
+#: includes/ai.php:1379
 msgid "Site name and language (locale)."
 msgstr ""
 
-#: includes/ai.php:1281
+#: includes/ai.php:1380
 msgid "Post, term, or special-page title."
 msgstr ""
 
 #. translators: %d: maximum plain-text body characters sent to the provider.
-#: includes/ai.php:1286
+#: includes/ai.php:1385
 #, php-format
 msgid "Plain-text body or description, truncated to %1$d characters (shortcodes removed)."
 msgstr ""
 
-#: includes/ai.php:1291
+#: includes/ai.php:1390
 msgid "When improving: the current title and description, plus your instructions."
 msgstr ""
 
-#: includes/ai.php:1294
+#: includes/ai.php:1393
 msgid "Health redirect suggestions (when enabled) send only the broken URL slug words and a numbered list of existing page titles and paths from your site, never full post bodies."
 msgstr ""
 
-#: includes/ai.php:1301
-msgid "Another AI request is being checked. Please retry in a moment."
-msgstr ""
-
-#: includes/ai.php:1326
-msgid "The AI usage limit could not be recorded. Please try again later."
-msgstr ""
-
-#: includes/ai.php:1334
+#: includes/ai.php:1433
 msgid "Meta generation prompt"
 msgstr ""
 
-#: includes/ai.php:1341
+#: includes/ai.php:1440
 msgid "Body character limit"
 msgstr ""
 
 #. translators: 1: minimum characters. 2: maximum characters.
-#: includes/ai.php:1346
+#: includes/ai.php:1445
 #, php-format
 msgid "Maximum plain-text body or description characters sent to the model (%1$d–%2$d). Lower values reduce token usage; higher values give the model more context."
 msgstr ""
 
-#: includes/ai.php:1377
+#: includes/ai.php:1476
 #: includes/link-building.php:974
 msgid "Prompt template"
 msgstr ""
 
-#: includes/ai.php:1378
+#: includes/ai.php:1477
 msgid "Instructions the AI uses to generate the meta title and description; edit to customise tone and rules. Leave empty or unchanged to keep the built-in prompt and its future updates."
 msgstr ""
 
-#: includes/ai.php:1381
+#: includes/ai.php:1480
 #: includes/link-building.php:978
 msgid "Keep the \"## System\" and \"## User\" section headings. Available placeholders:"
 msgstr ""
@@ -2226,46 +2655,46 @@ msgstr ""
 msgid "Home"
 msgstr ""
 
-#: includes/compatibility.php:315
-msgid "EasyRankly: another SEO plugin is active. Head metadata (title, meta description, canonical, Open Graph, Schema.org) and sitemap output are disabled to avoid conflicts. Redirects, health monitor, and breadcrumbs continue to work."
-msgstr ""
-
-#: includes/compatibility.php:500
+#: includes/compatibility-woocommerce.php:168
 msgid "Anonymous"
 msgstr ""
 
-#: includes/health/404-monitor.php:654
-#: includes/health/broken-links-crawler.php:1033
-#: includes/health/broken-links-crawler.php:1078
-#: includes/health/suggestions.php:511
+#: includes/compatibility.php:226
+msgid "EasyRankly: another SEO plugin is active. Head metadata (title, meta description, canonical, Open Graph, Schema.org) and sitemap output are disabled to avoid conflicts. Redirects, health monitor, and breadcrumbs continue to work."
+msgstr ""
+
+#: includes/health/404-monitor.php:978
+#: includes/health/broken-links-actions.php:15
+#: includes/health/broken-links-actions.php:56
+#: includes/health/suggestions.php:517
 msgid "Sorry, you are not allowed to update Health data."
 msgstr ""
 
-#: includes/health/404-monitor.php:688
+#: includes/health/404-monitor.php:1012
 msgid "Sorry, you are not allowed to clear Health data."
 msgstr ""
 
-#: includes/health/404-monitor.php:820
+#: includes/health/404-monitor.php:1144
 msgid "Previous URL of this page"
 msgstr ""
 
-#: includes/health/404-monitor.php:821
+#: includes/health/404-monitor.php:1145
 msgid "Matches an existing page slug"
 msgstr ""
 
-#: includes/health/404-monitor.php:822
+#: includes/health/404-monitor.php:1146
 msgid "Matches a category/tag archive"
 msgstr ""
 
-#: includes/health/404-monitor.php:823
+#: includes/health/404-monitor.php:1147
 msgid "Closest matching page"
 msgstr ""
 
-#: includes/health/404-monitor.php:824
+#: includes/health/404-monitor.php:1148
 msgid "AI: related topic"
 msgstr ""
 
-#: includes/health/404-monitor.php:831
+#: includes/health/404-monitor.php:1155
 msgid "Suggested target"
 msgstr ""
 
@@ -2294,12 +2723,12 @@ msgid "Suggested target:"
 msgstr ""
 
 #: includes/health/broken-links-admin.php:123
-#: includes/health/suggestions.php:653
+#: includes/health/suggestions.php:659
 msgid "No match (AI included)."
 msgstr ""
 
 #: includes/health/broken-links-admin.php:130
-#: includes/health/suggestions.php:679
+#: includes/health/suggestions.php:685
 msgid "Enable Redirects to fix"
 msgstr ""
 
@@ -2308,12 +2737,12 @@ msgid "Created from Broken-Link crawler"
 msgstr ""
 
 #: includes/health/broken-links-admin.php:151
-#: includes/health/suggestions.php:706
+#: includes/health/suggestions.php:712
 msgid "Create 301 redirect"
 msgstr ""
 
 #: includes/health/broken-links-admin.php:161
-#: includes/health/suggestions.php:716
+#: includes/health/suggestions.php:722
 msgid "Suggest with AI"
 msgstr ""
 
@@ -2349,12 +2778,6 @@ msgstr ""
 
 #: includes/health/broken-links-admin.php:237
 msgid "Run broken-link scan"
-msgstr ""
-
-#: includes/health/broken-links-admin.php:238
-#: includes/redirects/class-erankly-redirects-admin.php:380
-#: includes/reset.php:457
-msgid "Cancel"
 msgstr ""
 
 #: includes/health/broken-links-admin.php:240
@@ -2580,14 +3003,6 @@ msgstr ""
 msgid "Characters"
 msgstr ""
 
-#: includes/health/panel.php:273
-msgid "Inbound links"
-msgstr ""
-
-#: includes/health/panel.php:274
-msgid "Outbound links"
-msgstr ""
-
 #. translators: 1: Number of pages analysed. 2: Formatted date/time of last scan.
 #: includes/health/panel.php:312
 #, php-format
@@ -2614,33 +3029,33 @@ msgid ""
 "Return the JSON object only."
 msgstr ""
 
-#: includes/health/suggestions.php:651
+#: includes/health/suggestions.php:657
 msgid "Path anonymized, no automatic match."
 msgstr ""
 
-#: includes/health/suggestions.php:655
+#: includes/health/suggestions.php:661
 msgid "No automatic match."
 msgstr ""
 
-#: includes/health/suggestions.php:685
+#: includes/health/suggestions.php:691
 msgid "Create manually"
 msgstr ""
 
-#: includes/health/suggestions.php:698
+#: includes/health/suggestions.php:704
 msgid "Created from Health 404 scanner"
 msgstr ""
 
-#: includes/health/suggestions.php:738
+#: includes/health/suggestions.php:744
 #: includes/redirects/class-erankly-redirects-admin.php:351
 #: includes/redirects/class-erankly-redirects-admin.php:352
 msgid "Ignore"
 msgstr ""
 
-#: includes/health/suggestions.php:739
+#: includes/health/suggestions.php:745
 msgid "Mark resolved"
 msgstr ""
 
-#: includes/health/suggestions.php:741
+#: includes/health/suggestions.php:747
 msgid "Restore"
 msgstr ""
 
@@ -2648,15 +3063,15 @@ msgstr ""
 msgid "Sorry, you are not allowed to run Health scans."
 msgstr ""
 
-#: includes/helpers/defaults.php:215
+#: includes/helpers/content-defaults.php:110
 msgid "Homepage"
 msgstr ""
 
-#: includes/helpers/defaults.php:216
+#: includes/helpers/content-defaults.php:111
 msgid "Blog page"
 msgstr ""
 
-#: includes/helpers/defaults.php:220
+#: includes/helpers/content-defaults.php:115
 msgid "404 page"
 msgstr ""
 
@@ -2664,1232 +3079,1266 @@ msgstr ""
 msgid "EasyRankly could not invalidate redirect caches during reset."
 msgstr ""
 
-#: includes/helpers/sanitization.php:162
+#: includes/helpers/sanitization-schema.php:21
 msgid "Local business"
 msgstr ""
 
-#: includes/helpers/sanitization.php:163
+#: includes/helpers/sanitization-schema.php:22
 msgid "Store"
 msgstr ""
 
-#: includes/helpers/sanitization.php:164
+#: includes/helpers/sanitization-schema.php:23
 msgid "Restaurant"
 msgstr ""
 
-#: includes/helpers/sanitization.php:165
+#: includes/helpers/sanitization-schema.php:24
 msgid "Cafe or coffee shop"
 msgstr ""
 
-#: includes/helpers/sanitization.php:166
+#: includes/helpers/sanitization-schema.php:25
 msgid "Bar or pub"
 msgstr ""
 
-#: includes/helpers/sanitization.php:167
+#: includes/helpers/sanitization-schema.php:26
 msgid "Bakery"
 msgstr ""
 
-#: includes/helpers/sanitization.php:168
+#: includes/helpers/sanitization-schema.php:27
 msgid "Food establishment"
 msgstr ""
 
-#: includes/helpers/sanitization.php:169
+#: includes/helpers/sanitization-schema.php:28
 msgid "Dentist"
 msgstr ""
 
-#: includes/helpers/sanitization.php:170
+#: includes/helpers/sanitization-schema.php:29
 msgid "Medical clinic"
 msgstr ""
 
-#: includes/helpers/sanitization.php:171
+#: includes/helpers/sanitization-schema.php:30
 msgid "Pharmacy"
 msgstr ""
 
-#: includes/helpers/sanitization.php:172
+#: includes/helpers/sanitization-schema.php:31
 msgid "Legal service"
 msgstr ""
 
-#: includes/helpers/sanitization.php:173
+#: includes/helpers/sanitization-schema.php:32
 msgid "Real estate agent"
 msgstr ""
 
-#: includes/helpers/sanitization.php:174
+#: includes/helpers/sanitization-schema.php:33
 msgid "Auto repair"
 msgstr ""
 
-#: includes/helpers/sanitization.php:175
+#: includes/helpers/sanitization-schema.php:34
 msgid "Beauty salon"
 msgstr ""
 
-#: includes/helpers/sanitization.php:176
+#: includes/helpers/sanitization-schema.php:35
 msgid "Hair salon"
 msgstr ""
 
-#: includes/helpers/sanitization.php:177
+#: includes/helpers/sanitization-schema.php:36
 msgid "Nail salon"
 msgstr ""
 
-#: includes/helpers/sanitization.php:178
+#: includes/helpers/sanitization-schema.php:37
 msgid "Health club"
 msgstr ""
 
-#: includes/helpers/sanitization.php:179
+#: includes/helpers/sanitization-schema.php:38
 msgid "Hotel"
 msgstr ""
 
-#: includes/helpers/sanitization.php:180
+#: includes/helpers/sanitization-schema.php:39
 msgid "Bed and breakfast"
 msgstr ""
 
-#: includes/helpers/sanitization.php:181
+#: includes/helpers/sanitization-schema.php:40
 msgid "Lodging business"
 msgstr ""
 
 #. translators: 1: owner post type label, 2: taxonomy label.
-#: includes/helpers/utils.php:79
+#: includes/helpers/utils.php:30
 #, php-format
 msgid "%1$s: %2$s"
 msgstr ""
 
-#: includes/helpers/utils.php:248
+#: includes/helpers/utils.php:190
 msgid "WordPress Multisite: Detected"
 msgstr ""
 
-#: includes/helpers/utils.php:249
+#: includes/helpers/utils.php:191
 msgid "WordPress Multisite: Not detected"
 msgstr ""
 
-#: includes/helpers/utils.php:268
+#: includes/helpers/utils.php:210
 msgid "Connectors API (WordPress 7.0): Detected"
 msgstr ""
 
-#: includes/helpers/utils.php:269
+#: includes/helpers/utils.php:211
 msgid "Connectors API (WordPress 7.0): Not detected"
 msgstr ""
 
-#: includes/helpers/utils.php:288
+#: includes/helpers/utils.php:230
 msgid "AI provider: Connected"
 msgstr ""
 
-#: includes/helpers/utils.php:289
+#: includes/helpers/utils.php:231
 msgid "AI provider: Not connected"
 msgstr ""
 
-#: includes/import-export.php:346
-#: includes/import-export.php:370
+#: includes/import-export.php:601
+#: includes/import-export.php:625
 msgid "Migration report not found."
 msgstr ""
 
-#: includes/import-export.php:351
+#: includes/import-export.php:606
 msgid "The migration report could not be encoded."
 msgstr ""
 
-#: includes/import-export.php:381
+#: includes/import-export.php:636
 msgid "The exception report could not be opened."
 msgstr ""
 
-#: includes/import-export.php:1422
-#: includes/import-export.php:1454
+#: includes/import-export.php:887
+msgid "The export header could not be encoded."
+msgstr ""
+
+#: includes/import-export.php:1495
+#: includes/import-export.php:1527
 msgid "Import the reviewed file"
 msgstr ""
 
 #. translators: 1: source plugin name, 2: maximum upload size.
-#: includes/import-export.php:1429
+#: includes/import-export.php:1502
 #, php-format
 msgid "Upload the same official %1$s export that you just reviewed. EasyRankly will validate it again before importing. Maximum size: %2$s."
 msgstr ""
 
-#: includes/import-export.php:1450
+#: includes/import-export.php:1523
 msgid "Choose the reviewed export"
 msgstr ""
 
-#: includes/import-export.php:1451
+#: includes/import-export.php:1524
 msgid "or drag and drop it here"
 msgstr ""
 
-#: includes/import-export.php:1527
+#: includes/import-export.php:1596
+msgid "EasyRankly import in progress"
+msgstr ""
+
+#. translators: 1: processed records, 2: total records, 3: stage name.
+#: includes/import-export.php:1597
+#, php-format
+msgid "%1$d of %2$d records processed. Current stage: %3$s. The private source and cursor are saved; WP-Cron will continue automatically."
+msgstr ""
+
+#: includes/import-export.php:1613
 msgid "Back to all import and export tools"
 msgstr ""
 
-#: includes/import-export.php:1534
+#: includes/import-export.php:1620
 msgid "Export"
 msgstr ""
 
-#: includes/import-export.php:1536
+#: includes/import-export.php:1622
 msgid "Download a JSON backup of your EasyRankly settings, redirects and SEO metadata. Keep it as a backup or import it on another site."
 msgstr ""
 
-#: includes/import-export.php:1538
+#: includes/import-export.php:1624
 msgid "On this network the file holds the network-wide settings plus this primary site's content (redirects, post/term metadata, special page defaults), not a whole-network export of every site."
 msgstr ""
 
-#: includes/import-export.php:1540
+#: includes/import-export.php:1626
 msgid "Export data"
 msgstr ""
 
-#: includes/import-export.php:1545
-#: includes/import-export.php:2257
-#: includes/import-export.php:2496
-#: includes/import-export.php:2539
+#: includes/import-export.php:1631
+#: includes/import-export.php:2395
+#: includes/import-export.php:2635
+#: includes/import-export.php:2677
 msgid "Import"
 msgstr ""
 
-#: includes/import-export.php:1547
+#: includes/import-export.php:1633
 msgid "Upload a JSON file previously exported by EasyRankly. Settings, redirects and special page defaults are replaced; post and term metadata is matched by ID and overwritten."
 msgstr ""
 
 #. translators: %s: maximum safe complete-import size.
-#: includes/import-export.php:1636
+#: includes/import-export.php:1638
 #, php-format
 msgid "For memory safety, complete JSON imports are limited to %s on this request."
 msgstr ""
 
-#: includes/import-export.php:1560
+#: includes/import-export.php:1656
 msgid "Click to choose a file"
 msgstr ""
 
-#: includes/import-export.php:1561
+#: includes/import-export.php:1657
 msgid "or drag and drop a JSON file here"
 msgstr ""
 
-#: includes/import-export.php:1564
+#: includes/import-export.php:1660
 msgid "Import file"
 msgstr ""
 
-#: includes/import-export.php:1570
+#: includes/import-export.php:1666
 msgid "Import from other plugins"
 msgstr ""
 
-#: includes/import-export.php:1572
+#: includes/import-export.php:1668
 msgid "Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, keyphrases, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts."
 msgstr ""
 
-#: includes/import-export.php:1574
+#: includes/import-export.php:1670
 msgid "SEO source data was detected with an unrecognized version or storage signature. EasyRankly will not guess: use a certified official export or update the adapter before migrating."
 msgstr ""
 
-#: includes/import-export.php:1578
+#: includes/import-export.php:1674
 msgid "From the installed database"
 msgstr ""
 
-#: includes/import-export.php:1583
+#: includes/import-export.php:1679
 msgid "Source plugin"
 msgstr ""
 
 #. translators: %s: source plugin name.
-#: includes/import-export.php:1593
+#: includes/import-export.php:1689
 #, php-format
 msgid "%s: unsupported storage signature"
 msgstr ""
 
 #. translators: %s: source plugin name.
-#: includes/import-export.php:1596
+#: includes/import-export.php:1692
 #, php-format
 msgid "%s: no data found"
 msgstr ""
 
-#: includes/import-export.php:1603
+#: includes/import-export.php:1699
 msgid "Preview migration"
 msgstr ""
 
-#: includes/import-export.php:1604
+#: includes/import-export.php:1700
 msgid "The preview scans everything without writing data. When it is ready, the migration assistant will offer the reviewed import as the next step."
 msgstr ""
 
-#: includes/import-export.php:1607
+#: includes/import-export.php:1703
 msgid "No certified source-plugin database data was found. You can use an official export instead."
 msgstr ""
 
-#: includes/import-export.php:1610
+#: includes/import-export.php:1706
 msgid "From an official export file"
 msgstr ""
 
 #. translators: %s: maximum upload size.
-#: includes/import-export.php:1615
+#: includes/import-export.php:1711
 #, php-format
 msgid "Use an official CSV or JSON export when the original plugin is unavailable or its database signature is unsupported. EasyRankly validates the exact format and stores the file privately only until the job ends. Maximum size: %s."
 msgstr ""
 
-#: includes/import-export.php:1623
+#: includes/import-export.php:1719
 msgid "Export source"
 msgstr ""
 
-#: includes/import-export.php:1625
+#: includes/import-export.php:1721
 msgid "Detect automatically"
 msgstr ""
 
-#: includes/import-export.php:1639
+#: includes/import-export.php:1735
 msgid "Choose an official export"
 msgstr ""
 
-#: includes/import-export.php:1640
+#: includes/import-export.php:1736
 msgid "or drag and drop a CSV/JSON file here"
 msgstr ""
 
-#: includes/import-export.php:1643
+#: includes/import-export.php:1739
 msgid "Preview file migration"
 msgstr ""
 
-#: includes/import-export.php:1644
+#: includes/import-export.php:1740
 msgid "The private upload is deleted after preview. If every check passes, the assistant will ask you to upload the same file once more for the reviewed import."
 msgstr ""
 
-#: includes/import-export.php:1647
+#: includes/import-export.php:1743
 msgid "A migration is already active. Its checkpoint, controls and live counters are shown above; finish or cancel it before starting another source."
 msgstr ""
 
-#: includes/import-export.php:1693
+#: includes/import-export.php:1767
+msgid "Import queued. It is continuing in bounded, restart-safe background batches."
+msgstr ""
+
+#: includes/import-export.php:1770
+msgid "The background import completed successfully. Settings, redirects and metadata were restored from the saved checkpoint."
+msgstr ""
+
+#: includes/import-export.php:1773
+msgid "The background import stopped before completion. No unchecked batch will be retried; review the PHP/database log before uploading again."
+msgstr ""
+
+#: includes/import-export.php:1781
+msgid "The import job could not be persisted or completed. The private upload was removed and no further background write is scheduled."
+msgstr ""
+
+#: includes/import-export.php:1811
 #: includes/redirects/class-erankly-redirects-admin.php:167
 msgid "Security check failed. Please try again."
 msgstr ""
 
-#: includes/import-export.php:1698
+#: includes/import-export.php:1816
 msgid "The file could not be imported. Please upload a valid EasyRankly export file."
 msgstr ""
 
 #. translators: %s: maximum safe complete-import size.
-#: includes/import-export.php:1799
+#: includes/import-export.php:1826
 #, php-format
 msgid "The EasyRankly export exceeds the safe import limit of %s and was rejected before being read into memory."
 msgstr ""
 
-#: includes/import-export.php:1980
+#: includes/import-export.php:1835
 msgid "The EasyRankly export is too structurally complex for the available PHP memory and was rejected before JSON decoding."
 msgstr ""
 
-#: includes/import-export.php:1703
+#: includes/import-export.php:1840
 msgid "Live verification passed: the sampled SEO output, redirects, robots.txt and sitemap are equivalent after the provider change."
 msgstr ""
 
-#: includes/import-export.php:1704
+#: includes/import-export.php:1841
 msgid "Live verification found differences or unreachable samples. Review the report before deleting the source plugin."
 msgstr ""
 
-#: includes/import-export.php:1705
+#: includes/import-export.php:1842
 msgid "Live verification is unavailable because the go-live preflight gate is blocked. Resolve every blocking check and run a fresh migration before cutover."
 msgstr ""
 
-#: includes/import-export.php:1706
+#: includes/import-export.php:1843
 msgid "Live verification was not run because another SEO plugin still owns the frontend output. Deactivate the migrated source plugin, purge caches, then verify again."
 msgstr ""
 
-#: includes/import-export.php:1707
+#: includes/import-export.php:1844
 msgid "Conditional rollback finished. Later manual edits were preserved and are listed separately in the report."
 msgstr ""
 
-#: includes/import-export.php:1708
+#: includes/import-export.php:1845
+msgid "Conditional rollback started and will continue in bounded background batches. Its cursor is persisted after every batch."
+msgstr ""
+
+#: includes/import-export.php:1846
 msgid "The rollback safety window has expired. No value was changed."
 msgstr ""
 
-#: includes/import-export.php:1709
+#: includes/import-export.php:1847
 msgid "Rollback could not be completed. Review the journal summary before making manual changes."
 msgstr ""
 
-#: includes/import-export.php:1710
+#: includes/import-export.php:1848
 msgid "The requested migration evidence action is not valid for this report."
 msgstr ""
 
-#: includes/import-export.php:1720
+#: includes/import-export.php:1858
 msgid "The official export exceeds the permitted upload size."
 msgstr ""
 
-#: includes/import-export.php:1721
+#: includes/import-export.php:1859
 msgid "The selected source does not match the certified signature of this export file."
 msgstr ""
 
-#: includes/import-export.php:1722
+#: includes/import-export.php:1860
 msgid "The export signature is ambiguous. Select the source plugin explicitly and try again."
 msgstr ""
 
-#: includes/import-export.php:1723
+#: includes/import-export.php:1861
 msgid "A private non-public temporary directory is not available. Configure a writable system temporary directory before uploading source SEO data."
 msgstr ""
 
-#: includes/import-export.php:1724
+#: includes/import-export.php:1862
 msgid "The official export could not be stored in the private temporary directory."
 msgstr ""
 
-#: includes/import-export.php:1725
+#: includes/import-export.php:1863
 msgid "The private temporary file could not be restricted to the current server account. No migration was started and the upload was removed."
 msgstr ""
 
-#: includes/import-export.php:1726
+#: includes/import-export.php:1864
 msgid "Only official CSV and JSON exports are accepted."
 msgstr ""
 
-#: includes/import-export.php:1727
+#: includes/import-export.php:1865
 msgid "The file does not match a certified Yoast, Rank Math, AIOSEO or SEOPress export signature."
 msgstr ""
 
-#: includes/import-export.php:1729
+#: includes/import-export.php:1867
 msgid "The official export upload failed validation. No migration was started and no file was retained."
 msgstr ""
 
-#: includes/import-export.php:1736
+#: includes/import-export.php:1874
 msgid "Migration queued. It will continue in restart-safe background batches; you can leave this page."
 msgstr ""
 
-#: includes/import-export.php:1739
+#: includes/import-export.php:1877
 msgid "The migration is still running from its latest saved checkpoint."
 msgstr ""
 
-#: includes/import-export.php:1742
+#: includes/import-export.php:1880
 msgid "Migration blocked: the detected source version or database signature is not certified. No data was written; use a supported official export or update EasyRankly."
 msgstr ""
 
-#: includes/import-export.php:1745
+#: includes/import-export.php:1883
 msgid "The migration could not be queued. Check database permissions and source-plugin data, then try again."
 msgstr ""
 
-#: includes/import-export.php:1748
+#: includes/import-export.php:1886
 msgid "The migration command could not be saved. No unchecked write was performed; review the database/PHP log and retry from the saved checkpoint."
 msgstr ""
 
-#: includes/import-export.php:1762
+#: includes/import-export.php:1900
 msgid "The migration could not be completed. Review the report for details."
 msgstr ""
 
-#: includes/import-export.php:1764
+#: includes/import-export.php:1902
 msgid "Migration cancelled at its saved checkpoint. Values already written were kept; review the final report."
 msgstr ""
 
-#: includes/import-export.php:1766
+#: includes/import-export.php:1904
 msgid "Migration completed with write errors. Existing EasyRankly data was preserved; review the report before switching SEO plugins."
 msgstr ""
 
-#: includes/import-export.php:1768
+#: includes/import-export.php:1906
 msgid "Migration preview complete. No EasyRankly data was changed."
 msgstr ""
 
-#: includes/import-export.php:1770
+#: includes/import-export.php:1908
 msgid "Migration complete. Existing EasyRankly data was preserved."
 msgstr ""
 
 #. translators: 1: settings count, 2: redirects count, 3: post meta count, 4: term meta count, 5: user meta count.
-#: includes/import-export.php:1786
+#: includes/import-export.php:1924
 #, php-format
 msgid "Import complete. Settings: %1$d. Redirects: %2$d. Post metadata: %3$d. Term metadata: %4$d. User metadata: %5$d."
 msgstr ""
 
-#: includes/import-export.php:1798
+#: includes/import-export.php:1936
 msgid "Yoast SEO"
 msgstr ""
 
-#: includes/import-export.php:1799
+#: includes/import-export.php:1937
 msgid "Rank Math"
 msgstr ""
 
-#: includes/import-export.php:1800
+#: includes/import-export.php:1938
 msgid "All in One SEO"
 msgstr ""
 
-#: includes/import-export.php:1801
+#: includes/import-export.php:1939
 msgid "SEOPress"
 msgstr ""
 
 #. translators: 1: source plugin name, 2: post meta count, 3: term meta count.
-#: includes/import-export.php:1808
+#: includes/import-export.php:1946
 #, php-format
 msgid "Imported from %1$s. Post metadata: %2$d. Term metadata: %3$d."
 msgstr ""
 
-#: includes/import-export.php:1827
+#: includes/import-export.php:1965
 msgid "Preview evidence only"
 msgstr ""
 
-#: includes/import-export.php:1828
+#: includes/import-export.php:1966
 msgid "Final verification blocked"
 msgstr ""
 
-#: includes/import-export.php:1829
+#: includes/import-export.php:1967
 msgid "Ready for final verification"
 msgstr ""
 
-#: includes/import-export.php:1830
+#: includes/import-export.php:1968
 msgid "Import contract verified"
 msgstr ""
 
-#: includes/import-export.php:1830
+#: includes/import-export.php:1968
 msgid "Migration fully verified"
 msgstr ""
 
-#: includes/import-export.php:1831
+#: includes/import-export.php:1969
 msgid "Recovery decision required"
 msgstr ""
 
-#: includes/import-export.php:1832
+#: includes/import-export.php:1970
 msgid "Rollback completed"
 msgstr ""
 
-#: includes/import-export.php:1833
+#: includes/import-export.php:1971
 msgid "Rollback incomplete. Manual recovery required"
 msgstr ""
 
-#: includes/import-export.php:1845
+#: includes/import-export.php:1983
 msgid "A preview can validate source coverage, but it never authorizes deactivation of the source SEO plugin."
 msgstr ""
 
-#: includes/import-export.php:1846
+#: includes/import-export.php:1984
 msgid "Keep the source SEO plugin active. At least one mandatory proof is missing or failed."
 msgstr ""
 
-#: includes/import-export.php:1847
+#: includes/import-export.php:1985
 msgid "The import checks passed. Deactivate the source plugin without deleting its data, clear any cache you use, then run the final verification."
 msgstr ""
 
-#: includes/import-export.php:1848
+#: includes/import-export.php:1986
 msgid "All mandatory proofs for this migration scope passed. Keep the report and source backup during monitoring."
 msgstr ""
 
-#: includes/import-export.php:1849
+#: includes/import-export.php:1987
 msgid "Post-cutover output differs from the baseline or could not be proven. Retry after cache checks or run the conditional rollback."
 msgstr ""
 
-#: includes/import-export.php:1850
+#: includes/import-export.php:1988
 msgid "The conditional rollback completed; later manual edits were preserved."
 msgstr ""
 
-#: includes/import-export.php:1851
+#: includes/import-export.php:1989
 msgid "Automated rollback did not complete safely. Reactivate the source plugin and inspect the rollback evidence."
 msgstr ""
 
-#: includes/import-export.php:1854
+#: includes/import-export.php:1992
 msgid "Migration reached a successful terminal state"
 msgstr ""
 
-#: includes/import-export.php:1855
+#: includes/import-export.php:1993
 msgid "Immutable source fingerprint verified before apply"
 msgstr ""
 
-#: includes/import-export.php:1856
+#: includes/import-export.php:1994
 msgid "Every discovered occurrence classified exactly once"
 msgstr ""
 
-#: includes/import-export.php:1857
+#: includes/import-export.php:1995
 msgid "No failed writes"
 msgstr ""
 
-#: includes/import-export.php:1858
+#: includes/import-export.php:1996
 msgid "No invalid source records"
 msgstr ""
 
-#: includes/import-export.php:1859
+#: includes/import-export.php:1997
 msgid "No unresolved conflicts"
 msgstr ""
 
-#: includes/import-export.php:1860
+#: includes/import-export.php:1998
 msgid "No unsupported records"
 msgstr ""
 
-#: includes/import-export.php:1861
+#: includes/import-export.php:1999
 msgid "No values silently preserved instead of migrated"
 msgstr ""
 
-#: includes/import-export.php:1862
+#: includes/import-export.php:2000
 msgid "No unresolved diagnostics"
 msgstr ""
 
-#: includes/import-export.php:1863
+#: includes/import-export.php:2001
 msgid "Stored semantics match normalized source values"
 msgstr ""
 
-#: includes/import-export.php:1864
+#: includes/import-export.php:2002
 msgid "No unresolved source placeholders"
 msgstr ""
 
-#: includes/import-export.php:1865
+#: includes/import-export.php:2003
 msgid "Every imported redirect matches persistent storage"
 msgstr ""
 
-#: includes/import-export.php:1866
+#: includes/import-export.php:2004
 msgid "No redirect loops"
 msgstr ""
 
-#: includes/import-export.php:1867
+#: includes/import-export.php:2005
 msgid "No redirect chains"
 msgstr ""
 
-#: includes/import-export.php:1868
+#: includes/import-export.php:2006
 msgid "No redirect collisions"
 msgstr ""
 
-#: includes/import-export.php:1869
+#: includes/import-export.php:2007
 msgid "No dangerous redirect regular expressions"
 msgstr ""
 
-#: includes/import-export.php:1870
+#: includes/import-export.php:2008
 msgid "Rollback journal covers every migration write and is not expired"
 msgstr ""
 
-#: includes/import-export.php:1871
+#: includes/import-export.php:2009
 msgid "Old-plugin frontend baseline captured before cutover"
 msgstr ""
 
-#: includes/import-export.php:1872
+#: includes/import-export.php:2010
 msgid "Current HTML, redirects, robots.txt and sitemap preserve the saved SEO meaning"
 msgstr ""
 
-#: includes/import-export.php:1873
+#: includes/import-export.php:2011
 msgid "Conditional rollback completed without failures"
 msgstr ""
 
-#: includes/import-export.php:1876
-#: includes/import-export.php:2353
+#: includes/import-export.php:2014
+#: includes/import-export.php:2491
 msgid "Passed"
 msgstr ""
 
-#: includes/import-export.php:1877
+#: includes/import-export.php:2015
 msgid "Needs attention"
 msgstr ""
 
-#: includes/import-export.php:1878
+#: includes/import-export.php:2016
 msgid "Waiting"
 msgstr ""
 
-#: includes/import-export.php:1879
+#: includes/import-export.php:2017
 msgid "Not required"
 msgstr ""
 
-#: includes/import-export.php:1890
+#: includes/import-export.php:2028
 msgid "Proof boundary:"
 msgstr ""
 
-#: includes/import-export.php:1890
+#: includes/import-export.php:2028
 msgid "the certified export contract and stored migration evidence passed. The source plugin did not own this site frontend, so no old-plugin HTML comparison was possible or claimed."
 msgstr ""
 
 #. translators: 1: proof scope, 2: decision SHA-256.
-#: includes/import-export.php:1910
+#: includes/import-export.php:2048
 #, php-format
 msgid "Proof scope: %1$s. Decision SHA-256: %2$s."
 msgstr ""
 
-#: includes/import-export.php:1943
+#: includes/import-export.php:2081
 msgid "the previous SEO plugin"
 msgstr ""
 
-#: includes/import-export.php:1946
+#: includes/import-export.php:2084
 msgid "Preview complete"
 msgstr ""
 
-#: includes/import-export.php:1947
+#: includes/import-export.php:2085
 msgid "Step 1 of 3. Import your SEO data"
 msgstr ""
 
-#: includes/import-export.php:1948
+#: includes/import-export.php:2086
 msgid "No blocking issue was found. Existing EasyRankly values will still be preserved and reported."
 msgstr ""
 
-#: includes/import-export.php:1951
+#: includes/import-export.php:2089
 msgid "Review required before importing"
 msgstr ""
 
-#: includes/import-export.php:1952
-#: includes/import-export.php:1994
+#: includes/import-export.php:2090
+#: includes/import-export.php:2132
 msgid "Resolve the items that need attention"
 msgstr ""
 
-#: includes/import-export.php:1953
+#: includes/import-export.php:2091
 msgid "Keep the source plugin active. No final switch is authorized while a required check is unresolved."
 msgstr ""
 
-#: includes/import-export.php:1956
+#: includes/import-export.php:2094
 msgid "Import complete"
 msgstr ""
 
 #. translators: %s: source SEO plugin name.
-#: includes/import-export.php:1958
+#: includes/import-export.php:2096
 #, php-format
 msgid "Step 2 of 3. Deactivate %s"
 msgstr ""
 
 #. translators: %s: source SEO plugin name.
-#: includes/import-export.php:1960
+#: includes/import-export.php:2098
 #, php-format
 msgid "Do not delete %s or its data yet. Keep this report open while you deactivate it from the Plugins screen."
 msgstr ""
 
-#: includes/import-export.php:1963
+#: includes/import-export.php:2101
 msgid "The previous SEO plugin is no longer active"
 msgstr ""
 
-#: includes/import-export.php:1964
+#: includes/import-export.php:2102
 msgid "Step 3 of 3. Verify the site"
 msgstr ""
 
-#: includes/import-export.php:1965
+#: includes/import-export.php:2103
 msgid "Clear any WordPress, page or CDN cache you use, then let EasyRankly compare the current site with the saved baseline."
 msgstr ""
 
-#: includes/import-export.php:1968
+#: includes/import-export.php:2106
 msgid "Migration complete and verified"
 msgstr ""
 
-#: includes/import-export.php:1969
+#: includes/import-export.php:2107
 msgid "EasyRankly is now managing the site SEO output"
 msgstr ""
 
-#: includes/import-export.php:1970
+#: includes/import-export.php:2108
 msgid "The checked SEO meaning, redirects and sitemap inventory were preserved. Expected provider-specific markup and endpoint changes were accepted. Keep the old plugin data during the monitoring window."
 msgstr ""
 
-#: includes/import-export.php:1973
+#: includes/import-export.php:2111
 msgid "Data import complete"
 msgstr ""
 
-#: includes/import-export.php:1974
+#: includes/import-export.php:2112
 msgid "The certified import contract was verified"
 msgstr ""
 
-#: includes/import-export.php:1975
+#: includes/import-export.php:2113
 msgid "A before-and-after frontend comparison was not available for this file import. Review representative pages before deleting the source backup."
 msgstr ""
 
-#: includes/import-export.php:1978
+#: includes/import-export.php:2116
 msgid "The final verification needs attention"
 msgstr ""
 
-#: includes/import-export.php:1979
+#: includes/import-export.php:2117
 msgid "Review the differences before deciding"
 msgstr ""
 
-#: includes/import-export.php:1980
+#: includes/import-export.php:2118
 msgid "Do not delete the previous plugin data. Clear the caches you use, inspect the differences, then retry or use the safe rollback."
 msgstr ""
 
-#: includes/import-export.php:1983
+#: includes/import-export.php:2121
 msgid "Rollback complete"
 msgstr ""
 
-#: includes/import-export.php:1984
+#: includes/import-export.php:2122
 msgid "Reactivate the previous SEO plugin"
 msgstr ""
 
-#: includes/import-export.php:1985
+#: includes/import-export.php:2123
 msgid "Only values that still matched this migration were restored or removed. Later manual edits were preserved."
 msgstr ""
 
-#: includes/import-export.php:1988
+#: includes/import-export.php:2126
 msgid "Manual recovery is required"
 msgstr ""
 
-#: includes/import-export.php:1989
+#: includes/import-export.php:2127
 msgid "Review the rollback evidence before changing data"
 msgstr ""
 
-#: includes/import-export.php:1990
+#: includes/import-export.php:2128
 msgid "Reactivate the previous SEO plugin and use the technical report to complete recovery safely."
 msgstr ""
 
-#: includes/import-export.php:1993
+#: includes/import-export.php:2131
 msgid "Migration not ready"
 msgstr ""
 
-#: includes/import-export.php:1995
+#: includes/import-export.php:2133
 msgid "Keep the previous SEO plugin active. EasyRankly will not authorize the final switch while required evidence is missing."
 msgstr ""
 
-#: includes/import-export.php:2018
+#: includes/import-export.php:2156
 msgid "Import data"
 msgstr ""
 
-#: includes/import-export.php:2019
+#: includes/import-export.php:2157
 msgid "Deactivate old plugin"
 msgstr ""
 
-#: includes/import-export.php:2020
+#: includes/import-export.php:2158
 msgid "Verify site"
 msgstr ""
 
-#: includes/import-export.php:2023
+#: includes/import-export.php:2161
 msgid "Migration progress"
 msgstr ""
 
-#: includes/import-export.php:2064
+#: includes/import-export.php:2202
 msgid "Open Plugins to reactivate it"
 msgstr ""
 
-#: includes/import-export.php:2064
+#: includes/import-export.php:2202
 msgid "Open Plugins in a new tab"
 msgstr ""
 
-#: includes/import-export.php:2068
+#: includes/import-export.php:2206
 msgid "I deactivated it. Check again"
 msgstr ""
 
-#: includes/import-export.php:2075
+#: includes/import-export.php:2213
 msgid "Start final verification"
 msgstr ""
 
-#: includes/import-export.php:2079
+#: includes/import-export.php:2217
 msgid "Import the reviewed data now? Existing EasyRankly values will still be preserved."
 msgstr ""
 
-#: includes/import-export.php:2084
+#: includes/import-export.php:2222
 msgid "Import the reviewed data"
 msgstr ""
 
-#: includes/import-export.php:2087
+#: includes/import-export.php:2225
 msgid "Upload the official export again"
 msgstr ""
 
-#: includes/import-export.php:2090
+#: includes/import-export.php:2228
 msgid "Review the differences"
 msgstr ""
 
-#: includes/import-export.php:2092
+#: includes/import-export.php:2230
 msgid "Open recovery details"
 msgstr ""
 
-#: includes/import-export.php:2094
+#: includes/import-export.php:2232
 msgid "Review items that need attention"
 msgstr ""
 
-#: includes/import-export.php:2096
+#: includes/import-export.php:2234
 msgid "Go to EasyRankly settings"
 msgstr ""
 
-#: includes/import-export.php:2121
+#: includes/import-export.php:2259
 msgid "The migration did not finish successfully."
 msgstr ""
 
-#: includes/import-export.php:2122
+#: includes/import-export.php:2260
 msgid "The source data changed while it was being processed."
 msgstr ""
 
-#: includes/import-export.php:2123
+#: includes/import-export.php:2261
 msgid "Not every discovered value has a final outcome."
 msgstr ""
 
-#: includes/import-export.php:2124
+#: includes/import-export.php:2262
 msgid "Some values could not be written."
 msgstr ""
 
-#: includes/import-export.php:2125
+#: includes/import-export.php:2263
 msgid "Some source records are invalid."
 msgstr ""
 
-#: includes/import-export.php:2126
+#: includes/import-export.php:2264
 msgid "Some existing EasyRankly values were preserved and need review."
 msgstr ""
 
-#: includes/import-export.php:2127
+#: includes/import-export.php:2265
 msgid "Some source records are not supported."
 msgstr ""
 
-#: includes/import-export.php:2128
+#: includes/import-export.php:2266
 msgid "Some source values were preserved instead of imported."
 msgstr ""
 
-#: includes/import-export.php:2129
+#: includes/import-export.php:2267
 msgid "The report contains warnings that need review."
 msgstr ""
 
-#: includes/import-export.php:2130
+#: includes/import-export.php:2268
 msgid "Some normalized values differ from the source meaning."
 msgstr ""
 
-#: includes/import-export.php:2131
+#: includes/import-export.php:2269
 msgid "Some source template variables could not be resolved."
 msgstr ""
 
-#: includes/import-export.php:2132
+#: includes/import-export.php:2270
 msgid "Some redirects do not match their stored values."
 msgstr ""
 
-#: includes/import-export.php:2133
+#: includes/import-export.php:2271
 msgid "A redirect loop was detected."
 msgstr ""
 
-#: includes/import-export.php:2134
+#: includes/import-export.php:2272
 msgid "A redirect chain was detected."
 msgstr ""
 
-#: includes/import-export.php:2135
+#: includes/import-export.php:2273
 msgid "Two redirects use the same source path."
 msgstr ""
 
-#: includes/import-export.php:2136
+#: includes/import-export.php:2274
 msgid "A redirect pattern requires manual review."
 msgstr ""
 
-#: includes/import-export.php:2137
+#: includes/import-export.php:2275
 msgid "The safe rollback window is unavailable or incomplete."
 msgstr ""
 
-#: includes/import-export.php:2138
+#: includes/import-export.php:2276
 msgid "The previous frontend output could not be captured."
 msgstr ""
 
-#: includes/import-export.php:2139
+#: includes/import-export.php:2277
 msgid "The current site output differs from the saved baseline."
 msgstr ""
 
-#: includes/import-export.php:2140
+#: includes/import-export.php:2278
 msgid "The rollback did not complete safely."
 msgstr ""
 
-#: includes/import-export.php:2144
+#: includes/import-export.php:2282
 msgid "What needs attention"
 msgstr ""
 
-#: includes/import-export.php:2154
+#: includes/import-export.php:2292
 msgid "A page could not be reached: "
 msgstr ""
 
-#: includes/import-export.php:2154
+#: includes/import-export.php:2292
 msgid "Page SEO output differs: "
 msgstr ""
 
-#: includes/import-export.php:2159
+#: includes/import-export.php:2297
 msgid "Redirect response differs: "
 msgstr ""
 
 #. translators: %s: robots.txt or sitemap.
-#: includes/import-export.php:2164
+#: includes/import-export.php:2302
 #, php-format
 msgid "%s differs from the saved baseline."
 msgstr ""
 
-#: includes/import-export.php:2176
+#: includes/import-export.php:2314
 msgid "Run verification again"
 msgstr ""
 
-#: includes/import-export.php:2252
-#: includes/import-export.php:2534
+#: includes/import-export.php:2390
+#: includes/import-export.php:2672
 msgid "Migration assistant"
 msgstr ""
 
-#: includes/import-export.php:2257
-#: includes/import-export.php:2496
-#: includes/import-export.php:2539
+#: includes/import-export.php:2395
+#: includes/import-export.php:2635
+#: includes/import-export.php:2677
 msgid "Preview"
 msgstr ""
 
-#: includes/import-export.php:2269
+#: includes/import-export.php:2407
 msgid "Migration summary"
 msgstr ""
 
-#: includes/import-export.php:2270
-#: includes/import-export.php:2554
+#: includes/import-export.php:2408
+#: includes/import-export.php:2692
 msgid "SEO fields ready"
 msgstr ""
 
-#: includes/import-export.php:2270
-#: includes/import-export.php:2554
+#: includes/import-export.php:2408
+#: includes/import-export.php:2692
 msgid "SEO fields imported"
 msgstr ""
 
-#: includes/import-export.php:2271
+#: includes/import-export.php:2409
 msgid "Redirects ready"
 msgstr ""
 
-#: includes/import-export.php:2271
+#: includes/import-export.php:2409
 msgid "Redirects imported"
 msgstr ""
 
-#: includes/import-export.php:2272
+#: includes/import-export.php:2410
 msgid "Items needing attention"
 msgstr ""
 
-#: includes/import-export.php:2279
+#: includes/import-export.php:2417
 msgid "Technical details"
 msgstr ""
 
 #. translators: 1: passed checks, 2: checks needing attention, 3: waiting checks, 4: checks not required.
-#: includes/import-export.php:2285
+#: includes/import-export.php:2423
 #, php-format
 msgid "%1$d passed, %2$d need attention, %3$d waiting, %4$d not required"
 msgstr ""
 
 #. translators: 1: edition, 2: source mode, 3: storage format, 4: source fingerprint state.
-#: includes/import-export.php:2302
+#: includes/import-export.php:2440
 #, php-format
 msgid "Edition: %1$s. Source: %2$s. Certified signature: %3$s. Fingerprint: %4$s."
 msgstr ""
 
-#: includes/import-export.php:2306
+#: includes/import-export.php:2444
 msgid "verified before apply"
 msgstr ""
 
-#: includes/import-export.php:2306
+#: includes/import-export.php:2444
 msgid "captured"
 msgstr ""
 
-#: includes/import-export.php:2312
+#: includes/import-export.php:2450
 msgid "Detected modules:"
 msgstr ""
 
 #. translators: %d: source inventory count.
-#: includes/import-export.php:2315
+#: includes/import-export.php:2453
 #, php-format
 msgid "Source inventory: %d records across certified surfaces."
 msgstr ""
 
-#: includes/import-export.php:2321
-#: includes/import-export.php:2357
+#: includes/import-export.php:2459
+#: includes/import-export.php:2494
 msgid "Area"
 msgstr ""
 
-#: includes/import-export.php:2321
+#: includes/import-export.php:2459
 msgid "Found"
 msgstr ""
 
-#: includes/import-export.php:2321
+#: includes/import-export.php:2459
 msgid "Ready / written"
 msgstr ""
 
-#: includes/import-export.php:2321
+#: includes/import-export.php:2459
 msgid "Preserved / unchanged"
 msgstr ""
 
-#: includes/import-export.php:2321
+#: includes/import-export.php:2459
 msgid "Conflicts / invalid"
 msgstr ""
 
-#: includes/import-export.php:2324
-#: includes/import-export.php:2361
+#: includes/import-export.php:2462
+#: includes/import-export.php:2498
 msgid "SEO metadata"
 msgstr ""
 
 #. translators: 1: post count, 2: term count, 3: user count.
-#: includes/import-export.php:2343
+#: includes/import-export.php:2481
 #, php-format
 msgid "Objects scanned. Posts: %1$d; terms: %2$d; authors: %3$d."
 msgstr ""
 
-#: includes/import-export.php:2351
+#: includes/import-export.php:2489
 msgid "Evidence ledger"
 msgstr ""
 
-#: includes/import-export.php:2353
+#: includes/import-export.php:2491
 msgid "Failed"
 msgstr ""
 
-#: includes/import-export.php:2354
+#: includes/import-export.php:2491
 msgid "Every discovered occurrence is assigned to exactly one terminal outcome."
 msgstr ""
 
-#: includes/import-export.php:2357
+#: includes/import-export.php:2494
 msgid "Discovered"
 msgstr ""
 
-#: includes/import-export.php:2357
+#: includes/import-export.php:2494
 msgid "Imported"
 msgstr ""
 
-#: includes/import-export.php:2357
+#: includes/import-export.php:2494
 msgid "Identical"
 msgstr ""
 
-#: includes/import-export.php:2357
+#: includes/import-export.php:2494
 msgid "Preserved"
 msgstr ""
 
-#: includes/import-export.php:2357
+#: includes/import-export.php:2494
 msgid "Conflict / invalid / failed"
 msgstr ""
 
 #. translators: 1: transformed values, 2: unresolved placeholder warnings.
-#: includes/import-export.php:2384
+#: includes/import-export.php:2521
 #, php-format
 msgid "Normalized transformations: %1$d. Unresolved placeholder diagnostics: %2$d."
 msgstr ""
 
-#: includes/import-export.php:2393
+#: includes/import-export.php:2530
 msgid "Normalized before/after comparison"
 msgstr ""
 
 #. translators: 1: matches, 2: mismatches, 3: planned.
-#: includes/import-export.php:2396
+#: includes/import-export.php:2533
 #, php-format
 msgid "%1$d match; %2$d mismatch; %3$d planned."
 msgstr ""
 
-#: includes/import-export.php:2403
+#: includes/import-export.php:2540
 msgid "Redirect safety audit"
 msgstr ""
 
 #. translators: 1: loops, 2: chains, 3: collisions, 4: dangerous regex.
-#: includes/import-export.php:2404
+#: includes/import-export.php:2541
 #, php-format
 msgid "Loops: %1$d. Chains: %2$d. Collisions: %3$d. Dangerous regex: %4$d. Status and Location were tested with redirects disabled in the HTTP client."
 msgstr ""
 
-#: includes/import-export.php:2408
+#: includes/import-export.php:2545
 msgid "Final verification evidence"
 msgstr ""
 
 #. translators: 1: baseline state, 2: live verification state, 3: exact matches, 4: expected provider changes, 5: regressions, 6: failed requests.
-#: includes/import-export.php:2414
+#: includes/import-export.php:2551
 #, php-format
 msgid "Saved baseline: %1$s. Current verification: %2$s. Exact matches: %3$d; expected provider changes: %4$d; regressions: %5$d; unreachable probes: %6$d."
 msgstr ""
 
-#: includes/import-export.php:2427
+#: includes/import-export.php:2565
 msgid "Warnings requiring review"
 msgstr ""
 
-#: includes/import-export.php:2437
+#: includes/import-export.php:2575
 msgid "Record-level diagnostics"
 msgstr ""
 
-#: includes/import-export.php:2455
+#: includes/import-export.php:2588
+msgid "Download technical report"
+msgstr ""
+
+#: includes/import-export.php:2590
+msgid "Download items to review"
+msgstr ""
+
+#: includes/import-export.php:2599
 msgid "Recovery and rollback"
 msgstr ""
 
-#: includes/import-export.php:2456
+#: includes/import-export.php:2600
 msgid "Use only if you need to abandon this migration"
 msgstr ""
 
-#: includes/import-export.php:2460
+#: includes/import-export.php:2604
 msgid "Automated recovery did not finish safely."
 msgstr ""
 
-#: includes/import-export.php:2460
+#: includes/import-export.php:2604
 msgid "Reactivate the previous SEO plugin and inspect the technical evidence before making manual data changes."
 msgstr ""
 
-#: includes/import-export.php:2462
+#: includes/import-export.php:2606
 msgid "The safe rollback changes only values that still exactly match this migration. Later manual edits are preserved."
 msgstr ""
 
 #. translators: %s: localized rollback expiry.
-#: includes/import-export.php:2464
+#: includes/import-export.php:2608
 #, php-format
 msgid "Available until %s."
 msgstr ""
 
-#: includes/import-export.php:2466
+#: includes/import-export.php:2610
 msgid "Roll back this migration now? Only unchanged migration values will be affected."
 msgstr ""
 
-#: includes/import-export.php:2470
+#: includes/import-export.php:2614
 msgid "Roll back this migration"
 msgstr ""
 
-#: includes/import-export.php:2473
+#: includes/import-export.php:2617
 msgid "The automatic rollback window is no longer available. Download the technical report before attempting manual recovery."
 msgstr ""
 
-#: includes/import-export.php:2480
-msgid "Download technical report"
-msgstr ""
-
-#: includes/import-export.php:2481
-msgid "Download items to review"
-msgstr ""
-
-#: includes/import-export.php:2485
+#: includes/import-export.php:2625
 msgid "Recent migration reports"
 msgstr ""
 
-#: includes/import-export.php:2523
+#: includes/import-export.php:2661
 msgid "Discovering SEO metadata"
 msgstr ""
 
-#: includes/import-export.php:2524
+#: includes/import-export.php:2662
 msgid "Discovering redirects"
 msgstr ""
 
-#: includes/import-export.php:2525
+#: includes/import-export.php:2663
 msgid "Applying validated records"
 msgstr ""
 
-#: includes/import-export.php:2526
+#: includes/import-export.php:2664
 msgid "Finalizing the migration report"
 msgstr ""
 
-#: includes/import-export.php:2527
+#: includes/import-export.php:2665
 msgid "Preparing the next batch"
 msgstr ""
 
-#: includes/import-export.php:2529
-#: includes/import-export.php:2531
+#: includes/import-export.php:2667
+#: includes/import-export.php:2669
 msgid "Cancellation requested"
 msgstr ""
 
-#: includes/import-export.php:2531
+#: includes/import-export.php:2669
 msgid "Migration paused safely"
 msgstr ""
 
-#: includes/import-export.php:2531
+#: includes/import-export.php:2669
 msgid "Preview in progress"
 msgstr ""
 
-#: includes/import-export.php:2531
+#: includes/import-export.php:2669
 msgid "Import in progress"
 msgstr ""
 
-#: includes/import-export.php:2545
+#: includes/import-export.php:2683
 msgid "The request is saved and will run as soon as the current batch releases its lock. No new batch will be applied."
 msgstr ""
 
-#: includes/import-export.php:2547
+#: includes/import-export.php:2685
 msgid "The worker stopped at a safe checkpoint. Check the PHP or database log, then resume when ready."
 msgstr ""
 
-#: includes/import-export.php:2549
+#: includes/import-export.php:2687
 msgid "You can leave this page. The migration continues in restart-safe background batches."
 msgstr ""
 
-#: includes/import-export.php:2552
+#: includes/import-export.php:2690
 msgid "Current migration progress"
 msgstr ""
 
-#: includes/import-export.php:2553
+#: includes/import-export.php:2691
 msgid "Objects found"
 msgstr ""
 
-#: includes/import-export.php:2555
+#: includes/import-export.php:2693
 msgid "Redirects found"
 msgstr ""
 
-#: includes/import-export.php:2563
+#: includes/import-export.php:2701
 msgid "Resume migration"
 msgstr ""
 
-#: includes/import-export.php:2569
+#: includes/import-export.php:2707
 msgid "Progress details"
 msgstr ""
 
 #. translators: %d: number of completed batches.
-#: includes/import-export.php:2570
+#: includes/import-export.php:2708
 #, php-format
 msgid "%d saved batches"
 msgstr ""
 
 #. translators: %s: localized checkpoint date.
-#: includes/import-export.php:2573
+#: includes/import-export.php:2711
 #, php-format
 msgid "Latest safe checkpoint: %s"
 msgstr ""
 
 #. translators: 1: fields found, 2: fields ready, 3: redirects imported.
-#: includes/import-export.php:2574
+#: includes/import-export.php:2712
 #, php-format
 msgid "SEO fields found: %1$d; ready: %2$d. Redirects imported so far: %3$d."
 msgstr ""
 
-#: includes/import-export.php:2580
+#: includes/import-export.php:2718
 msgid "Process the next batch now"
 msgstr ""
 
-#: includes/import-export.php:2587
-#: includes/import-export.php:2594
+#: includes/import-export.php:2725
+#: includes/import-export.php:2732
 msgid "Cancel migration"
 msgstr ""
 
-#: includes/import-export.php:2589
+#: includes/import-export.php:2727
 msgid "Already imported EasyRankly values will be kept and included in the final report."
 msgstr ""
 
-#: includes/import-export.php:2590
+#: includes/import-export.php:2728
 msgid "Cancel this migration? Already imported EasyRankly values will be kept."
 msgstr ""
 
 #: includes/link-building.php:118
-#: assets/js/link-suggestions.js:141
-msgid "Showing cached suggestions."
+#: assets/js/link-suggestions.js:140
+msgid "Cached suggestions."
 msgstr ""
 
 #: includes/link-building.php:119
@@ -3897,24 +4346,24 @@ msgid "Edit source"
 msgstr ""
 
 #: includes/link-building.php:120
-#: assets/js/link-suggestions.js:171
-msgid "No strong link opportunities found."
+#: assets/js/link-suggestions.js:170
+msgid "No strong opportunities found."
 msgstr ""
 
 #: includes/link-building.php:121
-#: assets/js/link-suggestions.js:180
-msgid "Could not generate link suggestions."
+#: assets/js/link-suggestions.js:179
+msgid "Could not generate suggestions."
 msgstr ""
 
 #: includes/link-building.php:122
-#: assets/js/link-suggestions.js:242
+#: assets/js/link-suggestions.js:230
 msgid "Add on other pages"
 msgstr ""
 
 #: includes/link-building.php:123
-#: assets/js/link-suggestions.js:233
-#: assets/js/link-suggestions.js:240
-msgid "None suggested."
+#: assets/js/link-suggestions.js:221
+#: assets/js/link-suggestions.js:228
+msgid "None."
 msgstr ""
 
 #: includes/link-building.php:124
@@ -3922,17 +4371,12 @@ msgid "Open page"
 msgstr ""
 
 #: includes/link-building.php:125
-#: assets/js/link-suggestions.js:235
+#: assets/js/link-suggestions.js:223
 msgid "Add on this page"
 msgstr ""
 
-#: includes/link-building.php:126
-#: assets/js/link-suggestions.js:152
-msgid "Save a draft first."
-msgstr ""
-
 #: includes/link-building.php:127
-#: assets/js/link-suggestions.js:175
+#: assets/js/link-suggestions.js:174
 msgid "Suggestions updated."
 msgstr ""
 
@@ -3979,18 +4423,23 @@ msgstr ""
 msgid "AI provider is not available."
 msgstr ""
 
-#: includes/link-building.php:881
+#: includes/link-building.php:888
 #: assets/js/link-suggestions.js:194
-msgid "The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → Internal links."
+msgid "The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → %1$sInternal links%2$s."
+msgstr ""
+
+#: includes/link-building.php:888
+#: assets/js/link-suggestions.js:194
+msgid "The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → <a>Internal links</a>."
 msgstr ""
 
 #: includes/link-building.php:887
-#: assets/js/link-suggestions.js:218
+#: assets/js/link-suggestions.js:243
 msgid "Get suggestions"
 msgstr ""
 
 #: includes/link-building.php:888
-#: assets/js/link-suggestions.js:218
+#: assets/js/link-suggestions.js:243
 msgid "Refresh"
 msgstr ""
 
@@ -4057,7 +4506,7 @@ msgid "Invalid translation data."
 msgstr ""
 
 #: includes/multilingual/class-erankly-ml-admin.php:867
-msgid "Link this content to its equivalent on other sites in the network. Linked items are exposed to search engines as alternate language versions."
+msgid "Link equivalent content on other network sites."
 msgstr ""
 
 #: includes/multilingual/class-erankly-ml-admin.php:912
@@ -4071,11 +4520,11 @@ msgstr ""
 #. translators: %s: opening and closing anchor tags for the Network Admin settings link.
 #: includes/multilingual/class-erankly-ml-admin.php:949
 #, php-format
-msgid "Enable one or more sites in %1$sNetwork Admin → Settings → EasyRankly → Multilingual%2$s, then return here to link translations."
+msgid "Enable sites in %1$sNetwork Admin → Settings → EasyRankly → Multilingual%2$s."
 msgstr ""
 
 #: includes/multilingual/class-erankly-ml-admin.php:954
-msgid "Ask a network administrator to enable sites in EasyRankly, then come back here to link translations."
+msgid "Ask a network administrator to enable multilingual sites."
 msgstr ""
 
 #: includes/multilingual/class-erankly-ml-admin.php:983
@@ -4127,10 +4576,6 @@ msgstr ""
 
 #: includes/multilingual/class-erankly-ml-admin.php:1055
 msgid "One banner message per language for the [erankly_translation_notice] shortcode, shown only when a translation exists. Use {language} to insert the language name (e.g. \"Italiano\"); leave a field blank to hide that language's banner."
-msgstr ""
-
-#: includes/multilingual/class-erankly-ml-admin.php:1103
-msgid "Title"
 msgstr ""
 
 #: includes/multilingual/class-erankly-ml-admin.php:1110
@@ -4361,6 +4806,22 @@ msgstr ""
 msgid "Redirect status updated."
 msgstr ""
 
+#: includes/redirects/class-erankly-redirects-admin.php:280
+msgid "301: Permanent redirect"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:281
+msgid "302: Temporary redirect"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:282
+msgid "307: Temporary redirect (new generation)"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:283
+msgid "308: Permanent redirect (new generation)"
+msgstr ""
+
 #: includes/redirects/class-erankly-redirects-admin.php:288
 msgid "Source URL"
 msgstr ""
@@ -4369,15 +4830,15 @@ msgstr ""
 msgid "Target URL"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:297
-msgid "Not used for 410 (Gone) or 451 (Unavailable For Legal Reasons). Those codes end the request without redirecting."
-msgstr ""
-
-#: includes/redirects/class-erankly-redirects-admin.php:302
+#: includes/redirects/class-erankly-redirects-admin.php:300
 msgid "HTTP Code"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:313
+#: includes/redirects/class-erankly-redirects-admin.php:311
+msgid "Advanced options"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php:314
 msgid "Apply to"
 msgstr ""
 
@@ -4501,10 +4962,6 @@ msgstr ""
 msgid "No redirects found."
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:447
-msgid "Not applicable"
-msgstr ""
-
 #: includes/redirects/class-erankly-redirects-admin.php:453
 msgid "Never"
 msgstr ""
@@ -4540,251 +4997,295 @@ msgstr ""
 msgid "Redirect not found."
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-runner.php:166
+#: includes/redirects/class-erankly-redirects-runner.php:167
 msgid "Gone"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-runner.php:166
+#: includes/redirects/class-erankly-redirects-runner.php:167
 msgid "Unavailable For Legal Reasons"
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-runner.php:168
+#: includes/redirects/class-erankly-redirects-runner.php:169
 msgid "The requested resource is no longer available and has been permanently removed."
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-runner.php:169
+#: includes/redirects/class-erankly-redirects-runner.php:170
 msgid "This resource is unavailable for legal reasons."
 msgstr ""
 
-#: includes/reset.php:120
+#: includes/reset.php:138
+#: includes/reset.php:144
+msgid "EasyRankly could not delete the stored content analyses."
+msgstr ""
+
+#: includes/reset.php:173
 msgid "EasyRankly could not remove private migration uploads during reset."
 msgstr ""
 
-#: includes/reset.php:155
+#: includes/reset.php:176
+msgid "EasyRankly could not remove private import uploads during reset."
+msgstr ""
+
+#: includes/reset.php:241
 msgid "EasyRankly could not remove migration staging storage during reset."
 msgstr ""
 
-#: includes/reset.php:162
+#: includes/reset.php:248
 msgid "EasyRankly could not remove migration rollback storage during reset."
 msgstr ""
 
-#: includes/reset.php:169
+#: includes/reset.php:255
 msgid "EasyRankly could not remove migration exception evidence during reset."
 msgstr ""
 
-#: includes/reset.php:177
+#: includes/reset.php:263
 msgid "EasyRankly could not remove redirect storage during reset."
 msgstr ""
 
-#: includes/reset.php:190
+#: includes/reset.php:276
 msgid "EasyRankly could not remove post metadata during reset."
 msgstr ""
 
-#: includes/reset.php:201
+#: includes/reset.php:287
 msgid "EasyRankly could not remove term metadata during reset."
 msgstr ""
 
-#: includes/reset.php:212
+#: includes/reset.php:298
 msgid "EasyRankly could not remove user metadata during reset."
 msgstr ""
 
-#: includes/reset.php:224
+#: includes/reset.php:310
 msgid "EasyRankly could not remove transient data during reset."
 msgstr ""
 
-#: includes/reset.php:255
+#: includes/reset.php:341
 msgid "EasyRankly could not inspect multilingual storage during reset."
 msgstr ""
 
-#: includes/reset.php:277
+#: includes/reset.php:363
 msgid "EasyRankly could not retrieve multilingual relations during reset."
 msgstr ""
 
-#: includes/reset.php:294
+#: includes/reset.php:380
 msgid "EasyRankly could not delete multilingual relations during reset."
 msgstr ""
 
-#: includes/reset.php:322
+#: includes/reset.php:408
 msgid "EasyRankly could not invalidate multilingual caches during reset."
 msgstr ""
 
-#: includes/reset.php:342
+#: includes/reset.php:428
 msgid "EasyRankly could not reset the network settings."
 msgstr ""
 
-#: includes/reset.php:350
+#: includes/reset.php:436
 msgid "EasyRankly could not reset the network setup status."
 msgstr ""
 
-#: includes/reset.php:359
+#: includes/reset.php:445
 msgid "EasyRankly could not reset the multilingual network settings."
 msgstr ""
 
-#: includes/reset.php:396
+#: includes/reset.php:482
 msgid "Reset this site"
 msgstr ""
 
-#: includes/reset.php:396
+#: includes/reset.php:482
 msgid "Reset plugin"
 msgstr ""
 
-#: includes/reset.php:397
+#: includes/reset.php:483
 msgid "Reset this site?"
 msgstr ""
 
-#: includes/reset.php:397
+#: includes/reset.php:483
 msgid "Reset EasyRankly?"
 msgstr ""
 
-#: includes/reset.php:399
+#: includes/reset.php:485
 msgid "This will permanently delete this site's redirects, SEO metadata and special page defaults. This does not affect the network-wide settings or other sites. This action cannot be undone."
 msgstr ""
 
-#: includes/reset.php:400
+#: includes/reset.php:486
 msgid "This will permanently delete all EasyRankly settings, redirects and SEO metadata on this site, and restore everything to their defaults. This action cannot be undone."
 msgstr ""
 
-#: includes/reset.php:403
+#: includes/reset.php:487
+msgid "Delete this site's content analyses"
+msgstr ""
+
+#: includes/reset.php:487
+msgid "Delete all content analyses"
+msgstr ""
+
+#: includes/reset.php:488
+msgid "Delete this site's content analyses?"
+msgstr ""
+
+#: includes/reset.php:488
+msgid "Delete all content analyses?"
+msgstr ""
+
+#: includes/reset.php:489
+msgid "This permanently deletes the saved AI analysis report for every post on this site. Focus keywords, pillar settings and post content are kept. This action cannot be undone."
+msgstr ""
+
+#: includes/reset.php:492
+msgid "Stored AI analyses"
+msgstr ""
+
+#: includes/reset.php:494
+msgid "EasyRankly keeps only the latest structured content-analysis report for each post. Delete all reports here whenever you no longer need them; new analyses can be generated later."
+msgstr ""
+
+#: includes/reset.php:511
 msgid "Reset"
 msgstr ""
 
-#: includes/reset.php:405
+#: includes/reset.php:513
 msgid "Restore EasyRankly to a clean install. This permanently deletes settings, redirects and SEO metadata; export a backup first if you want to keep a copy."
 msgstr ""
 
-#: includes/reset.php:407
+#: includes/reset.php:515
 msgid "Local reset cleans up only this Network Admin's primary site; network reset wipes the network-wide settings and every site."
 msgstr ""
 
-#: includes/reset.php:433
+#: includes/reset.php:541
 msgid "Reset entire network"
 msgstr ""
 
-#: includes/reset.php:434
+#: includes/reset.php:542
 msgid "Reset the entire network?"
 msgstr ""
 
-#: includes/reset.php:435
+#: includes/reset.php:543
 msgid "This will permanently delete the network-wide EasyRankly settings and every site's redirects, SEO metadata and special page defaults across the whole network. This action cannot be undone."
 msgstr ""
 
-#: includes/reset.php:474
+#. translators: %s: number of deleted content-analysis reports.
+#: includes/reset.php:585
+#, php-format
+msgid "%s stored content analysis was deleted."
+msgid_plural "%s stored content analyses were deleted."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/reset.php:592
+msgid "EasyRankly could not delete the stored content analyses because a database operation failed."
+msgstr ""
+
+#: includes/reset.php:596
 msgid "EasyRankly has been reset for this site."
 msgstr ""
 
-#: includes/reset.php:478
+#: includes/reset.php:600
 msgid "EasyRankly could not complete the site reset because a database operation failed. Resolve the database issue, then run the reset again."
 msgstr ""
 
-#: includes/reset.php:482
+#: includes/reset.php:604
 msgid "The EasyRankly network reset has started and will continue in small background batches."
 msgstr ""
 
-#: includes/reset.php:486
+#: includes/reset.php:608
 msgid "EasyRankly could not start the network reset, so no plugin data was changed. Resolve the database or Cron scheduling issue, then run the reset again."
 msgstr ""
 
-#: includes/seo-checklist.php:210
-#: assets/js/editor-shared.js:914
-msgid "SEO title within recommended length"
+#. translators: %d: maximum SEO title length.
+#: includes/seo-checklist.php:211
+#: assets/js/editor-shared.js:1159
+#, php-format,js-format
+msgid "SEO title: 1–%d characters"
 msgstr ""
 
-#: includes/seo-checklist.php:215
-#: assets/js/editor-shared.js:919
-msgid "Meta description within recommended length"
+#. translators: %d: maximum meta description length.
+#: includes/seo-checklist.php:217
+#: assets/js/editor-shared.js:1164
+#, php-format,js-format
+msgid "Meta description: 1–%d characters"
 msgstr ""
 
-#: includes/seo-checklist.php:220
-#: assets/js/editor-shared.js:924
-msgid "Preview image available"
+#: includes/seo-checklist.php:222
+#: assets/js/editor-shared.js:1169
+msgid "Preview image"
 msgstr ""
 
-#: includes/seo-checklist.php:225
-#: assets/js/editor-shared.js:929
-msgid "Indexable by search engines"
+#: includes/seo-checklist.php:227
+#: assets/js/editor-shared.js:1174
+msgid "Search engine indexing"
 msgstr ""
 
-#: includes/seo-checklist.php:230
-#: assets/js/editor-shared.js:934
-msgid "Minimum content length"
+#. translators: %d: minimum content length.
+#: includes/seo-checklist.php:233
+#: assets/js/editor-shared.js:1179
+#, php-format,js-format
+msgid "Content: at least %d characters"
 msgstr ""
 
-#: includes/seo-checklist.php:238
-#: assets/js/editor-shared.js:943
-msgid "Custom social image"
+#: uninstall.php:30
+msgid "EasyRankly could not remove private import uploads during uninstall."
 msgstr ""
 
-#: includes/seo-checklist.php:243
-#: assets/js/editor-shared.js:948
-msgid "Canonical URL set"
-msgstr ""
-
-#: includes/seo-checklist.php:308
-#: assets/js/editor-shared.js:1074
-msgid "Complete these items to improve this page's search appearance."
-msgstr ""
-
-#: uninstall.php:29
+#: uninstall.php:33
 msgid "EasyRankly could not remove private migration uploads during uninstall."
 msgstr ""
 
-#: uninstall.php:67
+#: uninstall.php:102
 msgid "EasyRankly could not remove migration staging storage during uninstall."
 msgstr ""
 
-#: uninstall.php:74
+#: uninstall.php:109
 msgid "EasyRankly could not remove migration rollback storage during uninstall."
 msgstr ""
 
-#: uninstall.php:81
+#: uninstall.php:116
 msgid "EasyRankly could not remove migration exception evidence during uninstall."
 msgstr ""
 
-#: uninstall.php:89
+#: uninstall.php:124
 msgid "EasyRankly could not remove redirect storage during uninstall."
 msgstr ""
 
-#: uninstall.php:102
+#: uninstall.php:137
 msgid "EasyRankly could not remove post metadata during uninstall."
 msgstr ""
 
-#: uninstall.php:113
+#: uninstall.php:148
 msgid "EasyRankly could not remove term metadata during uninstall."
 msgstr ""
 
-#: uninstall.php:124
+#: uninstall.php:159
 msgid "EasyRankly could not remove user metadata during uninstall."
 msgstr ""
 
-#: uninstall.php:136
+#: uninstall.php:171
 msgid "EasyRankly could not remove transient data during uninstall."
 msgstr ""
 
-#: uninstall.php:146
+#: uninstall.php:181
 msgid "EasyRankly could not count multisite sites before uninstall."
 msgstr ""
 
-#: uninstall.php:158
+#: uninstall.php:193
 msgid "This installation is too large to uninstall EasyRankly safely in one web request."
 msgstr ""
 
-#: uninstall.php:159
+#: uninstall.php:194
 msgid "Run the following WP-CLI command so cleanup can finish without an HTTP timeout:"
 msgstr ""
 
-#: uninstall.php:191
+#: uninstall.php:226
 msgid "EasyRankly could not retrieve the next network site batch during uninstall."
 msgstr ""
 
-#: uninstall.php:241
+#: uninstall.php:276
 msgid "EasyRankly could not retrieve networks during uninstall."
 msgstr ""
 
-#: uninstall.php:252
+#: uninstall.php:287
 msgid "EasyRankly could not remove network options during uninstall."
 msgstr ""
 
-#: uninstall.php:270
+#: uninstall.php:305
 msgid "EasyRankly could not remove multilingual storage during uninstall."
 msgstr ""
 
@@ -4797,104 +5298,226 @@ msgid "Output FAQPage JSON-LD from accordion titles and panel content."
 msgstr ""
 
 #. translators: 1: current character count, 2: maximum character count.
-#: assets/js/editor-shared.js:222
+#: assets/js/editor-shared.js:226
 #, js-format
 msgid "%1$d of %2$d characters."
 msgstr ""
 
-#: assets/js/editor-shared.js:481
+#: assets/js/editor-shared.js:485
 msgid "Social image URL"
 msgstr ""
 
-#: assets/js/editor-shared.js:653
+#: assets/js/editor-shared.js:690
 msgid "Open Graph title"
 msgstr ""
 
-#: assets/js/editor-shared.js:663
+#: assets/js/editor-shared.js:700
 msgid "Open Graph description"
 msgstr ""
 
-#: assets/js/editor-shared.js:698
+#: assets/js/editor-shared.js:736
 msgid "X (Twitter) card type"
 msgstr ""
 
-#: assets/js/editor-shared.js:759
-msgid "Sets noindex and removes this page from the sitemap."
+#: assets/js/editor-shared.js:929
+msgid "Use one of the suggested robots rules."
 msgstr ""
 
-#: assets/js/editor-shared.js:875
+#: assets/js/editor-shared.js:956
+msgid "Robots directives"
+msgstr ""
+
+#: assets/js/editor-shared.js:958
+msgid "Unknown robots rule."
+msgstr ""
+
+#: assets/js/editor-shared.js:959
+msgid "Robots rule applied."
+msgstr ""
+
+#: assets/js/editor-shared.js:960
+msgid "Remove robots rule"
+msgstr ""
+
+#: assets/js/editor-shared.js:961
+msgid "Robots rule removed. The global setting is inherited."
+msgstr ""
+
+#: assets/js/editor-shared.js:971
+msgid "Add robots rule"
+msgstr ""
+
+#: assets/js/editor-shared.js:991
+msgid "Adds noindex and removes this page from the XML sitemap."
+msgstr ""
+
+#: assets/js/editor-shared.js:1050
+msgid "Indexes embedded content despite noindex."
+msgstr ""
+
+#: assets/js/editor-shared.js:1058
+msgid "indexifembedded requires noindex; ignored while index is selected."
+msgstr ""
+
+#: assets/js/editor-shared.js:1059
+msgid "noimageindex disables image previews."
+msgstr ""
+
+#: assets/js/editor-shared.js:1060
+msgid "nosnippet disables text snippets, so Max snippet has no effect."
+msgstr ""
+
+#: assets/js/editor-shared.js:1061
+msgid "Max snippet 0 disables text snippets."
+msgstr ""
+
+#: assets/js/editor-shared.js:1105
+msgid "Removes content from the XML sitemap; robots unchanged."
+msgstr ""
+
+#: assets/js/editor-shared.js:1117
+msgid "Internal site search only."
+msgstr ""
+
+#: assets/js/editor-shared.js:1119
 msgid "Exclude from site search queries"
 msgstr ""
 
-#: assets/js/editor-shared.js:873
-msgid "Removes this page from internal site search results."
+#: assets/js/editor-shared.js:1124
+msgid "Category, date and other archive listings."
 msgstr ""
 
-#: assets/js/editor-shared.js:882
+#: assets/js/editor-shared.js:1126
 msgid "Exclude from archive queries"
 msgstr ""
 
-#: assets/js/editor-shared.js:880
-msgid "Removes this page from category, date, and other archive listings."
+#: assets/js/editor-shared.js:1135
+msgid "Google News sitemap only."
 msgstr ""
 
-#: assets/js/editor-shared.js:892
-msgid "Exclude from Google News sitemap"
+#: assets/js/editor.js:123
+#: assets/js/site-editor.js:261
+msgid "Add a meta description for search results."
 msgstr ""
 
-#: assets/js/editor.js:112
-#: assets/js/site-editor.js:266
-msgid "Add a meta description to control this text in search results."
+#: assets/js/editor.js:371
+msgid "Content coverage"
 msgstr ""
 
-#: assets/js/editor.js:326
+#: assets/js/editor.js:656
+msgid "Could not load the saved analysis."
+msgstr ""
+
+#: assets/js/editor.js:736
+msgid "Could not delete the analysis."
+msgstr ""
+
+#: assets/js/editor.js:763
+msgid "First tag is primary. Add up to 10 related keyphrases."
+msgstr ""
+
+#: assets/js/editor.js:844
+msgid "Updating analysis…"
+msgstr ""
+
+#: assets/js/editor.js:855
+msgid "No saved analysis."
+msgstr ""
+
+#: assets/js/editor.js:942
 msgid "Disable schema"
 msgstr ""
 
-#: assets/js/editor.js:340
-msgid "One JSON-LD object, an array, or an object with @graph."
+#: assets/js/editor.js:956
+msgid "One JSON-LD object, array or @graph."
 msgstr ""
 
-#: assets/js/editor.js:341
+#: assets/js/editor.js:957
 msgid "Custom JSON-LD"
 msgstr ""
 
-#: assets/js/editor.js:354
+#: assets/js/editor.js:970
 msgid "Remove schema block"
 msgstr ""
 
-#: assets/js/editor.js:482
+#: assets/js/editor.js:1098
 msgid "Search posts or pages…"
 msgstr ""
 
-#: assets/js/editor.js:516
-msgid "Link this content to its equivalents on other network sites."
+#: assets/js/editor.js:1132
+msgid "Link equivalents on other network sites."
 msgstr ""
 
-#: assets/js/editor.js:527
-msgid "No other sites are enabled for multilingual links."
+#: assets/js/editor.js:1143
+msgid "No other multilingual sites enabled."
 msgstr ""
 
-#: assets/js/link-suggestions.js:25
+#: assets/js/link-suggestions.js:24
 msgid "High"
 msgstr ""
 
-#: assets/js/link-suggestions.js:29
+#: assets/js/link-suggestions.js:28
 msgid "Medium"
 msgstr ""
 
-#: assets/js/link-suggestions.js:32
+#: assets/js/link-suggestions.js:31
 msgid "Low"
 msgstr ""
 
-#: assets/js/link-suggestions.js:202
-msgid "Enable AI features under EasyRankly → Features."
+#: assets/js/link-suggestions.js:201
+msgid "Enable AI under EasyRankly → Features."
 msgstr ""
 
-#: assets/js/site-editor.js:284
+#: assets/js/site-editor.js:280
 msgid "WordPress context"
 msgstr ""
 
-#: assets/js/site-editor.js:298
-msgid "EasyRankly settings are not available in the Site Editor."
+#: assets/js/site-editor.js:294
+msgid "This context is not available here."
+msgstr ""
+
+#: admin/meta-box.php:272
+#: includes/admin.php:726
+#: assets/js/editor.js:856
+msgid "Suggest keyword"
+msgstr ""
+
+#: includes/admin.php:727
+#: assets/js/editor.js:856
+msgid "Suggesting keyword…"
+msgstr ""
+
+#: includes/admin.php:728
+#: assets/js/editor.js:755
+msgid "Keyword suggestion failed. Try again."
+msgstr ""
+
+#: includes/admin.php:729
+#: assets/js/editor.js:742
+msgid "The AI did not return a valid keyword."
+msgstr ""
+
+#: includes/admin.php:730
+#: assets/js/editor.js:748
+msgid "Remove a focus keyword before applying this suggestion."
+msgstr ""
+
+#: includes/ai-content-analysis.php:561
+msgid "The AI returned an invalid keyword suggestion."
+msgstr ""
+
+#: includes/ai-content-analysis.php:935
+msgid "Connect and enable an AI provider before suggesting a keyword."
+msgstr ""
+
+#: includes/ai-content-analysis.php:947
+msgid "Add some content before asking for a keyword."
+msgstr ""
+
+#: includes/ai-content-analysis.php:953
+msgid "A keyword is already being suggested for this content. Please wait a moment."
+msgstr ""
+
+#: includes/ai-content-analysis.php:960
+msgid "The keyword-suggestion prompt is missing."
 msgstr ""

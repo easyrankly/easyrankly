@@ -54,6 +54,9 @@ const ERANKLY_AI_RATE_LIMIT_MAX_LINK_SUGGESTIONS = 10;
 /** Default max Health AI suggestion model calls per user per window. */
 const ERANKLY_AI_RATE_LIMIT_MAX_HEALTH_SUGGEST = 20;
 
+/** Default max content-analysis AI calls per user per window. */
+const ERANKLY_AI_RATE_LIMIT_MAX_CONTENT_ANALYSIS = 10;
+
 /** Transient prefix for per-user AI rate-limit counters. */
 const ERANKLY_AI_RATE_LIMIT_PREFIX = 'erankly_ai_rl_';
 
@@ -1104,7 +1107,7 @@ function erankly_ai_decode_result( string $raw ) {
  *
  * @param string $system              System instruction.
  * @param string $user                User prompt.
- * @param string $rate_limit_bucket   Rate-limit bucket ('generate', 'link_suggestions', 'health_suggest').
+ * @param string $rate_limit_bucket Rate-limit bucket, such as 'generate' or 'content_analysis'.
  * @return string|WP_Error
  */
 function erankly_ai_call_model( string $system, string $user, string $rate_limit_bucket = 'generate' ) {
@@ -1265,6 +1268,10 @@ function erankly_ai_consume_rate_limit( string $bucket ) {
 			'window' => ERANKLY_AI_RATE_LIMIT_WINDOW,
 			'max'    => ERANKLY_AI_RATE_LIMIT_MAX_HEALTH_SUGGEST,
 		),
+		'content_analysis' => array(
+			'window' => ERANKLY_AI_RATE_LIMIT_WINDOW,
+			'max'    => ERANKLY_AI_RATE_LIMIT_MAX_CONTENT_ANALYSIS,
+		),
 	);
 
 	$config = $defaults[ $bucket ] ?? array(
@@ -1340,11 +1347,6 @@ function erankly_ai_consume_rate_limit( string $bucket ) {
  * @return void
  */
 function erankly_ai_render_editor_privacy_notice(): void {
-	?>
-	<p class="description erankly-ai-privacy">
-		<?php esc_html_e( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' ); ?>
-	</p>
-	<?php
 }
 
 /**

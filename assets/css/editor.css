@@ -6,10 +6,15 @@
  * of the editor is left untouched.
  */
 
-/* Uniform spacing between every control in a panel. */
+/* Uniform spacing between controls without adding extra panel-bottom space. */
 .erankly-panel .components-base-control,
 .erankly-panel .erankly-field {
-	margin-bottom: 24px;
+	margin-bottom: 16px;
+}
+
+.erankly-panel .components-base-control:last-child,
+.erankly-panel .erankly-field:last-child {
+	margin-bottom: 0;
 }
 
 /* Keep a visible edge after unbordered Core controls such as "Move to trash".
@@ -40,6 +45,13 @@
 	width: 100%;
 }
 
+/* Keep custom single-line SEO inputs at WordPress's current 40px standard. */
+.erankly-panel .components-text-control__input {
+	height: 40px;
+	padding-right: 12px;
+	padding-left: 12px;
+}
+
 .erankly-editor-variable-field .components-textarea-control__input {
 	resize: vertical;
 }
@@ -52,11 +64,6 @@
 .erankly-editor-variable-menu {
 	min-width: 280px;
 	width: min(340px, calc(100vw - 32px));
-}
-
-/* Toggle rows can sit a little tighter than full text fields. */
-.erankly-panel .components-toggle-control {
-	margin-bottom: 16px;
 }
 
 /* Align the switch with the top of its label, even when the label wraps. */
@@ -193,7 +200,7 @@
 	width: 26px;
 	height: 26px;
 	border: 1px solid #ecedef;
-	border-radius: 50%;
+	border-radius: 2px;
 	background: #f1f3f4;
 	object-fit: contain;
 }
@@ -265,11 +272,6 @@
 	-webkit-line-clamp: 2;
 }
 
-/* AI meta generation */
-.erankly-ai-field {
-	margin-top: 12px;
-}
-
 .erankly-ai-privacy {
 	margin: 0 0 10px;
 	color: var(--erankly-color-muted);
@@ -298,6 +300,39 @@
 
 .erankly-ai-field .erankly-ai-notice {
 	margin: 8px 0 0;
+}
+
+/*
+ * Gutenberg Notices inside EasyRankly panels (info / success / warning / error)
+ * share the plugin alert chrome, including a 2px corner radius.
+ */
+.erankly-panel .components-notice {
+	background: var(--erankly-color-info-surface);
+	border: 1px solid var(--erankly-color-info-border);
+	border-left: 1px solid var(--erankly-color-info-border);
+	border-radius: 2px;
+	box-shadow: none;
+	margin: 0 0 16px;
+	padding: 12px 14px;
+}
+
+.erankly-panel .components-notice.is-success {
+	background: var(--erankly-color-success-surface);
+	border-color: var(--erankly-color-success-border);
+}
+
+.erankly-panel .components-notice.is-warning {
+	background: var(--erankly-color-warning-surface);
+	border-color: var(--erankly-color-warning-border);
+}
+
+.erankly-panel .components-notice.is-error {
+	background: var(--erankly-color-error-surface);
+	border-color: var(--erankly-color-error-border);
+}
+
+.erankly-panel .components-notice:last-child {
+	margin-bottom: 0;
 }
 
 /* Internal link suggestions: flat Gutenberg-style list, no nested cards. */

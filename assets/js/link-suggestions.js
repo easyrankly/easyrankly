@@ -13,7 +13,7 @@
 		Notice,
 		__experimentalVStack: VStack,
 	} = wp.components;
-	const { createElement: el, Fragment, useEffect, useState } = wp.element;
+	const { createElement: el, createInterpolateElement, Fragment, useEffect, useState } = wp.element;
 	const { __ } = wp.i18n;
 
 	const Stack = VStack || 'div';
@@ -189,8 +189,13 @@
 		if ( ! config.graphBuilt ) {
 			return el(
 				'p',
-				null,
-				__( 'The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → Internal links.', 'easyrankly' )
+				{ className: 'description' },
+				createInterpolateElement(
+					__( 'The link graph has not been built yet. It will build on first use, or rebuild it under EasyRankly → <a>Internal links</a>.', 'easyrankly' ),
+					{
+						a: el( 'a', { href: config.internalLinksUrl || '#' } ),
+					}
+				)
 			);
 		}
 

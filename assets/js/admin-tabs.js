@@ -1,6 +1,87 @@
 (function (ER) {
   "use strict";
 
+  function prefersReducedMotion() {
+    return (
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function getSlidingIndicator(control) {
+    var indicator = control.querySelector(".erankly-sliding-indicator");
+
+    if (indicator) {
+      return indicator;
+    }
+
+    indicator = document.createElement("span");
+    indicator.className = "erankly-sliding-indicator is-positioning";
+    indicator.setAttribute("aria-hidden", "true");
+    control.prepend(indicator);
+
+    return indicator;
+  }
+
+  function positionSlidingIndicator(control, activeItem, animate) {
+    var indicator;
+
+    if (!control) {
+      return;
+    }
+
+    if (!activeItem || activeItem.hidden || activeItem.offsetWidth === 0) {
+      indicator = control.querySelector(".erankly-sliding-indicator");
+      control.classList.remove("has-sliding-indicator");
+
+      if (indicator) {
+        indicator.hidden = true;
+      }
+
+      return;
+    }
+
+    indicator = getSlidingIndicator(control);
+    indicator.hidden = false;
+    control.classList.add("has-sliding-indicator");
+    indicator.classList.toggle(
+      "is-positioning",
+      !animate || prefersReducedMotion(),
+    );
+    indicator.style.width = activeItem.offsetWidth + "px";
+    indicator.style.height = activeItem.offsetHeight + "px";
+    indicator.style.transform =
+      "translate3d(" +
+      activeItem.offsetLeft +
+      "px," +
+      activeItem.offsetTop +
+      "px,0)";
+
+    if (!animate || prefersReducedMotion()) {
+      // Apply the measured position before transitions are re-enabled, so the
+      // first paint and responsive layout changes never slide in from (0, 0).
+      indicator.getBoundingClientRect();
+      indicator.classList.remove("is-positioning");
+    }
+  }
+
+  function observeSlidingIndicator(control, getActiveItem) {
+    var observer;
+
+    if (
+      typeof window.ResizeObserver !== "function" ||
+      control.eranklySlidingObserver
+    ) {
+      return;
+    }
+
+    observer = new window.ResizeObserver(function () {
+      positionSlidingIndicator(control, getActiveItem(), false);
+    });
+    observer.observe(control);
+    control.eranklySlidingObserver = observer;
+  }
+
   function bindTabs(container) {
     var tabLists = Array.prototype.slice.call(
       container.querySelectorAll(".erankly-tabs"),
@@ -44,6 +125,10 @@
           panel.hidden = !isActive;
         });
 
+        if (tabList.hasAttribute("data-erankly-sliding-tabs")) {
+          positionSlidingIndicator(tabList, tab, true);
+        }
+
         if (setFocus) {
           tab.focus();
         }
@@ -56,6 +141,21 @@
           tab.classList.contains("is-active") ? "0" : "-1",
         );
       });
+
+      if (tabList.hasAttribute("data-erankly-sliding-tabs")) {
+        positionSlidingIndicator(
+          tabList,
+          tabs.filter(function (tab) {
+            return tab.classList.contains("is-active");
+          })[0],
+          false,
+        );
+        observeSlidingIndicator(tabList, function () {
+          return tabs.filter(function (tab) {
+            return tab.classList.contains("is-active");
+          })[0];
+        });
+      }
 
       tabs.forEach(function (tab) {
         tab.addEventListener("click", function () {
@@ -576,6 +676,7 @@
       : null;
     var target = source ? source.getAttribute("data-erankly-panel") : "";
     var actionLabel = "";
+    var stateChanged = container.classList.contains("is-linked") !== isLinked;
 
     if (!target && panels.length > 0) {
       target = panels[0].getAttribute("data-erankly-panel");
@@ -629,7 +730,22 @@
       toggle.setAttribute("aria-label", actionLabel);
       toggle.setAttribute("aria-pressed", isLinked ? "true" : "false");
       toggle.setAttribute("title", actionLabel);
+      positionSlidingIndicator(
+        toggle,
+        toggle.querySelector(isLinked ? ".is-yes" : ".is-no"),
+        stateChanged,
+      );
     }
+
+    positionSlidingIndicator(
+      container.querySelector("[data-erankly-sliding-tabs]"),
+      isLinked
+        ? null
+        : tabs.filter(function (tab) {
+            return tab.classList.contains("is-active");
+          })[0],
+      false,
+    );
 
     if (action) {
       action.textContent = actionLabel;
@@ -685,6 +801,11 @@
       });
 
     setLinkedDefaultsState(container, input.value !== "0", true);
+    observeSlidingIndicator(toggle, function () {
+      return toggle.querySelector(
+        container.classList.contains("is-linked") ? ".is-yes" : ".is-no",
+      );
+    });
   }
 
   ER.bindTabs = bindTabs;

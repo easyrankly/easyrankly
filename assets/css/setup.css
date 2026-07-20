@@ -44,11 +44,11 @@
 
 .erankly-setup-steps {
 	--erankly-tab-color: var(--wp-admin-theme-color, #3858e9);
-	--erankly-tabs-item-radius: var(--erankly-radius-control, 6px);
+	--erankly-tabs-item-radius: var(--erankly-radius-control, 2px);
 	align-items: center;
 	background: #fff;
 	border: 1px solid var(--erankly-tab-color);
-	border-radius: var(--erankly-radius-surface, 8px);
+	border-radius: var(--erankly-radius-surface, 2px);
 	box-sizing: border-box;
 	display: flex;
 	gap: 3px;

@@ -42,6 +42,7 @@ function erankly_sanitize_settings( mixed $input ): array {
 	$local_business_types    = erankly_get_local_business_types();
 	$local_business_type     = isset( $input['local_business_type'] ) ? erankly_sanitize_text( $input['local_business_type'] ) : 'LocalBusiness';
 	$redirect_exclude_admins = isset( $input['redirect_exclude_admins'] ) ? ! empty( $input['redirect_exclude_admins'] ) : (bool) erankly_get_setting( 'redirect_exclude_admins', 0 );
+	$ai_enabled              = ! empty( $input['ai_enabled'] ) && erankly_ai_provider_available();
 
 	if ( $person_user_id > 0 && ! get_userdata( $person_user_id ) ) {
 		$person_user_id = 0;
@@ -115,7 +116,7 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'global_schema_blocks'                => isset( $input['global_schema_blocks'] ) ? erankly_sanitize_schema_blocks( $input['global_schema_blocks'], true ) : array(),
 		'simplified_mode'                     => ! empty( $input['simplified_mode'] ) ? 1 : 0,
 		'resolve_placeholders'                => ! empty( $input['resolve_placeholders'] ) ? 1 : 0,
-		'ai_enabled'                          => ! empty( $input['ai_enabled'] ) && erankly_ai_provider_available() ? 1 : 0,
+		'ai_enabled'                          => $ai_enabled ? 1 : 0,
 		// Preserve the saved prompt when the AI tab is not part of the submitted
 		// form (e.g. simplified mode, or AI disabled), so other saves never wipe it.
 		'ai_prompt_template'                  => isset( $input['ai_prompt_template'] ) && function_exists( 'erankly_ai_sanitize_prompt_template' )
@@ -127,9 +128,10 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'ai_content_limit'                    => isset( $input['ai_content_limit'] ) && function_exists( 'erankly_ai_sanitize_content_limit' )
 			? erankly_ai_sanitize_content_limit( $input['ai_content_limit'] )
 			: (int) erankly_get_setting( 'ai_content_limit', 4000 ),
+		'enable_content_analysis'             => ! empty( $input['enable_content_analysis'] ) ? 1 : 0,
 		'enable_sitemap'                      => ! empty( $input['enable_sitemap'] ) ? 1 : 0,
 		'enable_health'                       => ! empty( $input['enable_health'] ) ? 1 : 0,
-		'enable_link_building'                => ! empty( $input['enable_link_building'] ) ? 1 : 0,
+		'enable_link_building'                => $ai_enabled && ! empty( $input['enable_link_building'] ) ? 1 : 0,
 		'enable_news_sitemap'                 => ! empty( $input['enable_news_sitemap'] ) ? 1 : 0,
 		'news_sitemap_post_types'             => isset( $input['news_sitemap_post_types'] ) && is_array( $input['news_sitemap_post_types'] ) ? array_intersect( array_map( 'sanitize_text_field', $input['news_sitemap_post_types'] ), array_keys( erankly_get_public_post_types() ) ) : array( 'post' ),
 		'news_publication_name'               => isset( $input['news_publication_name'] ) ? sanitize_text_field( (string) $input['news_publication_name'] ) : '',
@@ -159,11 +161,20 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'bloat_remove_shortlink'              => ! empty( $input['bloat_remove_shortlink'] ) ? 1 : 0,
 		'bloat_remove_rest_link'              => ! empty( $input['bloat_remove_rest_link'] ) ? 1 : 0,
 		'bloat_remove_oembed'                 => ! empty( $input['bloat_remove_oembed'] ) ? 1 : 0,
+		'bloat_remove_wp_embed'               => ! empty( $input['bloat_remove_wp_embed'] ) ? 1 : 0,
+		'bloat_remove_adjacent_posts'         => ! empty( $input['bloat_remove_adjacent_posts'] ) ? 1 : 0,
 		'bloat_remove_jquery_migrate'         => ! empty( $input['bloat_remove_jquery_migrate'] ) ? 1 : 0,
 		'bloat_disable_self_pingbacks'        => ! empty( $input['bloat_disable_self_pingbacks'] ) ? 1 : 0,
+		'bloat_disable_trackbacks'            => ! empty( $input['bloat_disable_trackbacks'] ) ? 1 : 0,
 		'bloat_remove_dashicons'              => ! empty( $input['bloat_remove_dashicons'] ) ? 1 : 0,
 		'bloat_disable_heartbeat'             => ! empty( $input['bloat_disable_heartbeat'] ) ? 1 : 0,
+		'bloat_limit_heartbeat_admin'         => ! empty( $input['bloat_limit_heartbeat_admin'] ) ? 1 : 0,
 		'bloat_disable_xmlrpc'                => ! empty( $input['bloat_disable_xmlrpc'] ) ? 1 : 0,
+		'bloat_remove_global_styles'          => ! empty( $input['bloat_remove_global_styles'] ) ? 1 : 0,
+		'bloat_remove_duotone'                => ! empty( $input['bloat_remove_duotone'] ) ? 1 : 0,
+		'bloat_remove_block_library_css'      => ! empty( $input['bloat_remove_block_library_css'] ) ? 1 : 0,
+		'bloat_limit_revisions'               => ! empty( $input['bloat_limit_revisions'] ) ? 1 : 0,
+		'bloat_disable_speculative_loading'   => ! empty( $input['bloat_disable_speculative_loading'] ) ? 1 : 0,
 	);
 
 	return $settings;
@@ -265,6 +276,7 @@ function erankly_settings_autosave_panels(): array {
 				'enable_sitemap',
 				'enable_health',
 				'enable_link_building',
+				'enable_content_analysis',
 				'ai_enabled',
 				'enable_multilingual',
 			),
@@ -279,11 +291,20 @@ function erankly_settings_autosave_panels(): array {
 				'bloat_remove_shortlink',
 				'bloat_remove_rest_link',
 				'bloat_remove_oembed',
+				'bloat_remove_wp_embed',
+				'bloat_remove_adjacent_posts',
 				'bloat_remove_jquery_migrate',
 				'bloat_disable_self_pingbacks',
+				'bloat_disable_trackbacks',
 				'bloat_remove_dashicons',
 				'bloat_disable_heartbeat',
+				'bloat_limit_heartbeat_admin',
 				'bloat_disable_xmlrpc',
+				'bloat_remove_global_styles',
+				'bloat_remove_duotone',
+				'bloat_remove_block_library_css',
+				'bloat_limit_revisions',
+				'bloat_disable_speculative_loading',
 			),
 		),
 		'settings' => array(
@@ -911,7 +932,6 @@ function erankly_render_settings_page(): void {
 				<nav class="erankly-settings-nav-tablist" aria-label="<?php esc_attr_e( 'Plugin settings', 'easyrankly' ); ?>" data-erankly-settings-tablist data-erankly-server-tabs data-erankly-active-panel="<?php echo esc_attr( $active_panel ); ?>" data-erankly-active-subtab="<?php echo esc_attr( $active_subtab ); ?>">
 				<?php if ( ! $is_site_admin_on_network ) : ?>
 					<?php erankly_render_settings_nav_link( 'general', __( 'General', 'easyrankly' ), $active_panel ); ?>
-					<?php erankly_render_settings_nav_link( 'features', __( 'Features', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'social', __( 'Social', 'easyrankly' ), $active_panel ); ?>
 					<?php erankly_render_settings_nav_link( 'schema', __( 'Schema', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
@@ -919,9 +939,10 @@ function erankly_render_settings_page(): void {
 					<?php erankly_render_settings_nav_link( 'special-pages', __( 'General', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( ! $is_site_admin_on_network ) : ?>
-					<?php erankly_render_settings_nav_link( 'settings', __( 'Settings', 'easyrankly' ), $active_panel ); ?>
-					<?php erankly_render_settings_nav_link( 'advanced', __( 'Advanced', 'easyrankly' ), $active_panel, ! empty( $settings['simplified_mode'] ) ); ?>
 					<?php erankly_render_settings_nav_link( 'bloat', __( 'Bloat', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'advanced', __( 'Advanced', 'easyrankly' ), $active_panel, ! empty( $settings['simplified_mode'] ) ); ?>
+					<?php erankly_render_settings_nav_link( 'features', __( 'Feature', 'easyrankly' ), $active_panel ); ?>
+					<?php erankly_render_settings_nav_link( 'settings', __( 'Settings', 'easyrankly' ), $active_panel ); ?>
 				<?php endif; ?>
 				<?php if ( $show_import_export_tab ) : ?>
 					<?php erankly_render_settings_nav_link( 'import-export', __( 'Import / Export', 'easyrankly' ), $active_panel ); ?>

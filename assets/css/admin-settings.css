@@ -44,8 +44,8 @@
  * Shared plugin alerts.
  *
  * WordPress admin notices emitted inside the EasyRankly screen are restyled to
- * match the plugin's custom callout pattern: soft surface, full border, rounded
- * corners and a state icon.
+ * match the plugin's custom callout pattern: soft surface, full border, and a
+ * state icon.
  */
 .erankly-alert,
 .erankly-panel-callout,
@@ -59,7 +59,7 @@
 	align-items: flex-start;
 	background: var(--erankly-alert-surface);
 	border: 1px solid var(--erankly-alert-border);
-	border-radius: var(--erankly-radius-surface);
+	border-radius: 2px;
 	box-shadow: none;
 	box-sizing: border-box;
 	color: #3c434a;
@@ -169,10 +169,31 @@
 	transform: translateY(-50%);
 }
 
-.erankly-inline-status .dashicons {
-	font-size: 14px;
+.erankly-inline-status .dashicons,
+.erankly-inline-status-icon {
+	flex: 0 0 auto;
 	height: 14px;
 	width: 14px;
+}
+
+.erankly-inline-status .dashicons {
+	font-size: 14px;
+}
+
+.erankly-inline-status-icon {
+	display: block;
+}
+
+.erankly-inline-status-icon-check {
+	display: none;
+}
+
+.erankly-inline-status.is-success .erankly-inline-status-icon-cross {
+	display: none;
+}
+
+.erankly-inline-status.is-success .erankly-inline-status-icon-check {
+	display: inline;
 }
 
 .erankly-option-list {
@@ -197,7 +218,8 @@
 	column-gap: 16px;
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	row-gap: 6px;
+	margin: 0 0 16px;
+	row-gap: 16px;
 }
 
 .erankly-schema-identity-fields.is-person {
@@ -260,18 +282,8 @@
 	margin-bottom: 0;
 }
 
-.erankly-inline-fields {
-	margin: 8px 0 16px;
-}
-
 .erankly-inline-fields-two-columns {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.erankly-schema-person-reference-description {
-	display: block;
-	grid-column: 1 / -1;
-	margin: 0 0 16px;
 }
 
 /* Shared autocomplete used by Person references and multilingual links. */
@@ -329,7 +341,7 @@
 	appearance: none;
 	background: none;
 	border: 0;
-	border-radius: 0;
+	border-radius: 2px;
 	box-sizing: border-box;
 	color: var(--erankly-color-text);
 	cursor: pointer;
@@ -363,7 +375,7 @@
 }
 
 .erankly-user-result-avatar {
-	border-radius: 50%;
+	border-radius: 2px;
 	flex: 0 0 auto;
 	height: 24px;
 	object-fit: cover;
@@ -495,13 +507,16 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 
 .erankly-settings-details > summary {
 	align-items: center;
+	box-sizing: border-box;
 	cursor: pointer;
 	display: flex;
+	font-size: 13px;
 	font-weight: 600;
 	gap: 8px;
-	line-height: 1.4;
+	line-height: 2.92307692; /* 38px for 40px min-height with 13px font. */
 	list-style: none;
-	padding: 12px 14px;
+	min-height: 40px;
+	padding: 0 12px;
 }
 
 .erankly-settings-details > summary::-webkit-details-marker {
@@ -601,8 +616,8 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	--erankly-tab-color: var(--wp-admin-theme-color, #3858e9);
 	--erankly-tabs-border-width: 1px;
 	--erankly-tabs-padding: 3px;
-	--erankly-tabs-radius: var(--erankly-radius-surface, 8px);
-	--erankly-tabs-item-radius: var(--erankly-radius-control, 6px);
+	--erankly-tabs-radius: var(--erankly-radius-surface, 2px);
+	--erankly-tabs-item-radius: var(--erankly-radius-control, 2px);
 	align-items: center;
 	background: #fff;
 	border: var(--erankly-tabs-border-width) solid var(--erankly-tab-color);
@@ -626,13 +641,12 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	color: color-mix(in srgb, var(--erankly-tab-color) 38%, var(--erankly-color-muted));
 	cursor: pointer;
 	display: inline-flex;
-	font-size: 14px;
+	font-size: 13px;
 	font-weight: 500;
 	justify-content: center;
 	line-height: 1.2;
 	margin: 0;
 	min-height: 32px;
-	min-width: 0;
 	overflow-wrap: anywhere;
 	padding: 7px 14px;
 	text-align: center;
@@ -683,16 +697,13 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
-	flex: 0 1 auto;
-	min-width: 108px;
+	flex: 0 0 auto;
 }
 
 .erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
-	--erankly-entity-tab-width: 108px;
-	--erankly-entity-tab-window: 375px;
 	-webkit-overflow-scrolling: touch;
 	flex-wrap: nowrap;
-	max-width: var(--erankly-entity-tab-window);
+	max-width: 100%;
 	overflow-x: auto;
 	overflow-y: hidden;
 	-ms-overflow-style: none;
@@ -701,7 +712,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 
 .erankly-entity-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
 	flex: 0 0 auto;
-	min-width: var(--erankly-entity-tab-width);
 	white-space: nowrap;
 }
 
@@ -714,13 +724,12 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
-	flex: 1 1 100%;
+	flex: 0 1 auto;
 	max-width: 100%;
-	width: 100%;
 }
 
 .erankly-special-page-default-tabs > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
-	flex: 1 0 var(--erankly-entity-tab-width);
+	flex: 0 0 auto;
 }
 
 .erankly-default-tabs .erankly-linked-tabs-summary {
@@ -762,6 +771,49 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	background: var(--wp-admin-theme-color, #3858e9);
 	box-shadow: none;
 	color: #fff;
+}
+
+.erankly-tabs.has-sliding-indicator {
+	isolation: isolate;
+	position: relative;
+}
+
+.erankly-tabs .erankly-sliding-indicator {
+	background: var(--erankly-tab-color);
+	border-radius: var(--erankly-tabs-item-radius);
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+	top: 0;
+	transition: height 260ms cubic-bezier(0.22, 1, 0.36, 1), transform 260ms cubic-bezier(0.22, 1, 0.36, 1), width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+	will-change: height, transform, width;
+	z-index: 0;
+}
+
+.erankly-tabs .erankly-sliding-indicator.is-positioning {
+	transition: none;
+}
+
+.erankly-tabs.has-sliding-indicator .erankly-tab {
+	position: relative;
+	z-index: 1;
+}
+
+.erankly-tabs.has-sliding-indicator .erankly-tab.is-active,
+.erankly-tabs.has-sliding-indicator .erankly-tab.nav-tab-active,
+.erankly-tabs.has-sliding-indicator .erankly-tab.is-active:hover,
+.erankly-tabs.has-sliding-indicator .erankly-tab.nav-tab-active:hover,
+.erankly-tabs.has-sliding-indicator .erankly-tab.is-active:focus,
+.erankly-tabs.has-sliding-indicator .erankly-tab.nav-tab-active:focus,
+.erankly-default-tabs.is-linked button.erankly-linked-defaults-toggle.has-sliding-indicator .erankly-linked-defaults-option.is-yes,
+.erankly-default-tabs:not(.is-linked) button.erankly-linked-defaults-toggle.has-sliding-indicator .erankly-linked-defaults-option.is-no {
+	background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.erankly-tabs .erankly-sliding-indicator {
+		transition: none;
+	}
 }
 
 .erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
@@ -894,7 +946,7 @@ input[type="checkbox"].erankly-toggle {
 	appearance: none;
 	background: #dcdcde;
 	border: 0;
-	border-radius: var(--erankly-radius-control);
+	border-radius: 2px;
 	cursor: pointer;
 	flex-shrink: 0;
 	height: 20px;
@@ -908,7 +960,7 @@ input[type="checkbox"].erankly-toggle {
 
 input[type="checkbox"].erankly-toggle::before {
 	background: #fff;
-	border-radius: calc(var(--erankly-radius-control) - var(--erankly-toggle-inset));
+	border-radius: 2px;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	content: "";
 	height: 16px;
@@ -1164,7 +1216,10 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	max-width: none;
 }
 
-.erankly-global-meta-default .erankly-field:last-child {
+/* Prefer :has() over :last-child: simplified special-page panels append
+ * hidden social inputs after the visibility fieldset, which would leave a
+ * trailing 16px field margin inside the card. */
+.erankly-global-meta-default .erankly-field:not(:has(~ .erankly-field)) {
 	margin-bottom: 0;
 }
 

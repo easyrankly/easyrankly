@@ -59,6 +59,22 @@ function erankly_reset_handle_actions(): void {
 
 	$action = sanitize_key( wp_unslash( $_POST['erankly_reset_action'] ) );
 
+	if ( 'delete_content_analyses' === $action ) {
+		check_admin_referer( 'erankly_delete_content_analyses' );
+
+		try {
+			$deleted = erankly_delete_content_analysis_reports();
+			erankly_reset_redirect(
+				array(
+					'erankly_reset_notice'  => 'analyses_deleted',
+					'erankly_deleted_count' => $deleted,
+				)
+			);
+		} catch ( Throwable ) {
+			erankly_reset_redirect( array( 'erankly_reset_notice' => 'analyses_failed' ) );
+		}
+	}
+
 	if ( 'reset_local' === $action ) {
 		check_admin_referer( 'erankly_reset_local' );
 
@@ -96,6 +112,39 @@ function erankly_reset_handle_actions(): void {
 function erankly_reset_redirect( array $args ): void {
 	wp_safe_redirect( add_query_arg( $args, erankly_reset_url() ) );
 	exit;
+}
+
+/**
+ * Deletes every persistent content-analysis report for the current site.
+ *
+ * Reports use one private post-meta row each and are intentionally independent
+ * from focus keywords and pillar settings, so editorial targeting is retained.
+ *
+ * @return int Number of rows removed.
+ * @throws RuntimeException When the database operation fails.
+ */
+function erankly_delete_content_analysis_reports(): int {
+	global $wpdb;
+
+	$meta_key = '_erankly_content_analysis_v1';
+	$count    = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- User-requested exact-key count for the cleanup confirmation.
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Core table and indexed exact plugin-owned key.
+			$meta_key
+		)
+	);
+
+	if ( $wpdb->last_error ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not delete the stored content analyses.', 'easyrankly' ) );
+	}
+	if ( 0 === $count ) {
+		return 0;
+	}
+	if ( ! delete_post_meta_by_key( $meta_key ) ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not delete the stored content analyses.', 'easyrankly' ) );
+	}
+
+	return $count;
 }
 
 /**
@@ -430,12 +479,34 @@ function erankly_reset_render_panel(): void {
 	$action_url = erankly_reset_url();
 	$is_network = is_multisite() && is_network_admin();
 
-	$local_label   = $is_network ? __( 'Reset this site', 'easyrankly' ) : __( 'Reset plugin', 'easyrankly' );
-	$title_local   = $is_network ? __( 'Reset this site?', 'easyrankly' ) : __( 'Reset EasyRankly?', 'easyrankly' );
-	$confirm_local = $is_network
+	$local_label      = $is_network ? __( 'Reset this site', 'easyrankly' ) : __( 'Reset plugin', 'easyrankly' );
+	$title_local      = $is_network ? __( 'Reset this site?', 'easyrankly' ) : __( 'Reset EasyRankly?', 'easyrankly' );
+	$confirm_local    = $is_network
 		? __( 'This will permanently delete this site\'s redirects, SEO metadata and special page defaults. This does not affect the network-wide settings or other sites. This action cannot be undone.', 'easyrankly' )
 		: __( 'This will permanently delete all EasyRankly settings, redirects and SEO metadata on this site, and restore everything to their defaults. This action cannot be undone.', 'easyrankly' );
+	$analysis_label   = $is_network ? __( 'Delete this site\'s content analyses', 'easyrankly' ) : __( 'Delete all content analyses', 'easyrankly' );
+	$analysis_title   = $is_network ? __( 'Delete this site\'s content analyses?', 'easyrankly' ) : __( 'Delete all content analyses?', 'easyrankly' );
+	$analysis_confirm = __( 'This permanently deletes the saved AI analysis report for every post on this site. Focus keywords, pillar settings and post content are kept. This action cannot be undone.', 'easyrankly' );
 	?>
+	<div class="erankly-settings-section">
+		<h3 class="erankly-section-title"><?php esc_html_e( 'Stored AI analyses', 'easyrankly' ); ?></h3>
+		<section class="erankly-io-section erankly-card">
+			<p class="description"><?php esc_html_e( 'EasyRankly keeps only the latest structured content-analysis report for each post. Delete all reports here whenever you no longer need them; new analyses can be generated later.', 'easyrankly' ); ?></p>
+			<p class="erankly-reset-actions">
+				<button
+					type="button"
+					class="button erankly-btn-danger erankly-reset-trigger"
+					data-erankly-reset-url="<?php echo esc_url( $action_url ); ?>"
+					data-erankly-reset-action="delete_content_analyses"
+					data-erankly-reset-nonce="<?php echo esc_attr( wp_create_nonce( 'erankly_delete_content_analyses' ) ); ?>"
+					data-erankly-reset-title="<?php echo esc_attr( $analysis_title ); ?>"
+					data-erankly-reset-confirm="<?php echo esc_attr( $analysis_confirm ); ?>"
+					data-erankly-reset-button="<?php echo esc_attr( $analysis_label ); ?>"
+				><?php echo esc_html( $analysis_label ); ?></button>
+			</p>
+		</section>
+	</div>
+
 	<div class="erankly-settings-section">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h3>
 		<section class="erankly-io-section erankly-card">
@@ -506,6 +577,20 @@ function erankly_reset_render_panel(): void {
  */
 function erankly_reset_render_notice(): void {
 	$notice = isset( $_GET['erankly_reset_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_reset_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
+
+	if ( 'analyses_deleted' === $notice ) {
+		$count   = isset( $_GET['erankly_deleted_count'] ) ? absint( wp_unslash( $_GET['erankly_deleted_count'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display count set by the cleanup redirect.
+		$message = sprintf(
+			/* translators: %s: number of deleted content-analysis reports. */
+			_n( '%s stored content analysis was deleted.', '%s stored content analyses were deleted.', $count, 'easyrankly' ),
+			number_format_i18n( $count )
+		);
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
+	if ( 'analyses_failed' === $notice ) {
+		echo '<div class="notice notice-error"><p>' . esc_html__( 'EasyRankly could not delete the stored content analyses because a database operation failed.', 'easyrankly' ) . '</p></div>';
+	}
 
 	if ( 'local' === $notice ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'EasyRankly has been reset for this site.', 'easyrankly' ) . '</p></div>';

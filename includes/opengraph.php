@@ -59,9 +59,9 @@ function erankly_render_opengraph_tags(): void {
 	$description   = erankly_get_og_description();
 	$url           = erankly_get_canonical();
 	$image         = erankly_get_og_image();
-	$image_alt     = erankly_get_social_image_alt( 'og' );
+	$image_alt     = erankly_get_social_image_alt( 'og', '', $image );
 	$twitter_image = erankly_get_twitter_image( $image );
-	$twitter_alt   = erankly_get_social_image_alt( 'twitter', $image_alt );
+	$twitter_alt   = erankly_get_twitter_image_alt( $twitter_image, $image, $image_alt );
 	$twitter_title = erankly_get_twitter_title( $title );
 	$twitter_desc  = erankly_get_twitter_description( $description );
 	$twitter_site  = erankly_get_twitter_site();
@@ -79,13 +79,13 @@ function erankly_render_opengraph_tags(): void {
 		'og:description'      => $description,
 		'og:url'              => $url,
 		'og:image'            => $image,
-		'og:image:alt'        => $image_alt,
+		'og:image:alt'        => '' !== $image ? $image_alt : '',
 		'twitter:card'        => erankly_get_twitter_card_type(),
 		'twitter:site'        => $twitter_site,
 		'twitter:title'       => $twitter_title,
 		'twitter:description' => $twitter_desc,
 		'twitter:image'       => $twitter_image,
-		'twitter:image:alt'   => $twitter_alt,
+		'twitter:image:alt'   => '' !== $twitter_image ? $twitter_alt : '',
 	);
 
 	/**
@@ -502,13 +502,82 @@ function erankly_get_og_image(): string {
 }
 
 /**
- * Returns explicit alternative text for a social image.
+ * Returns a Media Library attachment alternative text by its resolved URL.
+ *
+ * This is deliberately a fallback: explicitly authored social metadata always
+ * wins, while selected WordPress images inherit their existing accessibility
+ * description without creating duplicate per-network values.
+ *
+ * @param string $image URL of the resolved social image.
+ * @return string
+ */
+function erankly_get_social_image_attachment_alt( string $image ): string {
+	static $alts = array();
+
+	$image = trim( $image );
+
+	if (
+		'' === $image
+		|| str_contains( $image, '{{' )
+		|| ! function_exists( 'attachment_url_to_postid' )
+		|| ! function_exists( 'wp_get_upload_dir' )
+		|| ! function_exists( 'wp_parse_url' )
+	) {
+		return '';
+	}
+
+	if ( array_key_exists( $image, $alts ) ) {
+		return $alts[ $image ];
+	}
+
+	$uploads    = wp_get_upload_dir();
+	$base_url   = isset( $uploads['baseurl'] ) ? trim( (string) $uploads['baseurl'] ) : '';
+	$base_host  = strtolower( (string) wp_parse_url( $base_url, PHP_URL_HOST ) );
+	$image_host = strtolower( (string) wp_parse_url( $image, PHP_URL_HOST ) );
+	$base_path  = rtrim( (string) wp_parse_url( $base_url, PHP_URL_PATH ), '/' ) . '/';
+	$image_path = (string) wp_parse_url( $image, PHP_URL_PATH );
+
+	if ( '' === $base_host || $image_host !== $base_host || ! str_starts_with( $image_path, $base_path ) ) {
+		$alts[ $image ] = '';
+		return '';
+	}
+
+	$attachment_id  = attachment_url_to_postid( $image );
+	$alt            = $attachment_id > 0 ? (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) : '';
+	$alts[ $image ] = erankly_sanitize_text( $alt );
+
+	return $alts[ $image ];
+}
+
+/**
+ * Returns the alternative text for the X image.
+ *
+ * A shared social description is valid only if both networks resolve to the
+ * same image. A distinct X image gets its own explicit or Media Library value
+ * instead of inheriting a potentially inaccurate description.
+ *
+ * @param string $twitter_image Resolved X image URL.
+ * @param string $og_image      Resolved Open Graph image URL.
+ * @param string $og_alt        Resolved shared Open Graph alternative text.
+ * @return string
+ */
+function erankly_get_twitter_image_alt( string $twitter_image, string $og_image, string $og_alt ): string {
+	return erankly_get_social_image_alt(
+		'twitter',
+		$twitter_image === $og_image ? $og_alt : '',
+		$twitter_image
+	);
+}
+
+/**
+ * Returns alternative text for a social image.
  *
  * @param string $network  Either `og` or `twitter`.
  * @param string $fallback Fallback alternative text.
+ * @param string $image    Resolved social image URL.
  * @return string
  */
-function erankly_get_social_image_alt( string $network, string $fallback = '' ): string {
+function erankly_get_social_image_alt( string $network, string $fallback = '', string $image = '' ): string {
 	$key = 'twitter' === $network ? 'twitter_image_alt' : 'og_image_alt';
 	$alt = '';
 
@@ -524,5 +593,13 @@ function erankly_get_social_image_alt( string $network, string $fallback = '' ):
 		$alt = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_' . $key, true ) );
 	}
 
-	return '' !== $alt ? $alt : $fallback;
+	if ( '' !== $alt ) {
+		return $alt;
+	}
+
+	if ( '' !== $fallback ) {
+		return $fallback;
+	}
+
+	return erankly_get_social_image_attachment_alt( $image );
 }

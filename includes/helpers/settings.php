@@ -78,11 +78,20 @@ function erankly_bloat_enabled(): bool {
 		'bloat_remove_shortlink',
 		'bloat_remove_rest_link',
 		'bloat_remove_oembed',
+		'bloat_remove_wp_embed',
+		'bloat_remove_adjacent_posts',
 		'bloat_remove_jquery_migrate',
 		'bloat_disable_self_pingbacks',
+		'bloat_disable_trackbacks',
 		'bloat_remove_dashicons',
 		'bloat_disable_heartbeat',
+		'bloat_limit_heartbeat_admin',
 		'bloat_disable_xmlrpc',
+		'bloat_remove_global_styles',
+		'bloat_remove_duotone',
+		'bloat_remove_block_library_css',
+		'bloat_limit_revisions',
+		'bloat_disable_speculative_loading',
 	);
 
 	foreach ( $keys as $key ) {

@@ -16,9 +16,10 @@ $settings = is_array( $settings ) ? $settings : array();
 delete_option( 'erankly_contextual_modules_original_settings' );
 add_option( 'erankly_contextual_modules_original_settings', $settings, '', false );
 
-$settings['ai_enabled']          = 1;
-$settings['enable_health']       = 1;
-$settings['enable_link_building'] = 1;
+$settings['ai_enabled']              = 1;
+$settings['enable_content_analysis'] = 1;
+$settings['enable_health']           = 1;
+$settings['enable_link_building']    = 1;
 
 erankly_update_plugin_option( ERANKLY_OPTION, $settings );
 

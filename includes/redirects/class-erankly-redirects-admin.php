@@ -274,7 +274,24 @@ final class ERankly_Redirects_Admin {
 			}
 		}
 
-		$roles = get_editable_roles();
+		$show_advanced_options = ! (bool) erankly_get_setting( 'simplified_mode', 1 );
+		$roles                 = $show_advanced_options ? get_editable_roles() : array();
+		$code_labels           = array(
+			301 => __( '301: Permanent redirect', 'easyrankly' ),
+			302 => __( '302: Temporary redirect', 'easyrankly' ),
+			307 => __( '307: Temporary redirect (new generation)', 'easyrankly' ),
+			308 => __( '308: Permanent redirect (new generation)', 'easyrankly' ),
+		);
+		$status_codes          = ERankly_Redirects_Normalizer::VALID_STATUS_CODES;
+
+		if ( ! $show_advanced_options ) {
+			// Keep the simplified form at four semantic choices. When editing an
+			// existing 307/308 rule, retain that method-preserving variant as the
+			// temporary/permanent choice so an unrelated edit cannot downgrade it.
+			$permanent_code = 308 === $status_code ? 308 : 301;
+			$temporary_code = 307 === $status_code ? 307 : 302;
+			$status_codes   = array( $permanent_code, $temporary_code, 410, 451 );
+		}
 
 		?>
 		<form method="post" action="<?php echo esc_url( $this->admin_url() ); ?>" class="erankly-redirects-form">
@@ -294,80 +311,96 @@ final class ERankly_Redirects_Admin {
 					<span><?php esc_html_e( 'Target URL', 'easyrankly' ); ?></span>
 					<input type="text" name="target_url" value="<?php echo esc_attr( $target_url ); ?>" placeholder="/new-page or https://example.com/new-page">
 				</label>
-				<p class="description"><?php esc_html_e( 'Not used for 410 (Gone) or 451 (Unavailable For Legal Reasons). Those codes end the request without redirecting.', 'easyrankly' ); ?></p>
-			</div>
-
-			<div class="erankly-redirects-grid">
-				<label>
-					<span><?php esc_html_e( 'HTTP Code', 'easyrankly' ); ?></span>
-					<select name="status_code" id="erankly-redirects-status-code">
-						<?php foreach ( ERankly_Redirects_Normalizer::VALID_STATUS_CODES as $code ) : ?>
-							<option value="<?php echo esc_attr( (string) $code ); ?>" <?php selected( $status_code, $code ); ?>>
-								<?php echo esc_html( ERankly_Redirects_Normalizer::status_code_label( $code ) ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-				</label>
-
-				<label>
-					<span><?php esc_html_e( 'Apply to', 'easyrankly' ); ?></span>
-					<select name="visibility" id="erankly-redirects-visibility">
-						<option value="all" <?php selected( $visibility, 'all' ); ?>><?php esc_html_e( 'Everyone', 'easyrankly' ); ?></option>
-						<option value="logged_out" <?php selected( $visibility, 'logged_out' ); ?>><?php esc_html_e( 'Logged-out users only', 'easyrankly' ); ?></option>
-						<option value="logged_in" <?php selected( $visibility, 'logged_in' ); ?>><?php esc_html_e( 'Logged-in users only', 'easyrankly' ); ?></option>
-					</select>
-				</label>
-			</div>
-
-			<div class="erankly-redirects-role-field" id="erankly-redirects-role-field">
-				<label>
-					<span><?php esc_html_e( 'Required role', 'easyrankly' ); ?></span>
-					<select name="required_role">
-						<option value="" <?php selected( $required_role, '' ); ?>><?php esc_html_e( 'Any logged-in user', 'easyrankly' ); ?></option>
-						<?php foreach ( $roles as $role_slug => $role_data ) : ?>
-							<option value="<?php echo esc_attr( $role_slug ); ?>" <?php selected( $required_role, $role_slug ); ?>>
-								<?php echo esc_html( translate_user_role( $role_data['name'] ) ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-				</label>
-				<p class="description"><?php esc_html_e( 'Only applies when "Apply to" is set to logged-in users.', 'easyrankly' ); ?></p>
 			</div>
 
 			<label>
-				<span><?php esc_html_e( 'Match type', 'easyrankly' ); ?></span>
-				<select name="match_type">
-					<option value="exact" <?php selected( $match_type, 'exact' ); ?>><?php esc_html_e( 'Exact', 'easyrankly' ); ?></option>
-					<option value="wildcard" <?php selected( $match_type, 'wildcard' ); ?>><?php esc_html_e( 'Wildcard  (*)', 'easyrankly' ); ?></option>
-					<option value="regex" <?php selected( $match_type, 'regex' ); ?>><?php esc_html_e( 'Regex', 'easyrankly' ); ?></option>
-					<option value="contains" <?php selected( $match_type, 'contains' ); ?>><?php esc_html_e( 'Contains', 'easyrankly' ); ?></option>
-					<option value="starts_with" <?php selected( $match_type, 'starts_with' ); ?>><?php esc_html_e( 'Starts with', 'easyrankly' ); ?></option>
-					<option value="ends_with" <?php selected( $match_type, 'ends_with' ); ?>><?php esc_html_e( 'Ends with', 'easyrankly' ); ?></option>
+				<span><?php esc_html_e( 'HTTP Code', 'easyrankly' ); ?></span>
+				<select name="status_code" id="erankly-redirects-status-code">
+					<?php foreach ( $status_codes as $code ) : ?>
+						<?php $code_label = $code_labels[ $code ] ?? ERankly_Redirects_Normalizer::status_code_label( $code ); ?>
+						<option value="<?php echo esc_attr( (string) $code ); ?>" <?php selected( $status_code, $code ); ?>>
+							<?php echo esc_html( $code_label ); ?>
+						</option>
+					<?php endforeach; ?>
 				</select>
-				<p class="description"><?php esc_html_e( 'Exact: literal path. Wildcard: use * in source and target (e.g. /old/* → /new/*). Regex: full regular expression.', 'easyrankly' ); ?></p>
 			</label>
 
-			<div class="erankly-redirects-grid">
-				<label><span><?php esc_html_e( 'Query string', 'easyrankly' ); ?></span><select name="query_mode"><option value="ignore" <?php selected( $query_mode, 'ignore' ); ?>><?php esc_html_e( 'Ignore', 'easyrankly' ); ?></option><option value="preserve" <?php selected( $query_mode, 'preserve' ); ?>><?php esc_html_e( 'Ignore and preserve on target', 'easyrankly' ); ?></option><option value="exact" <?php selected( $query_mode, 'exact' ); ?>><?php esc_html_e( 'Match exactly', 'easyrankly' ); ?></option></select></label>
-				<label><span><?php esc_html_e( 'Trailing slash', 'easyrankly' ); ?></span><select name="trailing_slash"><option value="ignore" <?php selected( $trailing_slash, 'ignore' ); ?>><?php esc_html_e( 'Ignore', 'easyrankly' ); ?></option><option value="exact" <?php selected( $trailing_slash, 'exact' ); ?>><?php esc_html_e( 'Match exactly', 'easyrankly' ); ?></option></select></label>
-			</div>
-			<label><span><?php esc_html_e( 'Exact query to match', 'easyrankly' ); ?></span><input type="text" name="source_query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="utm_source=newsletter"></label>
-			<div class="erankly-redirects-grid">
-				<label><span><?php esc_html_e( 'Priority', 'easyrankly' ); ?></span><input type="number" name="priority" value="<?php echo esc_attr( (string) $priority ); ?>"></label>
-				<label class="erankly-redirects-checkbox"><input type="checkbox" class="erankly-toggle" name="case_sensitive" value="1" <?php checked( $case_sensitive ); ?>><span><?php esc_html_e( 'Case-sensitive match', 'easyrankly' ); ?></span></label>
-			</div>
-			<div class="erankly-redirects-grid">
-				<label><span><?php esc_html_e( 'Starts at', 'easyrankly' ); ?></span><input type="datetime-local" name="start_at" value="<?php echo esc_attr( '' !== $start_at ? str_replace( ' ', 'T', substr( $start_at, 0, 16 ) ) : '' ); ?>"></label>
-				<label><span><?php esc_html_e( 'Ends at', 'easyrankly' ); ?></span><input type="datetime-local" name="end_at" value="<?php echo esc_attr( '' !== $end_at ? str_replace( ' ', 'T', substr( $end_at, 0, 16 ) ) : '' ); ?>"></label>
-			</div>
-			<div class="erankly-redirects-grid">
-				<label><span><?php esc_html_e( 'Origin plugin', 'easyrankly' ); ?></span><input type="text" name="source_plugin" value="<?php echo esc_attr( $source_plugin ); ?>" placeholder="yoast, rank-math, aioseo, seopress"></label>
-				<label><span><?php esc_html_e( 'Origin reference', 'easyrankly' ); ?></span><input type="text" name="source_reference" value="<?php echo esc_attr( $source_reference ); ?>"></label>
-			</div>
+			<?php if ( $show_advanced_options ) : ?>
+			<details class="erankly-settings-details erankly-redirects-advanced">
+				<summary><?php esc_html_e( 'Advanced options', 'easyrankly' ); ?></summary>
+				<div class="erankly-settings-details-content">
+					<label>
+						<span><?php esc_html_e( 'Apply to', 'easyrankly' ); ?></span>
+						<select name="visibility" id="erankly-redirects-visibility">
+							<option value="all" <?php selected( $visibility, 'all' ); ?>><?php esc_html_e( 'Everyone', 'easyrankly' ); ?></option>
+							<option value="logged_out" <?php selected( $visibility, 'logged_out' ); ?>><?php esc_html_e( 'Logged-out users only', 'easyrankly' ); ?></option>
+							<option value="logged_in" <?php selected( $visibility, 'logged_in' ); ?>><?php esc_html_e( 'Logged-in users only', 'easyrankly' ); ?></option>
+						</select>
+					</label>
+
+					<div class="erankly-redirects-role-field" id="erankly-redirects-role-field">
+						<label>
+							<span><?php esc_html_e( 'Required role', 'easyrankly' ); ?></span>
+							<select name="required_role">
+								<option value="" <?php selected( $required_role, '' ); ?>><?php esc_html_e( 'Any logged-in user', 'easyrankly' ); ?></option>
+								<?php foreach ( $roles as $role_slug => $role_data ) : ?>
+									<option value="<?php echo esc_attr( $role_slug ); ?>" <?php selected( $required_role, $role_slug ); ?>>
+										<?php echo esc_html( translate_user_role( $role_data['name'] ) ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+						<p class="description"><?php esc_html_e( 'Only applies when "Apply to" is set to logged-in users.', 'easyrankly' ); ?></p>
+					</div>
+
+					<label>
+						<span><?php esc_html_e( 'Match type', 'easyrankly' ); ?></span>
+						<select name="match_type">
+							<option value="exact" <?php selected( $match_type, 'exact' ); ?>><?php esc_html_e( 'Exact', 'easyrankly' ); ?></option>
+							<option value="wildcard" <?php selected( $match_type, 'wildcard' ); ?>><?php esc_html_e( 'Wildcard  (*)', 'easyrankly' ); ?></option>
+							<option value="regex" <?php selected( $match_type, 'regex' ); ?>><?php esc_html_e( 'Regex', 'easyrankly' ); ?></option>
+							<option value="contains" <?php selected( $match_type, 'contains' ); ?>><?php esc_html_e( 'Contains', 'easyrankly' ); ?></option>
+							<option value="starts_with" <?php selected( $match_type, 'starts_with' ); ?>><?php esc_html_e( 'Starts with', 'easyrankly' ); ?></option>
+							<option value="ends_with" <?php selected( $match_type, 'ends_with' ); ?>><?php esc_html_e( 'Ends with', 'easyrankly' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'Exact: literal path. Wildcard: use * in source and target (e.g. /old/* → /new/*). Regex: full regular expression.', 'easyrankly' ); ?></p>
+					</label>
+
+					<div class="erankly-redirects-grid">
+						<label><span><?php esc_html_e( 'Query string', 'easyrankly' ); ?></span><select name="query_mode"><option value="ignore" <?php selected( $query_mode, 'ignore' ); ?>><?php esc_html_e( 'Ignore', 'easyrankly' ); ?></option><option value="preserve" <?php selected( $query_mode, 'preserve' ); ?>><?php esc_html_e( 'Ignore and preserve on target', 'easyrankly' ); ?></option><option value="exact" <?php selected( $query_mode, 'exact' ); ?>><?php esc_html_e( 'Match exactly', 'easyrankly' ); ?></option></select></label>
+						<label><span><?php esc_html_e( 'Trailing slash', 'easyrankly' ); ?></span><select name="trailing_slash"><option value="ignore" <?php selected( $trailing_slash, 'ignore' ); ?>><?php esc_html_e( 'Ignore', 'easyrankly' ); ?></option><option value="exact" <?php selected( $trailing_slash, 'exact' ); ?>><?php esc_html_e( 'Match exactly', 'easyrankly' ); ?></option></select></label>
+					</div>
+					<label><span><?php esc_html_e( 'Exact query to match', 'easyrankly' ); ?></span><input type="text" name="source_query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="utm_source=newsletter"></label>
+					<label><span><?php esc_html_e( 'Priority', 'easyrankly' ); ?></span><input type="number" name="priority" value="<?php echo esc_attr( (string) $priority ); ?>"></label>
+					<label class="erankly-redirects-checkbox"><input type="checkbox" class="erankly-toggle" name="case_sensitive" value="1" <?php checked( $case_sensitive ); ?>><span><?php esc_html_e( 'Case-sensitive match', 'easyrankly' ); ?></span></label>
+					<div class="erankly-redirects-grid">
+						<label><span><?php esc_html_e( 'Starts at', 'easyrankly' ); ?></span><input type="datetime-local" name="start_at" value="<?php echo esc_attr( '' !== $start_at ? str_replace( ' ', 'T', substr( $start_at, 0, 16 ) ) : '' ); ?>"></label>
+						<label><span><?php esc_html_e( 'Ends at', 'easyrankly' ); ?></span><input type="datetime-local" name="end_at" value="<?php echo esc_attr( '' !== $end_at ? str_replace( ' ', 'T', substr( $end_at, 0, 16 ) ) : '' ); ?>"></label>
+					</div>
+					<div class="erankly-redirects-grid">
+						<label><span><?php esc_html_e( 'Origin plugin', 'easyrankly' ); ?></span><input type="text" name="source_plugin" value="<?php echo esc_attr( $source_plugin ); ?>" placeholder="yoast, rank-math, aioseo, seopress"></label>
+						<label><span><?php esc_html_e( 'Origin reference', 'easyrankly' ); ?></span><input type="text" name="source_reference" value="<?php echo esc_attr( $source_reference ); ?>"></label>
+					</div>
+				</div>
+			</details>
+			<?php else : ?>
+			<input type="hidden" name="visibility" value="<?php echo esc_attr( $visibility ); ?>">
+			<input type="hidden" name="required_role" value="<?php echo esc_attr( $required_role ); ?>">
+			<input type="hidden" name="match_type" value="<?php echo esc_attr( $match_type ); ?>">
+			<input type="hidden" name="query_mode" value="<?php echo esc_attr( $query_mode ); ?>">
+			<input type="hidden" name="trailing_slash" value="<?php echo esc_attr( $trailing_slash ); ?>">
+			<input type="hidden" name="source_query" value="<?php echo esc_attr( $source_query ); ?>">
+			<input type="hidden" name="priority" value="<?php echo esc_attr( (string) $priority ); ?>">
+			<input type="hidden" name="case_sensitive" value="<?php echo esc_attr( $case_sensitive ? '1' : '0' ); ?>">
+			<input type="hidden" name="start_at" value="<?php echo esc_attr( $start_at ); ?>">
+			<input type="hidden" name="end_at" value="<?php echo esc_attr( $end_at ); ?>">
+			<input type="hidden" name="source_plugin" value="<?php echo esc_attr( $source_plugin ); ?>">
+			<input type="hidden" name="source_reference" value="<?php echo esc_attr( $source_reference ); ?>">
+			<?php endif; ?>
 
 			<label>
 				<span><?php esc_html_e( 'Note', 'easyrankly' ); ?> <span class="description"><?php esc_html_e( '(optional)', 'easyrankly' ); ?></span></span>
-				<textarea name="note" rows="2"><?php echo esc_textarea( $note ); ?></textarea>
+				<textarea class="widefat" name="note" rows="3"><?php echo esc_textarea( $note ); ?></textarea>
 			</label>
 
 			<label class="erankly-redirects-checkbox">

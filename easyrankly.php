@@ -202,6 +202,11 @@ function erankly_bootstrap(): void {
 	add_action( 'init', 'erankly_register_rewrites' );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
+	// Existing reports remain readable and deletable while the optional module
+	// is enabled, even if AI is later disabled or its provider is disconnected.
+	if ( erankly_content_analysis_enabled() ) {
+		add_action( 'rest_api_init', 'erankly_bootstrap_content_analysis_rest_routes', 5 );
+	}
 
 	// WP-CLI defines DOING_CRON only when it dispatches an event, after plugins
 	// have booted, so register the worker for CLI requests explicitly.
@@ -355,6 +360,22 @@ function erankly_bootstrap_ai_rest_routes(): void {
 
 	erankly_load_ai_module();
 	erankly_ai_register_rest_routes();
+}
+
+/**
+ * Loads the lightweight content-analysis route shell during REST discovery.
+ *
+ * The full analysis implementation is deferred to the endpoint callback.
+ *
+ * @return void
+ */
+function erankly_bootstrap_content_analysis_rest_routes(): void {
+	if ( ! erankly_content_analysis_enabled() ) {
+		return;
+	}
+
+	require_once ERANKLY_PATH . 'includes/ai-content-analysis-routes.php';
+	erankly_content_analysis_register_rest_routes();
 }
 
 /**

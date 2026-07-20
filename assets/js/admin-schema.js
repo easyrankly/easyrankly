@@ -74,9 +74,6 @@
     var personField = container
       ? container.querySelector("[data-erankly-person-reference-field]")
       : null;
-    var personDescription = container
-      ? container.querySelector("[data-erankly-person-reference-description]")
-      : null;
     var identityFields = container
       ? container.querySelector("[data-erankly-schema-identity-fields]")
       : null;
@@ -89,10 +86,6 @@
       var isPerson = field.value === "person";
 
       personField.hidden = !isPerson;
-
-      if (personDescription) {
-        personDescription.hidden = !isPerson;
-      }
 
       if (identityFields) {
         identityFields.classList.toggle("is-person", isPerson);

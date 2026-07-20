@@ -698,6 +698,92 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		if ( $post instanceof WP_Post ) {
 			require_once ERANKLY_PATH . 'admin/meta-box.php';
 
+			if ( erankly_content_analysis_enabled() ) {
+				wp_enqueue_style(
+					'erankly-content-analysis',
+					ERANKLY_URL . 'assets/css/content-analysis.css',
+					array( 'erankly-classic-editor' ),
+					ERANKLY_VERSION
+				);
+				wp_enqueue_script(
+					'erankly-content-analysis',
+					ERANKLY_URL . 'assets/js/content-analysis.js',
+					array(),
+					ERANKLY_VERSION,
+					true
+				);
+				wp_localize_script(
+					'erankly-content-analysis',
+					'eranklyContentAnalysis',
+					array(
+						'aiEnabled'  => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
+						'suggestUrl' => esc_url_raw( rest_url( 'erankly/v1/ai/content-analysis/' . $post->ID . '/keyword-suggestion' ) ),
+						'nonce'      => wp_create_nonce( 'wp_rest' ),
+						'restUrl'    => esc_url_raw( rest_url( 'erankly/v1/ai/content-analysis/' . $post->ID ) ),
+						'i18n'       => array(
+							'analyze'          => __( 'Analyze', 'easyrankly' ),
+							'analyzing'        => __( 'Analyzing content…', 'easyrankly' ),
+							'suggestKeyword'   => __( 'Suggest keyword', 'easyrankly' ),
+							'suggesting'       => __( 'Suggesting keyword…', 'easyrankly' ),
+							'suggestError'     => __( 'Keyword suggestion failed. Try again.', 'easyrankly' ),
+							'suggestInvalid'   => __( 'The AI did not return a valid keyword.', 'easyrankly' ),
+							'suggestLimit'     => __( 'Remove a focus keyword before applying this suggestion.', 'easyrankly' ),
+							'openAnalysis'     => __( 'Open analysis', 'easyrankly' ),
+							'analysisUpdated'  => __( 'Analysis updated.', 'easyrankly' ),
+							'analysisDeleted'  => __( 'Analysis deleted.', 'easyrankly' ),
+							'analysisStale'    => __( 'Content changed after this analysis.', 'easyrankly' ),
+							'error'            => __( 'The content analysis failed. Please try again.', 'easyrankly' ),
+							'keywordRequired'  => __( 'Add at least one focus keyword before analyzing.', 'easyrankly' ),
+							'keywordLimit'     => __( 'Use no more than ten focus keywords for one analysis.', 'easyrankly' ),
+							'primary'          => __( 'Primary', 'easyrankly' ),
+							'removeKeyword'    => __( 'Remove keyword', 'easyrankly' ),
+							'inFocus'          => __( 'In focus', 'easyrankly' ),
+							'partiallyInFocus' => __( 'Partially in focus', 'easyrankly' ),
+							'outOfFocus'       => __( 'Out of focus', 'easyrankly' ),
+							'focusScore'       => __( 'Editorial focus score', 'easyrankly' ),
+							'searchIntent'     => __( 'Search intent', 'easyrankly' ),
+							'strengths'        => __( 'What already works', 'easyrankly' ),
+							'keywordReview'    => __( 'Keyword review', 'easyrankly' ),
+							'priorities'       => __( 'Priority improvements', 'easyrankly' ),
+							'morePriorities'   => __( 'More improvements', 'easyrankly' ),
+							'missingTopics'    => __( 'Missing topics', 'easyrankly' ),
+							'headings'         => __( 'Suggested structure', 'easyrankly' ),
+							'sentences'        => __( 'Ready-to-use sentences', 'easyrankly' ),
+							'pillar'           => __( 'Pillar readiness', 'easyrankly' ),
+							'clusterIdeas'     => __( 'Supporting content ideas', 'easyrankly' ),
+							'linkActions'      => __( 'Internal-link actions', 'easyrankly' ),
+							'warnings'         => __( 'Watch-outs', 'easyrankly' ),
+							'measuredSignals'  => __( 'Measured signals', 'easyrankly' ),
+							'coverage'         => __( 'Content coverage', 'easyrankly' ),
+							'words'            => __( 'Words', 'easyrankly' ),
+							'headingsCount'    => __( 'Headings', 'easyrankly' ),
+							'inboundLinks'     => __( 'Inbound links', 'easyrankly' ),
+							'outboundLinks'    => __( 'Outbound links', 'easyrankly' ),
+							'conflicts'        => __( 'Possible keyword cannibalization', 'easyrankly' ),
+							'copy'             => __( 'Copy', 'easyrankly' ),
+							'copied'           => __( 'Copied', 'easyrankly' ),
+							'showDetails'      => __( 'Show details', 'easyrankly' ),
+							'hideDetails'      => __( 'Hide details', 'easyrankly' ),
+							'analyzedAt'       => __( 'Analyzed', 'easyrankly' ),
+							'strong'           => __( 'Strong', 'easyrankly' ),
+							'partial'          => __( 'Partial', 'easyrankly' ),
+							'weak'             => __( 'Weak', 'easyrankly' ),
+							'missing'          => __( 'Missing', 'easyrankly' ),
+							'overused'         => __( 'Overused', 'easyrankly' ),
+							'notApplicable'    => __( 'Not applicable', 'easyrankly' ),
+							'highPriority'     => __( 'High priority', 'easyrankly' ),
+							'mediumPriority'   => __( 'Medium priority', 'easyrankly' ),
+							'lowPriority'      => __( 'Low priority', 'easyrankly' ),
+							'exactMentions'    => __( 'Exact mentions', 'easyrankly' ),
+							'title'            => __( 'Title', 'easyrankly' ),
+							'opening'          => __( 'Opening', 'easyrankly' ),
+							'yes'              => __( 'Yes', 'easyrankly' ),
+							'no'               => __( 'No', 'easyrankly' ),
+						),
+					)
+				);
+			}
+
 			wp_localize_script(
 				'erankly-admin',
 				'eranklyChecklist',
@@ -1028,6 +1114,14 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 
 	erankly_enqueue_editor_shared_assets();
 	erankly_enqueue_accordion_faq_schema_assets();
+	if ( erankly_content_analysis_enabled() ) {
+		wp_enqueue_style(
+			'erankly-content-analysis',
+			ERANKLY_URL . 'assets/css/content-analysis.css',
+			array( 'erankly-editor' ),
+			ERANKLY_VERSION
+		);
+	}
 
 	if ( erankly_internal_links_available() ) {
 		wp_enqueue_script( 'erankly-link-suggestions' );
@@ -1082,6 +1176,8 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 				'translationSearchPath'         => '/erankly/v1/ml/search',
 				'aiEnabled'                     => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
 				'aiGeneratePath'                => '/erankly/v1/ai/generate',
+				'contentAnalysisEnabled'        => erankly_content_analysis_enabled(),
+				'contentAnalysisPath'           => '/erankly/v1/ai/content-analysis/',
 				'aiContentLimit'                => function_exists( 'erankly_ai_get_content_limit' ) ? erankly_ai_get_content_limit() : 4000,
 				'internalLinksEnabled'          => erankly_internal_links_available(),
 			),

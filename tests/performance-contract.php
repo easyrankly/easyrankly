@@ -50,6 +50,8 @@ $health_entry    = (string) file_get_contents( $root . '/includes/health.php' );
 $health_boot     = (string) file_get_contents( $root . '/includes/health/boot.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
 $health_routes   = (string) file_get_contents( $root . '/includes/health/broken-links-routes.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
 $health_crawler  = (string) file_get_contents( $root . '/includes/health/broken-links-crawler.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
+$analysis_routes = (string) file_get_contents( $root . '/includes/ai-content-analysis-routes.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
+$analysis_impl   = (string) file_get_contents( $root . '/includes/ai-content-analysis.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
 $loader_start    = strpos( $admin, 'function erankly_admin_load_settings_modules' );
 $loader_end      = strpos( $admin, 'function erankly_admin_load_import_export_module', (int) $loader_start );
 $base_loader     = false !== $loader_start && false !== $loader_end ? substr( $admin, $loader_start, $loader_end - $loader_start ) : '';
@@ -110,6 +112,9 @@ erankly_perf_assert( $health_idle_source < 12 * 1024, "idle Health source is {$h
 $health_route_source = erankly_perf_bytes( $root, array( 'includes/health/broken-links-routes.php' ) );
 erankly_perf_assert( $health_route_source < 6 * 1024, "Health REST route shell is {$health_route_source} bytes (budget: < 6 KB)" );
 
+$analysis_route_source = erankly_perf_bytes( $root, array( 'includes/ai-content-analysis-routes.php' ) );
+erankly_perf_assert( $analysis_route_source < 6 * 1024, "Content-analysis REST route shell is {$analysis_route_source} bytes (budget: < 6 KB)" );
+
 $import_js  = erankly_perf_bytes(
 	$root,
 	array( 'assets/js/admin-tabs.js', 'assets/js/admin-fields.js', 'assets/js/admin.js' )
@@ -144,6 +149,11 @@ erankly_perf_assert( preg_match( '/\$old_health_enabled && ! \$new_health_enable
 erankly_perf_assert( str_contains( $bootstrap, "add_action( 'rest_api_init', 'erankly_bootstrap_ai_rest_routes', 5 );" ), 'AI has no REST-context dispatcher' );
 erankly_perf_assert( preg_match( '/if \( erankly_ai_module_enabled\(\) \).*?if \( is_admin\(\) \).*?erankly_load_ai_module\(\)/s', $bootstrap ) === 1, 'enabled AI is not loaded contextually for admin' );
 erankly_perf_assert( preg_match( '/function erankly_bootstrap_ai_rest_routes\(\).*?erankly_load_ai_module\(\).*?erankly_ai_register_rest_routes\(\)/s', $bootstrap ) === 1, 'AI REST dispatcher does not own implementation loading and route registration' );
+erankly_perf_assert( preg_match( '/if \( erankly_content_analysis_enabled\(\) \).*?add_action\( \'rest_api_init\', \'erankly_bootstrap_content_analysis_rest_routes\', 5 \);/s', $bootstrap ) === 1, 'Content-analysis REST routes are not gated by their feature toggle' );
+erankly_perf_assert( preg_match( '/function erankly_bootstrap_content_analysis_rest_routes\(\).*?ai-content-analysis-routes\.php.*?erankly_content_analysis_register_rest_routes\(\)/s', $bootstrap ) === 1, 'Content-analysis dispatcher does not load only its route shell' );
+erankly_perf_assert( ! str_contains( $bootstrap, 'includes/ai-content-analysis.php' ), 'Content-analysis implementation is eagerly referenced by the main bootstrap' );
+erankly_perf_assert( str_contains( $analysis_routes, 'erankly_content_analysis_load_implementation( true );' ), 'Only generation should opt into the full AI module' );
+erankly_perf_assert( ! str_contains( $analysis_impl, 'register_rest_route' ), 'Content-analysis implementation still owns REST route discovery' );
 erankly_perf_assert( '' !== $ai_loader && str_contains( $ai_loader, 'includes/helpers/content-defaults.php' ) && str_contains( $ai_loader, 'includes/helpers/utils.php' ), 'AI helper loader is missing its minimal dependencies' );
 erankly_perf_assert( ! str_contains( $ai_loader, 'global-meta.php' ) && ! str_contains( $ai_loader, 'template-variables.php' ), 'AI helper loader includes unrelated rich-content helpers' );
 foreach ( array( '404-monitor.php', 'suggestions.php', 'thin-content.php', 'broken-links-crawler.php', 'broken-links-admin.php', 'panel.php' ) as $deferred_health_file ) {
@@ -161,12 +171,13 @@ erankly_perf_assert( str_contains( $admin, "'health' === \$settings_tab" ) && st
 
 // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- Standalone CLI metrics.
 printf(
-	'Performance contract passed (kernel=%d B, frontend bootstrap=%d B, AI REST=%d B, idle Health=%d B, Health route shell=%d B, import JS=%d B, import CSS=%d B).' . "\n",
+	'Performance contract passed (kernel=%d B, frontend bootstrap=%d B, AI REST=%d B, idle Health=%d B, Health route shell=%d B, analysis route shell=%d B, import JS=%d B, import CSS=%d B).' . "\n",
 	$kernel,
 	$frontend_bootstrap,
 	$ai_rest_source,
 	$health_idle_source,
 	$health_route_source,
+	$analysis_route_source,
 	$import_js,
 	$import_css
 );

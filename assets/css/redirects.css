@@ -26,10 +26,16 @@
 
 .erankly-redirects-form input[type="text"],
 .erankly-redirects-form input[type="number"],
+.erankly-redirects-form input[type="datetime-local"],
 .erankly-redirects-form select,
 .erankly-redirects-form textarea {
+	box-sizing: border-box;
 	max-width: 100%;
 	width: 100%;
+}
+
+.erankly-redirects-advanced {
+	margin-bottom: 16px;
 }
 
 .erankly-redirects-form textarea {
