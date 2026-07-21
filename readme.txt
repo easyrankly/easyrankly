@@ -17,19 +17,20 @@ EasyRankly brings together the SEO essentials for WordPress in a modular toolkit
 Here's what it does:
 
 * **Core metadata across your site.** SEO titles, meta descriptions, canonical URLs, and robots directives, set up sensibly out of the box.
-* **Great social previews.** Open Graph and Twitter (X) cards so your links look right when shared.
+* **Great social previews.** Open Graph and Twitter (X) cards with shared image alt text, an optional X-specific override, and Media Library alt-text fallbacks for local images.
 * **Structured data that search engines understand.** A modular JSON-LD schema graph covering your Organization or Person, optional local business details, articles, breadcrumbs, FAQs, and WooCommerce product compatibility, plus reusable custom schema blocks you can target to specific pages.
 * **Sitemaps, when you want them.** An optional XML sitemap index with sitemaps for your content (including images), taxonomies, and authors.
 * **Control over what gets indexed.** Simple noindex, nofollow, noarchive, and sitemap-exclusion controls, per page or across your site.
-* **Smart redirects built in.** An optional redirect manager with exact, wildcard, and regex matching, with per-pattern safeguards that keep even complex regex rules fast and safe.
+* **Smart redirects built in.** An optional redirect manager with a streamlined rule editor, advanced audience and scheduling controls, and exact, contains, starts-with, ends-with, wildcard, and regex matching. Per-pattern safeguards keep even complex regex rules fast and safe.
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
 * **Optional AI meta generation.** Generate or improve SEO titles and descriptions right from the editor when WordPress has a connected AI provider. It's off by default and uses WordPress' native AI/Connectors APIs (available in WordPress 7.0 and later); on earlier versions it stays inactive and EasyRankly uses its built-in, non-AI logic instead.
 * **Optional persistent AI content analysis.** Enable it from Features, target several focus keyphrases as WordPress-style tags, choose the primary keyword, and get an editorial focus report with measured signals, prioritized improvements, ready-to-use sentences, structure ideas, possible keyword cannibalization, and stricter pillar-content guidance.
 * **Optional internal linking assistant.** Build a site-wide link graph, find orphan pages, get rule-based suggestions, and optionally refine with AI when AI features are enabled.
 * **Private health monitoring.** Optional 404 tracking that stays on your server. EasyRankly stores no IP address or user agent; path identifiers are redacted on a best-effort basis and aggregate records are cleaned up automatically.
+* **Optional WordPress cleanup.** Use a conservative one-click preset or choose granular controls for embeds, pingbacks, Heartbeat, revisions, frontend styles, and speculative loading.
 * **Dynamic variables** for filling in titles, social tags, and schema fields automatically.
 
-All of it lives in a redesigned, streamlined admin interface with a short setup wizard to get you configured in minutes.
+All of it lives in a redesigned, responsive admin interface with consistent form patterns, accessible label and control relationships, keyboard-friendly tabs and dialogs, and a short setup wizard to get you configured in minutes.
 
 == Installation ==
 
@@ -63,6 +64,8 @@ If you enable an AI feature, EasyRankly sends page context to the AI provider co
 
 This happens only when someone explicitly triggers an AI action, never automatically on page views.
 
+The editor displays an inline provider disclosure beside metadata generation, content analysis, and internal-link AI controls so editors can see when page context will be shared.
+
 **Meta generation (editor):** when Generate with AI or Improve results is clicked, EasyRankly may send the site name, the site language (locale), the post/term/special-page title, plain-text body or description truncated to your configured character limit (shortcodes removed), and, when improving, the current title, description, and your instructions. Nothing is sent until the button is clicked.
 
 **Content analysis (post editor):** when Analyze or Analyze again is clicked, EasyRankly sends the current editor title and ordered focus keyphrases, whether the post is marked as pillar content, measured keyword and link signals, the document outline, image alt text, internal anchor text, and a plain-text beginning/middle/end sample bounded by the configured AI content limit. This includes unsaved editor changes so the report reflects what is currently on screen. Possible cannibalization signals include the titles and overlapping keyphrases of editable posts; private admin edit URLs and post IDs are not sent to the provider. When Suggest keyword is clicked, EasyRankly sends only the current title, outline, word count, coverage and the same bounded text sample. The proposed keyphrase is placed first in the unsaved focus-keyword field and is not stored until the editor saves the post.
@@ -82,6 +85,12 @@ In Advanced mode, Settings → EasyRankly → AI lets you set how many plain-tex
 = What do I need for AI features to work? =
 
 AI features rely on WordPress' native AI and Connectors APIs, which are available in WordPress 7.0 and later. On earlier WordPress versions, or when no AI provider is connected, generation stays inactive and EasyRankly continues to use its built-in, non-AI logic. Previously saved content-analysis reports remain readable and deletable while the Content analysis feature is enabled. Even where the APIs are available, AI is off until you enable AI features—and Content analysis when you want that editor module—under Settings > EasyRankly > Features and connect a provider on the WordPress Connectors screen.
+
+= Are the WordPress cleanup options enabled automatically? =
+
+No. Every cleanup is off by default under Settings > EasyRankly > Bloat. Simplified mode offers a one-click Lighten WordPress preset limited to conservative metadata and self-pingback cleanups; Advanced mode exposes each switch individually, including controls for embeds, trackbacks and pingbacks, Heartbeat, revisions, frontend style assets, and speculative loading.
+
+The more invasive options include contextual safeguards: global styles are retained for block themes, block-library CSS is removed only from singular classic-theme pages that contain no blocks, and the revision limit preserves any stricter limit already configured. Test the public site after enabling advanced cleanups because themes and plugins may depend on the assets or APIs they remove.
 
 = How do I display breadcrumbs? =
 
@@ -104,15 +113,16 @@ You can also export and re-import EasyRankly settings, redirects, special-page d
 = 2.0.0 =
 Major release bringing together EasyRankly's complete modular SEO toolkit, a rebuilt administration experience, optional AI assistance, advanced site-health tools, and a production-grade migration system.
 
-* Expanded the SEO foundation across titles and descriptions, canonicals and indexing controls, Open Graph and X cards, dynamic variables, breadcrumbs, reusable JSON-LD schema, WooCommerce data, robots.txt, and XML sitemaps for standard content, images, news, video, and multilingual alternates.
-* Rebuilt setup, settings, editor, and Site Editor workflows with Simplified and Advanced modes, contextual panels, clearer guidance, SEO checklists, and a more consistent, Multisite-aware interface.
-* Added opt-in AI tools through WordPress' native AI and Connectors APIs for generating or improving metadata and assisting with redirects and internal links, with non-AI fallbacks, bounded context, and rate limits.
-* Added persistent AI content analysis with multi-keyword tags, primary-keyword targeting, pillar guidance, measured focus signals, copy-ready recommendations, stale-report detection, and explicit per-post or site-wide cleanup.
+* Expanded the SEO foundation across titles and descriptions, canonicals and indexing controls, Open Graph and X cards with smarter image-alt fallbacks, dynamic variables, breadcrumbs, reusable JSON-LD schema, WooCommerce data, robots.txt, and XML sitemaps for standard content, images, news, video, and multilingual alternates.
+* Rebuilt setup, settings, editor, and Site Editor workflows with Simplified and Advanced modes, contextual panels, clearer guidance, SEO checklists, responsive shared form patterns, and stronger accessibility semantics across labels, grouped controls, tabs, dialogs, and autocomplete fields.
+* Added opt-in AI tools through WordPress' native AI and Connectors APIs for generating or improving metadata and assisting with redirects and internal links, with inline provider disclosures, non-AI fallbacks, bounded context, and rate limits.
+* Added persistent AI content analysis in the block and classic editors with multi-keyword tags, AI keyword suggestions, primary-keyword targeting, pillar guidance, measured focus signals, copy-ready recommendations, stale-report detection, guarded loading and deletion states, and explicit per-post or site-wide cleanup.
 * Expanded site health and content discovery with privacy-conscious 404 monitoring, broken-link crawling, thin-content checks, orphan-page detection, and rule-based internal-link suggestions.
-* Upgraded redirects with exact, wildcard, and regex matching, additional status and scheduling controls, loop and chain diagnostics, safer pattern execution, and bulk-friendly cache handling.
+* Expanded the opt-in WordPress cleanup toolkit with a conservative one-click preset and granular controls for embeds, header output, trackbacks and pingbacks, Heartbeat, revisions, frontend styles, duotone assets, and speculative loading.
+* Upgraded redirects with a streamlined Simplified-mode form, grouped Advanced options, additional match types, status and scheduling controls, audience targeting, loop and chain diagnostics, safer pattern execution, and bulk-friendly cache handling.
 * Added comprehensive, conflict-safe migrations from Yoast SEO, Rank Math, AIOSEO, and SEOPress, including Free and paid editions and official exports, resumable background processing, private uploads, source validation, detailed reports, live verification, cutover gates, and conditional rollback.
 * Strengthened Multisite and multilingual support with network settings, hreflang and sitemap integration, translation workflows, per-site isolation, and resumable maintenance operations.
-* Improved modular loading, performance, privacy, security, and compatibility throughout, including WordPress.org Plugin Check hardening, guarded support for newer WordPress APIs, broader PHP and WordPress test coverage, developer API compatibility, interface polish, and updated translation support.
+* Improved modular loading, performance, privacy, security, and compatibility throughout, including WordPress.org Plugin Check hardening, guarded support for newer WordPress APIs, broader PHP and WordPress test coverage, developer API compatibility, consolidated admin styles, and updated translation support.
 
 = 1.0.0 =
 * First public release.
@@ -120,7 +130,7 @@ Major release bringing together EasyRankly's complete modular SEO toolkit, a reb
 == Upgrade Notice ==
 
 = 2.0.0 =
-Major update with rebuilt administration and editor workflows, optional AI tools, expanded SEO and site-health features, and comprehensive third-party migration workflows. Review your settings after updating.
+Major update with rebuilt administration and editor workflows, optional AI tools and persistent content analysis, expanded SEO and site-health features, opt-in WordPress cleanup controls, and comprehensive third-party migration workflows. Review your settings after updating.
 
 = 1.0.0 =
 First public release of EasyRankly.

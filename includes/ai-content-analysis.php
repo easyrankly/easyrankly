@@ -376,7 +376,7 @@ function erankly_content_analysis_find_keyword_conflicts( int $post_id, array $k
 		return array();
 	}
 
-	$rows      = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded on-demand editorial comparison.
+	$rows      = $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- The dynamic placeholder list is prepared immediately above; table names are trusted WordPress core properties.
 	$targets   = array_combine( array_map( 'erankly_content_analysis_match_text', $keywords ), $keywords );
 	$conflicts = array();
 
