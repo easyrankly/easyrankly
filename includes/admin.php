@@ -618,24 +618,29 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		ERANKLY_VERSION
 	);
 
+	// Fields, tabs, schema builders and other admin components are shared by
+	// settings, the classic editor, and taxonomy screens. Keep one canonical
+	// implementation instead of duplicating it in classic-editor.css.
+	if ( ! $is_setup ) {
+		wp_enqueue_style( 'erankly-admin-settings', ERANKLY_URL . 'assets/css/admin-settings.css', array( 'erankly-admin' ), ERANKLY_VERSION );
+	}
+
 	if ( $is_settings ) {
 		if ( 'import-export' === $settings_tab ) {
-			wp_enqueue_style( 'erankly-migration', ERANKLY_URL . 'assets/css/migration.css', array( 'erankly-admin' ), ERANKLY_VERSION );
-		} else {
-			wp_enqueue_style( 'erankly-admin-settings', ERANKLY_URL . 'assets/css/admin-settings.css', array( 'erankly-admin' ), ERANKLY_VERSION );
+			wp_enqueue_style( 'erankly-migration', ERANKLY_URL . 'assets/css/migration.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 		}
 
 		if ( 'settings' === $settings_tab ) {
-			wp_enqueue_style( 'erankly-reset', ERANKLY_URL . 'assets/css/reset.css', array( 'erankly-admin' ), ERANKLY_VERSION );
+			wp_enqueue_style( 'erankly-reset', ERANKLY_URL . 'assets/css/reset.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 		}
 
 		if ( 'health' === $settings_tab ) {
-			wp_enqueue_style( 'erankly-health', ERANKLY_URL . 'assets/css/health.css', array( 'erankly-admin' ), ERANKLY_VERSION );
+			wp_enqueue_style( 'erankly-health', ERANKLY_URL . 'assets/css/health.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 		}
 	} elseif ( $is_setup ) {
 		wp_enqueue_style( 'erankly-setup', ERANKLY_URL . 'assets/css/setup.css', array( 'erankly-admin' ), ERANKLY_VERSION );
 	} else {
-		wp_enqueue_style( 'erankly-classic-editor', ERANKLY_URL . 'assets/css/classic-editor.css', array( 'erankly-admin' ), ERANKLY_VERSION );
+		wp_enqueue_style( 'erankly-classic-editor', ERANKLY_URL . 'assets/css/classic-editor.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 	}
 
 	erankly_admin_enqueue_scripts( $asset_modules );

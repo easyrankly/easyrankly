@@ -65,8 +65,7 @@ function erankly_health_render_panel(): void {
 			</p>
 		</div>
 	<?php endif; ?>
-	<div class="erankly-settings-fields">
-		<div class="erankly-settings-section erankly-panel-expandable" id="erankly-404-table-wrap" data-erankly-expandable>
+	<div class="erankly-settings-section erankly-panel-expandable" id="erankly-404-table-wrap" data-erankly-expandable>
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Frequent 404 scanner', 'easyrankly' ); ?></h3>
 			<section class="erankly-card">
 			<p class="description">
@@ -245,8 +244,7 @@ function erankly_health_render_panel(): void {
 		</div>
 		<div class="erankly-settings-section">
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Content insights (heuristic)', 'easyrankly' ); ?></h3>
-			<fieldset class="erankly-field erankly-card">
-			<legend class="screen-reader-text"><?php esc_html_e( 'Content insights (heuristic)', 'easyrankly' ); ?></legend>
+			<div class="erankly-card">
 			<p class="description">
 				<?php
 				printf(
@@ -321,9 +319,8 @@ function erankly_health_render_panel(): void {
 				<?php wp_nonce_field( 'erankly_health_scan_thin' ); ?>
 				<?php submit_button( __( 'Run content insights scan', 'easyrankly' ), 'secondary', 'submit', false ); ?>
 			</form>
-		</fieldset>
 		</div>
-		<?php erankly_health_bl_render_section(); ?>
-	</div>
+		</div>
+	<?php erankly_health_bl_render_section(); ?>
 	<?php
 }

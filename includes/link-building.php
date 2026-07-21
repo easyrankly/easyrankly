@@ -919,10 +919,9 @@ function erankly_lb_render_panel(): void {
 		'erankly_lb_rebuild_graph'
 	);
 	?>
-	<div class="erankly-settings-fields">
-		<div class="erankly-settings-section">
-			<h3 class="erankly-section-title"><?php esc_html_e( 'Internal link graph', 'easyrankly' ); ?></h3>
-			<section class="erankly-card">
+	<div class="erankly-settings-section">
+		<h3 class="erankly-section-title"><?php esc_html_e( 'Internal link graph', 'easyrankly' ); ?></h3>
+		<section class="erankly-card">
 				<p class="description">
 					<?php esc_html_e( 'Scans published content for internal links between pages. Rebuild after large content changes. Suggestions appear in the post editor under Internal links.', 'easyrankly' ); ?>
 				</p>
@@ -966,8 +965,7 @@ function erankly_lb_render_panel(): void {
 				<?php endif; ?>
 
 				<p><a href="<?php echo esc_url( $rebuild_url ); ?>" class="button button-secondary"><?php esc_html_e( 'Rebuild link graph', 'easyrankly' ); ?></a></p>
-			</section>
-		</div>
+		</section>
 	</div>
 	<?php
 }
@@ -982,9 +980,9 @@ function erankly_lb_render_ai_prompt_settings(): void {
 	?>
 	<div class="erankly-settings-section">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Internal link suggestions prompt', 'easyrankly' ); ?></h3>
-		<div class="erankly-settings-fields erankly-card">
+		<div class="erankly-card">
 			<div class="erankly-field">
-				<label for="erankly-ai-link-suggestions-prompt"><strong><?php esc_html_e( 'Prompt template', 'easyrankly' ); ?></strong></label>
+				<label for="erankly-ai-link-suggestions-prompt"><?php esc_html_e( 'Prompt template', 'easyrankly' ); ?></label>
 				<p class="description"><?php esc_html_e( 'Instructions the AI uses to suggest inbound and outbound internal links in the post editor. Leave empty or unchanged to keep the built-in prompt and its future updates.', 'easyrankly' ); ?></p>
 				<textarea id="erankly-ai-link-suggestions-prompt" class="widefat code" rows="22" spellcheck="false" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_link_suggestions_prompt_template]"><?php echo esc_textarea( $value ); ?></textarea>
 				<p class="description">

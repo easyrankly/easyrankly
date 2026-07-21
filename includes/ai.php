@@ -1431,18 +1431,16 @@ function erankly_ai_render_settings_panel( string $active_panel ): void {
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 	<div class="erankly-tab-panel<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-panel-ai" role="tabpanel" aria-labelledby="erankly-settings-tab-ai" data-erankly-settings-panel="settings-ai" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> <?php echo $is_active ? '' : 'hidden'; ?>>
-		<?php if ( $autosave_active ) : ?>
-		<?php endif; ?>
+		<?php erankly_ai_render_settings_privacy_notice(); ?>
 		<div class="erankly-settings-section">
-			<?php erankly_ai_render_settings_privacy_notice(); ?>
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Meta generation prompt', 'easyrankly' ); ?></h3>
-			<div class="erankly-settings-fields erankly-card">
+			<div class="erankly-card">
 				<?php
 				$content_limit       = erankly_ai_snap_content_limit_to_step( erankly_ai_get_content_limit() );
 				$content_limit_steps = erankly_ai_get_content_limit_steps();
 				?>
 				<div class="erankly-field">
-					<span id="erankly-ai-content-limit-label"><strong><?php esc_html_e( 'Body character limit', 'easyrankly' ); ?></strong></span>
+					<span class="erankly-field-label" id="erankly-ai-content-limit-label"><?php esc_html_e( 'Body character limit', 'easyrankly' ); ?></span>
 					<p class="description">
 						<?php
 						printf(
@@ -1478,7 +1476,7 @@ function erankly_ai_render_settings_panel( string $active_panel ): void {
 					</div>
 				</div>
 				<div class="erankly-field">
-					<label for="erankly-ai-prompt"><strong><?php esc_html_e( 'Prompt template', 'easyrankly' ); ?></strong></label>
+					<label for="erankly-ai-prompt"><?php esc_html_e( 'Prompt template', 'easyrankly' ); ?></label>
 					<p class="description"><?php esc_html_e( 'Instructions the AI uses to generate the meta title and description; edit to customise tone and rules. Leave empty or unchanged to keep the built-in prompt and its future updates.', 'easyrankly' ); ?></p>
 					<textarea id="erankly-ai-prompt" class="widefat code" rows="22" spellcheck="false" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_prompt_template]"><?php echo esc_textarea( $value ); ?></textarea>
 					<p class="description">

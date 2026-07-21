@@ -20,19 +20,11 @@
 
 .erankly-ml-label {
 	display: block;
+	font-weight: 600;
 	margin: 0 0 6px;
 }
 
 /* Network Admin: Site language map */
-
-.erankly-ml-network-intro {
-	max-width: 720px;
-}
-
-.erankly-ml-sites-form {
-	margin-top: 16px;
-	max-width: 760px;
-}
 
 .erankly-ml-sites-table {
 	margin-top: 4px;

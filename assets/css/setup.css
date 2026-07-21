@@ -128,8 +128,10 @@
 	margin-bottom: 12px;
 }
 
-.erankly-setup-section > label:not(.erankly-setup-choice) {
+.erankly-setup-section > label:not(.erankly-setup-choice),
+.erankly-setup-field-label {
 	display: block;
+	font-weight: 600;
 	margin-bottom: 6px;
 }
 
@@ -165,9 +167,13 @@
 	margin-top: 3px;
 }
 
-.erankly-setup-choice strong,
+.erankly-setup-choice-title,
 .erankly-setup-choice small {
 	display: block;
+}
+
+.erankly-setup-choice-title {
+	font-weight: 600;
 }
 
 .erankly-setup-choice small {

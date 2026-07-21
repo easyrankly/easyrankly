@@ -111,12 +111,11 @@ final class ERankly_Redirects_Admin {
 		$show_search_filters = ! (bool) erankly_get_setting( 'simplified_mode', 1 );
 
 		?>
-		<div class="erankly-redirects-wrap">
 			<?php $this->render_notices(); ?>
 
 			<div class="erankly-settings-section">
 				<h3 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h3>
-				<section class="erankly-redirects-panel erankly-redirects-form-panel erankly-card">
+				<section class="erankly-card">
 					<?php $this->render_redirect_form( $edit_redirect, $prefill ); ?>
 				</section>
 			</div>
@@ -150,7 +149,6 @@ final class ERankly_Redirects_Admin {
 				<?php $this->render_pagination( $current_page, $total_pages, $search, $orderby, $order ); ?>
 				</section>
 			</div>
-		</div>
 		<?php
 	}
 

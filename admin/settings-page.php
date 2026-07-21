@@ -897,7 +897,6 @@ function erankly_render_settings_page(): void {
 	}
 	?>
 	<div class="wrap erankly-settings">
-		<h1><?php esc_html_e( 'EasyRankly', 'easyrankly' ); ?></h1>
 		<?php
 		if ( is_network_admin() ) {
 			if ( isset( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
@@ -926,6 +925,7 @@ function erankly_render_settings_page(): void {
 		<?php endif; ?>
 		<div class="erankly-settings-layout">
 			<div class="erankly-settings-sidebar-nav" data-erankly-sidebar-nav>
+				<h1><?php esc_html_e( 'EasyRankly', 'easyrankly' ); ?></h1>
 				<button type="button" class="erankly-settings-sidebar-toggle" aria-expanded="false" data-erankly-sidebar-toggle>
 					<span data-erankly-sidebar-toggle-label></span>
 				</button>
@@ -970,6 +970,10 @@ function erankly_render_settings_page(): void {
 					<?php endif; ?>
 				</div>
 				<?php endif; ?>
+				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-useful-resources">
+					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-useful-resources"><?php esc_html_e( 'Useful resources', 'easyrankly' ); ?></span>
+					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://docs.easyrankly.com/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentation', 'easyrankly' ); ?></a>
+				</div>
 				<?php
 				foreach ( $extra_tabs as $extra_slug => $extra_tab ) :
 					if ( ! current_user_can( $extra_tab['capability'] ) ) {
@@ -1046,12 +1050,10 @@ function erankly_render_settings_page(): void {
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<?php wp_nonce_field( 'erankly_site_special_meta' ); ?>
 					<input type="hidden" name="action" value="erankly_save_site_special_meta">
-					<div class="erankly-settings-fields">
-						<div class="erankly-settings-section">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
-							<div class="erankly-card">
-								<?php erankly_render_special_page_defaults( erankly_special_page_keys(), array( 'global_special_meta' => erankly_get_site_special_meta() ) ); ?>
-							</div>
+					<div class="erankly-settings-section">
+						<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
+						<div class="erankly-card">
+							<?php erankly_render_special_page_defaults( erankly_special_page_keys(), array( 'global_special_meta' => erankly_get_site_special_meta() ) ); ?>
 						</div>
 					</div>
 				</form>
@@ -1077,7 +1079,7 @@ function erankly_render_settings_page(): void {
 			<?php endif; ?>
 
 			<?php if ( $show_redirects_tab && 'settings-redirects' === $active_panel && function_exists( 'erankly_redirects_render_panel' ) ) : ?>
-			<div class="erankly-tab-panel erankly-redirect-management<?php echo 'settings-redirects' === $active_panel ? ' is-active' : ''; ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-redirects" data-erankly-settings-panel="settings-redirects" <?php echo 'settings-redirects' === $active_panel ? '' : 'hidden'; ?>>
+			<div class="erankly-tab-panel<?php echo 'settings-redirects' === $active_panel ? ' is-active' : ''; ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-redirects" data-erankly-settings-panel="settings-redirects" <?php echo 'settings-redirects' === $active_panel ? '' : 'hidden'; ?>>
 				<?php erankly_redirects_render_panel(); ?>
 			</div>
 			<?php endif; ?>

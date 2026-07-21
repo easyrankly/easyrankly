@@ -1493,7 +1493,7 @@ function erankly_migration_render_reviewed_export_upload( array $report, string 
 	?>
 	<div id="erankly-migration-export-form" class="erankly-settings-section">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Import the reviewed file', 'easyrankly' ); ?></h3>
-		<section class="erankly-io-section erankly-card">
+		<section class="erankly-card">
 			<p>
 				<?php
 				echo esc_html(
@@ -1615,10 +1615,9 @@ function erankly_import_export_render_panel(): void {
 		return;
 	}
 	?>
-	<div class="erankly-io">
 		<div class="erankly-settings-section">
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Export', 'easyrankly' ); ?></h3>
-			<section class="erankly-io-section erankly-card">
+			<section class="erankly-card">
 				<p class="description"><?php esc_html_e( 'Download a JSON backup of your EasyRankly settings, redirects and SEO metadata. Keep it as a backup or import it on another site.', 'easyrankly' ); ?></p>
 				<?php if ( is_multisite() ) : ?>
 					<p class="description"><?php esc_html_e( 'On this network the file holds the network-wide settings plus this primary site\'s content (redirects, post/term metadata, special page defaults), not a whole-network export of every site.', 'easyrankly' ); ?></p>
@@ -1629,7 +1628,7 @@ function erankly_import_export_render_panel(): void {
 
 		<div class="erankly-settings-section">
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Import', 'easyrankly' ); ?></h3>
-			<section class="erankly-io-section erankly-card">
+			<section class="erankly-card">
 				<p class="description"><?php esc_html_e( 'Upload a JSON file previously exported by EasyRankly. Settings, redirects and special page defaults are replaced; post and term metadata is matched by ID and overwritten.', 'easyrankly' ); ?></p>
 				<p class="description">
 					<?php
@@ -1664,7 +1663,7 @@ function erankly_import_export_render_panel(): void {
 
 		<div class="erankly-settings-section">
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h3>
-			<section class="erankly-io-section erankly-card">
+			<section class="erankly-card">
 				<p class="description"><?php esc_html_e( 'Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, keyphrases, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts.', 'easyrankly' ); ?></p>
 				<?php if ( $has_unsupported_source ) : ?>
 					<p class="notice notice-warning inline"><span><?php esc_html_e( 'SEO source data was detected with an unrecognized version or storage signature. EasyRankly will not guess: use a certified official export or update the adapter before migrating.', 'easyrankly' ); ?></span></p>
@@ -1744,7 +1743,6 @@ function erankly_import_export_render_panel(): void {
 			<?php endif; ?>
 			</section>
 		</div>
-	</div>
 	<?php
 }
 
@@ -2388,7 +2386,7 @@ function erankly_migration_render_report(): void {
 	?>
 	<div class="erankly-settings-section erankly-migration-report">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h3>
-		<section class="erankly-io-section erankly-card erankly-migration-card erankly-migration-card--<?php echo esc_attr( sanitize_key( (string) ( $ui['tone'] ?? 'info' ) ) ); ?>">
+		<section class="erankly-card erankly-migration-card erankly-migration-card--<?php echo esc_attr( sanitize_key( (string) ( $ui['tone'] ?? 'info' ) ) ); ?>">
 			<p class="erankly-migration-context">
 				<strong><?php echo esc_html( (string) ( $report['source_label'] ?? $report['source'] ) . $source_version ); ?></strong>
 				<span aria-hidden="true">&middot;</span>
@@ -2670,7 +2668,7 @@ function erankly_migration_render_active_job( array $job ): void {
 	?>
 	<div class="erankly-settings-section erankly-migration-progress">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h3>
-		<section class="erankly-io-section erankly-card erankly-migration-card <?php echo 'paused' === $status ? 'erankly-migration-card--warning' : ''; ?>" aria-busy="<?php echo 'paused' === $status || $cancelling ? 'false' : 'true'; ?>">
+		<section class="erankly-card erankly-migration-card <?php echo 'paused' === $status ? 'erankly-migration-card--warning' : ''; ?>" aria-busy="<?php echo 'paused' === $status || $cancelling ? 'false' : 'true'; ?>">
 			<p class="erankly-migration-context">
 				<strong><?php echo esc_html( $source ? $source->label() : (string) ( $job['source'] ?? '' ) ); ?></strong>
 				<span aria-hidden="true">&middot;</span>

@@ -1,4 +1,4 @@
-/** EasyRankly settings-only components. */
+/** EasyRankly shared settings, classic-editor, and taxonomy components. */
 
 /*
  * Shared admin UI classes. Several selectors below (erankly-section-divider,
@@ -413,16 +413,23 @@
 }
 
 .erankly-autocomplete-status {
-	color: #757575;
+	color: var(--erankly-color-text-muted);
 	font-size: 13px;
 	padding: 8px;
 }
 
 .erankly-field > label,
-.erankly-field > strong,
+.erankly-field > .erankly-field-label,
 .erankly-field > legend {
 	display: block;
-	margin: 0 0 4px;
+	margin: 0 0 8px;
+}
+
+.erankly-field:not(fieldset) > label,
+.erankly-field > .erankly-field-label,
+.erankly-field > legend,
+.erankly-settings .erankly-field > .erankly-inline-row > label {
+	font-weight: 600;
 }
 
 .erankly-segment-control.erankly-tabs {
@@ -562,6 +569,10 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	margin-top: 16px;
 }
 
+.erankly-local-business > .erankly-field {
+	margin-bottom: 0;
+}
+
 .erankly-opening-hours {
 	border-top: 1px solid var(--erankly-color-border);
 	margin: 16px 0;
@@ -600,13 +611,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
  * block of the special page defaults): a divider, not a separate card.
  */
 .erankly-defaults-section {
-	border-top: 1px solid var(--erankly-color-border);
-	margin-top: 24px;
-	padding-top: 24px;
-}
-
-/* Sitemap panel: divider between the News / Image / Video subsections. */
-#erankly-settings-panel-sitemap .erankly-card fieldset + fieldset {
 	border-top: 1px solid var(--erankly-color-border);
 	margin-top: 24px;
 	padding-top: 24px;
@@ -855,14 +859,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	display: inline-flex !important;
 }
 
-.erankly-redirect-management {
-	margin-top: 16px;
-}
-
-.erankly-tab-panel {
-	margin-top: 16px;
-}
-
 .erankly-meta-box .erankly-internal-links-panel .hidden {
 	display: none !important;
 }
@@ -1009,15 +1005,19 @@ input[type="checkbox"].erankly-toggle:focus {
 }
 
 input[type="checkbox"].erankly-toggle:focus-visible {
-	outline: 0;
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
+	outline: 2px solid transparent;
 }
 
-.erankly-checkboxes legend {
-	margin-bottom: 4px;
-}
+@media (prefers-reduced-motion: reduce) {
+	input[type="checkbox"].erankly-toggle:checked {
+		animation: none;
+	}
 
-.erankly-visibility-defaults legend {
-	margin-bottom: 8px;
+	input[type="checkbox"].erankly-toggle,
+	input[type="checkbox"].erankly-toggle::before {
+		transition: none;
+	}
 }
 
 .erankly-checkbox-options {
@@ -1152,6 +1152,12 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	margin: 4px 0;
 }
 
+.erankly-schema-targeting-group {
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
 .erankly-schema-targeting-grid {
 	display: grid;
 	gap: 16px;
@@ -1178,12 +1184,12 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	min-width: 0;
 }
 
-.erankly-schema-field > span {
+.erankly-schema-field > label {
 	color: #3c434a;
 	display: block;
 	font-weight: 600;
 	line-height: 1.4;
-	margin-bottom: 4px;
+	margin-bottom: 8px;
 }
 
 .erankly-schema-field .widefat {
@@ -1239,6 +1245,10 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 @media screen and (max-width: 782px) {
+	.erankly-schema-targeting-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	.erankly-schema-block-header {
 		padding: 0 10px 0 14px;
 	}
@@ -1247,7 +1257,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 		align-self: start;
 	}
 
-	.erankly-schema-field > span {
+	.erankly-schema-field > label {
 		padding-top: 0;
 	}
 }

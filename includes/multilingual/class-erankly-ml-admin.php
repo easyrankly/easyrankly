@@ -896,14 +896,15 @@ final class ERankly_ML_Admin {
 				$is_linked    = ( $object_id > 0 && '' !== $linked_title );
 				$id_field     = 'erankly_ml_links[' . $blog_id . '][object_id]';
 				$action_field = 'erankly_ml_links[' . $blog_id . '][action]';
+				$label_id     = 'erankly-ml-label-' . $blog_id;
 				?>
 				<div class="erankly-ml-field"
 					data-erankly-ml-site="<?php echo esc_attr( (string) $blog_id ); ?>"
 					data-erankly-ml-type="<?php echo esc_attr( $object_type ); ?>">
-					<label class="erankly-ml-label"><strong><?php echo esc_html( $site_name . ' – ' . strtoupper( $hreflang ) ); ?></strong></label>
+					<span class="erankly-ml-label" id="<?php echo esc_attr( $label_id ); ?>"><?php echo esc_html( $site_name . ' – ' . strtoupper( $hreflang ) ); ?></span>
 					<div class="erankly-autocomplete-control erankly-ml-control">
 						<div class="erankly-autocomplete-value erankly-ml-linked" data-erankly-ml-linked <?php echo $is_linked ? '' : 'hidden'; ?>>
-							<input type="text" class="widefat erankly-ml-linked-input" data-erankly-ml-linked-input value="<?php echo esc_attr( $linked_url ); ?>" readonly>
+							<input type="text" class="widefat erankly-ml-linked-input" data-erankly-ml-linked-input value="<?php echo esc_attr( $linked_url ); ?>" readonly aria-labelledby="<?php echo esc_attr( $label_id ); ?>">
 						</div>
 
 						<div class="erankly-autocomplete-search erankly-ml-search" data-erankly-ml-search <?php echo $is_linked ? 'hidden' : ''; ?>>
@@ -914,6 +915,7 @@ final class ERankly_ML_Admin {
 								data-erankly-ml-type="<?php echo esc_attr( $object_type ); ?>"
 								autocomplete="off"
 								role="combobox"
+								aria-labelledby="<?php echo esc_attr( $label_id ); ?>"
 								aria-expanded="false"
 								aria-autocomplete="list">
 							<ul class="erankly-autocomplete-results erankly-ml-results" role="listbox" hidden></ul>
@@ -975,14 +977,13 @@ final class ERankly_ML_Admin {
 		$site_map = ERankly_ML_Sites::get_all();
 		$sites    = get_sites( array( 'number' => 200 ) );
 		?>
-		<div class="erankly-settings-fields erankly-ml-network">
-			<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=erankly_ml_sites_save' ) ); ?>" class="erankly-ml-sites-form">
+			<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=erankly_ml_sites_save' ) ); ?>">
 				<?php wp_nonce_field( 'erankly_ml_sites_save' ); ?>
 
 				<div class="erankly-settings-section">
 					<h3 class="erankly-section-title"><?php esc_html_e( 'Site language mapping', 'easyrankly' ); ?></h3>
 					<div class="erankly-card">
-						<p class="description erankly-ml-network-intro">
+						<p class="description">
 							<?php esc_html_e( 'Set a language per site, choose which appear as translations, and pick the default fallback. Use a short code like "it" or "en" (add a region like "en-US" only to target a specific country).', 'easyrankly' ); ?>
 						</p>
 
@@ -1099,9 +1100,7 @@ final class ERankly_ML_Admin {
 						<div class="erankly-tab-panel erankly-default-tab-panel erankly-ml-notice-site <?php echo $is_first ? 'is-active' : ''; ?>" id="<?php echo esc_attr( $panel_id ); ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_id ); ?>" data-erankly-panel="<?php echo esc_attr( $tab_key ); ?>" <?php echo $is_first ? '' : 'hidden'; ?>>
 							<h4><?php echo esc_html( $name . ' – ' . strtoupper( $hreflang ) ); ?></h4>
 							<div class="erankly-field">
-								<label for="<?php echo esc_attr( $title_id ); ?>">
-									<strong><?php esc_html_e( 'Title', 'easyrankly' ); ?></strong>
-								</label>
+								<label for="<?php echo esc_attr( $title_id ); ?>"><?php esc_html_e( 'Title', 'easyrankly' ); ?></label>
 								<input id="<?php echo esc_attr( $title_id ); ?>"
 									type="text"
 									class="widefat"
@@ -1110,9 +1109,7 @@ final class ERankly_ML_Admin {
 									placeholder="<?php esc_attr_e( 'e.g. This article is also available in your language', 'easyrankly' ); ?>">
 							</div>
 							<div class="erankly-field">
-								<label for="<?php echo esc_attr( $text_id ); ?>">
-									<strong><?php esc_html_e( 'Text', 'easyrankly' ); ?></strong>
-								</label>
+								<label for="<?php echo esc_attr( $text_id ); ?>"><?php esc_html_e( 'Text', 'easyrankly' ); ?></label>
 								<input id="<?php echo esc_attr( $text_id ); ?>"
 									type="text"
 									class="widefat"
@@ -1121,9 +1118,7 @@ final class ERankly_ML_Admin {
 									placeholder="<?php esc_attr_e( 'e.g. Read this content in {language}.', 'easyrankly' ); ?>">
 							</div>
 							<div class="erankly-field">
-								<label for="<?php echo esc_attr( $link_id ); ?>">
-									<strong><?php esc_html_e( 'Link label', 'easyrankly' ); ?></strong>
-								</label>
+								<label for="<?php echo esc_attr( $link_id ); ?>"><?php esc_html_e( 'Link label', 'easyrankly' ); ?></label>
 								<input id="<?php echo esc_attr( $link_id ); ?>"
 									type="text"
 									class="widefat"
@@ -1222,7 +1217,6 @@ final class ERankly_ML_Admin {
 				</p>
 			</div><!-- .erankly-ml-shortcodes-docs -->
 			</div><!-- .erankly-settings-section -->
-		</div>
 		<?php
 	}
 }

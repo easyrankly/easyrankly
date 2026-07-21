@@ -122,14 +122,14 @@ function erankly_setup_wizard_render_screen(): void {
 							<label class="erankly-setup-choice">
 								<input type="radio" name="simplified_mode" value="1" <?php checked( ! empty( $settings['simplified_mode'] ) ); ?>>
 								<span>
-									<strong><?php esc_html_e( 'Simplified mode', 'easyrankly' ); ?></strong>
+									<span class="erankly-setup-choice-title"><?php esc_html_e( 'Simplified mode', 'easyrankly' ); ?></span>
 									<small><?php esc_html_e( 'Recommended. Shows the essential controls and automates advanced SEO defaults.', 'easyrankly' ); ?></small>
 								</span>
 							</label>
 							<label class="erankly-setup-choice">
 								<input type="radio" name="simplified_mode" value="0" <?php checked( empty( $settings['simplified_mode'] ) ); ?>>
 								<span>
-									<strong><?php esc_html_e( 'Advanced mode', 'easyrankly' ); ?></strong>
+									<span class="erankly-setup-choice-title"><?php esc_html_e( 'Advanced mode', 'easyrankly' ); ?></span>
 									<small><?php esc_html_e( 'Shows every available control for manual configuration.', 'easyrankly' ); ?></small>
 								</span>
 							</label>
@@ -141,21 +141,21 @@ function erankly_setup_wizard_render_screen(): void {
 							<label class="erankly-setup-choice">
 								<input type="radio" name="schema_identity" value="organization" <?php checked( ! $is_person ); ?> data-erankly-setup-identity>
 								<span>
-									<strong><?php esc_html_e( 'Organization', 'easyrankly' ); ?></strong>
+									<span class="erankly-setup-choice-title"><?php esc_html_e( 'Organization', 'easyrankly' ); ?></span>
 									<small><?php esc_html_e( 'A company, brand, store, or any team-run site.', 'easyrankly' ); ?></small>
 								</span>
 							</label>
 							<label class="erankly-setup-choice">
 								<input type="radio" name="schema_identity" value="person" <?php checked( $is_person ); ?> data-erankly-setup-identity>
 								<span>
-									<strong><?php esc_html_e( 'Person', 'easyrankly' ); ?></strong>
+									<span class="erankly-setup-choice-title"><?php esc_html_e( 'Person', 'easyrankly' ); ?></span>
 									<small><?php esc_html_e( 'A personal blog or portfolio run by a single individual.', 'easyrankly' ); ?></small>
 								</span>
 							</label>
 						</fieldset>
 
-						<div class="erankly-setup-section" data-erankly-setup-person <?php echo $is_person ? '' : 'hidden'; ?>>
-							<label><strong><?php esc_html_e( 'Person reference user', 'easyrankly' ); ?></strong></label>
+							<div class="erankly-setup-section" data-erankly-setup-person <?php echo $is_person ? '' : 'hidden'; ?>>
+								<span class="erankly-setup-field-label" id="erankly-setup-person-reference-label"><?php esc_html_e( 'Person reference user', 'easyrankly' ); ?></span>
 							<div class="erankly-user-search-wrap" data-erankly-user-search-wrap>
 								<input type="hidden"
 									name="schema_person_user_id"
@@ -164,8 +164,9 @@ function erankly_setup_wizard_render_screen(): void {
 								<div class="erankly-autocomplete-control erankly-user-control">
 									<div class="erankly-autocomplete-value erankly-user-selected" data-erankly-user-selected<?php echo ( $schema_person_user instanceof WP_User ) ? '' : ' hidden'; ?>>
 										<input type="text"
-											class="widefat erankly-user-selected-input"
-											readonly
+												class="widefat erankly-user-selected-input"
+												readonly
+												aria-labelledby="erankly-setup-person-reference-label"
 											value="<?php echo ( $schema_person_user instanceof WP_User ) ? esc_attr( sprintf( /* translators: 1: User display name, 2: User ID. */ __( '%1$s (ID: %2$d)', 'easyrankly' ), $schema_person_user->display_name, $schema_person_user->ID ) ) : ''; ?>"
 											data-erankly-user-selected-name>
 									</div>
@@ -173,9 +174,9 @@ function erankly_setup_wizard_render_screen(): void {
 										<input type="search"
 											class="widefat erankly-user-search-input"
 											placeholder="<?php esc_attr_e( 'Search users…', 'easyrankly' ); ?>"
-											autocomplete="off"
-											aria-autocomplete="list"
-											aria-label="<?php esc_attr_e( 'Search users', 'easyrankly' ); ?>"
+												autocomplete="off"
+												aria-autocomplete="list"
+												aria-labelledby="erankly-setup-person-reference-label"
 											data-erankly-user-search-input>
 										<ul class="erankly-autocomplete-results erankly-user-results" role="listbox" hidden data-erankly-user-results></ul>
 									</div>
@@ -187,13 +188,13 @@ function erankly_setup_wizard_render_screen(): void {
 
 						<div class="erankly-setup-row">
 							<div class="erankly-setup-section">
-								<label for="erankly-setup-name"><strong><?php esc_html_e( 'Organization or person name', 'easyrankly' ); ?></strong></label>
+									<label for="erankly-setup-name"><?php esc_html_e( 'Organization or person name', 'easyrankly' ); ?></label>
 								<input id="erankly-setup-name" class="regular-text" type="text" name="organization_name" value="<?php echo esc_attr( $name_value ); ?>" placeholder="<?php echo esc_attr( $resolved_name ); ?>" maxlength="200" autocomplete="off">
 								<p class="description"><?php esc_html_e( 'Leave blank to use the site name automatically.', 'easyrankly' ); ?></p>
 							</div>
 
 							<div class="erankly-setup-section">
-								<label for="erankly-setup-twitter-site"><strong><?php esc_html_e( 'X (Twitter) Site', 'easyrankly' ); ?></strong></label>
+									<label for="erankly-setup-twitter-site"><?php esc_html_e( 'X (Twitter) Site', 'easyrankly' ); ?></label>
 								<input id="erankly-setup-twitter-site" class="regular-text" type="text" name="twitter_site" value="<?php echo esc_attr( (string) $settings['twitter_site'] ); ?>" placeholder="@example" maxlength="64" autocomplete="off">
 								<p class="description"><?php esc_html_e( 'Optional. Enter an @handle or an x.com profile URL. It is used for the twitter:site meta tag.', 'easyrankly' ); ?></p>
 							</div>

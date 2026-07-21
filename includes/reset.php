@@ -490,7 +490,7 @@ function erankly_reset_render_panel(): void {
 	?>
 	<div class="erankly-settings-section">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Stored AI analyses', 'easyrankly' ); ?></h3>
-		<section class="erankly-io-section erankly-card">
+		<section class="erankly-card">
 			<p class="description"><?php esc_html_e( 'EasyRankly keeps only the latest structured content-analysis report for each post. Delete all reports here whenever you no longer need them; new analyses can be generated later.', 'easyrankly' ); ?></p>
 			<p class="erankly-reset-actions">
 				<button
@@ -509,7 +509,7 @@ function erankly_reset_render_panel(): void {
 
 	<div class="erankly-settings-section">
 		<h3 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h3>
-		<section class="erankly-io-section erankly-card">
+		<section class="erankly-card">
 			<p class="description"><?php esc_html_e( 'Restore EasyRankly to a clean install. This permanently deletes settings, redirects and SEO metadata; export a backup first if you want to keep a copy.', 'easyrankly' ); ?></p>
 			<?php if ( $is_network ) : ?>
 				<p class="description"><?php esc_html_e( 'Local reset cleans up only this Network Admin\'s primary site; network reset wipes the network-wide settings and every site.', 'easyrankly' ); ?></p>

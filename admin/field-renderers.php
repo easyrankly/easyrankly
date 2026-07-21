@@ -157,6 +157,8 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? array_map( 'sanitize_key', $block['target_post_types'] ) : array();
 	$include_items     = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
 	$exclude_items     = isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '';
+	$include_items_id  = 'erankly-schema-' . sanitize_html_class( $index ) . '-include-items';
+	$exclude_items_id  = 'erankly-schema-' . sanitize_html_class( $index ) . '-exclude-items';
 	$contexts          = array(
 		'front_page'        => __( 'Front page', 'easyrankly' ),
 		'posts_page'        => __( 'Posts page', 'easyrankly' ),
@@ -169,22 +171,28 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 		<legend><?php esc_html_e( 'Global application rules', 'easyrankly' ); ?></legend>
 		<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>> <?php esc_html_e( 'Enable this schema block', 'easyrankly' ); ?></label>
 		<div class="erankly-schema-targeting-grid">
-			<div>
-				<strong><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></strong>
+			<fieldset class="erankly-schema-targeting-group">
+				<legend><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></legend>
 				<?php foreach ( $contexts as $context => $label ) : ?>
 					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_contexts][]" value="<?php echo esc_attr( $context ); ?>" <?php checked( in_array( $context, $target_contexts, true ) ); ?>> <?php echo esc_html( $label ); ?></label>
 				<?php endforeach; ?>
-			</div>
-			<div>
-				<strong><?php esc_html_e( 'Post types', 'easyrankly' ); ?></strong>
+			</fieldset>
+			<fieldset class="erankly-schema-targeting-group">
+				<legend><?php esc_html_e( 'Post types', 'easyrankly' ); ?></legend>
 				<?php foreach ( erankly_get_public_post_types() as $post_type => $object ) : ?>
 					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_post_types][]" value="<?php echo esc_attr( $post_type ); ?>" <?php checked( in_array( $post_type, $target_post_types, true ) ); ?>> <?php echo esc_html( $object->labels->singular_name ); ?></label>
 				<?php endforeach; ?>
-			</div>
+			</fieldset>
 		</div>
 		<div class="erankly-schema-targeting-grid">
-			<label><strong><?php esc_html_e( 'Include IDs or slugs', 'easyrankly' ); ?></strong><textarea class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][include_items]"><?php echo esc_textarea( $include_items ); ?></textarea></label>
-			<label><strong><?php esc_html_e( 'Exclude IDs or slugs', 'easyrankly' ); ?></strong><textarea class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][exclude_items]"><?php echo esc_textarea( $exclude_items ); ?></textarea></label>
+			<div class="erankly-field">
+				<label for="<?php echo esc_attr( $include_items_id ); ?>"><?php esc_html_e( 'Include IDs or slugs', 'easyrankly' ); ?></label>
+				<textarea id="<?php echo esc_attr( $include_items_id ); ?>" class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][include_items]"><?php echo esc_textarea( $include_items ); ?></textarea>
+			</div>
+			<div class="erankly-field">
+				<label for="<?php echo esc_attr( $exclude_items_id ); ?>"><?php esc_html_e( 'Exclude IDs or slugs', 'easyrankly' ); ?></label>
+				<textarea id="<?php echo esc_attr( $exclude_items_id ); ?>" class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][exclude_items]"><?php echo esc_textarea( $exclude_items ); ?></textarea>
+			</div>
 		</div>
 	</fieldset>
 	<?php
@@ -202,11 +210,12 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
  * @return void
  */
 function erankly_render_schema_textarea_field( string $index, string $name_prefix, string $key, string $label, string $value, int $rows ): void {
+	$field_id = 'erankly-schema-' . sanitize_html_class( $index ) . '-' . sanitize_html_class( $key );
 	?>
 	<div class="erankly-schema-field">
-		<span><?php echo esc_html( $label ); ?></span>
+		<label for="<?php echo esc_attr( $field_id ); ?>"><?php echo esc_html( $label ); ?></label>
 		<div class="erankly-variable-field" data-erankly-variable-field>
-			<textarea class="widefat" rows="<?php echo esc_attr( (string) $rows ); ?>" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][fields][<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
+			<textarea id="<?php echo esc_attr( $field_id ); ?>" class="widefat" rows="<?php echo esc_attr( (string) $rows ); ?>" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][fields][<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
 			<?php erankly_render_variable_picker(); ?>
 		</div>
 	</div>
