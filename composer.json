@@ -31,6 +31,14 @@
 		],
 		"test:concurrency": "php tests/concurrent-standalone-certification.php",
 		"performance:contract": "php tests/performance-contract.php",
+		"multilingual:test:static": "php tests/multilingual-contract/static-contract.php",
+		"multilingual:test:legacy": "bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=3",
+		"multilingual:test:conformance": "bash tests/multilingual-contract/run.sh --suite=multisite-conformance --scale=3",
+		"multilingual:test:scale": [
+			"bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=3",
+			"bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=250",
+			"bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=501"
+		],
 		"migration:certify:standalone": "php tests/certification/run-suite.php",
 		"migration:certify": "bash tests/certification/run.sh",
 		"migration:go-live": "bash tests/certification/go-live.sh"
@@ -42,6 +50,10 @@
 		"security:contract": "Verify SSRF, AI rate-limit, 404 privacy, bounded JSON imports, and workflow supply-chain boundaries.",
 		"test:concurrency": "Run Phase 5, 7, and 8 standalone certifications concurrently to verify temporary-file isolation.",
 		"performance:contract": "Enforce helper, frontend bootstrap, Import/Export asset, and contextual-loader budgets.",
+		"multilingual:test:static": "Validate the M1 baseline pin, suite separation, fixture matrix, snapshot and M2/M4 defect ownership.",
+		"multilingual:test:legacy": "Run the green EasyRankly 2.0 multilingual characterization suite in a clean Multisite fixture.",
+		"multilingual:test:conformance": "Run the separate expected-red Multisite conformance suite for the nine documented baseline defects.",
+		"multilingual:test:scale": "Run legacy-baseline against clean 3, 250 and 501 site fixtures.",
 		"migration:certify:standalone": "Run the immutable Free/PRO contract and go-live decision suites.",
 		"migration:certify": "Run the complete Docker-backed migration certification matrix and produce a release verdict.",
 		"migration:go-live": "Require a clean fresh matrix plus externally supplied authorized evidence for every PRO source."
