@@ -311,7 +311,10 @@ function erankly_reset_site_data(): void {
 	}
 
 	if ( ! is_multisite() ) {
-		erankly_update_plugin_option( ERANKLY_OPTION, erankly_default_settings() );
+		$result = erankly_update_plugin_settings( erankly_default_settings(), '', true );
+		if ( is_wp_error( $result ) || ! $result ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not reset its settings.', 'easyrankly' ) );
+		}
 		// 'pending' is the literal value the first-run wizard checks for (see
 		// erankly_setup_wizard_maybe_redirect()); deleting the option instead
 		// would leave the wizard dismissed, but a clean install must re-run it.
@@ -328,6 +331,13 @@ function erankly_reset_site_data(): void {
  * @throws RuntimeException When multilingual storage cannot be inspected or updated.
  */
 function erankly_reset_network_relations_batch( int $after_relation_id = 0, int $limit = 1000 ): array {
+	if ( ! erankly_ml_storage_cleanup_allowed() ) {
+		return array(
+			'last_processed_id' => max( 0, $after_relation_id ),
+			'has_more'          => false,
+		);
+	}
+
 	global $wpdb;
 
 	$after_relation_id = max( 0, $after_relation_id );
@@ -422,7 +432,10 @@ function erankly_rotate_multilingual_cache_generation(): void {
 function erankly_reset_network_shared_data(): void {
 	$default_settings = erankly_default_settings();
 
-	erankly_update_plugin_option( ERANKLY_OPTION, $default_settings );
+	$settings_reset = erankly_update_plugin_settings( $default_settings, '', true );
+	if ( is_wp_error( $settings_reset ) || ! $settings_reset ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network settings.', 'easyrankly' ) );
+	}
 
 	if ( erankly_get_plugin_option( ERANKLY_OPTION, false ) !== $default_settings ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network settings.', 'easyrankly' ) );
@@ -436,9 +449,13 @@ function erankly_reset_network_shared_data(): void {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network setup status.', 'easyrankly' ) );
 	}
 
+	if ( ! erankly_ml_storage_cleanup_allowed() ) {
+		return;
+	}
+
 	$missing = 'erankly-missing-' . wp_generate_uuid4();
 
-	foreach ( array( 'erankly_ml_sites', 'erankly_ml_db_version' ) as $option_name ) {
+	foreach ( array( 'erankly_ml_sites', 'erankly_ml_db_version', ERANKLY_ML_STORAGE_OWNER_OPTION ) as $option_name ) {
 		delete_site_option( $option_name );
 
 		if ( get_site_option( $option_name, $missing ) !== $missing ) {

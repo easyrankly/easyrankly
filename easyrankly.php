@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.0.0
+ * Version:     2.1.0
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:      EasyRankly
@@ -25,7 +25,8 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.0.0' );
+define( 'ERANKLY_VERSION', '2.1.0' );
+define( 'ERANKLY_EXTENSION_API_VERSION', 1 );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ERANKLY_URL', plugin_dir_url( __FILE__ ) );
@@ -58,6 +59,10 @@ define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
 define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
+require_once ERANKLY_PATH . 'includes/multilingual-ownership.php';
+require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
+require_once ERANKLY_PATH . 'includes/class-erankly-bundled-multilingual-provider.php';
+require_once ERANKLY_PATH . 'includes/seo-state.php';
 
 /**
  * Maps a legacy hot option to its compact runtime-state key.
@@ -163,9 +168,16 @@ function erankly_get_plugin_option( string $key, mixed $default_value = false ):
  * @param string $key   Option name.
  * @param mixed  $value Value to store.
  * @return void
+ * @throws RuntimeException When the atomic settings update fails.
  */
 function erankly_update_plugin_option( string $key, mixed $value ): void {
-	if ( is_multisite() ) {
+	if ( ERANKLY_OPTION === $key ) {
+		$result = erankly_update_plugin_settings( is_array( $value ) ? $value : array() );
+
+		if ( is_wp_error( $result ) || ! $result ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not update its settings atomically.', 'easyrankly' ) );
+		}
+	} elseif ( is_multisite() ) {
 		update_site_option( $key, $value );
 	} elseif ( '' !== erankly_runtime_state_key( $key ) ) {
 		erankly_update_runtime_state( $key, $value );
@@ -173,11 +185,18 @@ function erankly_update_plugin_option( string $key, mixed $value ): void {
 		// The settings array is read on every request, so autoload it; other options aren't.
 		update_option( $key, $value, ERANKLY_OPTION === $key );
 	}
-
-	if ( ERANKLY_OPTION === $key ) {
-		erankly_clear_settings_cache();
-	}
 }
+
+// Interlock direct Settings API writers (including options.php) with the same
+// ownership mutex used by adoption and rollback.
+add_filter( 'pre_update_option_' . ERANKLY_OPTION, 'erankly_ml_interlock_settings_pre_update', 10, 3 );
+add_filter( 'pre_update_site_option_' . ERANKLY_OPTION, 'erankly_ml_interlock_settings_pre_update', 10, 4 );
+add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_ml_release_direct_settings_lock', 10, 0 );
+add_action( 'update_site_option_' . ERANKLY_OPTION, 'erankly_ml_release_direct_settings_lock', 10, 0 );
+add_action( 'shutdown', 'erankly_ml_release_direct_settings_lock', PHP_INT_MAX );
+
+erankly_register_multilingual_provider( new ERankly_Bundled_Multilingual_Provider() );
+
 require_once ERANKLY_PATH . 'includes/compatibility.php';
 require_once ERANKLY_PATH . 'includes/meta.php';
 require_once ERANKLY_PATH . 'includes/meta-visibility.php';
@@ -194,6 +213,11 @@ if ( is_admin() ) {
  * @return void
  */
 function erankly_bootstrap(): void {
+	erankly_close_multilingual_provider_registry();
+	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
+	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
+	add_filter( 'debug_information', 'erankly_add_multilingual_debug_information' );
+
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
 	add_action( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, 'erankly_process_migration_rollback' );
 	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
@@ -221,12 +245,6 @@ function erankly_bootstrap(): void {
 		require_once ERANKLY_PATH . 'includes/network-reset.php';
 		add_action( ERANKLY_NETWORK_RESET_CRON_HOOK, 'erankly_process_network_reset_batch' );
 		add_action( 'network_admin_notices', 'erankly_render_network_reset_status_notice' );
-	}
-
-	if ( is_multisite() && erankly_multilingual_enabled() ) {
-		erankly_load_content_helpers();
-		require_once ERANKLY_PATH . 'includes/multilingual.php';
-		erankly_ml_boot();
 	}
 
 	if ( erankly_bloat_enabled() ) {
@@ -515,22 +533,23 @@ function erankly_rotate_rewrite_generation(): void {
  * Runs on plugin activation.
  *
  * @return void
+ * @throws RuntimeException When atomic initialization fails.
  */
 function erankly_activate(): void {
 	erankly_load_default_helpers();
 	$is_new_install = false === erankly_get_plugin_option( ERANKLY_OPTION, false );
 
-	if ( is_multisite() ) {
-		if ( $is_new_install ) {
-			add_site_option( ERANKLY_OPTION, erankly_default_settings() );
-		}
+	if ( $is_new_install ) {
+		$created = erankly_update_plugin_settings( erankly_default_settings(), '', true );
 
+		if ( is_wp_error( $created ) || ! $created ) {
+			throw new RuntimeException( esc_html__( 'EasyRankly could not initialize its settings.', 'easyrankly' ) );
+		}
+	}
+
+	if ( is_multisite() ) {
 		add_site_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 	} else {
-		if ( $is_new_install ) {
-			add_option( ERANKLY_OPTION, erankly_default_settings(), '', 'yes' );
-		}
-
 		add_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION, '', 'no' );
 	}
 

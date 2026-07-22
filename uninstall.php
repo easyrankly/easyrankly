@@ -12,8 +12,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 require_once __DIR__ . '/includes/helpers/redirect-cache.php';
 require_once __DIR__ . '/includes/migrations/class-erankly-migration-upload-store.php';
 require_once __DIR__ . '/includes/class-erankly-import-job-runner.php';
+require_once __DIR__ . '/includes/multilingual-ownership.php';
 
 global $wpdb;
+
+$erankly_preserve_multilingual_storage = is_multisite() && erankly_ml_any_network_requires_storage_retention();
 
 /**
  * Removes per-site options, the redirect table, post meta and transients for one site.
@@ -253,11 +256,21 @@ if ( is_multisite() ) {
 		'erankly_version',
 		'erankly_setup_wizard_status',
 		'erankly_rewrite_generation',
-		'erankly_ml_sites',
-		'erankly_ml_db_version',
-		'erankly_ml_cache_generation',
 		'erankly_network_reset_job',
 	);
+
+	if ( ! $erankly_preserve_multilingual_storage ) {
+		$erankly_network_option_names = array_merge(
+			$erankly_network_option_names,
+			array(
+				'erankly_ml_sites',
+				'erankly_ml_db_version',
+				'erankly_ml_cache_generation',
+				'erankly_ml_storage_owner',
+				'erankly_ml_ownership_lock',
+			)
+		);
+	}
 
 	$erankly_last_network_id = 0;
 	$erankly_network_batch   = 100;
@@ -299,7 +312,9 @@ if ( is_multisite() ) {
 		}
 	} while ( $erankly_network_batch === $erankly_network_count );
 
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->base_prefix . 'erankly_ml_relations' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall cleanup removes the plugin-owned multilingual relations table.
+	if ( ! $erankly_preserve_multilingual_storage ) {
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->base_prefix . 'erankly_ml_relations' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall cleanup removes core-owned multilingual storage only after every network is verified safe.
+	}
 
 	if ( $wpdb->last_error ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove multilingual storage during uninstall.', 'easyrankly' ) );

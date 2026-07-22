@@ -55,24 +55,6 @@ function erankly_get_post_content_image_urls( int $post_id ): array {
 }
 
 /**
- * Returns whether a URL is an absolute HTTP(S) URL.
- *
- * @param string $url URL.
- * @return bool
- */
-function erankly_is_absolute_http_url( string $url ): bool {
-	$url = esc_url_raw( trim( $url ) );
-
-	if ( '' === $url ) {
-		return false;
-	}
-
-	$parts = wp_parse_url( $url );
-
-	return is_array( $parts ) && ! empty( $parts['host'] ) && ! empty( $parts['scheme'] ) && in_array( strtolower( (string) $parts['scheme'] ), array( 'http', 'https' ), true );
-}
-
-/**
  * Returns a post meta string.
  *
  * @param int    $post_id Post ID.
@@ -244,13 +226,22 @@ function erankly_get_global_taxonomy_directive( string $taxonomy, string $field 
 function erankly_get_site_special_meta(): array {
 	$stored = get_option( ERANKLY_SPECIAL_META_OPTION, null );
 
-	if ( is_array( $stored ) ) {
-		return $stored;
+	if ( ! is_array( $stored ) ) {
+		erankly_load_default_helpers();
+		$stored = erankly_default_global_special_meta();
 	}
 
-	erankly_load_default_helpers();
+	$context = function_exists( 'erankly_get_multilingual_context' ) ? erankly_get_multilingual_context() : array();
 
-	return erankly_default_global_special_meta();
+	/**
+	 * Filters the final special-page metadata map for the current site/context.
+	 *
+	 * @param array<string,mixed> $stored  Special metadata.
+	 * @param array<string,mixed> $context Multilingual provider context.
+	 */
+	$filtered = apply_filters( 'erankly_site_special_meta', $stored, $context );
+
+	return is_array( $filtered ) ? $filtered : $stored;
 }
 
 /**
@@ -264,12 +255,24 @@ function erankly_get_site_special_meta(): array {
  */
 function erankly_get_global_entity_meta_map( string $setting_key ): array {
 	if ( 'global_special_meta' === $setting_key && is_multisite() ) {
-		return erankly_get_site_special_meta();
+		$stored = erankly_get_site_special_meta();
+	} else {
+		$stored = erankly_get_setting( $setting_key, array() );
+		$stored = is_array( $stored ) ? $stored : array();
 	}
 
-	$stored = erankly_get_setting( $setting_key, array() );
+	$context = function_exists( 'erankly_get_multilingual_context' ) ? erankly_get_multilingual_context() : array();
 
-	return is_array( $stored ) ? $stored : array();
+	/**
+	 * Filters a final global entity metadata map for the current context.
+	 *
+	 * @param array<string,mixed> $stored      Metadata map.
+	 * @param string              $setting_key Settings key.
+	 * @param array<string,mixed> $context     Multilingual provider context.
+	 */
+	$filtered = apply_filters( 'erankly_global_entity_meta_map', $stored, $setting_key, $context );
+
+	return is_array( $filtered ) ? $filtered : $stored;
 }
 
 /**

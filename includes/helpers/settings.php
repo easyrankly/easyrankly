@@ -111,7 +111,21 @@ function erankly_bloat_enabled(): bool {
  * @return mixed
  */
 function erankly_get_setting( string $key, mixed $default_value = null ): mixed {
-	$settings = erankly_get_stored_settings();
+	$settings    = erankly_get_stored_settings();
+	$value       = array_key_exists( $key, $settings ) ? $settings[ $key ] : $default_value;
+	$provider    = function_exists( 'erankly_get_multilingual_provider' ) ? erankly_get_multilingual_provider() : null;
+	$query       = $GLOBALS['wp_query'] ?? null;
+	$query_ready = did_action( 'wp' ) > 0
+		|| ( $query instanceof WP_Query && ( $query->is_singular || $query->is_home || $query->is_front_page || $query->is_archive || $query->is_search || $query->is_404 || $query->is_feed ) );
+	$context     = $provider instanceof ERankly_Multilingual_Provider_Interface && $query_ready ? erankly_get_multilingual_context() : array();
 
-	return array_key_exists( $key, $settings ) ? $settings[ $key ] : $default_value;
+	/**
+	 * Filters one final EasyRankly setting value for the current context.
+	 *
+	 * @param mixed               $value         Stored or default value.
+	 * @param string              $key           Setting key.
+	 * @param mixed               $default_value Requested default.
+	 * @param array<string,mixed> $context       Multilingual provider context.
+	 */
+	return apply_filters( 'erankly_setting_value', $value, $key, $default_value, $context );
 }

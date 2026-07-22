@@ -5,6 +5,7 @@
 # Version control and repo metadata
 /.git
 /.github
+/.codegraph
 /.gitignore
 /.gitattributes
 /.distignore

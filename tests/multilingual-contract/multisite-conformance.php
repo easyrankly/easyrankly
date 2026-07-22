@@ -28,7 +28,7 @@ $result->check(
 $hreflang_source = (string) file_get_contents( ERANKLY_PATH . 'includes/hreflang.php' );
 $resolver_source = (string) file_get_contents( ERANKLY_PATH . 'includes/multilingual/class-erankly-ml-resolver.php' );
 $admin_source     = (string) file_get_contents( ERANKLY_PATH . 'includes/multilingual/class-erankly-ml-admin.php' );
-$module_source    = (string) file_get_contents( ERANKLY_PATH . 'includes/multilingual.php' );
+$registry_source  = (string) file_get_contents( ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php' );
 $meta_head_source = (string) file_get_contents( ERANKLY_PATH . 'includes/meta-render.php' );
 $reset_source     = (string) file_get_contents( ERANKLY_PATH . 'includes/reset.php' );
 $uninstall_source = (string) file_get_contents( ERANKLY_PATH . 'uninstall.php' );
@@ -104,7 +104,9 @@ $result->check(
 );
 
 $result->check(
-	str_contains( $reset_source, 'erankly_ml_storage_owner' )
+	str_contains( $reset_source, 'erankly_ml_storage_cleanup_allowed' )
+		&& str_contains( $reset_source, 'ERANKLY_ML_STORAGE_OWNER_OPTION' )
+		&& str_contains( $uninstall_source, 'erankly_ml_any_network_requires_storage_retention' )
 		&& str_contains( $uninstall_source, 'erankly_ml_storage_owner' ),
 	'ML-CONF-007',
 	'Core cleanup must inspect the ownership marker before touching multilingual storage.',
@@ -119,7 +121,7 @@ $result->check(
 );
 
 $result->check(
-	str_contains( $module_source, "add_action( 'wp_head'" )
+	str_contains( $registry_source, "add_action( 'wp_head', 'erankly_render_hreflang_alternates', 2 )" )
 		&& ! str_contains( $meta_head_source, 'erankly_render_hreflang_alternates();' ),
 	'ML-CONF-009',
 	'Hreflang must have an independently owned wp_head callback outside the aggregate core SEO renderer.',

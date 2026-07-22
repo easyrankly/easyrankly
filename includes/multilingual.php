@@ -38,12 +38,17 @@ function erankly_ml_cache_key( string $key ): string {
  * Idempotent: repeated calls (e.g. via erankly_ml_admin()) are no-ops so
  * runtime hooks are never registered twice.
  *
+ * @param callable|null $resolver_receiver Receives the selected legacy resolver.
  * @return void
  */
-function erankly_ml_boot(): void {
-	static $booted = false;
+function erankly_ml_boot( ?callable $resolver_receiver = null ): void {
+	static $booted   = false;
+	static $resolver = null;
 
 	if ( $booted ) {
+		if ( null !== $resolver_receiver && is_object( $resolver ) ) {
+			$resolver_receiver( $resolver );
+		}
 		return;
 	}
 	$booted = true;
@@ -65,15 +70,9 @@ function erankly_ml_boot(): void {
 	$repo     = new ERankly_ML_Repository();
 	$resolver = new ERankly_ML_Resolver( $repo );
 
-	// Wire the resolver into the hreflang filter at a late priority so it runs
-	// after any custom-stack filters and provides the network module's alternates
-	// when it is active.
-	add_filter( 'erankly_hreflang_alternates', array( $resolver, 'resolve' ), 20 );
-
-	// Visitor-facing consumers (erankly_get_navigable_hreflang_alternates(),
-	// used by add-on language-redirect features) resolve through this instance so
-	// they can include noindex translations.
-	$GLOBALS['erankly_ml_resolver'] = $resolver;
+	if ( null !== $resolver_receiver ) {
+		$resolver_receiver( $resolver );
+	}
 
 	// The admin instance is always created so the editor and Network Admin
 	// renderers can use it, but its runtime hooks (REST route, save handlers)
@@ -119,6 +118,10 @@ function erankly_ml_maybe_upgrade_db(): void {
 	$installed = (string) get_site_option( ERANKLY_ML_DB_VERSION_OPTION, '' );
 
 	if ( ERANKLY_ML_DB_VERSION === $installed ) {
+		return;
+	}
+
+	if ( ! erankly_ml_legacy_writes_allowed() ) {
 		return;
 	}
 

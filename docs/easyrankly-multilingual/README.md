@@ -1,8 +1,8 @@
 # EasyRankly Multilingual
 
-Stato: specifica di architettura per implementazione futura. Nessun codice applicativo è incluso in questa cartella.
+Stato: M1 e M2 completate nel core EasyRankly; M3 e il plugin add-on non sono iniziati. Questa cartella resta la specifica normativa e non contiene codice applicativo dell'add-on.
 
-Baseline analizzata: `origin/beta` di EasyRankly, versione `2.0.0`, commit `eccebfb`. Le modifiche al core descritte qui sono previste a partire da EasyRankly `2.1.0`.
+Baseline analizzata: `origin/beta` di EasyRankly, versione `2.0.0`, commit `eccebfb`. La release ponte core descritta in M2 è implementata in EasyRankly `2.1.0`; le fasi add-on restano future.
 
 ## Nome del prodotto
 

@@ -41,7 +41,15 @@ foreach ( $manifest['conformance_defects'] as $id => $defect ) {
 }
 
 $assert( is_file( __DIR__ . '/snapshots/legacy-baseline.php' ), 'The provider-neutral legacy snapshot is missing.' );
-$assert( false === strpos( (string) file_get_contents( $root . '/easyrankly.php' ), 'ERANKLY_EXTENSION_API_VERSION' ), 'M1 must not introduce the M2 provider API.' );
+$core_source = (string) file_get_contents( $root . '/easyrankly.php' );
+preg_match( "/define\\( 'ERANKLY_VERSION', '([^']+)' \\)/", $core_source, $core_version_match );
+$core_version = (string) ( $core_version_match[1] ?? '' );
+if ( version_compare( $core_version, '2.1.0', '<' ) ) {
+	$assert( false === strpos( $core_source, 'ERANKLY_EXTENSION_API_VERSION' ), 'EasyRankly before 2.1 must not expose the M2 provider API.' );
+} else {
+	$assert( str_contains( $core_source, "define( 'ERANKLY_EXTENSION_API_VERSION', 1 )" ), 'EasyRankly 2.1 must expose extension API major 1.' );
+	$assert( is_file( $root . '/includes/class-erankly-multilingual-provider-registry.php' ), 'EasyRankly 2.1 must ship the provider registry.' );
+}
 
 $conformance_source = (string) file_get_contents( __DIR__ . '/multisite-conformance.php' );
 preg_match_all( '/[\'\"](ML-CONF-\\d{3})[\'\"]/', $conformance_source, $conformance_matches );

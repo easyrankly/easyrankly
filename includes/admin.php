@@ -164,7 +164,6 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 		|| ( 'health' === $requested_tab && ( is_network_admin() || ! erankly_health_enabled() ) )
 		|| ( 'links' === $requested_tab && ( is_network_admin() || ! erankly_link_building_enabled() ) )
 		|| ( 'ai' === $requested_tab && ( ! erankly_ai_module_enabled() || erankly_get_setting( 'simplified_mode', 1 ) ) )
-		|| ( 'multilingual' === $requested_tab && ( ! is_network_admin() || ! erankly_multilingual_enabled() ) )
 		|| ( 'special-pages' === $requested_tab )
 	);
 
@@ -882,42 +881,45 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				// request (only the page-render callback loads it, which runs
 				// after admin_enqueue_scripts), so calling into that registry
 				// here would fatal on Multisite.
-				'panels' => array(
-					'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
-					'ai'            => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/ai' ) ) ),
-					'advanced'      => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ) ),
-					'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
-					'bloat'         => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/bloat' ) ) ),
-					// Its checkboxes control which OTHER tabs are visible
-					// (Redirects/Sitemap/Health/Multilingual/AI), so the admin JS
-					// refreshes the EasyRankly settings wrapper after a successful
-					// save to pick up the updated PHP-rendered navigation.
-					'features'      => array(
-						'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
-						'reloadOnSave' => true,
+				'panels' => array_filter(
+					array(
+						'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
+						'ai'            => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/ai' ) ) ),
+						'advanced'      => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ) ),
+						'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
+						'bloat'         => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/bloat' ) ) ),
+						// Its checkboxes control which OTHER tabs are visible
+						// (Redirects/Sitemap/Health/Multilingual/AI), so the admin JS
+						// refreshes the EasyRankly settings wrapper after a successful
+						// save to pick up the updated PHP-rendered navigation.
+						'features'      => array(
+							'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
+							'reloadOnSave' => true,
+						),
+						// Simplified mode drives PHP-rendered markup across the whole
+						// page (Advanced/AI tab visibility, Bloat's simple vs advanced
+						// view, social/visibility defaults rendered as hidden inputs),
+						// so like Features it needs the settings wrapper refreshed
+						// after save.
+						'settings'      => array(
+							'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
+							'reloadOnSave' => true,
+						),
+						'social'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/social' ) ) ),
+						'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
+						// Multisite-only (a per-site admin's "General" tab there);
+						// its own bespoke route, not part of erankly_settings_autosave_panels()
+						// See erankly_rest_save_special_pages() in easyrankly.php.
+						'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
+						// Network-Admin-only; its form posts a different top-level field
+						// ('erankly_ml_sites', not 'erankly_settings') into a dedicated
+						// network option. See ERankly_ML_Admin::rest_save_ml_sites().
+						'multilingual'  => erankly_bundled_multilingual_provider_is_active() ? array(
+							'restUrl'   => esc_url_raw( rest_url( 'erankly/v1/settings/multilingual' ) ),
+							'fieldRoot' => 'erankly_ml_sites',
+						) : null,
 					),
-					// Simplified mode drives PHP-rendered markup across the whole
-					// page (Advanced/AI tab visibility, Bloat's simple vs advanced
-					// view, social/visibility defaults rendered as hidden inputs),
-					// so like Features it needs the settings wrapper refreshed
-					// after save.
-					'settings'      => array(
-						'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
-						'reloadOnSave' => true,
-					),
-					'social'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/social' ) ) ),
-					'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
-					// Multisite-only (a per-site admin's "General" tab there);
-					// its own bespoke route, not part of erankly_settings_autosave_panels()
-					// See erankly_rest_save_special_pages() in easyrankly.php.
-					'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
-					// Network-Admin-only; its form posts a different top-level field
-					// ('erankly_ml_sites', not 'erankly_settings') into a dedicated
-					// network option. See ERankly_ML_Admin::rest_save_ml_sites().
-					'multilingual'  => array(
-						'restUrl'   => esc_url_raw( rest_url( 'erankly/v1/settings/multilingual' ) ),
-						'fieldRoot' => 'erankly_ml_sites',
-					),
+					'is_array'
 				),
 			)
 		);
@@ -1039,7 +1041,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		);
 	}
 
-	$ml_active = is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled();
+	$ml_active = erankly_bundled_multilingual_provider_is_active();
 
 	// The editor/taxonomy screens use the cross-site search; the Network Admin
 	// settings screen uses the language-map table (default-site radios).
@@ -1178,8 +1180,8 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 				'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
 				'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
 				'variables'                     => erankly_get_variable_groups(),
-				'multilingual'                  => is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled(),
-				'translationSearchPath'         => '/erankly/v1/ml/search',
+				'multilingual'                  => erankly_bundled_multilingual_provider_is_active(),
+				'translationSearchPath'         => erankly_bundled_multilingual_provider_is_active() ? '/erankly/v1/ml/search' : '',
 				'aiEnabled'                     => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
 				'aiGeneratePath'                => '/erankly/v1/ai/generate',
 				'contentAnalysisEnabled'        => erankly_content_analysis_enabled(),

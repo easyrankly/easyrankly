@@ -31,7 +31,6 @@ function erankly_render_head(): void {
 		printf( '<link rel="canonical" href="%s">' . "\n", esc_url( $canonical ) );
 	}
 
-	erankly_render_hreflang_alternates();
 	erankly_render_opengraph_tags();
 	erankly_render_oembed_link();
 	erankly_render_schema();

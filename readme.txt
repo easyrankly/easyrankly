@@ -4,7 +4,7 @@ Tags: seo, schema, sitemap, redirects, ai
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.0.0
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,7 +50,7 @@ Yes. EasyRankly supports Product JSON-LD for WooCommerce products, including the
 
 = Does EasyRankly work on WordPress Multisite? =
 
-Yes. EasyRankly supports WordPress Multisite with network-level global settings, plus an optional multilingual module that links posts, pages, and terms across network sites and outputs hreflang alternates in the head and XML sitemaps.
+Yes. EasyRankly supports WordPress Multisite with network-level global settings, plus an optional multilingual module that links posts, pages, and terms across network sites and outputs hreflang alternates in the document head. Each enabled site keeps its own XML sitemap; EasyRankly does not currently add `xhtml:link` alternates inside sitemap XML.
 
 After activation, an upgrade, or a sitemap setting change, each site refreshes its own rewrite rules on its next request; no network-wide scan is required. Network resets run in small background batches and report their status in Network Admin. On installations with more than 100 sites, network deactivation and uninstall are intentionally routed through WP-CLI so every site can be cleaned without an HTTP timeout. Run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly` (replace `easyrankly` if the installed plugin directory uses a different name).
 
@@ -110,6 +110,13 @@ You can also export and re-import EasyRankly settings, redirects, special-page d
 
 == Changelog ==
 
+= 2.1.0 =
+Bridge release for multilingual extensions. Adds the public provider API v1, deterministic fail-closed provider selection, a replaceable bundled fallback, neutral context-aware URL and alternate filters, independent hreflang ownership, and a stable per-object SEO-state API.
+
+Adds journaled storage ownership with lease/CAS protection, a shared settings mutex, legacy-toggle interlocks, and ownership-aware reset/uninstall behavior across Multisite and multi-network installations. Existing bundled output, REST routes, shortcodes, assets, and legacy storage remain in place when no external provider is installed.
+
+Freezes the generic settings-tab descriptor/render action for future extensions and corrects the earlier XML sitemap alternate claim. EasyRankly Multilingual is not included or announced as an available add-on in this release.
+
 = 2.0.0 =
 Major upgrade from the public 1.0.0 release. The original metadata, schema, sitemap, redirect, Health, Multisite, and multilingual foundations remain; the changes below describe what is new or materially expanded.
 
@@ -150,6 +157,9 @@ Release date: June 14, 2026
 * First public release.
 
 == Upgrade Notice ==
+
+= 2.1.0 =
+Adds a fail-closed multilingual provider bridge and ownership-safe lifecycle while retaining the bundled Multisite feature. No storage conversion occurs. Complete verified rollback before any downgrade if storage has been claimed by a provider.
 
 = 2.0.0 =
 Major 1.0 upgrade: back up first. Existing content SEO is retained; redirect data is retained and upgraded automatically. The checklist moves into the editor. Review settings and Multisite special-page defaults. AI stays opt-in and requires WordPress 7.0 plus a connected provider.

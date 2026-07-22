@@ -122,8 +122,13 @@ final class ERankly_ML_Repository {
 	 * @param string $object_type Object type.
 	 * @param int    $object_id   Object ID.
 	 * @return int The group ID used (existing or newly created).
+	 * @throws RuntimeException When ownership transition makes legacy storage read-only.
 	 */
 	public function link( int $group_id, int $blog_id, string $object_type, int $object_id ): int {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			throw new RuntimeException( esc_html__( 'Multilingual storage is temporarily read-only during an ownership transition.', 'easyrankly' ) );
+		}
+
 		global $wpdb;
 		$table = self::get_table_name();
 
@@ -181,6 +186,10 @@ final class ERankly_ML_Repository {
 	 * @return void
 	 */
 	public function unlink( int $blog_id, string $object_type, int $object_id ): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		global $wpdb;
 		$table    = self::get_table_name();
 		$group_id = $this->find_group_id( $blog_id, $object_type, $object_id );
@@ -257,6 +266,10 @@ final class ERankly_ML_Repository {
 	 * @return void
 	 */
 	public function delete_blog( int $blog_id ): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		global $wpdb;
 		$table = self::get_table_name();
 

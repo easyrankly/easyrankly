@@ -129,23 +129,34 @@ function erankly_ml_contract_create_second_network_fixture(): array {
 	if ( $existing_site ) {
 		$blog_id = (int) $existing_site;
 	} else {
-		$inserted = $wpdb->insert(
-			$wpdb->blogs,
-			array(
-				'site_id'      => $network_id,
-				'domain'       => $domain,
-				'path'         => '/',
-				'registered'   => current_time( 'mysql', true ),
-				'last_updated' => current_time( 'mysql', true ),
-				'public'       => 0,
-			),
-			array( '%d', '%s', '%s', '%s', '%s', '%d' )
-		);
-		if ( false === $inserted ) {
-			throw new RuntimeException( 'Unable to create the second-network site fixture.' );
+		$current_network_id = get_current_network_id();
+		$current_ml_map     = get_network_option( $current_network_id, 'erankly_ml_sites', false );
+		// WordPress 6.2 still reads this legacy constant while initializing a
+		// site on a second network, even though modern uploads use wp-content/uploads.
+		if ( ! defined( 'UPLOADBLOGSDIR' ) ) {
+			define( 'UPLOADBLOGSDIR', 'wp-content/blogs.dir' );
 		}
-		$blog_id = (int) $wpdb->insert_id;
-		clean_blog_cache( $blog_id );
+		$created = wpmu_create_blog(
+			$domain,
+			'/',
+			'EasyRankly M1 second-network site',
+			1,
+			array( 'public' => 0 ),
+			$network_id
+		);
+		if ( is_wp_error( $created ) ) {
+			throw new RuntimeException( 'Unable to create the second-network site fixture: ' . $created->get_error_message() );
+		}
+		$blog_id = (int) $created;
+
+		// The bundled new-site hook executes in the initiating network context on
+		// WordPress 6.2. Restore its exact map so this cross-network fixture does
+		// not manufacture a language in the wrong registry.
+		if ( false === $current_ml_map ) {
+			delete_network_option( $current_network_id, 'erankly_ml_sites' );
+		} else {
+			update_network_option( $current_network_id, 'erankly_ml_sites', $current_ml_map );
+		}
 	}
 
 	return array( 'network_id' => $network_id, 'blog_id' => $blog_id );

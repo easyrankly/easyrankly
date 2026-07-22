@@ -10,6 +10,7 @@ PROVIDER="bundled"
 ADDON_PATH="${ERANKLY_ML_CONTRACT_ADDON_PATH:-}"
 DRIVER_FILE="${ERANKLY_ML_CONTRACT_DRIVER_FILE:-}"
 EXPECTED_CONFORMANCE_IDS="ML-CONF-001,ML-CONF-002,ML-CONF-003,ML-CONF-004,ML-CONF-005,ML-CONF-006,ML-CONF-007,ML-CONF-008,ML-CONF-009"
+M2_EXPECTED_CONFORMANCE_IDS="ML-CONF-002,ML-CONF-003,ML-CONF-004,ML-CONF-005,ML-CONF-006"
 CORE_VERSION=""
 
 for argument in "$@"; do
@@ -24,7 +25,7 @@ for argument in "$@"; do
 done
 
 case "${SUITE}" in
-	legacy-baseline|multisite-conformance|all) ;;
+	legacy-baseline|multisite-conformance|m2-bridge|all) ;;
 	*) echo "Unknown M1 suite: ${SUITE}" >&2; exit 2 ;;
 esac
 
@@ -182,16 +183,79 @@ run_conformance() {
 			return 1
 		fi
 		echo "Bundled EasyRankly ${CORE_VERSION} conformance produced exactly ${EXPECTED_CONFORMANCE_IDS}."
+		return 0
+	fi
+
+	if [[ "${PROVIDER}" == "bundled" && "${CORE_VERSION}" == "2.1.0" ]]; then
+		actual_ids="$(printf '%s\n' "${output}" | sed -n 's/^ERANKLY_ML_CONTRACT_FAILURE_IDS=//p' | tail -n 1)"
+		if [[ "${status}" == "0" ]]; then
+			echo "The M4 defects unexpectedly passed during the M2 release bridge." >&2
+			return 1
+		fi
+		if [[ "${actual_ids}" != "${M2_EXPECTED_CONFORMANCE_IDS}" ]]; then
+			echo "EasyRankly 2.1 conformance differs from the M2/M4 milestone boundary." >&2
+			echo "Expected: ${M2_EXPECTED_CONFORMANCE_IDS}" >&2
+			echo "Actual:   ${actual_ids:-<none>}" >&2
+			return 1
+		fi
+		echo "Bundled EasyRankly ${CORE_VERSION}: M2 conformance is green; M4 remains expected-red for ${M2_EXPECTED_CONFORMANCE_IDS}."
+		return 0
 	fi
 
 	return "${status}"
 }
 
+run_m2() {
+	docker run --rm \
+		--user "${uid}:${gid}" \
+		-v "${ROOT}:/workspace:ro" \
+		-w /workspace \
+		--entrypoint php \
+		"${CLI_IMAGE}" tests/multilingual-contract/m2-provider-registry.php
+
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-bridge.php
+
+	set +e
+	wp_contract a eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-settings-concurrency-worker.php &
+	worker_a=$!
+	wp_contract b eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-settings-concurrency-worker.php &
+	worker_b=$!
+	wait "${worker_a}"
+	status_a=$?
+	wait "${worker_b}"
+	status_b=$?
+	set -e
+
+	if [[ "${status_a}" != "0" || "${status_b}" != "0" ]]; then
+		echo "One or both M2 settings concurrency workers failed." >&2
+		return 1
+	fi
+
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-settings-concurrency-verify.php
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-uninstall-retained-prepare.php
+	wp_contract "" plugin deactivate easyrankly --network
+	wp_contract "" plugin uninstall easyrankly --skip-delete
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-uninstall-retained-verify.php
+
+	wp_contract "" plugin activate easyrankly --network
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-uninstall-normal-prepare.php
+	wp_contract "" plugin deactivate easyrankly --network
+	wp_contract "" plugin uninstall easyrankly --skip-delete
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-uninstall-normal-verify.php
+
+	mkdir -p "${SITE_DIR}/wp-content/mu-plugins"
+	cp "${ROOT}/tests/multilingual-contract/m2-fake-provider-mu.php" "${SITE_DIR}/wp-content/mu-plugins/m2-fake-provider.php"
+	wp_contract "" plugin activate easyrankly --network
+	wp_contract "" eval-file wp-content/plugins/easyrankly/tests/multilingual-contract/m2-fake-provider-verify.php
+}
+
 case "${SUITE}" in
 	legacy-baseline) run_legacy ;;
 	multisite-conformance) run_conformance ;;
+	m2-bridge) run_m2 ;;
 	all)
 		run_legacy
 		run_conformance
+		run_m2
 		;;
 esac

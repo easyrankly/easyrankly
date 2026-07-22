@@ -164,6 +164,16 @@ final class ERankly_ML_Admin {
 	 * @return WP_REST_Response
 	 */
 	public function rest_save_ml_sites( WP_REST_Request $request ): WP_REST_Response {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => 'erankly_ml_adoption_locked',
+					'message' => __( 'Multilingual storage is temporarily read-only.', 'easyrankly' ),
+				),
+				423
+			);
+		}
+
 		$map = (array) $request->get_param( 'settings' );
 
 		ERankly_ML_Sites::save( $map );
@@ -202,6 +212,10 @@ final class ERankly_ML_Admin {
 	 * @return bool|WP_Error
 	 */
 	public function update_post_translations_rest_field( mixed $value, WP_Post $post ): bool|WP_Error {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return new WP_Error( 'erankly_ml_adoption_locked', __( 'Multilingual storage is temporarily read-only.', 'easyrankly' ), array( 'status' => 423 ) );
+		}
+
 		if ( ! current_user_can( 'edit_post', $post->ID ) ) {
 			return new WP_Error( 'erankly_forbidden', __( 'You are not allowed to edit these translations.', 'easyrankly' ), array( 'status' => 403 ) );
 		}
@@ -455,6 +469,10 @@ final class ERankly_ML_Admin {
 	 * @return void
 	 */
 	public function save_post_relations( int $post_id, WP_Post $post ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $post required by save_post hook signature.
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		if ( ! isset( $_POST['erankly_meta_box_nonce'] ) ) {
 			return;
 		}
@@ -485,6 +503,10 @@ final class ERankly_ML_Admin {
 	 * @return void
 	 */
 	public function save_term_relations( int $term_id, int $tt_id ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $tt_id required by hook signature.
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		if ( ! isset( $_POST['erankly_term_fields_nonce'] ) ) {
 			return;
 		}
@@ -682,6 +704,10 @@ final class ERankly_ML_Admin {
 	 * @return void
 	 */
 	public function on_create_site( WP_Site $site ): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		$enabled = (bool) erankly_get_setting( 'simplified_mode', 1 );
 		ERankly_ML_Sites::add_site( (int) $site->blog_id, $enabled );
 	}
@@ -705,6 +731,10 @@ final class ERankly_ML_Admin {
 	 * @return void
 	 */
 	public function save_ml_sites(): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			wp_die( esc_html__( 'Multilingual storage is temporarily read-only during an ownership transition.', 'easyrankly' ), '', array( 'response' => 423 ) );
+		}
+
 		check_admin_referer( 'erankly_ml_sites_save' );
 
 		if ( ! current_user_can( 'manage_network_options' ) ) {

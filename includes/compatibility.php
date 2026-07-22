@@ -101,12 +101,26 @@ function erankly_should_output_head(): bool {
  * @return string
  */
 function erankly_localize_url( string $url ): string {
+	$provider    = erankly_get_multilingual_provider();
+	$context     = erankly_get_multilingual_context();
+	$provider_id = $provider instanceof ERankly_Multilingual_Provider_Interface ? $provider->get_id() : '';
+
+	if ( $provider instanceof ERankly_Multilingual_Provider_Interface && $provider->is_enabled() ) {
+		try {
+			$url = $provider->localize_url( $url, $context );
+		} catch ( Throwable ) {
+			$url = '';
+		}
+	}
+
 	/**
 	 * Allows a custom multilingual stack to localize SEO URLs.
 	 *
-	 * @param string $url URL.
+	 * @param string              $url         URL.
+	 * @param array<string,mixed> $context     Selected provider context.
+	 * @param string              $provider_id Selected provider ID.
 	 */
-	return (string) apply_filters( 'erankly_localized_url', $url );
+	return (string) apply_filters( 'erankly_localized_url', $url, $context, $provider_id );
 }
 
 /** Returns whether WooCommerce APIs are available. */

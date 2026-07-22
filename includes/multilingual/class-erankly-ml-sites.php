@@ -150,8 +150,13 @@ final class ERankly_ML_Sites {
 	 *
 	 * @param array<int,array<string,mixed>> $map Raw input from admin form.
 	 * @return void
+	 * @throws RuntimeException When ownership transition makes legacy storage read-only.
 	 */
 	public static function save( array $map ): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			throw new RuntimeException( esc_html__( 'Multilingual storage is temporarily read-only during an ownership transition.', 'easyrankly' ) );
+		}
+
 		$clean       = array();
 		$has_default = false;
 
@@ -205,6 +210,10 @@ final class ERankly_ML_Sites {
 	 * @return void
 	 */
 	public static function add_site( int $blog_id, bool $enabled ): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		$blog_id = absint( $blog_id );
 
 		if ( $blog_id < 1 ) {
@@ -239,6 +248,10 @@ final class ERankly_ML_Sites {
 	 * @return void
 	 */
 	public static function remove_site( int $blog_id ): void {
+		if ( ! erankly_ml_legacy_writes_allowed() ) {
+			return;
+		}
+
 		$blog_id = absint( $blog_id );
 
 		if ( $blog_id < 1 ) {

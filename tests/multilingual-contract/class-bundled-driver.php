@@ -83,6 +83,7 @@ final class ERankly_ML_Contract_Bundled_Driver implements ERankly_ML_Contract_Dr
 		erankly_bootstrap_frontend_modules();
 		ob_start();
 		erankly_render_head();
+		erankly_render_hreflang_alternates();
 		$html = (string) ob_get_clean();
 		remove_filter( 'erankly_enable_head_output', '__return_true' );
 		return $html;
@@ -150,10 +151,13 @@ final class ERankly_ML_Contract_Bundled_Driver implements ERankly_ML_Contract_Dr
 		$resolver_duplicate_detected = 1 !== $this->resolver_count();
 		remove_filter( 'erankly_hreflang_alternates', array( $duplicate_resolver, 'resolve' ), 21 );
 
-		$emitter_count = $this->emitter_count();
-		add_action( 'wp_head', 'erankly_render_hreflang_alternates', 2 );
+		$emitter_count     = $this->emitter_count();
+		$duplicate_emitter = new class() {
+			public function render_hreflang_duplicate(): void {}
+		};
+		add_action( 'wp_head', array( $duplicate_emitter, 'render_hreflang_duplicate' ), 2 );
 		$emitter_duplicate_detected = 1 !== $this->emitter_count();
-		remove_action( 'wp_head', 'erankly_render_hreflang_alternates', 2 );
+		remove_action( 'wp_head', array( $duplicate_emitter, 'render_hreflang_duplicate' ), 2 );
 
 		return array(
 			'resolver_count'              => $resolver_count,
@@ -164,7 +168,10 @@ final class ERankly_ML_Contract_Bundled_Driver implements ERankly_ML_Contract_Dr
 	}
 
 	private function resolver_count(): int {
-		return erankly_ml_contract_count_callbacks(
+		$provider = function_exists( 'erankly_get_multilingual_provider' ) ? erankly_get_multilingual_provider() : null;
+		$count    = $provider instanceof ERankly_Multilingual_Provider_Interface && $this->id() === $provider->get_id() ? 1 : 0;
+
+		return $count + erankly_ml_contract_count_callbacks(
 			'erankly_hreflang_alternates',
 			static fn( mixed $callback ): bool => is_array( $callback )
 				&& isset( $callback[0], $callback[1] )
@@ -178,7 +185,7 @@ final class ERankly_ML_Contract_Bundled_Driver implements ERankly_ML_Contract_Dr
 			'wp_head',
 			static function ( mixed $callback ): bool {
 				if ( is_string( $callback ) ) {
-					return in_array( $callback, array( 'erankly_render_head', 'erankly_render_hreflang_alternates' ), true );
+					return 'erankly_render_hreflang_alternates' === $callback;
 				}
 
 				return is_array( $callback )

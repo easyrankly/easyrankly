@@ -1,14 +1,16 @@
 # EasyRankly Multilingual M1 contract
 
-This directory is the complete M1 test-only safety net for baseline `origin/beta` commit `eccebfb` (EasyRankly 2.0.0). It does not define the EasyRankly 2.1 provider API and does not change plugin runtime behavior.
+This directory retains the complete M1 safety net pinned to `origin/beta` commit `eccebfb` (EasyRankly 2.0.0) and adds the M2 release-bridge verification. The M1 snapshot remains immutable; the M2 scenarios validate the current 2.1 provider API and lifecycle without creating the future add-on.
 
 ## Suites
 
 - `legacy-baseline` is the green parity suite. It characterizes the embedded provider through a replaceable test driver and covers the site/language registry, manual and inferred relations, home/posts/terms, SEO versus navigable alternates, canonical, robots, head HTML, shortcodes, REST, assets, cache, deletion, cross-site permissions, concurrent group creation, network sizes and multi-network option scope.
 - `multisite-conformance` is separate and intentionally red on `eccebfb`. Its nine `ML-CONF-*` failures correspond one-for-one with section 21 of `SPECIFICATION.md`; `manifest.php` assigns each failure to M2 or M4.
+- `m2-bridge` validates deterministic provider selection, legacy filter compatibility, SEO/hreflang ownership, lease/CAS, a real two-process whole-settings race, crash-safe claim/rollback, reset, and normal/retained multi-network uninstall behavior.
 
 The conformance suite must not be added to a green required-test list until the assigned milestone closes the corresponding defect. A non-zero exit from this suite on EasyRankly 2.0 is expected evidence, not a legacy-baseline regression.
 On the pinned bundled EasyRankly 2.0 baseline, the runner also verifies the machine-readable failure list and rejects any result other than exactly `ML-CONF-001` through `ML-CONF-009`; the exit code alone is not accepted as evidence. Later core/add-on milestones can therefore close individual failures without weakening the baseline proof.
+On EasyRankly 2.1, the same runner requires `ML-CONF-001`, `007`, `008`, and `009` to pass and accepts only `ML-CONF-002` through `006` as the explicit M4 expected-red set.
 
 ## Clean execution
 
@@ -19,6 +21,7 @@ bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=3
 bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=250
 bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=501
 bash tests/multilingual-contract/run.sh --suite=multisite-conformance --scale=3
+bash tests/multilingual-contract/run.sh --suite=m2-bridge --scale=3
 ```
 
 Defaults are PHP 8.4, WordPress 6.2 and MariaDB 10.11. `--php=` and `--wordpress=` select other matrix cells. Fixture creation above three sites is refused unless the runner marks the installation explicitly ephemeral.

@@ -10,6 +10,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Returns whether a URL is an absolute HTTP(S) URL.
+ *
+ * This primitive lives in the always-loaded kernel because public provider
+ * consumers must not rely on the bundled runtime loading rich SEO helpers.
+ *
+ * @param string $url URL.
+ * @return bool
+ */
+function erankly_is_absolute_http_url( string $url ): bool {
+	$url = esc_url_raw( trim( $url ) );
+
+	if ( '' === $url ) {
+		return false;
+	}
+
+	$parts = wp_parse_url( $url );
+
+	return is_array( $parts ) && ! empty( $parts['host'] ) && ! empty( $parts['scheme'] ) && in_array( strtolower( (string) $parts['scheme'] ), array( 'http', 'https' ), true );
+}
+
+/**
  * PHP 8.0-compatible replacement for array_is_list().
  *
  * @param array<mixed> $arr Array to inspect.

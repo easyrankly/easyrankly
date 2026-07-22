@@ -18,6 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return void
  */
 function erankly_render_hreflang_alternates(): void {
+	$provider = erankly_get_multilingual_provider();
+
+	if ( ! $provider instanceof ERankly_Multilingual_Provider_Interface
+		|| $provider->get_id() !== erankly_get_hreflang_output_owner() ) {
+		return;
+	}
+
 	foreach ( erankly_get_hreflang_alternates() as $hreflang => $url ) {
 		printf(
 			'<link rel="alternate" hreflang="%1$s" href="%2$s">' . "\n",
@@ -33,7 +40,10 @@ function erankly_render_hreflang_alternates(): void {
  * @return array<string,string>
  */
 function erankly_get_hreflang_alternates(): array {
-	$alternates = array();
+	$provider    = erankly_get_multilingual_provider();
+	$context     = erankly_get_multilingual_context();
+	$provider_id = $provider instanceof ERankly_Multilingual_Provider_Interface ? $provider->get_id() : '';
+	$alternates  = erankly_get_provider_alternates( false );
 
 	/**
 	 * Filters hreflang alternate URLs.
@@ -41,8 +51,10 @@ function erankly_get_hreflang_alternates(): array {
 	 * Expected shape: array( 'it-IT' => 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
 	 *
 	 * @param array<string,string> $alternates Hreflang alternates.
+	 * @param array<string,mixed>  $context    Selected provider context.
+	 * @param string               $provider_id Selected provider ID.
 	 */
-	$alternates = apply_filters( 'erankly_hreflang_alternates', $alternates );
+	$alternates = apply_filters( 'erankly_hreflang_alternates', $alternates, $context, $provider_id );
 
 	return erankly_clean_hreflang_alternates( $alternates );
 }
@@ -58,14 +70,10 @@ function erankly_get_hreflang_alternates(): array {
  * @return array<string,string>
  */
 function erankly_get_navigable_hreflang_alternates(): array {
-	$alternates = array();
-
-	// When the network multilingual module is active, replace with its
-	// navigable resolution (includes noindex, excludes unpublished).
-	$resolver = $GLOBALS['erankly_ml_resolver'] ?? null;
-	if ( $resolver instanceof ERankly_ML_Resolver ) {
-		$alternates = $resolver->resolve_navigable( $alternates );
-	}
+	$provider    = erankly_get_multilingual_provider();
+	$context     = erankly_get_multilingual_context();
+	$provider_id = $provider instanceof ERankly_Multilingual_Provider_Interface ? $provider->get_id() : '';
+	$alternates  = erankly_get_provider_alternates( true );
 
 	/**
 	 * Filters the visitor-navigable language alternates.
@@ -73,8 +81,10 @@ function erankly_get_navigable_hreflang_alternates(): array {
 	 * Expected shape: array( 'it-IT' => 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
 	 *
 	 * @param array<string,string> $alternates Navigable alternates.
+	 * @param array<string,mixed>  $context    Selected provider context.
+	 * @param string               $provider_id Selected provider ID.
 	 */
-	$alternates = apply_filters( 'erankly_navigable_hreflang_alternates', $alternates );
+	$alternates = apply_filters( 'erankly_navigable_hreflang_alternates', $alternates, $context, $provider_id );
 
 	return erankly_clean_hreflang_alternates( $alternates );
 }

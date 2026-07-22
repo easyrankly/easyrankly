@@ -147,7 +147,7 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'robots_max_video_preview'            => isset( $input['robots_max_video_preview'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_video_preview'] ) : '',
 		'robots_nosnippet'                    => ! empty( $input['robots_nosnippet'] ) ? 1 : 0,
 		'robots_indexifembedded'              => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
-		'enable_multilingual'                 => ( is_multisite() && ! empty( $input['enable_multilingual'] ) ) ? 1 : 0,
+		'enable_multilingual'                 => ( is_multisite() && ! erankly_ml_toggle_must_stay_off() && ! empty( $input['enable_multilingual'] ) ) ? 1 : 0,
 		'enable_redirects'                    => ! empty( $input['enable_redirects'] ) ? 1 : 0,
 		'redirect_exclude_admins'             => $redirect_exclude_admins ? 1 : 0,
 		// The form submits the inverted add_head_credit checkbox; imported settings
@@ -396,7 +396,7 @@ function erankly_save_network_settings(): void {
 	$raw       = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized inside erankly_sanitize_settings().
 	$sanitized = erankly_sanitize_settings( $raw );
 
-	update_site_option( ERANKLY_OPTION, $sanitized );
+	erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
 
 	$redirect = network_admin_url( 'settings.php?page=erankly' );
 
@@ -468,17 +468,19 @@ function erankly_save_site_special_meta(): void {
  * Add-ons register a settings tab by returning an entry keyed by a tab slug:
  * array( 'my-addon' => array( 'label' => 'My Add-on', 'capability' => 'manage_options' ) ).
  * The body of each tab is printed by the matching `erankly_render_settings_tab_{$slug}`
- * action. Reserved core slugs and malformed entries are dropped.
+ * action. Malformed, wrong-scope and unauthorized entries are dropped.
  *
- * @param mixed $tabs Raw filter output.
- * @return array<string,array{label:string,capability:string}>
+ * @param mixed               $tabs           Raw filter output.
+ * @param array<string,mixed> $screen_context Current settings screen context.
+ * @return array<string,array{label:string,capability:string,scope:string,position:int}>
  */
-function erankly_normalize_settings_tabs( mixed $tabs ): array {
+function erankly_normalize_settings_tabs( mixed $tabs, array $screen_context ): array {
 	if ( ! is_array( $tabs ) ) {
 		return array();
 	}
 
-	$reserved = array( 'general', 'features', 'social', 'schema', 'sitemap', 'multilingual', 'health', 'settings', 'advanced', 'bloat', 'import-export', 'redirects' );
+	$reserved = array( 'general', 'features', 'social', 'schema', 'sitemap', 'health', 'settings', 'advanced', 'bloat', 'import-export', 'redirects', 'special-pages', 'links', 'ai' );
+	$scope    = (string) ( $screen_context['scope'] ?? 'site' );
 	$clean    = array();
 
 	foreach ( $tabs as $slug => $tab ) {
@@ -488,16 +490,30 @@ function erankly_normalize_settings_tabs( mixed $tabs ): array {
 			continue;
 		}
 
-		$label = isset( $tab['label'] ) ? (string) $tab['label'] : '';
-		if ( '' === $label ) {
+		$label      = isset( $tab['label'] ) ? (string) $tab['label'] : '';
+		$tab_scope  = isset( $tab['scope'] ) ? sanitize_key( (string) $tab['scope'] ) : 'site';
+		$capability = ( isset( $tab['capability'] ) && '' !== $tab['capability'] ) ? sanitize_key( (string) $tab['capability'] ) : 'manage_options';
+
+		if ( '' === $label || ! in_array( $tab_scope, array( 'site', 'network' ), true ) || $scope !== $tab_scope || ! current_user_can( $capability ) ) {
 			continue;
 		}
 
 		$clean[ $slug ] = array(
 			'label'      => $label,
-			'capability' => ( isset( $tab['capability'] ) && '' !== $tab['capability'] ) ? (string) $tab['capability'] : 'manage_options',
+			'capability' => $capability,
+			'scope'      => $tab_scope,
+			'position'   => isset( $tab['position'] ) ? (int) $tab['position'] : 100,
 		);
 	}
+
+	uksort(
+		$clean,
+		static function ( string $left, string $right ) use ( $clean ): int {
+			$position = $clean[ $left ]['position'] <=> $clean[ $right ]['position'];
+
+			return 0 !== $position ? $position : strcmp( $left, $right );
+		}
+	);
 
 	return $clean;
 }
@@ -658,8 +674,7 @@ function erankly_render_settings_page(): void {
 	// advanced mode while AI features are enabled.
 	$show_ai_tab              = ! $is_site_admin_on_network && erankly_ai_module_enabled() && empty( $settings['simplified_mode'] );
 	$show_sitemap_tab         = ! $is_site_admin_on_network && $sitemap_enabled;
-	$show_multilingual_tab    = is_multisite() && is_network_admin() && $multilingual_enabled;
-	$show_feature_modules_nav = $show_redirects_tab || $show_sitemap_tab || $show_health_tab || $show_links_tab || $show_ai_tab || $show_multilingual_tab;
+	$show_feature_modules_nav = $show_redirects_tab || $show_sitemap_tab || $show_health_tab || $show_links_tab || $show_ai_tab;
 	// Special-page metadata is per site on Multisite: edited from each subsite's
 	// "General" tab unless the block-theme Site Editor panels are available.
 	$show_site_special_tab = $is_site_admin_on_network && ! erankly_use_site_editor_special_page_panels();
@@ -686,6 +701,12 @@ function erankly_render_settings_page(): void {
 	$requested_subtab       = isset( $_GET['erankly_subtab'] ) ? sanitize_key( wp_unslash( $_GET['erankly_subtab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
 	$active_panel           = $is_site_admin_on_network ? ( $site_panels[0] ?? '' ) : 'settings-general';
 	$active_subtab          = '';
+	$screen                 = get_current_screen();
+	$screen_context         = array(
+		'screen_id'   => $screen instanceof WP_Screen ? $screen->id : '',
+		'scope'       => is_network_admin() ? 'network' : 'site',
+		'current_tab' => $requested_tab,
+	);
 
 	if ( '' !== $requested_tab ) {
 		$requested_tab = erankly_admin_resolve_settings_tab( $requested_tab );
@@ -748,11 +769,14 @@ function erankly_render_settings_page(): void {
 	 * Each entry is keyed by a tab slug and provides a label and an optional capability.
 	 * The tab body is printed by the `erankly_render_settings_tab_{$slug}` action.
 	 *
-	 * @since 1.0.0
+	 * @since 2.1.0 Descriptor schema and screen context frozen for extensions.
 	 *
 	 * @param array<string,array<string,string>> $tabs Registered extension tabs.
 	 */
-	$extra_tabs = erankly_normalize_settings_tabs( apply_filters( 'erankly_settings_tabs', array() ) );
+	$extra_tabs = erankly_normalize_settings_tabs(
+		apply_filters( 'erankly_settings_tabs', array(), $screen_context ),
+		$screen_context
+	);
 
 	// Map short tab names to panel IDs so server-side routing works for every tab.
 	// used by the post-save redirect and the no-JS fallback.
@@ -762,7 +786,6 @@ function erankly_render_settings_page(): void {
 		'social'        => 'settings-social',
 		'schema'        => 'settings-schema',
 		'sitemap'       => 'settings-sitemap',
-		'multilingual'  => 'settings-multilingual',
 		'health'        => 'settings-health',
 		'links'         => 'settings-links',
 		'settings'      => 'settings-settings',
@@ -818,12 +841,6 @@ function erankly_render_settings_page(): void {
 		$active_subtab = '';
 	}
 
-	// The Multilingual panel only exists in Network Admin while the feature is on.
-	if ( 'settings-multilingual' === $active_panel && ! ( is_network_admin() && $multilingual_enabled ) ) {
-		$active_panel  = 'settings-features';
-		$active_subtab = '';
-	}
-
 	// On per-site network admin, default to the first panel that is actually
 	// available for the active theme and enabled features.
 	if ( $is_site_admin_on_network && ! in_array( $active_panel, $site_panels, true ) ) {
@@ -872,7 +889,7 @@ function erankly_render_settings_page(): void {
 	// otherwise flash the button briefly), and it'll matter again the moment
 	// a future panel, built-in or a third-party extension tab, doesn't
 	// autosave.
-	$show_settings_submit = ! $is_site_admin_on_network && ! in_array( $active_panel, array( 'settings-health', 'settings-links', 'settings-import-export', 'settings-redirects', 'settings-multilingual' ), true );
+	$show_settings_submit = ! $is_site_admin_on_network && ! in_array( $active_panel, array( 'settings-health', 'settings-links', 'settings-import-export', 'settings-redirects' ), true );
 
 	// Panels that autosave via REST (see erankly_settings_autosave_panels())
 	// no longer need the shared button once they're actually reachable.
@@ -965,9 +982,6 @@ function erankly_render_settings_page(): void {
 					<?php if ( $show_ai_tab ) : ?>
 						<?php erankly_render_settings_nav_link( 'ai', __( 'AI', 'easyrankly' ), $active_panel ); ?>
 					<?php endif; ?>
-					<?php if ( $show_multilingual_tab ) : ?>
-						<?php erankly_render_settings_nav_link( 'multilingual', __( 'Multilingual', 'easyrankly' ), $active_panel ); ?>
-					<?php endif; ?>
 				</div>
 				<?php endif; ?>
 				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-useful-resources">
@@ -1039,12 +1053,6 @@ function erankly_render_settings_page(): void {
 				</form>
 				<?php endif; ?>
 
-			<?php if ( is_multisite() && is_network_admin() && $multilingual_enabled && 'settings-multilingual' === $active_panel ) : ?>
-			<div class="erankly-tab-panel<?php echo 'settings-multilingual' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-multilingual" role="tabpanel" aria-labelledby="erankly-settings-tab-multilingual" data-erankly-settings-panel="settings-multilingual" data-erankly-standalone-panel <?php echo 'settings-multilingual' === $active_panel ? '' : 'hidden'; ?>>
-				<?php erankly_ml_render_network_panel(); ?>
-			</div>
-			<?php endif; ?>
-
 			<?php if ( $show_site_special_tab && 'settings-special-pages' === $active_panel ) : ?>
 			<div class="erankly-tab-panel<?php echo 'settings-special-pages' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-special-pages" role="tabpanel" aria-labelledby="erankly-settings-tab-special-pages" data-erankly-settings-panel="settings-special-pages" data-erankly-standalone-panel <?php echo 'settings-special-pages' === $active_panel ? '' : 'hidden'; ?>>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -1102,11 +1110,11 @@ function erankly_render_settings_page(): void {
 				 * The dynamic portion of the hook name is the tab slug registered through the
 				 * `erankly_settings_tabs` filter.
 				 *
-				 * @since 1.7.2
+				 * @since 2.1.0 Screen context frozen for extension renderers.
 				 *
-				 * @param array<string,mixed> $settings Current plugin settings.
+				 * @param array<string,mixed> $screen_context Current screen context.
 				 */
-				do_action( 'erankly_render_settings_tab_' . $extra_slug, $settings );
+				do_action( 'erankly_render_settings_tab_' . $extra_slug, $screen_context );
 				?>
 			</div>
 			<?php endforeach; ?>
