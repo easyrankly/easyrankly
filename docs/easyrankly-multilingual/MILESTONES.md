@@ -235,7 +235,7 @@ Su core 2.1, verificare il journal, rilasciare ownership e disattivare l'add-on.
 - completare wizard verify/adopt e report scaricabile;
 - documentare ordine aggiornamento core -> add-on;
 - aggiungere export/import `erml/1` per mappa e relazioni di rete;
-- completare performance, security e accessibility audit;
+- completare performance e security audit;
 - preparare Upgrade Notice, FAQ rollback e runbook incidenti;
 - testare il vero ZIP, non soltanto il checkout.
 
@@ -318,7 +318,7 @@ Disattivazione; contenuti intatti e tabelle conservate. Se lo schema non è comp
 - switcher blocco/shortcode/menu e translation notice;
 - mapping homepage, pagina articoli e menu;
 - tabella/registry dei valori globali localizzati con stato `needs_review`;
-- accessibilità WCAG 2.2 AA e traduzioni del plugin.
+- traduzioni del plugin.
 
 ### Test obbligatori
 
@@ -332,7 +332,6 @@ Disattivazione; contenuti intatti e tabelle conservate. Se lo schema non è comp
 - menu mancante e fallback;
 - switcher con noindex/draft/missing/current;
 - niente asset su pagine non interessate;
-- tastiera, screen reader labels, error announcement e focus.
 
 ### Gate
 

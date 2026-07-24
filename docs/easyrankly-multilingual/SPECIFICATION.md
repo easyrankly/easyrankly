@@ -333,9 +333,12 @@ Il server acquisisce e verifica lo slot lingua prima di creare il draft. `idempo
 
 L'UI distingue chiaramente copia editoriale da traduzione automatica; nessun contenuto duplicato viene pubblicato automaticamente.
 
-### UI-008 — Accessibilità
+### UI-008 — Semantica e usabilità dei controlli
 
-Tutte le azioni sono usabili da tastiera, hanno label accessibili, non affidano lo stato al solo colore, annunciano errori dinamici e rispettano il focus management WordPress. La UI DEVE soddisfare almeno WCAG 2.2 AA per le superfici introdotte.
+Le superfici mantengono i controlli nativi, le label, il focus management e gli
+stati testuali già implementati. La certificazione formale WCAG, screen reader
+e assistive technology è fuori dal grafo M1-M10 e non costituisce un gate di
+milestone o release.
 
 ## 9. Valori globali localizzati
 
