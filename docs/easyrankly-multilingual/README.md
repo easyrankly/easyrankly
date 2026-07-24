@@ -1,6 +1,6 @@
 # EasyRankly Multilingual
 
-Stato: M1 e M2 completate nel core EasyRankly; M3 e il plugin add-on non sono iniziati. Questa cartella resta la specifica normativa e non contiene codice applicativo dell'add-on.
+Stato core: M1 e M2 completate. Il core mantiene l'API pubblica major 1 e aggiunge il writer localizzato stretto richiesto dal lifecycle Single Site M8; questa cartella resta la specifica normativa e non contiene codice applicativo dell'add-on.
 
 Baseline analizzata: `origin/beta` di EasyRankly, versione `2.0.0`, commit `eccebfb`. La release ponte core descritta in M2 è implementata in EasyRankly `2.1.0`; le fasi add-on restano future.
 

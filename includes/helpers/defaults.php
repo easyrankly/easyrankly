@@ -273,6 +273,8 @@ function erankly_default_settings(): array {
 
 	return array(
 		'organization_name'                   => erankly_default_organization_name_template(),
+		'website_name'                        => '',
+		'website_description'                 => '',
 		'organization_logo'                   => 0,
 		'organization_logo_url'               => erankly_default_organization_logo_url_template(),
 		'organization_description'            => '',

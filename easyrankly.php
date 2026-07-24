@@ -60,6 +60,7 @@ define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
 require_once ERANKLY_PATH . 'includes/multilingual-ownership.php';
+require_once ERANKLY_PATH . 'includes/localized-value-writer.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-bundled-multilingual-provider.php';
 require_once ERANKLY_PATH . 'includes/seo-state.php';

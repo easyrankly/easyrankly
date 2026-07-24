@@ -35,6 +35,7 @@
 		"multilingual:test:legacy": "bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=3",
 		"multilingual:test:conformance": "bash tests/multilingual-contract/run.sh --suite=multisite-conformance --scale=3",
 		"multilingual:test:m2": "bash tests/multilingual-contract/run.sh --suite=m2-bridge --scale=3",
+		"multilingual:test:writer": "bash tests/localized-value-writer/run.sh",
 		"multilingual:test:scale": [
 			"bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=3",
 			"bash tests/multilingual-contract/run.sh --suite=legacy-baseline --scale=250",
@@ -55,6 +56,7 @@
 		"multilingual:test:legacy": "Run the green EasyRankly 2.0 behavior snapshot against the current bundled fallback.",
 		"multilingual:test:conformance": "Verify the M2 defects are green while the five assigned M4 defects remain expected-red.",
 		"multilingual:test:m2": "Run provider handshake, bridge, ownership, rollback, reset and uninstall contracts for EasyRankly 2.1.",
+		"multilingual:test:writer": "Certify the public allowlisted localized-source writer, CAS, verification, authorization, idempotent restore, and two-process concurrency.",
 		"multilingual:test:scale": "Run legacy-baseline against clean 3, 250 and 501 site fixtures.",
 		"migration:certify:standalone": "Run the immutable Free/PRO contract and go-live decision suites.",
 		"migration:certify": "Run the complete Docker-backed migration certification matrix and produce a release verdict.",

@@ -5714,3 +5714,40 @@ msgstr ""
 #: assets/js/site-editor.js:299
 msgid "EasyRankly settings are not available in the Site Editor."
 msgstr ""
+
+#: includes/localized-value-writer.php:69
+msgid "The requested localized EasyRankly source key is not registered."
+msgstr ""
+
+#: includes/localized-value-writer.php:138
+msgid "A valid expected localized-source fingerprint is required."
+msgstr ""
+
+#: includes/localized-value-writer.php:148
+msgid "The localized EasyRankly source writer is currently locked."
+msgstr ""
+
+#: includes/localized-value-writer.php:179
+msgid "The localized EasyRankly source changed after it was read."
+msgstr ""
+
+#: includes/localized-value-writer.php:197
+msgid "EasyRankly could not persist the localized source value."
+msgstr ""
+
+#: includes/localized-value-writer.php:221
+msgid "EasyRankly could not verify the localized source write."
+msgstr ""
+
+#: includes/localized-value-writer.php:271
+msgid "The localized EasyRankly source writer is available only on Single Site."
+msgstr ""
+
+#: includes/localized-value-writer.php:279
+msgid "This request cannot access the localized EasyRankly source writer."
+msgstr ""
+
+#: includes/localized-value-writer.php:334
+#: includes/localized-value-writer.php:349
+msgid "The localized EasyRankly source value is invalid."
+msgstr ""

@@ -367,6 +367,26 @@ Per ogni chiave la policy è una tra `default-language`, `generated` o `empty`. 
 
 Per impostazioni già possedute da WordPress/EasyRankly, il valore della lingua default resta nello storage sorgente e la tabella add-on conserva gli override non-default. Un cambio default promuove e materializza i valori con un job reversibile; non scambia opzioni durante una richiesta frontend.
 
+### GLOBAL-003A — Writer pubblico della sorgente EasyRankly
+
+La promozione della lingua predefinita DEVE usare esclusivamente
+`erankly_get_localized_value_source_state()` e
+`erankly_update_localized_value_source()`. Il core espone soltanto chiavi
+testuali registrate e validate con il relativo sanitizer; non espone accesso
+arbitrario all'opzione `erankly_settings`.
+
+La lettura fornisce valore corrente, hash e fingerprint CAS. Write e restore
+richiedono `expected_fingerprint`, condividono il mutex degli altri writer
+settings, rileggono e fanno merge sullo stato corrente, verificano il valore
+persistito e non possono perdere impostazioni estranee. Snapshot stale
+restituiscono `409 erankly_localized_value_source_revision_conflict`.
+Ripetere un write o restore già verificato è idempotente. Errori di storage o
+verifica restano fail-closed e non includono il valore. Capability o contesto
+non autorizzati restituiscono un `WP_Error` bounded. Se l'API manca o ha un
+contratto incompatibile, l'add-on mantiene
+`503 erml_default_language_source_write_unavailable`; non sono ammessi accessi
+privati o fallback diretti.
+
 ### GLOBAL-004 — Menu
 
 Le location possono puntare a un menu diverso per lingua. Se manca il mapping, la policy default è fallback al menu della lingua predefinita con diagnostica, non menu vuoto silenzioso.

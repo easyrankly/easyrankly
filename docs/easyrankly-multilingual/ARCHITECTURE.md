@@ -138,6 +138,39 @@ function erankly_get_extension_api_version(): int;
 
 Nomi, tipi di ritorno e semantica costituiscono l'API major 1. Aggiungere argomenti obbligatori o cambiare il significato di un ritorno richiede una nuova major dell'API.
 
+M8 aggiunge in modo strettamente additivo due funzioni pubbliche alla stessa
+major:
+
+```php
+function erankly_get_localized_value_source_state(
+    string $key
+): array|WP_Error;
+
+function erankly_update_localized_value_source(
+    string $key,
+    mixed $value,
+    string $expected_fingerprint
+): array|WP_Error;
+```
+
+La lettura restituisce `contract=erankly-localized-source/1`, `key`, `value`,
+`value_hash`, `fingerprint` e `format`. La mutazione restituisce lo stesso stato
+verificato più `changed` e `idempotent`. Il registro delle chiavi è chiuso e
+non filtrabile: include soltanto sorgenti testuali EasyRankly dichiarate per
+Organization, WebSite, pagine speciali e template pubblici di post type e
+tassonomie. Non è un writer generico per `erankly_settings`.
+
+Ogni mutazione richiede il fingerprint letto, acquisisce il mutex condiviso
+`erankly_ml_ownership_lock`, rilegge lo stato, applica il sanitizer canonico
+del setting, aggiorna soltanto la radice allowlisted facendo merge contro lo
+snapshot corrente e verifica la rilettura prima di restituire successo. Un
+fingerprint stale restituisce
+`erankly_localized_value_source_revision_conflict`; un retry o ripristino già
+applicato è idempotente anche se il fingerprint presentato è ormai stale.
+Errori e checkpoint contengono soltanto chiave, fingerprint, cause e flag
+bounded, mai il valore. L'API è Single Site e richiede `manage_options` in
+admin, REST o WP-CLI; ogni altro contesto resta fail-closed.
+
 Identificatori e priorità iniziali:
 
 | Provider | ID | Priorità |

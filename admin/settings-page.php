@@ -75,6 +75,8 @@ function erankly_sanitize_settings( mixed $input ): array {
 
 	$settings = array(
 		'organization_name'                   => isset( $input['organization_name'] ) ? erankly_sanitize_text( $input['organization_name'] ) : $defaults['organization_name'],
+		'website_name'                        => isset( $input['website_name'] ) ? erankly_sanitize_text( $input['website_name'] ) : $defaults['website_name'],
+		'website_description'                 => isset( $input['website_description'] ) ? erankly_sanitize_textarea( $input['website_description'] ) : $defaults['website_description'],
 		'organization_logo'                   => isset( $input['organization_logo'] ) ? absint( $input['organization_logo'] ) : $defaults['organization_logo'],
 		'organization_logo_url'               => isset( $input['organization_logo_url'] ) ? erankly_sanitize_url_template( $input['organization_logo_url'] ) : $defaults['organization_logo_url'],
 		'organization_description'            => isset( $input['organization_description'] ) ? erankly_sanitize_textarea( $input['organization_description'] ) : '',
