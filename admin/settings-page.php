@@ -149,7 +149,6 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'robots_max_video_preview'            => isset( $input['robots_max_video_preview'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_video_preview'] ) : '',
 		'robots_nosnippet'                    => ! empty( $input['robots_nosnippet'] ) ? 1 : 0,
 		'robots_indexifembedded'              => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
-		'enable_multilingual'                 => ( is_multisite() && ! erankly_ml_toggle_must_stay_off() && ! empty( $input['enable_multilingual'] ) ) ? 1 : 0,
 		'enable_redirects'                    => ! empty( $input['enable_redirects'] ) ? 1 : 0,
 		'redirect_exclude_admins'             => $redirect_exclude_admins ? 1 : 0,
 		// The form submits the inverted add_head_credit checkbox; imported settings
@@ -179,7 +178,26 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'bloat_disable_speculative_loading'   => ! empty( $input['bloat_disable_speculative_loading'] ) ? 1 : 0,
 	);
 
-	return $settings;
+	$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
+	$stored = is_array( $stored ) ? $stored : array();
+
+	/**
+	 * Filters already-stored extension keys that core must preserve unchanged.
+	 *
+	 * Only keys absent from the current core defaults are eligible. New request
+	 * input can never create an unknown key through this path.
+	 *
+	 * @param array<string,mixed> $extension_settings Existing extension settings.
+	 * @param array<string,mixed> $input              Current submitted settings.
+	 */
+	$extension_settings = apply_filters(
+		'erankly_preserved_extension_settings',
+		array_diff_key( $stored, $defaults ),
+		$input
+	);
+	$extension_settings = is_array( $extension_settings ) ? $extension_settings : array();
+
+	return array_replace( $extension_settings, $settings );
 }
 
 /**
@@ -280,7 +298,6 @@ function erankly_settings_autosave_panels(): array {
 				'enable_link_building',
 				'enable_content_analysis',
 				'ai_enabled',
-				'enable_multilingual',
 			),
 		),
 		'bloat'    => array(
@@ -587,31 +604,6 @@ function erankly_get_social_nav_subtabs( array $settings ): array {
 }
 
 /**
- * Builds inner-tab routing entries for Multilingual translation notice tabs.
- *
- * @return array<int,array{subtab:string,disabled:bool}>
- */
-function erankly_get_multilingual_notice_nav_subtabs(): array {
-	if ( ! is_multisite() || ! function_exists( 'get_sites' ) ) {
-		return array();
-	}
-
-	$items = array();
-	$sites = get_sites( array( 'number' => 200 ) );
-
-	foreach ( $sites as $site ) {
-		$bid = (int) $site->blog_id;
-
-		$items[] = array(
-			'subtab'   => sanitize_key( 'ml-notice-' . $bid ),
-			'disabled' => false,
-		);
-	}
-
-	return $items;
-}
-
-/**
  * Returns a real, no-JavaScript URL for a top-level settings tab.
  *
  * @param string $tab Tab slug.
@@ -664,7 +656,6 @@ function erankly_render_settings_page(): void {
 	$redirects_enabled        = erankly_redirects_enabled();
 	$sitemap_enabled          = erankly_sitemap_enabled();
 	$health_enabled           = erankly_health_enabled();
-	$multilingual_enabled     = is_multisite() && erankly_multilingual_enabled();
 	$ai_provider_available    = erankly_ai_provider_available();
 	$is_site_admin_on_network = is_multisite() && ! is_network_admin();
 	// Health and Redirects are per-site features: show them on individual sites,
@@ -745,8 +736,6 @@ function erankly_render_settings_page(): void {
 
 		$site_special_subtabs = $show_site_special_tab ? erankly_get_special_page_nav_subtabs( $special_page_items ) : array();
 		$social_subtabs       = $is_site_admin_on_network ? array() : erankly_get_social_nav_subtabs( $settings );
-		$multilingual_subtabs = ( is_network_admin() && $multilingual_enabled ) ? erankly_get_multilingual_notice_nav_subtabs() : array();
-
 		foreach ( $general_subtabs as $item ) {
 			if ( empty( $item['disabled'] ) ) {
 				$subtab_panel_map[ $item['subtab'] ] = 'settings-general';
@@ -759,9 +748,6 @@ function erankly_render_settings_page(): void {
 			if ( empty( $item['disabled'] ) ) {
 				$subtab_panel_map[ $item['subtab'] ] = 'settings-social';
 			}
-		}
-		foreach ( $multilingual_subtabs as $item ) {
-			$subtab_panel_map[ $item['subtab'] ] = 'settings-multilingual';
 		}
 	}
 
@@ -1013,7 +999,7 @@ function erankly_render_settings_page(): void {
 				<?php endif; ?>
 
 					<?php if ( 'settings-features' === $active_panel ) : ?>
-						<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $health_enabled, $multilingual_enabled, $ai_provider_available, $active_panel ); ?>
+							<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $health_enabled, $ai_provider_available, $active_panel ); ?>
 					<?php endif; ?>
 
 					<?php if ( 'settings-general' === $active_panel ) : ?>

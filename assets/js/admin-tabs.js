@@ -450,8 +450,7 @@
           target === "settings-health" ||
           target === "settings-links" ||
           target === "settings-import-export" ||
-          target === "settings-redirects" ||
-          target === "settings-multilingual";
+          target === "settings-redirects";
       }
 
       if (subtab) {

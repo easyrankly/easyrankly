@@ -48,8 +48,6 @@ function erankly_admin_bootstrap(): void {
 		// Per-site special-page metadata falls back to the subsite settings
 		// page unless the Site Editor panels are available.
 		add_action( 'admin_post_erankly_save_site_special_meta', 'erankly_admin_save_site_special_meta' );
-		// ML sites form is submitted to a separate network action endpoint.
-		add_action( 'network_admin_edit_erankly_ml_sites_save', 'erankly_admin_ml_sites_save' );
 	} else {
 		add_action( 'admin_menu', 'erankly_admin_register_settings_page' );
 		add_action( 'admin_menu', 'erankly_setup_wizard_register_page' );
@@ -515,7 +513,6 @@ function erankly_admin_asset_modules( string $surface ): array {
 		'social'        => array( 'tabs', 'media', 'variables', 'settings' ),
 		'schema'        => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
 		'sitemap'       => array( 'tabs', 'settings' ),
-		'multilingual'  => array( 'tabs' ),
 		'health'        => array( 'tabs', 'panels' ),
 		'links'         => array( 'tabs', 'panels' ),
 		'settings'      => array( 'tabs', 'settings', 'reset' ),
@@ -889,7 +886,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 						'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
 						'bloat'         => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/bloat' ) ) ),
 						// Its checkboxes control which OTHER tabs are visible
-						// (Redirects/Sitemap/Health/Multilingual/AI), so the admin JS
+						// (Redirects/Sitemap/Health/AI), so the admin JS
 						// refreshes the EasyRankly settings wrapper after a successful
 						// save to pick up the updated PHP-rendered navigation.
 						'features'      => array(
@@ -911,13 +908,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 						// its own bespoke route, not part of erankly_settings_autosave_panels()
 						// See erankly_rest_save_special_pages() in easyrankly.php.
 						'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
-						// Network-Admin-only; its form posts a different top-level field
-						// ('erankly_ml_sites', not 'erankly_settings') into a dedicated
-						// network option. See ERankly_ML_Admin::rest_save_ml_sites().
-						'multilingual'  => erankly_bundled_multilingual_provider_is_active() ? array(
-							'restUrl'   => esc_url_raw( rest_url( 'erankly/v1/settings/multilingual' ) ),
-							'fieldRoot' => 'erankly_ml_sites',
-						) : null,
 					),
 					'is_array'
 				),
@@ -1040,47 +1030,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			)
 		);
 	}
-
-	$ml_active = erankly_bundled_multilingual_provider_is_active();
-
-	// The editor/taxonomy screens use the cross-site search; the Network Admin
-	// settings screen uses the language-map table (default-site radios).
-	$ml_on_editor   = $ml_active && ( $is_editor || $is_taxonomy );
-	$ml_on_settings = $ml_active && $is_settings && 'multilingual' === $settings_tab && is_network_admin();
-
-	if ( $ml_on_editor || $ml_on_settings ) {
-		wp_enqueue_style(
-			'erankly-multilingual',
-			ERANKLY_URL . 'assets/css/multilingual.css',
-			array( 'erankly-admin' ),
-			ERANKLY_VERSION
-		);
-
-		wp_enqueue_script(
-			'erankly-multilingual',
-			ERANKLY_URL . 'assets/js/multilingual.js',
-			array(),
-			ERANKLY_VERSION,
-			true
-		);
-
-		// The localized search config is only needed on the editor screens.
-		if ( $ml_on_editor ) {
-			wp_localize_script(
-				'erankly-multilingual',
-				'eranklyML',
-				array(
-					'restUrl' => esc_url_raw( rest_url( 'erankly/v1/ml/search' ) ),
-					'nonce'   => wp_create_nonce( 'wp_rest' ),
-					'i18n'    => array(
-						'searching' => __( 'Searching…', 'easyrankly' ),
-						'noResults' => __( 'No matches found.', 'easyrankly' ),
-						'remove'    => __( 'Remove', 'easyrankly' ),
-					),
-				)
-			);
-		}
-	}
 }
 
 /**
@@ -1180,8 +1129,6 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 				'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
 				'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
 				'variables'                     => erankly_get_variable_groups(),
-				'multilingual'                  => erankly_bundled_multilingual_provider_is_active(),
-				'translationSearchPath'         => erankly_bundled_multilingual_provider_is_active() ? '/erankly/v1/ml/search' : '',
 				'aiEnabled'                     => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
 				'aiGeneratePath'                => '/erankly/v1/ai/generate',
 				'contentAnalysisEnabled'        => erankly_content_analysis_enabled(),
@@ -1358,20 +1305,4 @@ function erankly_admin_get_site_editor_special_description_placeholders(): array
 		'search'   => '',
 		'404'      => '',
 	);
-}
-
-/**
- * Dispatches the network ML sites save action.
- *
- * @return void
- */
-function erankly_admin_ml_sites_save(): void {
-	if ( ! erankly_multilingual_enabled() ) {
-		return;
-	}
-
-	$admin = $GLOBALS['erankly_ml_admin'] ?? null;
-	if ( $admin instanceof ERankly_ML_Admin ) {
-		$admin->save_ml_sites();
-	}
 }

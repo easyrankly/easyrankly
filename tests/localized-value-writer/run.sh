@@ -5,6 +5,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 WP_VERSION="${ERANKLY_WRITER_WP_VERSION:-6.2}"
 PHP_VERSION="${ERANKLY_WRITER_PHP_VERSION:-8.0}"
 CORE_ZIP="${ERANKLY_WRITER_CORE_ZIP:-}"
+WP_CORE_PATH="${ERANKLY_WRITER_WP_CORE_PATH:-}"
 RUN_ID="erankly-writer-$PPID-$$"
 WORK_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/erankly-writer.XXXXXX")"
 SITE_DIR="${WORK_ROOT}/wordpress"
@@ -27,10 +28,21 @@ if [[ -n "${CORE_ZIP}" && ! -f "${CORE_ZIP}" ]]; then
 	echo "The requested core ZIP does not exist: ${CORE_ZIP}" >&2
 	exit 2
 fi
+if [[ -n "${WP_CORE_PATH}" && ( ! -d "${WP_CORE_PATH}" || ! -f "${WP_CORE_PATH}/wp-includes/version.php" ) ]]; then
+	echo "ERANKLY_WRITER_WP_CORE_PATH must name an extracted WordPress core." >&2
+	exit 2
+fi
+for image in mariadb:10.11 "${CLI_IMAGE}"; do
+	if ! docker image inspect "${image}" >/dev/null 2>&1; then
+		echo "Required local Docker image is missing; no pull is allowed: ${image}" >&2
+		exit 2
+	fi
+done
 
 mkdir -p "${SITE_DIR}"
 docker network create "${NETWORK_NAME}" >/dev/null
 docker run -d \
+	--pull=never \
 	--name "${DB_CONTAINER}" \
 	--network "${NETWORK_NAME}" \
 	-e MARIADB_ROOT_PASSWORD=writer-root \
@@ -63,6 +75,7 @@ fi
 
 wp_run() {
 	docker run --rm \
+		--pull=never \
 		--network "${NETWORK_NAME}" \
 		--user "${uid}:${gid}" \
 		-e WP_CLI_ALLOW_ROOT=1 \
@@ -77,6 +90,7 @@ wp_worker() {
 	local worker="$1"
 	shift
 	docker run --rm \
+		--pull=never \
 		--network "${NETWORK_NAME}" \
 		--user "${uid}:${gid}" \
 		-e WP_CLI_ALLOW_ROOT=1 \
@@ -88,7 +102,11 @@ wp_worker() {
 		"${CLI_IMAGE}" -d memory_limit=512M /usr/local/bin/wp "$@"
 }
 
-wp_run core download --version="${WP_VERSION}" --force
+if [[ -n "${WP_CORE_PATH}" ]]; then
+	cp -R "${WP_CORE_PATH}/." "${SITE_DIR}/"
+else
+	wp_run core download --version="${WP_VERSION}" --force
+fi
 wp_run config create --dbname=wordpress --dbuser=wordpress --dbpass=writer-password --dbhost="${DB_CONTAINER}:3306" --skip-check
 wp_run core install --url=http://writer.example.test --title='EasyRankly writer' --admin_user=admin --admin_password=writer-admin --admin_email=admin@example.test --skip-email
 if [[ -n "${CORE_ZIP}" ]]; then
@@ -98,6 +116,7 @@ wp_run plugin activate easyrankly
 wp_run eval-file /workspace/tests/localized-value-writer/assertions.php
 
 docker run --rm \
+	--pull=never \
 	--network "${NETWORK_NAME}" \
 	--user "${uid}:${gid}" \
 	"${mounts[@]}" \

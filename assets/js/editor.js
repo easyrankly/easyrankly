@@ -6,7 +6,6 @@
 	const { apiFetch } = wp;
 	const {
 		Button,
-		ComboboxControl,
 		FormTokenField,
 		Modal,
 		Notice,
@@ -1059,152 +1058,6 @@
 		return linksUi.internalLinksPanel( PluginDocumentSettingPanel, postId );
 	}
 
-	function TranslationControl( { onChange, row } ) {
-		const [ options, setOptions ] = useState(
-			row.object_id && row.title
-				? [ { label: row.title, value: String( row.object_id ) } ]
-				: []
-		);
-		const [ query, setQuery ] = useState( '' );
-		const [ isLoading, setIsLoading ] = useState( false );
-		const isLinked = row.object_id > 0 && 'unlink' !== row.action;
-
-		useEffect( () => {
-			if ( isLinked ) {
-				return undefined;
-			}
-
-			let active = true;
-			setIsLoading( true );
-			const timer = window.setTimeout( () => {
-				apiFetch( {
-					path: config.translationSearchPath
-						+ '?blog_id=' + encodeURIComponent( row.blog_id )
-						+ '&object_type=post&q=' + encodeURIComponent( query ),
-				} ).then( ( results ) => {
-					if ( active && Array.isArray( results ) ) {
-						setOptions( results.map( ( result ) => ( {
-							label: result.title,
-							url: result.url,
-							value: String( result.id ),
-						} ) ) );
-					}
-				} ).catch( () => {
-					if ( active ) {
-						setOptions( [] );
-					}
-				} ).then( () => {
-					if ( active ) {
-						setIsLoading( false );
-					}
-				} );
-			}, 300 );
-
-			return () => {
-				active = false;
-				window.clearTimeout( timer );
-			};
-		}, [ isLinked, query, row.blog_id ] );
-
-		if ( isLinked ) {
-			return el(
-				'div',
-				{ className: 'erankly-field' },
-				el( TextControl, {
-					disabled: true,
-					label: row.site_name + ' - ' + row.hreflang.toUpperCase(),
-					value: row.url || row.title,
-				} ),
-				el(
-					'div',
-					{ className: 'erankly-field__actions' },
-					el(
-						Button,
-						{
-							isDestructive: true,
-							onClick: () => onChange( {
-								...row,
-								action: row.original_object_id > 0 ? 'unlink' : '',
-								object_id: row.original_object_id || 0,
-								title: '',
-								url: '',
-							} ),
-							variant: 'secondary',
-						},
-						__( 'Remove', 'easyrankly' )
-					)
-				)
-			);
-		}
-
-		return el( ComboboxControl, {
-			isLoading,
-			label: row.site_name + ' - ' + row.hreflang.toUpperCase(),
-			onChange: ( objectId ) => {
-				const selected = options.find( ( option ) => option.value === objectId );
-
-				if ( selected ) {
-					onChange( {
-						...row,
-						action: 'link',
-						object_id: Number( selected.value ),
-						title: selected.label,
-						url: selected.url || '',
-					} );
-				}
-			},
-			onFilterValueChange: setQuery,
-			options,
-			placeholder: __( 'Search posts or pages…', 'easyrankly' ),
-			value: '',
-		} );
-	}
-
-	function TranslationsPanel() {
-		const rows = useSelect( ( select ) => {
-			const editor = select( 'core/editor' );
-
-			return editor.getEditedPostAttribute( 'erankly_ml_links' )
-				|| editor.getCurrentPostAttribute( 'erankly_ml_links' )
-				|| [];
-		}, [] );
-		const { editPost } = useDispatch( 'core/editor' );
-		const updateRow = ( index, row ) => {
-			const nextRows = rows.slice();
-			nextRows[ index ] = row;
-			editPost( { erankly_ml_links: nextRows } );
-		};
-
-		return el(
-			PluginDocumentSettingPanel,
-			{
-				className: 'erankly-panel erankly-panel--translations',
-				name: 'erankly-translations',
-				title: __( 'Translations', 'easyrankly' ),
-			},
-			rows.length
-				? el(
-					Fragment,
-					null,
-					el(
-						'p',
-						null,
-						__( 'Link equivalents on other network sites.', 'easyrankly' )
-					),
-					rows.map( ( row, index ) => el( TranslationControl, {
-						key: row.blog_id,
-						onChange: ( nextRow ) => updateRow( index, nextRow ),
-						row,
-					} ) )
-				)
-				: el(
-					Notice,
-					{ isDismissible: false, status: 'info' },
-					__( 'No other multilingual sites enabled.', 'easyrankly' )
-				)
-		);
-	}
-
 	function ERanklyDocumentSettings() {
 		shared.usePanelsAfterDefaults();
 
@@ -1217,8 +1070,7 @@
 			! config.simplifiedMode && el( SchemaPanel ),
 			el( VisibilityPanel ),
 			config.internalLinksEnabled && config.aiEnabled && el( InternalLinksPanel ),
-			el( SeoChecklistPanel ),
-			config.multilingual && el( TranslationsPanel )
+			el( SeoChecklistPanel )
 		);
 	}
 

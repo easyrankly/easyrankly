@@ -109,7 +109,8 @@ The CSS layout is now:
 - `health.css`: Health and broken-link surfaces;
 - `classic-editor.css`: classic meta boxes and taxonomy forms;
 - `reset.css`: destructive reset controls;
-- existing editor, redirects and multilingual styles remain separate.
+- existing editor and redirect styles remain separate; multilingual styles are
+  owned exclusively by the EasyRankly Multilingual package from core 3.0.
 
 Run `npm ci && npm run lint:css` to enforce duplicate-declaration, specificity
 and `!important` rules. Narrow WordPress override exceptions are documented next

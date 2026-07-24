@@ -577,10 +577,7 @@ function erankly_render_meta_box( WP_Post $post ): void {
 			<?php if ( erankly_internal_links_available() && erankly_ai_module_enabled() ) : ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-internal-links" role="tab" aria-selected="false" aria-controls="erankly-panel-internal-links" data-erankly-tab="internal-links"><?php esc_html_e( 'Internal links', 'easyrankly' ); ?></button>
 			<?php endif; ?>
-			<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() ) : ?>
-			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-translations" role="tab" aria-selected="false" aria-controls="erankly-panel-translations" data-erankly-tab="translations"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
-			<?php endif; ?>
-		</div>
+			</div>
 
 			<div class="erankly-tab-panel is-active" id="erankly-panel-general" role="tabpanel" aria-labelledby="erankly-tab-general" data-erankly-panel="general">
 				<?php erankly_render_post_general_fields( $post ); ?>
@@ -615,13 +612,7 @@ function erankly_render_meta_box( WP_Post $post ): void {
 		</div>
 		<?php endif; ?>
 
-		<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() && function_exists( 'erankly_ml_render_post_translations' ) ) : ?>
-		<div class="erankly-tab-panel" id="erankly-panel-translations" role="tabpanel" aria-labelledby="erankly-tab-translations" data-erankly-panel="translations" hidden>
-			<?php erankly_ml_render_post_translations( $post ); ?>
 		</div>
-		<?php endif; ?>
-
-	</div>
 	<?php
 }
 
@@ -709,9 +700,6 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 			<button type="button" class="nav-tab erankly-tab" id="erankly-term-tab-social-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="erankly-term-panel-social-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-social-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
 			<?php endif; ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-term-tab-visibility-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="erankly-term-panel-visibility-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-visibility-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
-			<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() ) : ?>
-			<button type="button" class="nav-tab erankly-tab" id="erankly-term-tab-translations-<?php echo esc_attr( $id_suffix ); ?>" role="tab" aria-selected="false" aria-controls="erankly-term-panel-translations-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-tab="term-translations-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Translations', 'easyrankly' ); ?></button>
-			<?php endif; ?>
 		</div>
 
 		<div class="erankly-tab-panel is-active" id="erankly-term-panel-general-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="erankly-term-tab-general-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-panel="term-general-<?php echo esc_attr( $id_suffix ); ?>">
@@ -864,12 +852,6 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 				<?php endif; ?>
 			</div>
 		</div>
-
-		<?php if ( is_multisite() && function_exists( 'erankly_multilingual_enabled' ) && erankly_multilingual_enabled() && function_exists( 'erankly_ml_render_term_translations' ) ) : ?>
-		<div class="erankly-tab-panel" id="erankly-term-panel-translations-<?php echo esc_attr( $id_suffix ); ?>" role="tabpanel" aria-labelledby="erankly-term-tab-translations-<?php echo esc_attr( $id_suffix ); ?>" data-erankly-panel="term-translations-<?php echo esc_attr( $id_suffix ); ?>" hidden>
-			<?php erankly_ml_render_term_translations( $term_id, $taxonomy ); ?>
-		</div>
-		<?php endif; ?>
 
 	</div>
 	<?php

@@ -40,15 +40,6 @@ function erankly_health_enabled(): bool {
 }
 
 /**
- * Whether the multilingual module is enabled.
- *
- * @return bool
- */
-function erankly_multilingual_enabled(): bool {
-	return ! empty( erankly_get_setting( 'enable_multilingual' ) );
-}
-
-/**
  * Whether the admin has turned on AI features in settings.
  *
  * Does not check provider availability; use erankly_ai_provider_available()

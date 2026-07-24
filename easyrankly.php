@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.1.0
+ * Version:     3.0.0
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:      EasyRankly
@@ -25,7 +25,7 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.1.0' );
+define( 'ERANKLY_VERSION', '3.0.0' );
 define( 'ERANKLY_EXTENSION_API_VERSION', 1 );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
@@ -47,7 +47,7 @@ define( 'ERANKLY_NETWORK_RESET_JOB_OPTION', 'erankly_network_reset_job' );
 define( 'ERANKLY_NETWORK_RESET_CRON_HOOK', 'erankly_network_reset_batch' );
 define( 'ERANKLY_NETWORK_RESET_BATCH_SIZE', 10 );
 define( 'ERANKLY_NETWORK_WEB_LIFECYCLE_LIMIT', 100 );
-define( 'ERANKLY_ML_CACHE_GENERATION_OPTION', 'erankly_ml_cache_generation' );
+define( 'ERANKLY_EXTENSION_EXTRACTION_NOTICE_OPTION', 'erankly_extension_extraction_notice_v1' );
 define( 'ERANKLY_MIGRATION_ACTIVE_JOB_OPTION', 'erankly_migration_active_job_v1' );
 define( 'ERANKLY_MIGRATION_CRON_HOOK', 'erankly_migration_process_batch' );
 define( 'ERANKLY_MIGRATION_BATCH_SIZE', 100 );
@@ -59,10 +59,9 @@ define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
 define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
-require_once ERANKLY_PATH . 'includes/multilingual-ownership.php';
+require_once ERANKLY_PATH . 'includes/settings-lock.php';
 require_once ERANKLY_PATH . 'includes/localized-value-writer.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
-require_once ERANKLY_PATH . 'includes/class-erankly-bundled-multilingual-provider.php';
 require_once ERANKLY_PATH . 'includes/seo-state.php';
 
 /**
@@ -189,14 +188,12 @@ function erankly_update_plugin_option( string $key, mixed $value ): void {
 }
 
 // Interlock direct Settings API writers (including options.php) with the same
-// ownership mutex used by adoption and rollback.
-add_filter( 'pre_update_option_' . ERANKLY_OPTION, 'erankly_ml_interlock_settings_pre_update', 10, 3 );
-add_filter( 'pre_update_site_option_' . ERANKLY_OPTION, 'erankly_ml_interlock_settings_pre_update', 10, 4 );
-add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_ml_release_direct_settings_lock', 10, 0 );
-add_action( 'update_site_option_' . ERANKLY_OPTION, 'erankly_ml_release_direct_settings_lock', 10, 0 );
-add_action( 'shutdown', 'erankly_ml_release_direct_settings_lock', PHP_INT_MAX );
-
-erankly_register_multilingual_provider( new ERankly_Bundled_Multilingual_Provider() );
+// provider-neutral mutex used by the public localized-source writer.
+add_filter( 'pre_update_option_' . ERANKLY_OPTION, 'erankly_interlock_settings_pre_update', 10, 3 );
+add_filter( 'pre_update_site_option_' . ERANKLY_OPTION, 'erankly_interlock_settings_pre_update', 10, 4 );
+add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_release_direct_settings_lock', 10, 0 );
+add_action( 'update_site_option_' . ERANKLY_OPTION, 'erankly_release_direct_settings_lock', 10, 0 );
+add_action( 'shutdown', 'erankly_release_direct_settings_lock', PHP_INT_MAX );
 
 require_once ERANKLY_PATH . 'includes/compatibility.php';
 require_once ERANKLY_PATH . 'includes/meta.php';
@@ -217,6 +214,8 @@ function erankly_bootstrap(): void {
 	erankly_close_multilingual_provider_registry();
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
+	add_action( 'admin_notices', 'erankly_render_extension_extraction_notice' );
+	add_action( 'network_admin_notices', 'erankly_render_extension_extraction_notice' );
 	add_filter( 'debug_information', 'erankly_add_multilingual_debug_information' );
 
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
@@ -660,8 +659,33 @@ function erankly_maybe_flush_after_upgrade(): void {
 	$stored = (string) erankly_get_plugin_option( ERANKLY_VERSION_OPTION, '' );
 
 	if ( ERANKLY_VERSION !== $stored ) {
+		if ( '' !== $stored && version_compare( $stored, '3.0.0', '<' ) ) {
+			erankly_update_plugin_option( ERANKLY_EXTENSION_EXTRACTION_NOTICE_OPTION, 1 );
+		}
+
 		erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 	}
+}
+
+/**
+ * Explains the 3.0 extension boundary after an upgrade from core 2.x.
+ *
+ * Existing extension data is deliberately not inspected or mutated by core.
+ *
+ * @return void
+ */
+function erankly_render_extension_extraction_notice(): void {
+	if ( ! current_user_can( is_network_admin() ? 'manage_network_options' : 'manage_options' ) ) {
+		return;
+	}
+
+	if ( ! erankly_get_plugin_option( ERANKLY_EXTENSION_EXTRACTION_NOTICE_OPTION, 0 ) ) {
+		return;
+	}
+
+	echo '<div class="notice notice-warning"><p>';
+	echo esc_html__( 'EasyRankly 3.0 no longer includes multilingual features. Existing multilingual data was left unchanged; install or activate EasyRankly Multilingual to continue using it.', 'easyrankly' );
+	echo '</p></div>';
 }
 
 /**

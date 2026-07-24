@@ -20,12 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param bool                $redirects_enabled    Whether the redirect module is enabled.
  * @param bool                $sitemap_enabled      Whether the sitemap module is enabled.
  * @param bool                $health_enabled       Whether the Health module is enabled.
- * @param bool                $multilingual_enabled Whether the multilingual feature is enabled.
  * @param bool                $ai_provider_available Whether an AI provider is available.
  * @param string              $active_panel         Active panel ID.
  * @return void
  */
-function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $health_enabled, bool $multilingual_enabled, bool $ai_provider_available, string $active_panel ): void {
+function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $health_enabled, bool $ai_provider_available, string $active_panel ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the
 	// only place autosave applies.
@@ -69,16 +68,7 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 								?>
 							</span>
 						</div>
-						<div class="erankly-field erankly-checkboxes">
-							<span class="erankly-inline-row">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_multilingual]" value="1" <?php checked( $multilingual_enabled ); ?> <?php disabled( ! is_multisite() ); ?>> <?php esc_html_e( 'Enable multilingual', 'easyrankly' ); ?></label>
-								<?php
-								if ( ! is_multisite() ) {
-									erankly_render_multisite_status(); }
-								?>
-							</span>
-						</div>
-						</div>
+							</div>
 					</div>
 				</div>
 	<?php

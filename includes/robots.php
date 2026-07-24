@@ -286,29 +286,6 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 		}
 	}
 
-	// Multilingual: list every enabled language site's sitemap so the root robots.txt
-	// exposes the whole network. Driven by the Multilingual feature alone (/wp-sitemap.xml
-	// is always served), but a site is skipped when an external SEO plugin owns its sitemap.
-	// The current site overlaps the block above; array_unique() below drops the duplicate.
-	if (
-		is_multisite()
-		&& function_exists( 'erankly_multilingual_enabled' )
-		&& erankly_multilingual_enabled()
-		&& class_exists( 'ERankly_ML_Sites' )
-	) {
-		foreach ( array_keys( ERankly_ML_Sites::get_enabled() ) as $blog_id ) {
-			$blog_id = (int) $blog_id;
-
-			switch_to_blog( $blog_id );
-
-			if ( ! erankly_should_suppress_sitemaps() ) {
-				$lines[] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/wp-sitemap.xml' ) );
-			}
-
-			restore_current_blog();
-		}
-	}
-
 	$custom = trim( (string) erankly_get_setting( 'robots_txt_extra', '' ) );
 
 	if ( '' !== $custom ) {

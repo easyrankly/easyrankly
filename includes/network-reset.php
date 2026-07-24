@@ -252,7 +252,6 @@ function erankly_queue_network_reset(): bool {
 		'token'             => wp_generate_uuid4(),
 		'status'            => 'pending',
 		'phase'             => 'network',
-		'last_relation_id'  => 0,
 		'last_processed_id' => 0,
 		'attempts'          => 0,
 		'last_error'        => '',
@@ -313,22 +312,16 @@ function erankly_process_network_reset_batch( string $token = '' ): void {
 
 		if ( 'network' === $phase ) {
 			erankly_reset_network_shared_data();
-			$state['phase'] = 'relations';
+			$state['phase'] = 'sites';
 			erankly_continue_network_reset( $state, $snapshot['raw'] );
 			return;
 		}
 
 		if ( 'sites' !== $phase ) {
-			$relations_batch           = erankly_reset_network_relations_batch(
-				(int) ( $state['last_relation_id'] ?? 0 )
-			);
-			$state['last_relation_id'] = $relations_batch['last_processed_id'];
-
-			if ( ! $relations_batch['has_more'] ) {
-				$state['phase']             = 'sites';
-				$state['last_processed_id'] = 0;
-			}
-
+			// A pre-3.0 job may still name the removed extension-owned phase.
+			// Skip it without inspecting or mutating extension storage.
+			$state['phase']             = 'sites';
+			$state['last_processed_id'] = 0;
 			erankly_continue_network_reset( $state, $snapshot['raw'] );
 			return;
 		}
@@ -480,7 +473,7 @@ function erankly_render_network_reset_status_notice(): void {
 		} elseif ( 'sites' === $phase ) {
 			$phase_label = __( 'site cleanup', 'easyrankly' );
 		} else {
-			$phase_label = __( 'multilingual relation cleanup', 'easyrankly' );
+			$phase_label = __( 'site cleanup', 'easyrankly' );
 		}
 
 		echo '<div class="notice notice-info"><p>';

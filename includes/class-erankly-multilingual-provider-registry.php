@@ -164,39 +164,35 @@ final class ERankly_Multilingual_Provider_Registry {
 		}
 
 		$this->closed = true;
-		$bundled_id   = function_exists( 'erankly_ml_bundled_owner_id' ) ? erankly_ml_bundled_owner_id() : 'easyrankly-bundled-multilingual';
-		$bundled      = $this->providers[ $bundled_id ] ?? null;
-		$external     = array_diff_key( $this->providers, array( $bundled_id => true ) );
+		$providers    = $this->providers;
 		$candidate    = null;
 
-		if ( count( $external ) > 1 ) {
+		if ( count( $providers ) > 1 ) {
 			$choice = function_exists( 'erankly_get_plugin_option' )
 				? sanitize_key( (string) erankly_get_plugin_option( 'erankly_multilingual_provider_id', '' ) )
 				: '';
-			$choice = sanitize_key( (string) apply_filters( 'erankly_multilingual_provider_choice', $choice, array_keys( $external ) ) );
+			$choice = sanitize_key( (string) apply_filters( 'erankly_multilingual_provider_choice', $choice, array_keys( $providers ) ) );
 
-			if ( '' !== $choice && isset( $external[ $choice ] ) ) {
-				$candidate = $external[ $choice ];
+			if ( '' !== $choice && isset( $providers[ $choice ] ) ) {
+				$candidate = $providers[ $choice ];
 			} else {
 				$this->diagnostic(
 					'erankly_provider_conflict',
-					__( 'More than one external multilingual provider is registered. No provider was started.', 'easyrankly' ),
+					__( 'More than one multilingual provider is registered. No provider was started.', 'easyrankly' ),
 					array(
-						'provider_ids' => array_keys( $external ),
-						'priorities'   => array_map( static fn( ERankly_Multilingual_Provider_Interface $provider ): int => $provider->get_priority(), $external ),
+						'provider_ids' => array_keys( $providers ),
+						'priorities'   => array_map( static fn( ERankly_Multilingual_Provider_Interface $provider ): int => $provider->get_priority(), $providers ),
 					)
 				);
 
-				foreach ( $external as $provider ) {
+				foreach ( $providers as $provider ) {
 					$this->reject( $provider, new WP_Error( 'erankly_provider_conflict', __( 'The multilingual provider conflict must be resolved by an administrator.', 'easyrankly' ), array( 'retryable' => false ) ) );
 				}
 
 				return null;
 			}
-		} elseif ( 1 === count( $external ) ) {
-			$candidate = reset( $external );
-		} elseif ( $bundled instanceof ERankly_Multilingual_Provider_Interface ) {
-			$candidate = $bundled;
+		} elseif ( 1 === count( $providers ) ) {
+			$candidate = reset( $providers );
 		}
 
 		if ( ! $candidate instanceof ERankly_Multilingual_Provider_Interface ) {
@@ -207,29 +203,7 @@ final class ERankly_Multilingual_Provider_Registry {
 		if ( is_wp_error( $preflight ) ) {
 			$this->reject( $candidate, $preflight );
 
-			$error_data       = $preflight->get_error_data();
-			$error_data       = is_array( $error_data ) ? $error_data : array();
-			$fallback_allowed = true === ( $error_data['fallback_allowed'] ?? false );
-			$owner_state      = sanitize_key( (string) ( $error_data['owner_state'] ?? 'unknown' ) );
-			$marker           = function_exists( 'erankly_ml_get_storage_owner_marker' ) ? erankly_ml_get_storage_owner_marker() : array();
-			$marker_state     = sanitize_key( (string) ( $marker['state'] ?? '' ) );
-
-			if ( in_array( $owner_state, array( 'claimed', 'rollback_ready', 'retained', 'error' ), true )
-				|| in_array( $marker_state, array( 'claimed', 'rollback_ready', 'retained', 'error', 'invalid' ), true ) ) {
-				$fallback_allowed = false;
-			}
-			if ( $candidate !== $bundled && $fallback_allowed && $bundled instanceof ERankly_Multilingual_Provider_Interface ) {
-				$fallback_preflight = $this->run_preflight( $bundled );
-				if ( is_wp_error( $fallback_preflight ) ) {
-					$this->reject( $bundled, $fallback_preflight );
-
-					return null;
-				}
-
-				$candidate = $bundled;
-			} else {
-				return null;
-			}
+			return null;
 		}
 
 		$this->selected = $candidate;
@@ -402,15 +376,6 @@ function erankly_get_multilingual_provider(): ?ERankly_Multilingual_Provider_Int
 	return ERankly_Multilingual_Provider_Registry::instance()->selected();
 }
 
-/** Returns whether the selected runtime is the enabled 2.x bundled fallback. */
-function erankly_bundled_multilingual_provider_is_active(): bool {
-	$provider = erankly_get_multilingual_provider();
-
-	return $provider instanceof ERankly_Multilingual_Provider_Interface
-		&& erankly_ml_bundled_owner_id() === $provider->get_id()
-		&& $provider->is_enabled();
-}
-
 /** Closes the request registry and boots one provider at most. */
 function erankly_close_multilingual_provider_registry(): ?ERankly_Multilingual_Provider_Interface {
 	return ERankly_Multilingual_Provider_Registry::instance()->close_and_boot();
@@ -559,14 +524,13 @@ function erankly_render_multilingual_provider_notices(): void {
 }
 
 /**
- * Adds provider/ownership state to WordPress Site Health debug information.
+ * Adds provider state to WordPress Site Health debug information.
  *
  * @param array<string,mixed> $info Debug sections.
  * @return array<string,mixed>
  */
 function erankly_add_multilingual_debug_information( array $info ): array {
 	$provider = erankly_get_multilingual_provider();
-	$marker   = function_exists( 'erankly_ml_get_storage_owner_marker' ) ? erankly_ml_get_storage_owner_marker() : array();
 	$codes    = array_values( array_unique( array_column( erankly_get_multilingual_diagnostics(), 'code' ) ) );
 
 	$info['easyrankly_multilingual_bridge'] = array(
@@ -579,10 +543,6 @@ function erankly_add_multilingual_debug_information( array $info ): array {
 			'provider'    => array(
 				'label' => __( 'Selected provider', 'easyrankly' ),
 				'value' => $provider instanceof ERankly_Multilingual_Provider_Interface ? $provider->get_id() : 'none',
-			),
-			'owner_state' => array(
-				'label' => __( 'Storage owner state', 'easyrankly' ),
-				'value' => (string) ( $marker['state'] ?? 'core-unmarked' ),
 			),
 			'diagnostics' => array(
 				'label' => __( 'Diagnostics', 'easyrankly' ),

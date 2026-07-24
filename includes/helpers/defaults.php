@@ -339,7 +339,6 @@ function erankly_default_settings(): array {
 		'robots_max_video_preview'            => '',
 		'robots_nosnippet'                    => 0,
 		'robots_indexifembedded'              => 0,
-		'enable_multilingual'                 => 0,
 		'enable_redirects'                    => 0,
 		'redirect_exclude_admins'             => 0,
 		'hide_head_credit'                    => 1,

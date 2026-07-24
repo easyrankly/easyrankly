@@ -141,7 +141,7 @@ function erankly_update_localized_value_source( string $key, mixed $value, strin
 		);
 	}
 
-	$lock = erankly_ml_acquire_ownership_lock();
+	$lock = erankly_acquire_settings_lock();
 	if ( is_wp_error( $lock ) ) {
 		return erankly_localized_value_source_error(
 			'erankly_localized_value_source_locked',
@@ -236,7 +236,7 @@ function erankly_update_localized_value_source( string $key, mixed $value, strin
 			)
 		);
 	} finally {
-		erankly_ml_release_ownership_lock( $lock );
+		erankly_release_settings_lock( $lock );
 	}
 }
 

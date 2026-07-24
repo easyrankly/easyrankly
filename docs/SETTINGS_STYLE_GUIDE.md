@@ -14,7 +14,7 @@ Il sistema è diviso in tre livelli principali, caricati in quest'ordine:
 
 [`assets/css/classic-editor.css`](../assets/css/classic-editor.css) contiene soltanto
 gli override realmente esclusivi dell'editor classico e delle tassonomie. I CSS
-di modulo (`migration.css`, `health.css`, `redirects.css`, `multilingual.css`,
+di modulo (`migration.css`, `health.css`, `redirects.css`,
 `reset.css`) si caricano dopo i componenti condivisi e non devono duplicarli.
 
 Il markup canonico è in:

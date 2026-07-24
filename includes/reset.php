@@ -323,104 +323,7 @@ function erankly_reset_site_data(): void {
 }
 
 /**
- * Deletes one bounded batch of multilingual relations for the current network.
- *
- * @param int $after_relation_id Return rows whose ID is greater than this cursor.
- * @param int $limit             Maximum rows to delete in this batch.
- * @return array{last_processed_id:int,has_more:bool}
- * @throws RuntimeException When multilingual storage cannot be inspected or updated.
- */
-function erankly_reset_network_relations_batch( int $after_relation_id = 0, int $limit = 1000 ): array {
-	if ( ! erankly_ml_storage_cleanup_allowed() ) {
-		return array(
-			'last_processed_id' => max( 0, $after_relation_id ),
-			'has_more'          => false,
-		);
-	}
-
-	global $wpdb;
-
-	$after_relation_id = max( 0, $after_relation_id );
-	$limit             = max( 1, $limit );
-	$ml_table          = $wpdb->base_prefix . 'erankly_ml_relations';
-	$exists            = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The optional multilingual table may not have been created.
-		$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $ml_table ) )
-	);
-
-	if ( $wpdb->last_error ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not inspect multilingual storage during reset.', 'easyrankly' ) );
-	}
-
-	if ( $ml_table !== $exists ) {
-		return array(
-			'last_processed_id' => $after_relation_id,
-			'has_more'          => false,
-		);
-	}
-
-	$relation_ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded keyset query keeps network reset resumable.
-		$wpdb->prepare(
-			'SELECT relations.id FROM %i AS relations INNER JOIN %i AS blogs ON blogs.blog_id = relations.blog_id WHERE blogs.site_id = %d AND relations.id > %d ORDER BY relations.id ASC LIMIT %d',
-			$ml_table,
-			$wpdb->blogs,
-			(int) get_current_network_id(),
-			$after_relation_id,
-			$limit + 1
-		)
-	);
-
-	if ( $wpdb->last_error ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not retrieve multilingual relations during reset.', 'easyrankly' ) );
-	}
-
-	$relation_ids = array_map( 'intval', (array) $relation_ids );
-	$has_more     = count( $relation_ids ) > $limit;
-
-	if ( $has_more ) {
-		array_pop( $relation_ids );
-	}
-
-	if ( $relation_ids ) {
-		$placeholders = implode( ', ', array_fill( 0, count( $relation_ids ), '%d' ) );
-		$sql          = "DELETE FROM %i WHERE id IN ({$placeholders})"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholder list is generated internally; values are prepared below.
-		$args         = array_merge( array( $ml_table ), $relation_ids );
-		$wpdb->query( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic placeholder count is fully prepared above.
-
-		if ( $wpdb->last_error ) {
-			throw new RuntimeException( esc_html__( 'EasyRankly could not delete multilingual relations during reset.', 'easyrankly' ) );
-		}
-
-		$after_relation_id = (int) end( $relation_ids );
-	}
-
-	return array(
-		'last_processed_id' => $after_relation_id,
-		'has_more'          => $has_more,
-	);
-}
-
-/**
- * Rotates the namespace used by multilingual object-cache entries.
- *
- * Versioning makes a network reset independent of object-cache drop-in group
- * flush support. Old entries become unreachable immediately and retain their
- * existing one-hour expiry, so no installation-wide cache flush is required.
- *
- * @return void
- * @throws RuntimeException When the new cache generation cannot be persisted.
- */
-function erankly_rotate_multilingual_cache_generation(): void {
-	$generation = wp_generate_uuid4();
-
-	update_site_option( ERANKLY_ML_CACHE_GENERATION_OPTION, $generation );
-
-	if ( (string) get_site_option( ERANKLY_ML_CACHE_GENERATION_OPTION, '' ) !== $generation ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not invalidate multilingual caches during reset.', 'easyrankly' ) );
-	}
-}
-
-/**
- * Resets the current network's shared settings and multilingual state.
+ * Resets the current network's shared core settings.
  *
  * This is the first resumable worker phase, not part of the form submission.
  * Every operation is idempotent and verified so a transient failure can be
@@ -437,7 +340,8 @@ function erankly_reset_network_shared_data(): void {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network settings.', 'easyrankly' ) );
 	}
 
-	if ( erankly_get_plugin_option( ERANKLY_OPTION, false ) !== $default_settings ) {
+	$stored_settings = erankly_get_plugin_option( ERANKLY_OPTION, false );
+	if ( ! is_array( $stored_settings ) || array_intersect_key( $stored_settings, $default_settings ) !== $default_settings ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network settings.', 'easyrankly' ) );
 	}
 
@@ -448,29 +352,13 @@ function erankly_reset_network_shared_data(): void {
 	if ( 'pending' !== erankly_get_plugin_option( ERANKLY_SETUP_STATUS_OPTION, '' ) ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network setup status.', 'easyrankly' ) );
 	}
-
-	if ( ! erankly_ml_storage_cleanup_allowed() ) {
-		return;
-	}
-
-	$missing = 'erankly-missing-' . wp_generate_uuid4();
-
-	foreach ( array( 'erankly_ml_sites', 'erankly_ml_db_version', ERANKLY_ML_STORAGE_OWNER_OPTION ) as $option_name ) {
-		delete_site_option( $option_name );
-
-		if ( get_site_option( $option_name, $missing ) !== $missing ) {
-			throw new RuntimeException( esc_html__( 'EasyRankly could not reset the multilingual network settings.', 'easyrankly' ) );
-		}
-	}
-
-	erankly_rotate_multilingual_cache_generation();
 }
 
 /**
  * Queues a resumable reset for the current network.
  *
  * No plugin data is mutated until the job has been stored and scheduled. The
- * worker then resets shared state, multilingual relations, and per-site data in
+ * worker then resets shared state and per-site data in
  * bounded, retryable phases.
  *
  * @return bool Whether the background cleanup was queued.

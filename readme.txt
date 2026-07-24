@@ -4,7 +4,7 @@ Tags: seo, schema, sitemap, redirects, ai
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 2.1.0
+Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,7 +50,7 @@ Yes. EasyRankly supports Product JSON-LD for WooCommerce products, including the
 
 = Does EasyRankly work on WordPress Multisite? =
 
-Yes. EasyRankly supports WordPress Multisite with network-level global settings, plus an optional multilingual module that links posts, pages, and terms across network sites and outputs hreflang alternates in the document head. Each enabled site keeps its own XML sitemap; EasyRankly does not currently add `xhtml:link` alternates inside sitemap XML.
+Yes. EasyRankly supports WordPress Multisite with network-level global settings. Starting with 3.0, multilingual features are supplied only by the separate EasyRankly Multilingual plugin through the provider API; the core no longer contains multilingual storage, screens, routes, shortcodes, or assets.
 
 After activation, an upgrade, or a sitemap setting change, each site refreshes its own rewrite rules on its next request; no network-wide scan is required. Network resets run in small background batches and report their status in Network Admin. On installations with more than 100 sites, network deactivation and uninstall are intentionally routed through WP-CLI so every site can be cleaned without an HTTP timeout. Run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly` (replace `easyrankly` if the installed plugin directory uses a different name).
 
@@ -106,9 +106,16 @@ The final report contains an authoritative fail-closed go-live gate. It separate
 
 For database migrations, EasyRankly captures a representative semantic HTML, robots.txt, sitemap and redirect baseline while the old plugin still owns frontend output. After controlled deactivation and cache purging, the live verifier repeats same-origin requests without following redirect chains. Real imports also retain a seven-day conditional rollback journal: a rollback restores only values that still equal what the migration wrote, so later manual edits are never lost.
 
-You can also export and re-import EasyRankly settings, redirects, special-page defaults and SEO metadata for posts, terms and authors as a single JSON file. Complete JSON imports have a request-specific application limit (10 MB by default, reduced automatically when PHP memory is constrained) and a structural decode budget for nesting and value count; unsafe files are rejected before they can expand into PHP arrays. On Multisite the Import/Export tab lives in Network Admin, and the file covers the network-wide global settings plus the content of the primary site it runs on; it is not a whole-network content export. Translation links between network sites are not included because they reference site-specific IDs.
+You can also export and re-import EasyRankly settings, redirects, special-page defaults and SEO metadata for posts, terms and authors as a single JSON file. Complete JSON imports have a request-specific application limit (10 MB by default, reduced automatically when PHP memory is constrained) and a structural decode budget for nesting and value count; unsafe files are rejected before they can expand into PHP arrays. On Multisite the Import/Export tab lives in Network Admin, and the file covers the network-wide global settings plus the content of the primary site it runs on; it is not a whole-network content export. EasyRankly Multilingual owns its separate multilingual export/import format.
 
 == Changelog ==
+
+= 3.0.0 =
+Completes the M10 extraction: removes the bundled multilingual implementation, storage lifecycle, settings, routes, shortcodes, editor controls, and CSS/JavaScript from EasyRankly core.
+
+Retains provider API major 1, provider-neutral settings locking, localized-source and SEO-state APIs, sanitized hreflang/navigable/localized-URL hooks, and generic settings extension points. Existing multilingual data is not inspected, converted, reset, or deleted.
+
+For uninterrupted multilingual operation, update EasyRankly Multilingual to 1.1.1 before upgrading the core. Downgrade uses the exact 2.1.0 package; the 3.0 core does not rewrite legacy storage.
 
 = 2.1.0 =
 Bridge release for multilingual extensions. Adds the public provider API v1, deterministic fail-closed provider selection, a replaceable bundled fallback, neutral context-aware URL and alternate filters, independent hreflang ownership, and a stable per-object SEO-state API.
@@ -157,6 +164,9 @@ Release date: June 14, 2026
 * First public release.
 
 == Upgrade Notice ==
+
+= 3.0.0 =
+Multilingual features moved out of core. Back up first and update EasyRankly Multilingual to 1.1.1 before core 3.0. Existing multilingual data is left unchanged; restore core 2.1.0 for rollback.
 
 = 2.1.0 =
 Adds a fail-closed multilingual provider bridge and ownership-safe lifecycle while retaining the bundled Multisite feature. No storage conversion occurs. Complete verified rollback before any downgrade if storage has been claimed by a provider.
