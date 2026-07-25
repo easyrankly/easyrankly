@@ -972,19 +972,26 @@ function erankly_render_settings_page(): void {
 					<?php endif; ?>
 				</div>
 				<?php endif; ?>
+				<?php
+				$visible_extra_tabs = array();
+				foreach ( $extra_tabs as $extra_slug => $extra_tab ) {
+					if ( current_user_can( $extra_tab['capability'] ) ) {
+						$visible_extra_tabs[ $extra_slug ] = $extra_tab;
+					}
+				}
+				?>
+				<?php if ( ! empty( $visible_extra_tabs ) ) : ?>
+				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-modules">
+					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-modules"><?php esc_html_e( 'Modules', 'easyrankly' ); ?></span>
+					<?php foreach ( $visible_extra_tabs as $extra_slug => $extra_tab ) : ?>
+						<?php erankly_render_settings_nav_link( $extra_slug, $extra_tab['label'], $active_panel ); ?>
+					<?php endforeach; ?>
+				</div>
+				<?php endif; ?>
 				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-useful-resources">
 					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-useful-resources"><?php esc_html_e( 'Useful resources', 'easyrankly' ); ?></span>
 					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://docs.easyrankly.com/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentation', 'easyrankly' ); ?></a>
 				</div>
-				<?php
-				foreach ( $extra_tabs as $extra_slug => $extra_tab ) :
-					if ( ! current_user_can( $extra_tab['capability'] ) ) {
-						continue;
-					}
-					$extra_panel = 'settings-' . $extra_slug;
-					?>
-					<?php erankly_render_settings_nav_link( $extra_slug, $extra_tab['label'], $active_panel ); ?>
-				<?php endforeach; ?>
 				</nav>
 				<span class="erankly-autosave-status" data-erankly-autosave-status aria-live="polite"></span>
 			</div>
