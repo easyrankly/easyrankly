@@ -5,6 +5,23 @@
  * live in admin-settings.css, which is loaded before this file.
  */
 
+/*
+ * Match the postbox side inset (12px) above the tabs pillow, and keep the
+ * same field rhythm below it before Meta title / panel content.
+ */
+#erankly.postbox .inside {
+	margin-top: 0;
+	padding-top: 12px;
+}
+
+.erankly-meta-box > .erankly-tabs {
+	margin-bottom: 16px;
+}
+
+.erankly-term-meta-box > .erankly-tabs {
+	margin-top: 12px;
+}
+
 /* Match the 40px single-line control standard used in the block editor. */
 .erankly-meta-box input[type="text"],
 .erankly-meta-box input[type="tel"],

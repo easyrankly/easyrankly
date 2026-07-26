@@ -982,7 +982,7 @@ function erankly_render_settings_page(): void {
 				?>
 				<?php if ( ! empty( $visible_extra_tabs ) ) : ?>
 				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-modules">
-					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-modules"><?php esc_html_e( 'Modules', 'easyrankly' ); ?></span>
+					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-modules"><?php esc_html_e( 'Additional Modules', 'easyrankly' ); ?></span>
 					<?php foreach ( $visible_extra_tabs as $extra_slug => $extra_tab ) : ?>
 						<?php erankly_render_settings_nav_link( $extra_slug, $extra_tab['label'], $active_panel ); ?>
 					<?php endforeach; ?>
