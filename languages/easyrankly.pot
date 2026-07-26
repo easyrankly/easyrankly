@@ -332,6 +332,10 @@ msgstr ""
 msgid "Add the \"optimized with EasyRankly\" comment to the page source"
 msgstr ""
 
+#: admin/settings-page.php:985
+msgid "Additional Modules"
+msgstr ""
+
 #: assets/js/editor-shared.js:991
 msgid "Adds noindex and removes this page from the XML sitemap."
 msgstr ""
@@ -1056,7 +1060,7 @@ msgstr ""
 msgid "Do not delete the previous plugin data. Clear the caches you use, inspect the differences, then retry or use the safe rollback."
 msgstr ""
 
-#: admin/settings-page.php:977
+#: admin/settings-page.php:993
 msgid "Documentation"
 msgstr ""
 
@@ -2776,7 +2780,7 @@ msgstr ""
 msgid "Page SEO output differs: "
 msgstr ""
 
-#: includes/admin.php:1288 includes/breadcrumbs.php:244 includes/title-description.php:144
+#: includes/admin.php:1288 includes/breadcrumbs.php:260 includes/title-description.php:144
 msgid "Page not found"
 msgstr ""
 
@@ -3884,7 +3888,7 @@ msgstr ""
 msgid "Source plugin"
 msgstr ""
 
-#: admin/settings-page.php:1050 admin/settings/panels.php:179 admin/settings/panels.php:188 includes/special-meta.php:40
+#: admin/settings-page.php:1057 admin/settings/panels.php:179 admin/settings/panels.php:188 includes/special-meta.php:40
 msgid "Special pages and archives"
 msgstr ""
 
@@ -4588,7 +4592,7 @@ msgstr ""
 msgid "Use up to 10 focus keywords."
 msgstr ""
 
-#: admin/settings-page.php:976
+#: admin/settings-page.php:992
 msgid "Useful resources"
 msgstr ""
 

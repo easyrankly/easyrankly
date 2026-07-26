@@ -150,61 +150,77 @@ function erankly_get_breadcrumb_items(): array {
 
 	if ( is_singular() ) {
 		$post_id = get_queried_object_id();
-		$type    = get_post_type( $post_id );
 
-		if ( 'post' === $type ) {
-			$categories = get_the_category( $post_id );
-			$primary    = erankly_get_primary_term( $post_id, 'category' );
+		/*
+		 * A static front page is the same resource as the leading Home crumb
+		 * (identity via show_on_front/page_on_front, not the visible label).
+		 * Re-adding it produces a duplicate Home→Home BreadcrumbList.
+		 * With only the Home crumb left, the existing < 2 convention omits output.
+		 */
+		$is_static_front = is_front_page()
+			|| (
+				'page' === (string) get_option( 'show_on_front' )
+				&& $post_id > 0
+				&& (int) get_option( 'page_on_front' ) === $post_id
+			);
 
-			if ( $primary instanceof WP_Term || ! empty( $categories[0] ) ) {
-				$category = $primary instanceof WP_Term ? $primary : $categories[0];
-				$parents  = array_reverse( get_ancestors( $category->term_id, 'category', 'taxonomy' ) );
+		if ( ! $is_static_front ) {
+			$type = get_post_type( $post_id );
 
-				foreach ( $parents as $parent_id ) {
-					$parent = get_term( $parent_id, 'category' );
+			if ( 'post' === $type ) {
+				$categories = get_the_category( $post_id );
+				$primary    = erankly_get_primary_term( $post_id, 'category' );
 
-					if ( $parent instanceof WP_Term ) {
-						$parent_link = get_term_link( $parent );
+				if ( $primary instanceof WP_Term || ! empty( $categories[0] ) ) {
+					$category = $primary instanceof WP_Term ? $primary : $categories[0];
+					$parents  = array_reverse( get_ancestors( $category->term_id, 'category', 'taxonomy' ) );
 
-						$items[] = array(
-							'name' => $parent->name,
-							'url'  => is_wp_error( $parent_link ) ? '' : $parent_link,
-						);
+					foreach ( $parents as $parent_id ) {
+						$parent = get_term( $parent_id, 'category' );
+
+						if ( $parent instanceof WP_Term ) {
+							$parent_link = get_term_link( $parent );
+
+							$items[] = array(
+								'name' => $parent->name,
+								'url'  => is_wp_error( $parent_link ) ? '' : $parent_link,
+							);
+						}
 					}
+
+					$category_link = get_term_link( $category );
+
+					$items[] = array(
+						'name' => $category->name,
+						'url'  => is_wp_error( $category_link ) ? '' : $category_link,
+					);
 				}
+			} elseif ( 'page' !== $type ) {
+				$archive = get_post_type_archive_link( (string) $type );
+				$object  = get_post_type_object( (string) $type );
 
-				$category_link = get_term_link( $category );
+				if ( is_string( $archive ) && $object instanceof WP_Post_Type ) {
+					$items[] = array(
+						'name' => $object->labels->name,
+						'url'  => $archive,
+					);
+				}
+			}
 
+			$ancestors = array_reverse( get_post_ancestors( $post_id ) );
+
+			foreach ( $ancestors as $ancestor_id ) {
 				$items[] = array(
-					'name' => $category->name,
-					'url'  => is_wp_error( $category_link ) ? '' : $category_link,
+					'name' => erankly_get_post_breadcrumb_name( $ancestor_id ),
+					'url'  => get_permalink( $ancestor_id ),
 				);
 			}
-		} elseif ( 'page' !== $type ) {
-			$archive = get_post_type_archive_link( (string) $type );
-			$object  = get_post_type_object( (string) $type );
 
-			if ( is_string( $archive ) && $object instanceof WP_Post_Type ) {
-				$items[] = array(
-					'name' => $object->labels->name,
-					'url'  => $archive,
-				);
-			}
-		}
-
-		$ancestors = array_reverse( get_post_ancestors( $post_id ) );
-
-		foreach ( $ancestors as $ancestor_id ) {
 			$items[] = array(
-				'name' => erankly_get_post_breadcrumb_name( $ancestor_id ),
-				'url'  => get_permalink( $ancestor_id ),
+				'name' => erankly_get_post_breadcrumb_name( $post_id ),
+				'url'  => '',
 			);
 		}
-
-		$items[] = array(
-			'name' => erankly_get_post_breadcrumb_name( $post_id ),
-			'url'  => '',
-		);
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 
