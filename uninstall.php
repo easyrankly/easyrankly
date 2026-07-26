@@ -255,7 +255,6 @@ if ( is_multisite() ) {
 		'erankly_rewrite_generation',
 		'erankly_network_reset_job',
 		'erankly_settings_lock_v1',
-		'erankly_extension_extraction_notice_v1',
 	);
 
 	$erankly_last_network_id = 0;
@@ -304,6 +303,5 @@ if ( is_multisite() ) {
 	delete_option( 'erankly_setup_wizard_status' );
 	delete_option( 'erankly_rewrite_generation' );
 	delete_option( 'erankly_settings_lock_v1' );
-	delete_option( 'erankly_extension_extraction_notice_v1' );
 	erankly_uninstall_site();
 }

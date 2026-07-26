@@ -24,7 +24,7 @@ msgstr ""
 msgid "%1$d passed, %2$d need attention, %3$d waiting, %4$d not required"
 msgstr ""
 
-#: admin/settings/panels.php:125 admin/setup-wizard.php:170 easyrankly.php:930
+#: admin/settings/panels.php:125 admin/setup-wizard.php:170 easyrankly.php:902
 msgid "%1$s (ID: %2$d)"
 msgstr ""
 
@@ -1084,11 +1084,7 @@ msgstr ""
 msgid "EasyRankly"
 msgstr ""
 
-#: easyrankly.php:687
-msgid "EasyRankly 3.0 no longer includes multilingual features. Existing multilingual data was left unchanged; install or activate EasyRankly Multilingual to continue using it."
-msgstr ""
-
-#: easyrankly.php:793
+#: easyrankly.php:765
 msgid "EasyRankly could not cancel the active network reset during deactivation."
 msgstr ""
 
@@ -1104,7 +1100,7 @@ msgstr ""
 msgid "EasyRankly could not count multisite sites before uninstall."
 msgstr ""
 
-#: easyrankly.php:617
+#: easyrankly.php:614
 msgid "EasyRankly could not count the current network sites."
 msgstr ""
 
@@ -1116,11 +1112,11 @@ msgstr ""
 msgid "EasyRankly could not delete the stored content analyses."
 msgstr ""
 
-#: easyrankly.php:528
+#: easyrankly.php:525
 msgid "EasyRankly could not initialize its rewrite generation."
 msgstr ""
 
-#: easyrankly.php:546
+#: easyrankly.php:543
 msgid "EasyRankly could not initialize its settings."
 msgstr ""
 
@@ -1140,7 +1136,7 @@ msgstr ""
 msgid "EasyRankly could not read the network reset state."
 msgstr ""
 
-#: easyrankly.php:765
+#: easyrankly.php:737
 msgid "EasyRankly could not remove its scheduled tasks during deactivation."
 msgstr ""
 
@@ -1168,7 +1164,7 @@ msgstr ""
 msgid "EasyRankly could not remove migration staging storage during uninstall."
 msgstr ""
 
-#: uninstall.php:286
+#: uninstall.php:285
 msgid "EasyRankly could not remove network options during uninstall."
 msgstr ""
 
@@ -1240,7 +1236,7 @@ msgstr ""
 msgid "EasyRankly could not reset the network setup status."
 msgstr ""
 
-#: uninstall.php:275
+#: uninstall.php:274
 msgid "EasyRankly could not retrieve networks during uninstall."
 msgstr ""
 
@@ -1248,7 +1244,7 @@ msgstr ""
 msgid "EasyRankly could not retrieve the next network site batch during uninstall."
 msgstr ""
 
-#: easyrankly.php:593
+#: easyrankly.php:590
 msgid "EasyRankly could not retrieve the next network site batch."
 msgstr ""
 
@@ -1260,7 +1256,7 @@ msgstr ""
 msgid "EasyRankly could not start the network reset, so no plugin data was changed. Resolve the database or Cron scheduling issue, then run the reset again."
 msgstr ""
 
-#: easyrankly.php:178
+#: easyrankly.php:177
 msgid "EasyRankly could not update its settings atomically."
 msgstr ""
 
@@ -1292,7 +1288,7 @@ msgstr ""
 msgid "EasyRankly multilingual bridge"
 msgstr ""
 
-#: easyrankly.php:817 uninstall.php:199
+#: easyrankly.php:789 uninstall.php:199
 msgid "EasyRankly network cleanup required"
 msgstr ""
 
@@ -1764,7 +1760,7 @@ msgstr ""
 msgid "I deactivated it. Check again"
 msgstr ""
 
-#: easyrankly.php:924
+#: easyrankly.php:896
 msgid "ID %d"
 msgstr ""
 
@@ -3488,7 +3484,7 @@ msgstr ""
 msgid "Run the following WP-CLI command so cleanup can finish without an HTTP timeout:"
 msgstr ""
 
-#: easyrankly.php:812
+#: easyrankly.php:784
 msgid "Run the following WP-CLI command so every site can remove its scheduled tasks and rewrite rules:"
 msgstr ""
 
@@ -4456,7 +4452,7 @@ msgstr ""
 msgid "This is the site search results page shown after visitors search for keywords."
 msgstr ""
 
-#: easyrankly.php:811
+#: easyrankly.php:783
 msgid "This network is too large to deactivate EasyRankly safely in one web request."
 msgstr ""
 
@@ -4540,7 +4536,7 @@ msgstr ""
 msgid "Unknown robots rule."
 msgstr ""
 
-#: easyrankly.php:1005
+#: easyrankly.php:977
 msgid "Unknown settings panel."
 msgstr ""
 
