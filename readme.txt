@@ -2,9 +2,9 @@
 Contributors: easyrankly
 Tags: seo, schema, sitemap, redirects, ai
 Requires at least: 6.2
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 3.0.0
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,7 +50,7 @@ Yes. EasyRankly supports Product JSON-LD for WooCommerce products, including the
 
 = Does EasyRankly work on WordPress Multisite? =
 
-Yes. EasyRankly supports WordPress Multisite with network-level global settings. Starting with 3.0, multilingual features are supplied only by the separate EasyRankly Multilingual plugin through the provider API; the core no longer contains multilingual storage, screens, routes, shortcodes, or assets.
+Yes. EasyRankly supports WordPress Multisite with network-level global settings. Multilingual features are supplied only by the separate EasyRankly Multilingual plugin through the provider API; the core no longer contains multilingual storage, screens, routes, shortcodes, or assets.
 
 After activation, an upgrade, or a sitemap setting change, each site refreshes its own rewrite rules on its next request; no network-wide scan is required. Network resets run in small background batches and report their status in Network Admin. On installations with more than 100 sites, network deactivation and uninstall are intentionally routed through WP-CLI so every site can be cleaned without an HTTP timeout. Run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly` (replace `easyrankly` if the installed plugin directory uses a different name).
 
@@ -110,22 +110,12 @@ You can also export and re-import EasyRankly settings, redirects, special-page d
 
 == Changelog ==
 
-= 3.0.0 =
-Completes the M10 extraction: removes the bundled multilingual implementation, storage lifecycle, settings, routes, shortcodes, editor controls, and CSS/JavaScript from EasyRankly core.
-
-Retains provider API major 1, provider-neutral settings locking, localized-source and SEO-state APIs, sanitized hreflang/navigable/localized-URL hooks, and generic settings extension points. Existing multilingual data is not inspected, converted, reset, or deleted.
-
-For uninterrupted multilingual operation, update EasyRankly Multilingual to 1.1.1 before upgrading the core. Downgrade uses the exact 2.1.0 package; the 3.0 core does not rewrite legacy storage.
-
-= 2.1.0 =
-Bridge release for multilingual extensions. Adds the public provider API v1, deterministic fail-closed provider selection, a replaceable bundled fallback, neutral context-aware URL and alternate filters, independent hreflang ownership, and a stable per-object SEO-state API.
-
-Adds journaled storage ownership with lease/CAS protection, a shared settings mutex, legacy-toggle interlocks, and ownership-aware reset/uninstall behavior across Multisite and multi-network installations. Existing bundled output, REST routes, shortcodes, assets, and legacy storage remain in place when no external provider is installed.
-
-Freezes the generic settings-tab descriptor/render action for future extensions and corrects the earlier XML sitemap alternate claim. EasyRankly Multilingual is not included or announced as an available add-on in this release.
-
 = 2.0.0 =
-Major upgrade from the public 1.0.0 release. The original metadata, schema, sitemap, redirect, Health, Multisite, and multilingual foundations remain; the changes below describe what is new or materially expanded.
+Major upgrade from the public 1.0.0 release. The original metadata, schema, sitemap, redirect, Health, and Multisite foundations remain; multilingual runtime is supplied by the separate EasyRankly Multilingual plugin through the provider API. The changes below describe what is new or materially expanded.
+
+Completes the multilingual extraction from core: removes the bundled multilingual implementation, storage lifecycle, settings, routes, shortcodes, editor controls, and CSS/JavaScript. Retains provider API major 1, provider-neutral settings locking, localized-source and SEO-state APIs, sanitized hreflang/navigable/localized-URL hooks, and generic settings extension points. Existing multilingual data is not inspected, converted, reset, or deleted. For uninterrupted multilingual operation, update EasyRankly Multilingual to 1.1.1 before upgrading the core.
+
+Also includes the multilingual bridge work: public provider API v1, deterministic fail-closed provider selection, neutral context-aware URL and alternate filters, independent hreflang ownership, a stable per-object SEO-state API, journaled storage ownership with lease/CAS protection, a shared settings mutex, legacy-toggle interlocks, and ownership-aware reset/uninstall behavior across Multisite and multi-network installations. Freezes the generic settings-tab descriptor/render action for future extensions and corrects the earlier XML sitemap alternate claim.
 
 * **Administration and setup:** Rebuilt the setup wizard, settings screens, classic editor meta box, block editor document panels, and shared responsive design system. The wizard now configures Simplified or Advanced mode, Organization or Person identity, an optional searchable WordPress reference user, the identity name, and the X account.
 * **Settings experience:** Added URL-addressable, server-rendered settings tabs that retain the active panel after saving and avoid rendering unrelated panels. Added expandable data sections, resolved-variable previews that reveal the raw template on focus, consistent cards and fields, and clearer feature dependencies and guidance. Fresh installs hide the optional EasyRankly HTML credit by default; an existing 1.0.0 choice is preserved.
@@ -165,14 +155,8 @@ Release date: June 14, 2026
 
 == Upgrade Notice ==
 
-= 3.0.0 =
-Multilingual features moved out of core. Back up first and update EasyRankly Multilingual to 1.1.1 before core 3.0. Existing multilingual data is left unchanged; restore core 2.1.0 for rollback.
-
-= 2.1.0 =
-Adds a fail-closed multilingual provider bridge and ownership-safe lifecycle while retaining the bundled Multisite feature. No storage conversion occurs. Complete verified rollback before any downgrade if storage has been claimed by a provider.
-
 = 2.0.0 =
-Major 1.0 upgrade: back up first. Existing content SEO is retained; redirect data is retained and upgraded automatically. The checklist moves into the editor. Review settings and Multisite special-page defaults. AI stays opt-in and requires WordPress 7.0 plus a connected provider.
+Major 1.0 upgrade: back up first. Existing content SEO is retained; redirect data is retained and upgraded automatically. Multilingual features moved out of core — update EasyRankly Multilingual to 1.1.1 before upgrading if you use them. The checklist moves into the editor. Review settings and Multisite special-page defaults. AI stays opt-in and requires WordPress 7.0 plus a connected provider.
 
 = 1.0.0 =
 First public release of EasyRankly.

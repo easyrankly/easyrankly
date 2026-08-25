@@ -44,16 +44,16 @@ $assert( is_file( __DIR__ . '/snapshots/legacy-baseline.php' ), 'The provider-ne
 $core_source = (string) file_get_contents( $root . '/easyrankly.php' );
 preg_match( "/define\\( 'ERANKLY_VERSION', '([^']+)' \\)/", $core_source, $core_version_match );
 $core_version = (string) ( $core_version_match[1] ?? '' );
-if ( version_compare( $core_version, '2.1.0', '<' ) ) {
-	$assert( false === strpos( $core_source, 'ERANKLY_EXTENSION_API_VERSION' ), 'EasyRankly before 2.1 must not expose the M2 provider API.' );
+if ( version_compare( $core_version, '2.0.0', '<' ) ) {
+	$assert( false === strpos( $core_source, 'ERANKLY_EXTENSION_API_VERSION' ), 'EasyRankly before 2.0 must not expose the M2 provider API.' );
 } else {
-	$assert( str_contains( $core_source, "define( 'ERANKLY_EXTENSION_API_VERSION', 1 )" ), 'EasyRankly 2.1 must expose extension API major 1.' );
-	$assert( is_file( $root . '/includes/class-erankly-multilingual-provider-registry.php' ), 'EasyRankly 2.1 must ship the provider registry.' );
+	$assert( str_contains( $core_source, "define( 'ERANKLY_EXTENSION_API_VERSION', 1 )" ), 'EasyRankly 2.0 must expose extension API major 1.' );
+	$assert( is_file( $root . '/includes/class-erankly-multilingual-provider-registry.php' ), 'EasyRankly 2.0 must ship the provider registry.' );
 	$writer_source = (string) file_get_contents( $root . '/includes/localized-value-writer.php' );
 	$assert( str_contains( $writer_source, 'function erankly_get_localized_value_source_state' ), 'EasyRankly must expose the public localized-source state API.' );
 	$assert( str_contains( $writer_source, 'function erankly_update_localized_value_source' ), 'EasyRankly must expose the public localized-source writer API.' );
 	$assert( str_contains( $writer_source, 'erankly-localized-source/1' ), 'The localized-source CAS contract must remain versioned independently inside API major 1.' );
-	$assert( str_contains( $writer_source, 'erankly_ml_acquire_ownership_lock' ), 'The public source writer must share the whole-settings ownership mutex.' );
+	$assert( str_contains( $writer_source, 'erankly_acquire_settings_lock' ), 'The public source writer must share the whole-settings ownership mutex.' );
 }
 
 $conformance_source = (string) file_get_contents( __DIR__ . '/multisite-conformance.php' );

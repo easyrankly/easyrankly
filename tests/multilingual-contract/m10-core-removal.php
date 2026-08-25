@@ -84,8 +84,8 @@ $lock     = (string) file_get_contents( $root . '/includes/settings-lock.php' );
 $settings = (string) file_get_contents( $root . '/admin/settings-page.php' );
 $uninstall = (string) file_get_contents( $root . '/uninstall.php' );
 
-$assert( str_contains( $main, "* Version:     3.0.0" ), 'Core header is not 3.0.0.' );
-$assert( str_contains( $main, "define( 'ERANKLY_VERSION', '3.0.0' )" ), 'ERANKLY_VERSION is not 3.0.0.' );
+$assert( str_contains( $main, "* Version:     2.0.0" ), 'Core header is not 2.0.0.' );
+$assert( str_contains( $main, "define( 'ERANKLY_VERSION', '2.0.0' )" ), 'ERANKLY_VERSION is not 2.0.0.' );
 $assert( str_contains( $main, "define( 'ERANKLY_EXTENSION_API_VERSION', 1 )" ), 'Provider API major 1 was removed.' );
 $assert( ! str_contains( $main, 'ERANKLY_EXTENSION_EXTRACTION_NOTICE_OPTION' ), 'Core still contains the obsolete 2.x-to-3.0 extraction notice state.' );
 $assert( ! str_contains( $main, 'Existing multilingual data was left unchanged' ), 'Core still contains the obsolete 2.x-to-3.0 extraction notice.' );
