@@ -75,6 +75,7 @@ $frontend_bootstrap = erankly_perf_bytes(
 	array(
 		'easyrankly.php',
 		'includes/helpers.php',
+		'includes/plugin-check.php',
 		'includes/helpers/core.php',
 		'includes/helpers/settings.php',
 		'includes/helpers/feature-modules.php',

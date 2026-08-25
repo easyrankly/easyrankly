@@ -156,7 +156,7 @@ Release date: June 14, 2026
 == Upgrade Notice ==
 
 = 2.0.0 =
-Major 1.0 upgrade: back up first. Existing content SEO is retained; redirect data is retained and upgraded automatically. Multilingual features moved out of core — update EasyRankly Multilingual to 1.1.1 before upgrading if you use them. The checklist moves into the editor. Review settings and Multisite special-page defaults. AI stays opt-in and requires WordPress 7.0 plus a connected provider.
+Back up first. SEO content and redirects are retained; redirects auto-upgrade. Multilingual left core — update EasyRankly Multilingual to 1.1.1 first if you use it. Checklist is now in the editor. Review settings and Multisite special-page defaults. AI stays opt-in (WP 7.0 + provider).
 
 = 1.0.0 =
 First public release of EasyRankly.

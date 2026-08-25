@@ -244,6 +244,8 @@ function erankly_update_plugin_settings( array $changes, string $lock_token = ''
 		} else {
 			$next = $replace ? $changes : array_replace( $current, $changes );
 		}
+
+		$before  = $current;
 		$updated = is_multisite()
 			? update_site_option( ERANKLY_OPTION, $next )
 			: update_option( ERANKLY_OPTION, $next, true );
@@ -254,7 +256,16 @@ function erankly_update_plugin_settings( array $changes, string $lock_token = ''
 
 		$stored = is_multisite() ? get_site_option( ERANKLY_OPTION, array() ) : get_option( ERANKLY_OPTION, array() );
 
-		return $updated || $stored === $next;
+		if ( $updated || $stored === $next ) {
+			return true;
+		}
+
+		// Settings API sanitize callbacks may reshape $next before persistence.
+		// WordPress then returns false from update_option when that sanitized
+		// snapshot already matches storage — an idempotent success, not a failure.
+		global $wpdb;
+
+		return is_array( $stored ) && $stored === $before && '' === (string) $wpdb->last_error;
 	} finally {
 		if ( null === $previous_context ) {
 			unset( $GLOBALS['erankly_settings_write_context'] );

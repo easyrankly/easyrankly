@@ -163,6 +163,7 @@ function erankly_bloat_remove_emoji_dns_prefetch( array $urls, string $relation_
 			$urls,
 			static function ( $url ) {
 				$url = is_array( $url ) ? ( $url['href'] ?? '' ) : (string) $url;
+				// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Filters out core emoji CDN dns-prefetch hints; does not load remote assets.
 				return false === strpos( $url, 'twemoji' ) && false === strpos( $url, 's.w.org' );
 			}
 		)

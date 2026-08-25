@@ -148,6 +148,28 @@ function erankly_delete_content_analysis_reports(): int {
 }
 
 /**
+ * Abandons any settings mutex lease before a destructive reset rewrite.
+ *
+ * Reset already requires an exclusive capability check and may have deleted
+ * plugin data before restoring defaults. A leftover lease from a crashed or
+ * concurrent settings save must not block that final write.
+ *
+ * @return void
+ */
+function erankly_reset_abandon_settings_lock(): void {
+	if ( ! defined( 'ERANKLY_SETTINGS_LOCK_OPTION' ) ) {
+		return;
+	}
+
+	if ( is_multisite() ) {
+		delete_network_option( get_current_network_id(), ERANKLY_SETTINGS_LOCK_OPTION );
+		return;
+	}
+
+	delete_option( ERANKLY_SETTINGS_LOCK_OPTION );
+}
+
+/**
  * Wipes the current site's own EasyRankly data: redirects, post/term meta,
  * special-page metadata, Health data, and sitemap caches.
  *
@@ -311,6 +333,10 @@ function erankly_reset_site_data(): void {
 	}
 
 	if ( ! is_multisite() ) {
+		// Reset is an exclusive admin action. Drop any abandoned settings lease so
+		// restoring defaults cannot fail after the destructive cleanup already ran.
+		erankly_reset_abandon_settings_lock();
+
 		$result = erankly_update_plugin_settings( erankly_default_settings(), '', true );
 		if ( is_wp_error( $result ) || ! $result ) {
 			throw new RuntimeException( esc_html__( 'EasyRankly could not reset its settings.', 'easyrankly' ) );
@@ -334,6 +360,9 @@ function erankly_reset_site_data(): void {
  */
 function erankly_reset_network_shared_data(): void {
 	$default_settings = erankly_default_settings();
+
+	// Network reset is exclusive; clear an abandoned lease before rewriting shared settings.
+	erankly_reset_abandon_settings_lock();
 
 	$settings_reset = erankly_update_plugin_settings( $default_settings, '', true );
 	if ( is_wp_error( $settings_reset ) || ! $settings_reset ) {

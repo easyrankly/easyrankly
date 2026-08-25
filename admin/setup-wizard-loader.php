@@ -50,12 +50,16 @@ function erankly_setup_wizard_settings_url(): string {
 /**
  * Registers the hidden setup page.
  *
+ * The page is kept registered but removed from the visible submenu. Without a
+ * submenu entry WordPress cannot resolve the screen title, so the load hook
+ * below restores `$title` before admin-header.php calls strip_tags().
+ *
  * @return void
  */
 function erankly_setup_wizard_register_page(): void {
 	$parent_slug = is_network_admin() ? 'settings.php' : 'options-general.php';
 
-	add_submenu_page(
+	$hook = add_submenu_page(
 		$parent_slug,
 		__( 'EasyRankly setup', 'easyrankly' ),
 		__( 'EasyRankly setup', 'easyrankly' ),
@@ -65,6 +69,21 @@ function erankly_setup_wizard_register_page(): void {
 	);
 
 	remove_submenu_page( $parent_slug, 'erankly-setup' );
+
+	if ( is_string( $hook ) && '' !== $hook ) {
+		add_action( "load-{$hook}", 'erankly_setup_wizard_set_admin_title' );
+	}
+}
+
+/**
+ * Sets the admin screen title for the hidden setup wizard page.
+ *
+ * @return void
+ */
+function erankly_setup_wizard_set_admin_title(): void {
+	global $title;
+
+	$title = __( 'EasyRankly setup', 'easyrankly' );
 }
 
 /**

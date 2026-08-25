@@ -42,6 +42,7 @@ function erankly_health_current_request_path(): string {
 	// octets before rawurldecode(), collapsing distinct paths and defeating the
 	// anonymizer that expects encoded tokens intact. Storage sanitization runs
 	// later in erankly_health_sanitize_404_path().
+	// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw URI kept for percent-encoding; sanitized in erankly_health_sanitize_404_path().
 	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '';
 
 	if ( '' === $request_uri ) {

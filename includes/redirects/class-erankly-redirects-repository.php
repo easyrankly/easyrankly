@@ -470,7 +470,8 @@ final class ERankly_Redirects_Repository {
 
 		foreach ( array_chunk( $source_hashes, 100 ) as $chunk ) {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
-			$sql          = $wpdb->prepare(
+			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a dynamic list of literal %s tokens; values are bound via prepare below.
+			$sql = $wpdb->prepare(
 				"SELECT source_hash FROM %i WHERE source_hash IN ($placeholders) AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s AND visibility = %s AND conditions IS NULL AND start_at IS NULL AND end_at IS NULL",
 				array_merge(
 					array( $this->table_name ),
@@ -478,6 +479,7 @@ final class ERankly_Redirects_Repository {
 					array( 'exact', 'ignore', 'ignore', 'all' )
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			$found = $wpdb->get_col( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Batched redirect coverage lookup prepared above.
 

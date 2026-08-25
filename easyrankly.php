@@ -58,6 +58,7 @@ define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
 define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
+require_once ERANKLY_PATH . 'includes/plugin-check.php';
 require_once ERANKLY_PATH . 'includes/settings-lock.php';
 require_once ERANKLY_PATH . 'includes/localized-value-writer.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
@@ -824,8 +825,8 @@ function erankly_deactivate( bool $network_deactivating = false ): void {
 				try {
 					erankly_deactivate_current_site();
 				} catch ( Throwable $error ) {
-					if ( function_exists( 'error_log' ) ) {
-						error_log(
+					if ( defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'error_log' ) ) {
+						error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Multisite deactivation diagnostics when WP_DEBUG is enabled.
 							sprintf(
 								'EasyRankly network deactivation failed for site %d: %s',
 								(int) $site_id,
