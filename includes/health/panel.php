@@ -97,6 +97,7 @@ function erankly_health_render_panel(): void {
 			$erankly_redirects_on   = function_exists( 'erankly_redirects_enabled' ) && erankly_redirects_enabled();
 			$erankly_404_partition  = erankly_health_partition_404s( $frequent_404s );
 			$erankly_404_active     = $erankly_404_partition['active'];
+			$erankly_404_suggestions = erankly_health_preload_redirect_suggestions( $erankly_404_active );
 			$erankly_404_handled    = (int) $erankly_404_partition['handled'];
 			$erankly_404_managed    = $erankly_404_partition['managed'];
 			$erankly_404_has_active = ! empty( $erankly_404_active );
@@ -140,7 +141,7 @@ function erankly_health_render_panel(): void {
 							<?php
 							$erankly_path       = (string) $entry['path'];
 							$erankly_anonymized = erankly_health_path_is_anonymized( $erankly_path );
-							$erankly_suggestion = erankly_health_suggest_redirect_target( $entry );
+							$erankly_suggestion = $erankly_404_suggestions[ $erankly_path ] ?? null;
 							$erankly_ai_button  = false;
 							$erankly_ai_tried   = false;
 

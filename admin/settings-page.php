@@ -35,13 +35,20 @@ function erankly_register_settings(): void {
  * @return array<string,mixed>
  */
 function erankly_sanitize_settings( mixed $input ): array {
-	$input                   = is_array( $input ) ? $input : array();
+	$input = is_array( $input ) ? $input : array();
+	$panel = isset( $input['erankly_settings_panel'] ) ? sanitize_key( (string) $input['erankly_settings_panel'] ) : '';
+	unset( $input['erankly_settings_panel'] );
+
+	if ( '' !== $panel ) {
+		$input = erankly_merge_settings_submission( $input, $panel );
+	}
+
 	$defaults                = erankly_default_settings();
 	$identity                = isset( $input['schema_identity'] ) ? erankly_sanitize_text( $input['schema_identity'] ) : '';
 	$person_user_id          = isset( $input['schema_person_user_id'] ) ? absint( $input['schema_person_user_id'] ) : 0;
 	$local_business_types    = erankly_get_local_business_types();
 	$local_business_type     = isset( $input['local_business_type'] ) ? erankly_sanitize_text( $input['local_business_type'] ) : 'LocalBusiness';
-	$redirect_exclude_admins = isset( $input['redirect_exclude_admins'] ) ? ! empty( $input['redirect_exclude_admins'] ) : (bool) erankly_get_setting( 'redirect_exclude_admins', 0 );
+	$redirect_exclude_admins = ! empty( $input['redirect_exclude_admins'] );
 	$ai_enabled              = ! empty( $input['ai_enabled'] ) && erankly_ai_provider_available();
 
 	if ( $person_user_id > 0 && ! get_userdata( $person_user_id ) ) {
@@ -151,9 +158,6 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'robots_indexifembedded'              => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
 		'enable_redirects'                    => ! empty( $input['enable_redirects'] ) ? 1 : 0,
 		'redirect_exclude_admins'             => $redirect_exclude_admins ? 1 : 0,
-		// The form submits the inverted add_head_credit checkbox; imported settings
-		// still carry the stored hide_head_credit key, which wins when present.
-		'hide_head_credit'                    => isset( $input['hide_head_credit'] ) ? ( ! empty( $input['hide_head_credit'] ) ? 1 : 0 ) : ( ! empty( $input['add_head_credit'] ) ? 0 : 1 ),
 		'bloat_remove_emoji'                  => ! empty( $input['bloat_remove_emoji'] ) ? 1 : 0,
 		'bloat_remove_generator'              => ! empty( $input['bloat_remove_generator'] ) ? 1 : 0,
 		'bloat_remove_feed_links'             => ! empty( $input['bloat_remove_feed_links'] ) ? 1 : 0,
@@ -197,7 +201,10 @@ function erankly_sanitize_settings( mixed $input ): array {
 	);
 	$extension_settings = is_array( $extension_settings ) ? $extension_settings : array();
 
-	return array_replace( $extension_settings, $settings );
+	$result = array_replace( $extension_settings, $settings );
+	unset( $result['hide_head_credit'] );
+
+	return $result;
 }
 
 /**
@@ -230,6 +237,8 @@ function erankly_sanitize_robots_preview_value( mixed $value ): string {
 function erankly_general_panel_setting_keys(): array {
 	return array(
 		'organization_name',
+		'website_name',
+		'website_description',
 		'organization_description',
 		'organization_email',
 		'organization_phone',
@@ -259,8 +268,7 @@ function erankly_general_panel_setting_keys(): array {
  * 'normalize' callback, a callable( array $merged, array $changes ): array,
  * run on the merged array before sanitizing, for panels whose sanitizer
  * branches on isset() in a way that only makes sense for a full-page
- * submission (see erankly_normalize_head_credit_for_autosave() for the
- * concrete case this exists for).
+ * submission.
  *
  * @return array<string,array{keys:array<int,string>,normalize?:callable}>
  */
@@ -327,13 +335,11 @@ function erankly_settings_autosave_panels(): array {
 			),
 		),
 		'settings' => array(
-			'keys'      => array(
+			'keys' => array(
 				'simplified_mode',
-				'add_head_credit',
 				'resolve_placeholders',
 				'redirect_exclude_admins',
 			),
-			'normalize' => 'erankly_normalize_head_credit_for_autosave',
 		),
 		'social'   => array(
 			'keys' => array(
@@ -366,38 +372,6 @@ function erankly_settings_autosave_panels(): array {
 			),
 		),
 	);
-}
-
-/**
- * Restores erankly_sanitize_settings()'s hide_head_credit/add_head_credit
- * mutual exclusivity for the Settings-panel autosave.
- *
- * The classic full-page form never submits a hide_head_credit key (only a
- * live add_head_credit checkbox), and a legacy import always carries
- * hide_head_credit but never add_head_credit. The sanitizer relies on that
- * either/or to know which one to trust. Autosave's merge onto
- * erankly_get_settings() breaks that invariant: hide_head_credit is a normal
- * stored key, so it's always present after the merge, which would make the
- * sanitizer ignore a freshly submitted add_head_credit forever. Stripping it
- * here restores the invariant for this one caller only, without touching the
- * shared sanitizer that the classic form (and imports) still depend on.
- *
- * @param array<string,mixed> $merged  Settings merged from erankly_get_settings() and this request's whitelisted changes.
- * @param array<string,mixed> $changes This request's own whitelisted payload, before the merge.
- * @return array<string,mixed>
- */
-function erankly_normalize_head_credit_for_autosave( array $merged, array $changes ): array {
-	// Defensive: the current JS always sends add_head_credit explicitly
-	// (checked or not), but if a payload ever omitted it entirely, fall back
-	// to the value already on record instead of letting its absence read as
-	// "unchecked" and flip a setting this request never touched.
-	if ( ! array_key_exists( 'add_head_credit', $changes ) ) {
-		$merged['add_head_credit'] = empty( $merged['hide_head_credit'] ) ? 1 : 0;
-	}
-
-	unset( $merged['hide_head_credit'] );
-
-	return $merged;
 }
 
 /**
@@ -1004,6 +978,7 @@ function erankly_render_settings_page(): void {
 				<form method="post" action="options.php">
 					<?php settings_fields( 'erankly' ); ?>
 				<?php endif; ?>
+					<input type="hidden" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[erankly_settings_panel]" value="<?php echo esc_attr( erankly_active_panel_submission_slug( $active_panel ) ); ?>">
 
 					<?php if ( 'settings-features' === $active_panel ) : ?>
 							<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $health_enabled, $ai_provider_available, $active_panel ); ?>

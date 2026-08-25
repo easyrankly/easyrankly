@@ -78,7 +78,7 @@ if ( PHP_VERSION_ID < 80500 ) {
 $persister->invoke( $repository, $compiled );
 
 $manifest = $GLOBALS['erankly_redirect_runtime_options']['erankly_redirects_runtime_rules'] ?? array();
-erankly_redirect_index_assert( 3 === (int) ( $manifest['version'] ?? 0 ) && ! isset( $manifest['all'], $manifest['global'], $manifest['prefix'] ), 'the runtime manifest still embeds every redirect rule' );
+erankly_redirect_index_assert( 4 === (int) ( $manifest['version'] ?? 0 ) && ! isset( $manifest['all'], $manifest['global'], $manifest['prefix'] ), 'the runtime manifest still embeds every redirect rule' );
 $GLOBALS['erankly_redirect_runtime_reads'] = array();
 
 $repository = new ERankly_Redirects_Repository();

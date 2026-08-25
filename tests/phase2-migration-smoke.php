@@ -179,6 +179,39 @@ $yoast_redirect = erankly_phase2_invoke( $yoast, 'redirect_from_values', array( 
 erankly_phase2_assert( 'exact' === $yoast_redirect['match_type'] && 'exact' === $yoast_redirect['query_mode'] && 'a=1' === $yoast_redirect['source_query'], 'Yoast Premium redirect query behavior and 308 status are retained.' );
 $prepared_redirect = erankly_import_prepare_redirect( $yoast_redirect );
 erankly_phase2_assert( '/old' === $prepared_redirect['source_path'] && 'a=1' === $prepared_redirect['source_query'] && 308 === $prepared_redirect['status_code'], 'Source redirects are normalized without losing exact query matching.' );
+erankly_phase2_assert(
+	null === erankly_import_prepare_redirect(
+		array(
+			'source_path' => '[unterminated',
+			'target_url'  => '/safe',
+			'match_type'  => 'regex',
+			'status_code' => 301,
+		)
+	),
+	'Import must reject invalid regex sources the same way the Redirects admin does.'
+);
+erankly_phase2_assert(
+	null === erankly_import_prepare_redirect(
+		array(
+			'source_path' => str_repeat( 'a', 513 ),
+			'target_url'  => '/safe',
+			'match_type'  => 'regex',
+			'status_code' => 301,
+		)
+	),
+	'Import must reject regex sources longer than the Redirects admin limit.'
+);
+erankly_phase2_assert(
+	null === erankly_import_prepare_redirect(
+		array(
+			'source_path' => 'missing-star',
+			'target_url'  => '/safe',
+			'match_type'  => 'wildcard',
+			'status_code' => 301,
+		)
+	),
+	'Import must reject wildcard sources that fail the Redirects admin validator.'
+);
 $redirect_hash_manager = new ERankly_Migration_Manager();
 $same_behavior         = array_merge( $prepared_redirect, array( 'source_reference' => 'another-source', 'migration_id' => 'another-run' ) );
 $different_behavior    = array_merge( $prepared_redirect, array( 'target_url' => '/different-target' ) );

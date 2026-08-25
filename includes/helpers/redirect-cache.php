@@ -28,7 +28,6 @@ function erankly_redirects_cache_key( string $source_hash ): string {
  * object-cache implementation to support group flushing.
  *
  * @return void
- * @throws RuntimeException When the generation cannot be persisted.
  */
 function erankly_rotate_redirects_cache_generation(): void {
 	$generation = wp_generate_uuid4();
@@ -36,7 +35,9 @@ function erankly_rotate_redirects_cache_generation(): void {
 	update_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, $generation, false );
 
 	if ( (string) get_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, '' ) !== $generation ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not invalidate redirect caches during reset.', 'easyrankly' ) );
+		set_transient( 'erankly_redirect_cache_rotation_failed', 1, DAY_IN_SECONDS );
+
+		return;
 	}
 }
 

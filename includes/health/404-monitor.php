@@ -38,7 +38,11 @@ function erankly_health_maybe_record_404(): void {
  * @return string
  */
 function erankly_health_current_request_path(): string {
-	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) ) : '';
+	// Do not run sanitize_text_field() on the raw URI: it strips percent-encoded
+	// octets before rawurldecode(), collapsing distinct paths and defeating the
+	// anonymizer that expects encoded tokens intact. Storage sanitization runs
+	// later in erankly_health_sanitize_404_path().
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '';
 
 	if ( '' === $request_uri ) {
 		return '';
@@ -199,70 +203,79 @@ function erankly_health_record_404_path( string $path, string $referrer = '' ): 
 		return;
 	}
 
-	// Anonymize the referrer only now (after the sampling gate), and drop self-referrals.
-	$referrer = '' !== $referrer ? erankly_health_sanitize_404_path( $referrer ) : '';
-
-	if ( $referrer === $path ) {
-		$referrer = '';
+	$lock_key = 'erankly_404_' . md5( $path );
+	if ( ! wp_cache_add( $lock_key, 1, 'erankly', 5 ) ) {
+		return;
 	}
 
-	$now      = time();
-	$hash     = md5( $path );
-	$frequent = erankly_health_get_404_entries( ERANKLY_HEALTH_404_FREQUENT_OPTION );
+	try {
+		// Anonymize the referrer only now (after the sampling gate), and drop self-referrals.
+		$referrer = '' !== $referrer ? erankly_health_sanitize_404_path( $referrer ) : '';
 
-	if ( isset( $frequent[ $hash ] ) ) {
-		$entry = $frequent[ $hash ];
-
-		if ( $now - (int) $entry['window_start'] < ERANKLY_HEALTH_404_WINDOW ) {
-			$entry['path']      = $path;
-			$entry['count']     = absint( $entry['count'] ) + $sample_rate;
-			$entry['last_seen'] = $now;
-			$entry              = erankly_health_merge_referrer( $entry, $referrer );
-
-			$frequent[ $hash ] = $entry;
-			update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, erankly_health_prune_404_entries( $frequent, ERANKLY_HEALTH_404_MAX_FREQUENT ), false );
-			return;
+		if ( $referrer === $path ) {
+			$referrer = '';
 		}
 
-		unset( $frequent[ $hash ] );
-		update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, $frequent, false );
-	}
+		$now      = time();
+		$hash     = md5( $path );
+		$frequent = erankly_health_get_404_entries( ERANKLY_HEALTH_404_FREQUENT_OPTION );
 
-	$candidates = erankly_health_get_404_entries( ERANKLY_HEALTH_404_CANDIDATES_OPTION );
-	$entry      = isset( $candidates[ $hash ] ) ? $candidates[ $hash ] : array(
-		'path'         => $path,
-		'count'        => 0,
-		'window_start' => $now,
-		'first_seen'   => $now,
-		'last_seen'    => $now,
-	);
+		if ( isset( $frequent[ $hash ] ) ) {
+			$entry = $frequent[ $hash ];
 
-	if ( $now - (int) $entry['window_start'] >= ERANKLY_HEALTH_404_WINDOW ) {
-		$entry = array(
+			if ( $now - (int) $entry['window_start'] < ERANKLY_HEALTH_404_WINDOW ) {
+				$entry['path']      = $path;
+				$entry['count']     = absint( $entry['count'] ) + $sample_rate;
+				$entry['last_seen'] = $now;
+				$entry              = erankly_health_merge_referrer( $entry, $referrer );
+
+				$frequent[ $hash ] = $entry;
+				update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, erankly_health_prune_404_entries( $frequent, ERANKLY_HEALTH_404_MAX_FREQUENT ), false );
+				return;
+			}
+
+			unset( $frequent[ $hash ] );
+			update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, $frequent, false );
+		}
+
+		$candidates = erankly_health_get_404_entries( ERANKLY_HEALTH_404_CANDIDATES_OPTION );
+		$entry      = isset( $candidates[ $hash ] ) ? $candidates[ $hash ] : array(
 			'path'         => $path,
 			'count'        => 0,
 			'window_start' => $now,
 			'first_seen'   => $now,
 			'last_seen'    => $now,
 		);
-	}
 
-	$entry['path']      = $path;
-	$entry['count']     = absint( $entry['count'] ) + $sample_rate;
-	$entry['last_seen'] = $now;
-	$entry              = erankly_health_merge_referrer( $entry, $referrer );
+		if ( $now - (int) $entry['window_start'] >= ERANKLY_HEALTH_404_WINDOW ) {
+			$entry = array(
+				'path'         => $path,
+				'count'        => 0,
+				'window_start' => $now,
+				'first_seen'   => $now,
+				'last_seen'    => $now,
+			);
+		}
 
-	if ( absint( $entry['count'] ) >= ERANKLY_HEALTH_404_THRESHOLD ) {
-		unset( $candidates[ $hash ] );
+		$entry['path']      = $path;
+		$entry['count']     = absint( $entry['count'] ) + $sample_rate;
+		$entry['last_seen'] = $now;
+		$entry              = erankly_health_merge_referrer( $entry, $referrer );
+
+		if ( absint( $entry['count'] ) >= ERANKLY_HEALTH_404_THRESHOLD ) {
+			unset( $candidates[ $hash ] );
+			update_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION, erankly_health_prune_404_entries( $candidates, ERANKLY_HEALTH_404_MAX_CANDIDATES ), false );
+
+			$frequent[ $hash ] = $entry;
+			update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, erankly_health_prune_404_entries( $frequent, ERANKLY_HEALTH_404_MAX_FREQUENT ), false );
+			return;
+		}
+
+		$candidates[ $hash ] = $entry;
 		update_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION, erankly_health_prune_404_entries( $candidates, ERANKLY_HEALTH_404_MAX_CANDIDATES ), false );
-
-		$frequent[ $hash ] = $entry;
-		update_option( ERANKLY_HEALTH_404_FREQUENT_OPTION, erankly_health_prune_404_entries( $frequent, ERANKLY_HEALTH_404_MAX_FREQUENT ), false );
-		return;
+	} finally {
+		wp_cache_delete( $lock_key, 'erankly' );
 	}
-
-	$candidates[ $hash ] = $entry;
-	update_option( ERANKLY_HEALTH_404_CANDIDATES_OPTION, erankly_health_prune_404_entries( $candidates, ERANKLY_HEALTH_404_MAX_CANDIDATES ), false );
 }
 
 /**
@@ -1280,31 +1293,42 @@ function erankly_health_referrer_tail_segments( array $entry ): array {
 }
 
 /**
- * Finds the most similar published slug/title for a 404 slug.
+ * Returns published slug/title rows reused by fuzzy redirect matching.
  *
- * @param string              $slug  Normalized 404 slug.
- * @param array<string,mixed> $entry Full 404 entry (referrers may refine ranking later).
- * @return array<string,string>|null
+ * @return array<int,object>
  */
-function erankly_health_match_fuzzy( string $slug, array $entry ): ?array {
-	global $wpdb;
+function erankly_health_get_fuzzy_candidate_rows(): array {
+	static $request_cache = null;
 
-	if ( '' === $slug ) {
-		return null;
+	if ( is_array( $request_cache ) ) {
+		return $request_cache;
 	}
+
+	$transient_key = 'erankly_health_fuzzy_rows_v1';
+	$cached        = get_transient( $transient_key );
+
+	if ( is_array( $cached ) ) {
+		$request_cache = $cached;
+
+		return $request_cache;
+	}
+
+	global $wpdb;
 
 	$post_types = array_keys( erankly_get_public_post_types() );
 
 	if ( empty( $post_types ) ) {
-		return null;
+		$request_cache = array();
+
+		return $request_cache;
 	}
 
 	$limit        = max( 1, (int) apply_filters( 'erankly_health_suggestion_candidate_limit', ERANKLY_HEALTH_SUGGESTION_CANDIDATE_LIMIT ) );
 	$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 	$args         = array_merge( $post_types, array( $limit ) );
 
-	$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table lookup for bounded redirect suggestion candidates.
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholder list is generated from public post types and each value is bound via prepare().
+	$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Shared candidate pool for fuzzy redirect suggestions.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders are generated from public post types and bound below.
 		$wpdb->prepare(
 			"SELECT ID, post_name, post_title FROM {$wpdb->posts}
 				WHERE post_status = 'publish' AND post_name <> '' AND post_type IN ($placeholders)
@@ -1314,11 +1338,118 @@ function erankly_health_match_fuzzy( string $slug, array $entry ): ?array {
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	);
 
+	$request_cache = is_array( $rows ) ? $rows : array();
+	$ttl           = (int) apply_filters( 'erankly_health_fuzzy_candidate_cache_ttl', 5 * MINUTE_IN_SECONDS );
+
+	set_transient( $transient_key, $request_cache, max( MINUTE_IN_SECONDS, $ttl ) );
+
+	return $request_cache;
+}
+
+/**
+ * Clears the shared fuzzy-match candidate cache.
+ *
+ * @return void
+ */
+function erankly_health_invalidate_fuzzy_candidate_cache(): void {
+	delete_transient( 'erankly_health_fuzzy_rows_v1' );
+}
+
+/**
+ * Narrows fuzzy-match candidates with cheap slug heuristics before similar_text().
+ *
+ * @param string           $slug  Normalized 404 slug.
+ * @param array<int,object> $rows Candidate rows.
+ * @param int              $limit Maximum rows to keep.
+ * @return array<int,object>
+ */
+function erankly_health_prefilter_fuzzy_candidates( string $slug, array $rows, int $limit = 100 ): array {
+	if ( '' === $slug || empty( $rows ) ) {
+		return array();
+	}
+
+	$limit  = max( 1, $limit );
+	$scored = array();
+
+	foreach ( $rows as $row ) {
+		$name = (string) $row->post_name;
+
+		if ( $name === $slug ) {
+			$scored[] = array(
+				'row'   => $row,
+				'quick' => 1.0,
+			);
+			continue;
+		}
+
+		if ( str_contains( $name, $slug ) || str_contains( $slug, $name ) ) {
+			$scored[] = array(
+				'row'   => $row,
+				'quick' => 0.9,
+			);
+			continue;
+		}
+
+		if ( abs( strlen( $name ) - strlen( $slug ) ) > max( 3, (int) ( strlen( $slug ) * 0.5 ) ) ) {
+			continue;
+		}
+
+		$distance = levenshtein( $slug, $name );
+		$max_len  = max( strlen( $slug ), strlen( $name ), 1 );
+		$quick    = 1 - ( $distance / $max_len );
+
+		if ( $quick >= 0.5 ) {
+			$scored[] = array(
+				'row'   => $row,
+				'quick' => $quick,
+			);
+		}
+	}
+
+	usort(
+		$scored,
+		static fn( array $a, array $b ): int => $b['quick'] <=> $a['quick']
+	);
+
+	$filtered = array();
+
+	foreach ( array_slice( $scored, 0, $limit ) as $item ) {
+		$filtered[] = $item['row'];
+	}
+
+	return $filtered;
+}
+
+/**
+ * Finds the most similar published slug/title for a 404 slug.
+ *
+ * @param string              $slug  Normalized 404 slug.
+ * @param array<string,mixed> $entry Full 404 entry (referrers may refine ranking later).
+ * @return array<string,string>|null
+ */
+function erankly_health_match_fuzzy( string $slug, array $entry ): ?array {
+	if ( '' === $slug ) {
+		return null;
+	}
+
+	$rows = erankly_health_get_fuzzy_candidate_rows();
+
+	if ( empty( $rows ) ) {
+		return null;
+	}
+
+	$prefilter_limit = (int) apply_filters( 'erankly_health_fuzzy_prefilter_limit', 100 );
+	$rows            = erankly_health_prefilter_fuzzy_candidates( $slug, $rows, max( 1, $prefilter_limit ) );
+
+	if ( empty( $rows ) ) {
+		return null;
+	}
+
 	$best_id    = 0;
 	$best_ratio = 0.0;
 	$ref_tails  = erankly_health_referrer_tail_segments( $entry );
 
-	foreach ( (array) $rows as $row ) {
+	foreach ( $rows as $row ) {
 		$candidate_title = sanitize_title( (string) $row->post_title );
 		$ratio           = max(
 			erankly_health_similarity( $slug, (string) $row->post_name ),

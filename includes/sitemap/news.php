@@ -139,7 +139,7 @@ function erankly_get_news_sitemap_xml(): string {
 			'update_post_term_cache' => false,
 			'date_query'             => array(
 				array(
-					'after'  => '48 hours ago',
+					'after'  => gmdate( 'Y-m-d H:i:s', time() - ( 48 * HOUR_IN_SECONDS ) ),
 					'column' => 'post_date_gmt',
 				),
 			),

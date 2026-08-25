@@ -90,6 +90,22 @@ function erankly_get_navigable_hreflang_alternates(): array {
 }
 
 /**
+ * Returns whether a hreflang tag is syntactically valid.
+ *
+ * @param string $hreflang Hreflang tag.
+ * @return bool
+ */
+function erankly_is_valid_hreflang_tag( string $hreflang ): bool {
+	$hreflang = strtolower( trim( $hreflang ) );
+
+	if ( 'x-default' === $hreflang ) {
+		return true;
+	}
+
+	return (bool) preg_match( '/^[a-z]{2,3}(?:-[a-z]{2}|-[0-9]{3})?(?:-[a-z0-9]{5,8})*$/', $hreflang );
+}
+
+/**
  * Validates and sanitises a raw hreflang => URL map.
  *
  * @param mixed $alternates Raw alternates (any filter output).
@@ -106,11 +122,14 @@ function erankly_clean_hreflang_alternates( $alternates ): array {
 		$hreflang = sanitize_text_field( (string) $hreflang );
 		$url      = esc_url_raw( (string) $url );
 
-		if ( '' === $hreflang || ! erankly_is_absolute_http_url( $url ) ) {
+		if ( '' === $hreflang || ! erankly_is_valid_hreflang_tag( $hreflang ) || ! erankly_is_absolute_http_url( $url ) ) {
 			continue;
 		}
 
-		$clean[ $hreflang ] = $url;
+		$clean_key = strtolower( $hreflang );
+		if ( ! isset( $clean[ $clean_key ] ) ) {
+			$clean[ $clean_key ] = $url;
+		}
 	}
 
 	return $clean;

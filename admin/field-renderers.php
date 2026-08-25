@@ -73,6 +73,8 @@ function erankly_get_variable_groups(): array {
 				'site_url'              => __( 'Site URL', 'easyrankly' ),
 				'site_language'         => __( 'Site language', 'easyrankly' ),
 				'organization_name'     => __( 'Organization name', 'easyrankly' ),
+				'website_name'          => __( 'Website name', 'easyrankly' ),
+				'website_description'   => __( 'Website description', 'easyrankly' ),
 				'organization_logo_url' => __( 'Organization logo URL', 'easyrankly' ),
 				'site_icon_url'         => __( 'Site icon URL', 'easyrankly' ),
 				'schema_identity_id'    => __( 'Schema identity ID', 'easyrankly' ),

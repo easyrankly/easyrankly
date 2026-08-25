@@ -76,26 +76,33 @@ final class ERankly_Redirects_Runner {
 
 		if ( $redirect ) {
 			if ( $advanced_rule && (int) $advanced_rule['id'] === (int) $redirect['id'] ) {
-				$matched_path = ERankly_Redirects_Normalizer::normalize_match_path(
+				$case_sensitive = ! empty( $redirect['case_sensitive'] );
+				$trailing_slash = (string) ( $redirect['trailing_slash'] ?? 'ignore' );
+				$matched_path   = ERankly_Redirects_Normalizer::normalize_match_path(
 					$request_uri,
-					! empty( $redirect['case_sensitive'] ),
-					(string) ( $redirect['trailing_slash'] ?? 'ignore' )
+					$case_sensitive,
+					$trailing_slash
+				);
+				$capture_path = ERankly_Redirects_Normalizer::normalize_match_path_for_capture(
+					$request_uri,
+					$case_sensitive,
+					$trailing_slash
 				);
 				$match_type   = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : 'regex' ) );
 
 				if ( 'wildcard' === $match_type ) {
 					$target_url = ERankly_Redirects_Normalizer::apply_wildcard_target(
 						(string) $redirect['source_path'],
-						$matched_path,
+						$capture_path,
 						(string) $redirect['target_url'],
-						! empty( $redirect['case_sensitive'] )
+						$case_sensitive
 					);
 				} elseif ( 'regex' === $match_type ) {
 					$target_url = ERankly_Redirects_Normalizer::apply_regex_target(
 						(string) $redirect['source_path'],
-						$matched_path,
+						$capture_path,
 						(string) $redirect['target_url'],
-						! empty( $redirect['case_sensitive'] )
+						$case_sensitive
 					);
 				} else {
 					$target_url = (string) $redirect['target_url'];
@@ -207,7 +214,7 @@ final class ERankly_Redirects_Runner {
 			return in_array( $required_role, (array) $user->roles, true );
 		}
 
-		return true;
+		return false;
 	}
 
 	/**
@@ -343,16 +350,48 @@ final class ERankly_Redirects_Runner {
 	}
 
 	/**
-	 * Prevent redirects that resolve to the same local path.
+	 * Prevent redirects that resolve to the same local path or a redirect cycle.
 	 *
 	 * @param string $current_path Current normalized path.
 	 * @param string $target_url Target URL.
 	 * @return bool
 	 */
 	private function is_loop( string $current_path, string $target_url ): bool {
-		$target_path = ERankly_Redirects_Normalizer::target_to_local_path( $target_url );
+		$visited = array( $current_path => true );
+		$next    = $target_url;
+		$hops    = 0;
 
-		return null !== $target_path && $target_path === $current_path;
+		while ( $hops < 10 ) {
+			$target_path = ERankly_Redirects_Normalizer::target_to_local_path( $next );
+
+			if ( null === $target_path ) {
+				return false;
+			}
+
+			if ( isset( $visited[ $target_path ] ) ) {
+				return true;
+			}
+
+			$visited[ $target_path ] = true;
+
+			if ( $target_path === $current_path ) {
+				return true;
+			}
+
+			$rule = $this->repository->get_exact_rule_cached( ERankly_Redirects_Normalizer::source_hash( $target_path ) );
+			if ( ! is_array( $rule ) || empty( $rule['target_url'] ) ) {
+				return false;
+			}
+
+			if ( ERankly_Redirects_Normalizer::is_status_only_code( (int) ( $rule['status_code'] ?? 0 ) ) ) {
+				return false;
+			}
+
+			$next = ERankly_Redirects_Normalizer::normalize_target_url( (string) $rule['target_url'] );
+			++$hops;
+		}
+
+		return true;
 	}
 
 	/**

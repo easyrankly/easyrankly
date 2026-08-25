@@ -59,6 +59,11 @@ erankly_test_assert( ERankly_Redirects_Normalizer::is_status_only_code( 410 ), '
 erankly_test_assert( '/new?x=1#part' === ERankly_Redirects_Normalizer::preserve_query( '/new#part', 'x=1' ), 'query preservation before fragment' );
 erankly_test_assert( 1 === preg_match( ERankly_Redirects_Normalizer::build_wildcard_pattern( '/old/*' ), '/OLD/page' ), 'case-insensitive wildcard matching' );
 erankly_test_assert( 0 === preg_match( ERankly_Redirects_Normalizer::build_wildcard_pattern( '/old/*', true ), '/OLD/page' ), 'case-sensitive wildcard matching' );
+erankly_test_assert( 1 === preg_match( ERankly_Redirects_Normalizer::build_wildcard_pattern( '/foo*' ), '/foo' ), 'trailing wildcard matches exact prefix' );
+erankly_test_assert( '/bar' === ERankly_Redirects_Normalizer::apply_wildcard_target( '/foo*', '/foo', '/bar*' ), 'empty prefix capture substitutes an empty target suffix' );
+erankly_test_assert( 0 === preg_match( ERankly_Redirects_Normalizer::build_wildcard_pattern( '/old/*' ), '/old' ), 'slash-bound wildcard still requires the slash' );
+erankly_test_assert( 1 === preg_match( ERankly_Redirects_Normalizer::build_wildcard_pattern( '/old/*' ), '/old/' ), 'trailing slash wildcard matches empty suffix' );
+erankly_test_assert( '/new/' === ERankly_Redirects_Normalizer::apply_wildcard_target( '/old/*', '/old/', '/new/*' ), 'empty wildcard capture preserves target slash' );
 erankly_test_assert( '/new/one/two' === ERankly_Redirects_Normalizer::apply_wildcard_target( '/old/*/*', '/old/one/two', '/new/*/*' ), 'wildcard back-references' );
 erankly_test_assert( '/new/42' === ERankly_Redirects_Normalizer::apply_regex_target( '^/old/(\d+)$', '/old/42', '/new/$1' ), 'regex back-references' );
 

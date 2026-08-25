@@ -269,9 +269,20 @@ final class ERankly_Migration_Export_Reader {
 		$file    = new SplFileObject( $path, 'rb' );
 		$file->setCsvControl( self::csv_delimiter( $path ), '"', '' );
 		$file->setFlags( SplFileObject::READ_CSV | SplFileObject::DROP_NEW_LINE );
-		$file->seek( $offset + 1 );
+		$file->rewind();
+		$file->next();
 		$rows    = array();
 		$scanned = 0;
+		$skipped = 0;
+
+		while ( ! $file->eof() && $skipped < $offset ) {
+			$values = $file->current();
+			$file->next();
+			if ( ! is_array( $values ) || array( null ) === $values || array( '' ) === $values ) {
+				continue;
+			}
+			++$skipped;
+		}
 
 		while ( ! $file->eof() && $scanned < $limit ) {
 			$values = $file->current();

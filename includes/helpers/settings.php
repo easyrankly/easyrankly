@@ -64,6 +64,122 @@ function erankly_clear_settings_cache(): void {
 }
 
 /**
+ * Returns setting keys backed by standalone on/off toggles in the admin UI.
+ *
+ * @return array<int,string>
+ */
+function erankly_settings_toggle_keys(): array {
+	return array(
+		'social_defaults_linked',
+		'global_post_type_meta_linked',
+		'global_taxonomy_meta_linked',
+		'enable_local_business',
+		'simplified_mode',
+		'resolve_placeholders',
+		'ai_enabled',
+		'enable_content_analysis',
+		'enable_sitemap',
+		'enable_health',
+		'enable_link_building',
+		'enable_news_sitemap',
+		'enable_image_sitemap',
+		'enable_video_sitemap',
+		'enable_breadcrumbs',
+		'noindex_paginated',
+		'robots_max_image_preview_large',
+		'robots_nosnippet',
+		'robots_indexifembedded',
+		'enable_redirects',
+		'redirect_exclude_admins',
+		'bloat_remove_emoji',
+		'bloat_remove_generator',
+		'bloat_remove_feed_links',
+		'bloat_remove_rsd_link',
+		'bloat_remove_wlwmanifest',
+		'bloat_remove_shortlink',
+		'bloat_remove_rest_link',
+		'bloat_remove_oembed',
+		'bloat_remove_wp_embed',
+		'bloat_remove_adjacent_posts',
+		'bloat_remove_jquery_migrate',
+		'bloat_disable_self_pingbacks',
+		'bloat_disable_trackbacks',
+		'bloat_remove_dashicons',
+		'bloat_disable_heartbeat',
+		'bloat_limit_heartbeat_admin',
+		'bloat_disable_xmlrpc',
+		'bloat_remove_global_styles',
+		'bloat_remove_duotone',
+		'bloat_remove_block_library_css',
+		'bloat_limit_revisions',
+		'bloat_disable_speculative_loading',
+	);
+}
+
+/**
+ * Returns autosave keys owned by one settings panel slug.
+ *
+ * @param string $panel Panel slug such as "features" or "general".
+ * @return array<int,string>
+ */
+function erankly_settings_panel_keys( string $panel ): array {
+	$panel = sanitize_key( $panel );
+
+	if ( '' === $panel || ! function_exists( 'erankly_settings_autosave_panels' ) ) {
+		return array();
+	}
+
+	$registry = erankly_settings_autosave_panels();
+
+	return isset( $registry[ $panel ]['keys'] ) && is_array( $registry[ $panel ]['keys'] )
+		? $registry[ $panel ]['keys']
+		: array();
+}
+
+/**
+ * Merges a partial settings submission over the stored map.
+ *
+ * Classic HTML forms only send the active panel. Unchecked toggles are omitted,
+ * so absent toggle keys in the submitted panel scope default to off before merge.
+ *
+ * @param array<string,mixed> $input Raw submitted settings fragment.
+ * @param string              $panel Panel slug from erankly_settings_panel.
+ * @return array<string,mixed>
+ */
+function erankly_merge_settings_submission( array $input, string $panel = '' ): array {
+	$stored   = erankly_get_settings();
+	$panel    = sanitize_key( $panel );
+	$raw_keys = array_keys( $input );
+
+	if ( '' !== $panel ) {
+		$panel_keys  = erankly_settings_panel_keys( $panel );
+		$toggle_keys = array_fill_keys( erankly_settings_toggle_keys(), true );
+
+		foreach ( $panel_keys as $key ) {
+			if ( isset( $toggle_keys[ $key ] ) && ! array_key_exists( $key, $input ) ) {
+				$input[ $key ] = 0;
+			}
+		}
+	}
+
+	return array_replace( $stored, $input );
+}
+
+/**
+ * Maps an active settings tab slug to the submission panel marker.
+ *
+ * @param string $active_panel Active tab slug such as "settings-features".
+ * @return string
+ */
+function erankly_active_panel_submission_slug( string $active_panel ): string {
+	if ( str_starts_with( $active_panel, 'settings-' ) ) {
+		return sanitize_key( substr( $active_panel, 9 ) );
+	}
+
+	return sanitize_key( $active_panel );
+}
+
+/**
  * Returns whether at least one bloat-removal feature is enabled.
  *
  * @return bool
@@ -128,4 +244,74 @@ function erankly_get_setting( string $key, mixed $default_value = null ): mixed 
 	 * @param array<string,mixed> $context       Multilingual provider context.
 	 */
 	return apply_filters( 'erankly_setting_value', $value, $key, $default_value, $context );
+}
+
+/**
+ * Applies one-time settings migrations.
+ *
+ * @return void
+ */
+function erankly_maybe_migrate_settings(): void {
+	if ( erankly_get_plugin_option( 'erankly_migrated_title_defaults_v1', false ) ) {
+		return;
+	}
+
+	erankly_load_default_helpers();
+	$settings = erankly_get_stored_settings();
+
+	if ( empty( $settings ) ) {
+		erankly_update_plugin_option( 'erankly_migrated_title_defaults_v1', true );
+
+		return;
+	}
+
+	$changed             = false;
+	$legacy_post_title   = '{{post_title}} - {{site_name}}';
+	$legacy_term_title   = '{{term_name}} - {{site_name}}';
+	$title_template_keys = array( 'global_post_type_meta', 'global_taxonomy_meta' );
+	$single_title_keys   = array( 'default_og_title', 'default_twitter_title' );
+
+	foreach ( $title_template_keys as $meta_key ) {
+		if ( empty( $settings[ $meta_key ] ) || ! is_array( $settings[ $meta_key ] ) ) {
+			continue;
+		}
+
+		foreach ( $settings[ $meta_key ] as $entity_key => $meta ) {
+			if ( ! is_array( $meta ) || ! isset( $meta['title'] ) ) {
+				continue;
+			}
+
+			$replacement = 'global_taxonomy_meta' === $meta_key ? '{{term_name}}' : '{{post_title}}';
+			$legacy      = 'global_taxonomy_meta' === $meta_key ? $legacy_term_title : $legacy_post_title;
+
+			if ( $legacy === (string) $meta['title'] ) {
+				$settings[ $meta_key ][ $entity_key ]['title'] = $replacement;
+				$changed                                       = true;
+			}
+		}
+	}
+
+	foreach ( $single_title_keys as $title_key ) {
+		if ( isset( $settings[ $title_key ] ) && $legacy_post_title === (string) $settings[ $title_key ] ) {
+			$settings[ $title_key ] = '{{post_title}}';
+			$changed                = true;
+		}
+	}
+
+	if ( array_key_exists( 'website_name', $settings ) && '' === trim( (string) $settings['website_name'] ) ) {
+		unset( $settings['website_name'] );
+		$changed = true;
+	}
+
+	if ( array_key_exists( 'website_description', $settings ) && '' === trim( (string) $settings['website_description'] ) ) {
+		unset( $settings['website_description'] );
+		$changed = true;
+	}
+
+	if ( $changed ) {
+		erankly_update_plugin_settings( $settings, '', true );
+		erankly_clear_settings_cache();
+	}
+
+	erankly_update_plugin_option( 'erankly_migrated_title_defaults_v1', true );
 }

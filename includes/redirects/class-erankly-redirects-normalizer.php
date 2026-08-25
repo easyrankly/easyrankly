@@ -113,6 +113,23 @@ final class ERankly_Redirects_Normalizer {
 	}
 
 	/**
+	 * Normalizes a request path for capture replacement without lowercasing.
+	 *
+	 * Case-insensitive rules still match via pattern flags, but backreferences
+	 * should preserve the original request casing.
+	 *
+	 * @param string $path             Raw path or URL.
+	 * @param bool   $case_sensitive   Unused; kept for call-site symmetry.
+	 * @param string $trailing_slash   `ignore` or `exact`.
+	 * @return string
+	 */
+	public static function normalize_match_path_for_capture( string $path, bool $case_sensitive = false, string $trailing_slash = 'ignore' ): string {
+		unset( $case_sensitive );
+
+		return self::normalize_match_path( $path, true, $trailing_slash );
+	}
+
+	/**
 	 * Returns the request query string without the leading question mark.
 	 *
 	 * @param string $uri Request URI.
@@ -171,8 +188,9 @@ final class ERankly_Redirects_Normalizer {
 	/**
 	 * Build a preg pattern from a wildcard source path.
 	 *
-	 * Each '*' becomes a '(.+)' capture group. The resulting pattern anchors
-	 * to the full path and is case-insensitive.
+	 * Each '*' becomes a '(.*)' capture group so a trailing '*' also matches
+	 * the exact prefix (e.g. `/foo*` matches `/foo`). The resulting pattern
+	 * anchors to the full path and is case-insensitive by default.
 	 *
 	 * @param string $source         Normalized wildcard source (may contain '*').
 	 * @param bool   $case_sensitive Whether matching preserves letter case.
@@ -182,7 +200,7 @@ final class ERankly_Redirects_Normalizer {
 		$parts   = explode( '*', $source );
 		$escaped = array_map( static fn( string $p ): string => preg_quote( $p, '#' ), $parts );
 
-		return '#' . self::PCRE_LIMITS . '^' . implode( '(.+)', $escaped ) . '$#' . ( $case_sensitive ? '' : 'i' );
+		return '#' . self::PCRE_LIMITS . '^' . implode( '(.*)', $escaped ) . '$#' . ( $case_sensitive ? '' : 'i' );
 	}
 
 	/**

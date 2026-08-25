@@ -305,8 +305,14 @@ final class ERankly_Import_Job_Runner {
 			if ( ! isset( $existing[ $id ], $allowed[ $key ] ) ) {
 				continue;
 			}
-			$value = wp_slash( erankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) );
-			if ( false !== update_metadata( $object_type, $id, $key, $value ) ) {
+			$value = erankly_sanitize_registered_meta( $entry['value'] ?? '', $key );
+			$updated = match ( $object_type ) {
+				'post' => update_post_meta( $id, $key, $value ),
+				'user' => update_user_meta( $id, $key, $value ),
+				'term' => update_term_meta( $id, $key, $value ),
+				default => update_metadata( $object_type, $id, $key, $value ),
+			};
+			if ( false !== $updated ) {
 				++$counts[ $stage ];
 			}
 		}

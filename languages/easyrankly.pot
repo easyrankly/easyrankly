@@ -328,10 +328,6 @@ msgstr ""
 msgid "Add some content before starting the analysis."
 msgstr ""
 
-#: admin/settings/panels.php:455
-msgid "Add the \"optimized with EasyRankly\" comment to the page source"
-msgstr ""
-
 #: admin/settings-page.php:985
 msgid "Additional Modules"
 msgstr ""
@@ -4694,10 +4690,6 @@ msgstr ""
 
 #: assets/js/editor.js:374 includes/admin.php:760
 msgid "Words"
-msgstr ""
-
-#: admin/settings/panels.php:456
-msgid "Wraps the plugin's <head> output in an HTML comment that identifies EasyRankly in the page source."
 msgstr ""
 
 #: admin/settings/renderers.php:344

@@ -58,9 +58,10 @@ function erankly_get_schema_graph(): array {
 
 	$graph = is_404() ? array() : erankly_schema_foundational_graph();
 
-	$breadcrumbs = function_exists( 'erankly_schema_breadcrumb_list' )
-		? erankly_schema_breadcrumb_list()
-		: array();
+	$breadcrumbs = array();
+	if ( ! is_404() && function_exists( 'erankly_schema_breadcrumb_list' ) ) {
+		$breadcrumbs = erankly_schema_breadcrumb_list();
+	}
 
 	$breadcrumb_id = ! empty( $breadcrumbs ) && isset( $breadcrumbs['@id'] )
 		? (string) $breadcrumbs['@id']
@@ -253,7 +254,6 @@ function erankly_schema_identity_id(): string {
  * @return array<string,mixed>
  */
 function erankly_schema_organization(): array {
-	$logo    = erankly_get_organization_logo_url();
 	$details = erankly_get_organization_schema_details();
 	$schema  = array(
 		'@type' => 'Organization',
@@ -274,10 +274,12 @@ function erankly_schema_organization(): array {
 		$schema['address'] = $address;
 	}
 
-	if ( '' !== $logo ) {
-		$schema['logo'] = array(
-			'@type' => 'ImageObject',
-			'url'   => $logo,
+	$logo = erankly_schema_organization_logo();
+
+	if ( ! empty( $logo ) ) {
+		$schema['logo']  = $logo;
+		$schema['image'] = array(
+			'@id' => $logo['@id'],
 		);
 	}
 
@@ -292,7 +294,7 @@ function erankly_schema_organization(): array {
 	 *
 	 * @param array<string,mixed> $schema Organization schema.
 	 */
-	return apply_filters( 'erankly_schema_organization', $schema );
+	return apply_filters( 'erankly_schema_organization', erankly_filter_empty_schema_values( $schema ) );
 }
 
 /**
@@ -317,7 +319,7 @@ function erankly_get_organization_schema_details(): array {
 	 */
 	$details = apply_filters( 'erankly_organization_schema_details', $details );
 
-	return is_array( $details ) ? array_filter( $details, 'is_string' ) : array();
+	return is_array( $details ) ? array_filter( $details, static fn( mixed $value ): bool => is_string( $value ) && '' !== trim( $value ) ) : array();
 }
 
 /**
@@ -435,27 +437,44 @@ function erankly_schema_person(): array {
  */
 function erankly_schema_website(): array {
 	$schema = array(
-		'@type'           => 'WebSite',
-		'@id'             => home_url( '/#website' ),
-		'url'             => home_url( '/' ),
-		'name'            => get_bloginfo( 'name' ),
-		'description'     => get_bloginfo( 'description' ),
-		'publisher'       => array(
+		'@type'     => 'WebSite',
+		'@id'       => home_url( '/#website' ),
+		'url'       => home_url( '/' ),
+		'name'      => erankly_get_website_name(),
+		'publisher' => array(
 			'@id' => erankly_schema_identity_id(),
 		),
-		'potentialAction' => array(
-			'@type'       => 'SearchAction',
-			'target'      => home_url( '/?s={search_term_string}' ),
-			'query-input' => 'required name=search_term_string',
-		),
+		'potentialAction' => erankly_schema_website_search_action(),
 	);
+
+	$description = erankly_get_website_description();
+
+	if ( '' !== $description ) {
+		$schema['description'] = $description;
+	}
 
 	/**
 	 * Filters WebSite schema.
 	 *
 	 * @param array<string,mixed> $schema WebSite schema.
 	 */
-	return apply_filters( 'erankly_schema_website', $schema );
+	return apply_filters( 'erankly_schema_website', erankly_filter_empty_schema_values( $schema ) );
+}
+
+/**
+ * Returns the WebSite SearchAction node.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_schema_website_search_action(): array {
+	return array(
+		'@type'       => 'SearchAction',
+		'target'      => array(
+			'@type'       => 'EntryPoint',
+			'urlTemplate' => home_url( '/?s={search_term_string}' ),
+		),
+		'query-input' => 'required name=search_term_string',
+	);
 }
 
 /**
@@ -838,12 +857,12 @@ function erankly_schema_opening_hours( ?array $configured_hours = null ): array 
 
 	foreach ( $days as $day_key => $schema_day ) {
 		$day_hours = $hours[ $day_key ];
-		$schedule  = ! empty( $day_hours['closed'] ) ? array(
-			array(
-				'opens'  => '00:00',
-				'closes' => '00:00',
-			),
-		) : array_values(
+
+		if ( ! empty( $day_hours['closed'] ) ) {
+			continue;
+		}
+
+		$schedule = array_values(
 			array_filter(
 				$day_hours['intervals'],
 				static fn( array $interval ): bool => '' !== $interval['opens'] && '' !== $interval['closes']

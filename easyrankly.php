@@ -210,7 +210,6 @@ if ( is_admin() ) {
  * @return void
  */
 function erankly_bootstrap(): void {
-	erankly_close_multilingual_provider_registry();
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_filter( 'debug_information', 'erankly_add_multilingual_debug_information' );
@@ -221,6 +220,7 @@ function erankly_bootstrap(): void {
 	add_action( 'erankly_health_prune_404_cron', 'erankly_clear_disabled_health_cron', 0 );
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_rewrites' );
+	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
 	// Existing reports remain readable and deletable while the optional module
@@ -301,6 +301,9 @@ function erankly_bootstrap(): void {
 		add_action( 'added_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
 		add_action( 'updated_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
 		add_action( 'deleted_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+		add_action( 'added_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+		add_action( 'updated_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+		add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
 	}
 
 	if ( erankly_ai_module_enabled() ) {
@@ -349,6 +352,7 @@ function erankly_bootstrap(): void {
 	}
 }
 add_action( 'plugins_loaded', 'erankly_bootstrap', 5 );
+add_action( 'plugins_loaded', 'erankly_close_multilingual_provider_registry', 20 );
 
 /**
  * Loads the AI implementation and its minimal helper set once.
@@ -498,8 +502,6 @@ function erankly_bootstrap_frontend_modules(): void {
 	require_once ERANKLY_PATH . 'includes/schema.php';
 
 	remove_action( 'wp_head', 'rel_canonical' );
-	remove_action( 'wp_head', 'wp_generator' );
-	add_filter( 'the_generator', '__return_empty_string' );
 	add_filter( 'pre_get_document_title', 'erankly_filter_document_title', 20 );
 	add_filter( 'document_title_parts', 'erankly_filter_document_title_parts', 20 );
 	add_action( 'wp_head', 'erankly_render_head', 1 );
@@ -726,11 +728,25 @@ function erankly_maybe_flush_rewrite_rules(): void {
 /**
  * Removes deactivation-only state from the current site.
  *
+ * Clears every EasyRankly WP-Cron hook so pending import, migration and
+ * rollback pages cannot fire after reactivation. Active job checkpoints are
+ * intentionally retained so an administrator can resume from the admin UI
+ * (see migration Phase 3/5 lifecycle docs). Reset and uninstall delete those
+ * checkpoints; deactivation must not.
+ *
  * @return void
  * @throws RuntimeException When a scheduled task cannot be removed.
  */
 function erankly_deactivate_current_site(): void {
-	foreach ( array( ERANKLY_NETWORK_RESET_CRON_HOOK, 'erankly_health_prune_404_cron', ERANKLY_MIGRATION_CRON_HOOK ) as $hook ) {
+	foreach (
+		array(
+			ERANKLY_NETWORK_RESET_CRON_HOOK,
+			'erankly_health_prune_404_cron',
+			ERANKLY_MIGRATION_CRON_HOOK,
+			ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK,
+			ERANKLY_IMPORT_CRON_HOOK,
+		) as $hook
+	) {
 		$result = wp_unschedule_hook( $hook, true );
 
 		if ( false === $result || is_wp_error( $result ) ) {
@@ -807,6 +823,16 @@ function erankly_deactivate( bool $network_deactivating = false ): void {
 
 				try {
 					erankly_deactivate_current_site();
+				} catch ( Throwable $error ) {
+					if ( function_exists( 'error_log' ) ) {
+						error_log(
+							sprintf(
+								'EasyRankly network deactivation failed for site %d: %s',
+								(int) $site_id,
+								$error->getMessage()
+							)
+						);
+					}
 				} finally {
 					restore_current_blog();
 				}
@@ -988,7 +1014,15 @@ function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
 
 	$sanitized = erankly_sanitize_settings( $merged );
 
-	erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
+	try {
+		erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
+	} catch ( RuntimeException $exception ) {
+		return new WP_Error(
+			'erankly_settings_locked',
+			$exception->getMessage(),
+			array( 'status' => 409 )
+		);
+	}
 
 	return new WP_REST_Response(
 		array(
@@ -1044,14 +1078,22 @@ function erankly_register_special_pages_autosave_route(): void {
  * ERANKLY_OPTION on Multisite at all.
  *
  * @param WP_REST_Request $request Request object.
- * @return WP_REST_Response
+ * @return WP_REST_Response|WP_Error
  */
-function erankly_rest_save_special_pages( WP_REST_Request $request ): WP_REST_Response {
+function erankly_rest_save_special_pages( WP_REST_Request $request ) {
 	erankly_load_content_helpers();
 	$payload = (array) $request->get_param( 'settings' );
 	$map     = isset( $payload['global_special_meta'] ) && is_array( $payload['global_special_meta'] ) ? $payload['global_special_meta'] : array();
 
-	erankly_update_special_meta_map( $map );
+	try {
+		erankly_update_special_meta_map( $map );
+	} catch ( RuntimeException $exception ) {
+		return new WP_Error(
+			'erankly_settings_locked',
+			$exception->getMessage(),
+			array( 'status' => 409 )
+		);
+	}
 
 	return new WP_REST_Response(
 		array(

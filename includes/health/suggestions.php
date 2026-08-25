@@ -74,6 +74,34 @@ function erankly_health_suggest_redirect_target( array $entry ): ?array {
 	return $suggestion;
 }
 
+/**
+ * Warms redirect suggestion caches for a batch of 404 entries.
+ *
+ * @param array<int,array<string,mixed>> $entries Active 404 rows.
+ * @return array<string,array<string,string>|null> Map of path => suggestion.
+ */
+function erankly_health_preload_redirect_suggestions( array $entries ): array {
+	if ( empty( $entries ) ) {
+		return array();
+	}
+
+	erankly_health_get_fuzzy_candidate_rows();
+
+	$map = array();
+
+	foreach ( $entries as $entry ) {
+		$path = isset( $entry['path'] ) ? (string) $entry['path'] : '';
+
+		if ( '' === $path ) {
+			continue;
+		}
+
+		$map[ $path ] = erankly_health_suggest_redirect_target( $entry );
+	}
+
+	return $map;
+}
+
 /*
  * ---------------------------------------------------------------------------
  * Operational Health: AI (semantic) 404 → redirect suggestions.
@@ -95,8 +123,6 @@ function erankly_health_suggest_redirect_target( array $entry ): ?array {
  * @return array<int,array{id?:int,path:string,title:string}>
  */
 function erankly_health_ai_candidate_pool( string $slug, int $limit = 0 ): array {
-	global $wpdb;
-
 	if ( '' === $slug ) {
 		return array();
 	}
@@ -104,26 +130,14 @@ function erankly_health_ai_candidate_pool( string $slug, int $limit = 0 ): array
 	$limit = $limit > 0 ? $limit : (int) apply_filters( 'erankly_health_ai_candidate_limit', 25 );
 	$limit = max( 1, $limit );
 
-	$post_types = array_keys( erankly_get_public_post_types() );
+	$rows = erankly_health_get_fuzzy_candidate_rows();
 
-	if ( empty( $post_types ) ) {
+	if ( empty( $rows ) ) {
 		return array();
 	}
 
-	$scan_limit   = max( $limit, (int) apply_filters( 'erankly_health_suggestion_candidate_limit', ERANKLY_HEALTH_SUGGESTION_CANDIDATE_LIMIT ) );
-	$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
-	$args         = array_merge( $post_types, array( $scan_limit ) );
-
-	$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table lookup for bounded AI redirect suggestion candidates.
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholder list is generated from public post types and each value is bound via prepare().
-		$wpdb->prepare(
-			"SELECT ID, post_name, post_title FROM {$wpdb->posts}
-				WHERE post_status = 'publish' AND post_name <> '' AND post_type IN ($placeholders)
-				ORDER BY post_modified DESC LIMIT %d",
-			$args
-		)
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	);
+	$prefilter_limit = max( $limit, (int) apply_filters( 'erankly_health_fuzzy_prefilter_limit', 100 ) );
+	$rows            = erankly_health_prefilter_fuzzy_candidates( $slug, $rows, $prefilter_limit );
 
 	$scored = array();
 
@@ -598,19 +612,33 @@ function erankly_health_redirect_hash_for_path( string $path ): string {
  * @return array{active:array<int,array<string,mixed>>,handled:int}
  */
 function erankly_health_partition_404s( array $frequent_404s ): array {
-	$repo    = erankly_health_get_redirects_repository();
-	$states  = erankly_health_get_404_states();
-	$active  = array();
-	$managed = array();
-	$handled = 0;
+	$repo           = erankly_health_get_redirects_repository();
+	$states         = erankly_health_get_404_states();
+	$active         = array();
+	$managed        = array();
+	$handled        = 0;
+	$redirect_hashes = array();
+
+	foreach ( $frequent_404s as $entry_hash => $entry ) {
+		$entry['hash'] = (string) $entry_hash;
+		$path_hash     = $repo ? erankly_health_redirect_hash_for_path( (string) $entry['path'] ) : '';
+
+		if ( '' !== $path_hash ) {
+			$redirect_hashes[ (string) $entry_hash ] = $path_hash;
+		}
+	}
+
+	$active_redirect_hashes = $repo instanceof ERankly_Redirects_Repository
+		? $repo->find_active_exact_hashes( array_values( $redirect_hashes ) )
+		: array();
 
 	foreach ( $frequent_404s as $entry_hash => $entry ) {
 		$entry['hash'] = (string) $entry_hash;
 
-		$redirect_hash = $repo ? erankly_health_redirect_hash_for_path( (string) $entry['path'] ) : '';
+		$redirect_hash = $redirect_hashes[ (string) $entry_hash ] ?? '';
 
 		// Covered by an active redirect → hidden (counts into the handled summary).
-		if ( '' !== $redirect_hash && $repo->find_active_exact_by_hash( $redirect_hash ) ) {
+		if ( '' !== $redirect_hash && isset( $active_redirect_hashes[ $redirect_hash ] ) ) {
 			++$handled;
 			continue;
 		}

@@ -224,6 +224,12 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 		case 'organization_name':
 			$value = erankly_get_organization_name();
 			break;
+		case 'website_name':
+			$value = function_exists( 'erankly_get_website_name' ) ? erankly_get_website_name() : get_bloginfo( 'name' );
+			break;
+		case 'website_description':
+			$value = function_exists( 'erankly_get_website_description' ) ? erankly_get_website_description() : get_bloginfo( 'description' );
+			break;
 		case 'organization_logo':
 		case 'organization_logo_url':
 			$value = erankly_get_organization_logo_url();
@@ -410,6 +416,12 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 			break;
 		case 'organization_name':
 			$value = function_exists( 'erankly_get_organization_name' ) ? erankly_get_organization_name() : '';
+			break;
+		case 'website_name':
+			$value = function_exists( 'erankly_get_website_name' ) ? erankly_get_website_name() : get_bloginfo( 'name' );
+			break;
+		case 'website_description':
+			$value = function_exists( 'erankly_get_website_description' ) ? erankly_get_website_description() : get_bloginfo( 'description' );
 			break;
 		case 'organization_logo':
 		case 'organization_logo_url':

@@ -29,6 +29,9 @@ define( 'ERANKLY_LB_AI_CANDIDATE_EXCERPT', 220 );
 /** Excerpt length for the current page in the AI prompt. */
 define( 'ERANKLY_LB_AI_CURRENT_EXCERPT', 1200 );
 
+/** Maximum published posts scored per editor candidate request. */
+define( 'ERANKLY_LB_EDITOR_SCAN_LIMIT', 200 );
+
 /** Transient key prefix for cached editor AI link suggestions. */
 define( 'ERANKLY_LB_AI_EDITOR_PREFIX', 'erankly_lb_editor_' );
 
@@ -317,14 +320,105 @@ function erankly_lb_shared_term_ids( int $post_a, int $post_b, string $taxonomy 
 }
 
 /**
+ * Builds a post => taxonomy => term IDs map for many posts in one query.
+ *
+ * @param array<int,int>        $post_ids   Post IDs.
+ * @param array<int,string>     $taxonomies Taxonomy slugs.
+ * @return array<int,array<string,array<int,int>>>
+ */
+function erankly_lb_build_post_term_index( array $post_ids, array $taxonomies = array( 'category', 'post_tag' ) ): array {
+	$post_ids = array_values( array_filter( array_map( 'absint', $post_ids ) ) );
+
+	if ( empty( $post_ids ) ) {
+		return array();
+	}
+
+	$index      = array_fill_keys( $post_ids, array() );
+	$taxonomies = array_values(
+		array_filter(
+			$taxonomies,
+			static fn( string $taxonomy ): bool => taxonomy_exists( $taxonomy )
+		)
+	);
+
+	if ( empty( $taxonomies ) ) {
+		return $index;
+	}
+
+	$terms = wp_get_object_terms( $post_ids, $taxonomies, array( 'fields' => 'all_with_object_id' ) );
+
+	if ( is_wp_error( $terms ) ) {
+		return $index;
+	}
+
+	foreach ( $terms as $term ) {
+		$post_id = (int) $term->object_id;
+
+		if ( ! isset( $index[ $post_id ] ) ) {
+			continue;
+		}
+
+		if ( ! isset( $index[ $post_id ][ $term->taxonomy ] ) ) {
+			$index[ $post_id ][ $term->taxonomy ] = array();
+		}
+
+		$index[ $post_id ][ $term->taxonomy ][] = (int) $term->term_id;
+	}
+
+	return $index;
+}
+
+/**
+ * Returns shared term IDs using a preloaded index.
+ *
+ * @param int                                      $post_a    Post ID.
+ * @param int                                      $post_b    Post ID.
+ * @param string                                   $taxonomy  Taxonomy slug.
+ * @param array<int,array<string,array<int,int>>>  $term_index Preloaded term map.
+ * @return array<int,int>
+ */
+function erankly_lb_shared_term_ids_from_index( int $post_a, int $post_b, string $taxonomy, array $term_index ): array {
+	$terms_a = $term_index[ $post_a ][ $taxonomy ] ?? array();
+	$terms_b = $term_index[ $post_b ][ $taxonomy ] ?? array();
+
+	return array_intersect( $terms_a, $terms_b );
+}
+
+/**
+ * Returns whether two post titles are worth a full similarity comparison.
+ *
+ * @param WP_Post $post_a First post.
+ * @param WP_Post $post_b Second post.
+ * @return bool
+ */
+function erankly_lb_titles_might_match( WP_Post $post_a, WP_Post $post_b ): bool {
+	$title_a = strtolower( trim( $post_a->post_title ) );
+	$title_b = strtolower( trim( $post_b->post_title ) );
+
+	if ( '' === $title_a || '' === $title_b ) {
+		return false;
+	}
+
+	if ( $title_a === $title_b ) {
+		return true;
+	}
+
+	$word_a = strtok( $title_a, ' ' );
+	$word_b = strtok( $title_b, ' ' );
+
+	return is_string( $word_a ) && is_string( $word_b ) && $word_a === $word_b;
+}
+
+/**
  * Scores topical relevance between two posts for editor suggestions.
  *
  * @param int                      $post_a Post ID.
  * @param int                      $post_b Post ID.
  * @param array<string,mixed>|null $graph  Optional link graph for orphan weighting.
+ * @param array<int,array<string,array<int,int>>>|null $term_index Optional preloaded term map.
  * @return float Score between 0 and 1, or -1 when disqualified.
  */
-function erankly_lb_score_editor_relevance( int $post_a, int $post_b, ?array $graph = null ): float {
+function erankly_lb_score_editor_relevance( int $post_a, int $post_b, ?array $graph = null, ?array $term_index = null ): float {
 	if ( $post_a === $post_b ) {
 		return -1.0;
 	}
@@ -338,16 +432,28 @@ function erankly_lb_score_editor_relevance( int $post_a, int $post_b, ?array $gr
 
 	$score = 0.0;
 
-	if ( ! empty( erankly_lb_shared_term_ids( $post_a, $post_b, 'category' ) ) ) {
-		$score += 0.35;
+	if ( is_array( $term_index ) ) {
+		if ( ! empty( erankly_lb_shared_term_ids_from_index( $post_a, $post_b, 'category', $term_index ) ) ) {
+			$score += 0.35;
+		}
+
+		if ( taxonomy_exists( 'post_tag' ) && ! empty( erankly_lb_shared_term_ids_from_index( $post_a, $post_b, 'post_tag', $term_index ) ) ) {
+			$score += 0.15;
+		}
+	} else {
+		if ( ! empty( erankly_lb_shared_term_ids( $post_a, $post_b, 'category' ) ) ) {
+			$score += 0.35;
+		}
+
+		if ( taxonomy_exists( 'post_tag' ) && ! empty( erankly_lb_shared_term_ids( $post_a, $post_b, 'post_tag' ) ) ) {
+			$score += 0.15;
+		}
 	}
 
-	if ( taxonomy_exists( 'post_tag' ) && ! empty( erankly_lb_shared_term_ids( $post_a, $post_b, 'post_tag' ) ) ) {
-		$score += 0.15;
+	if ( $score > 0.0 || erankly_lb_titles_might_match( $post_a_obj, $post_b_obj ) ) {
+		similar_text( strtolower( $post_a_obj->post_title ), strtolower( $post_b_obj->post_title ), $title_pct );
+		$score += min( 0.35, ( $title_pct / 100 ) * 0.35 );
 	}
-
-	similar_text( strtolower( $post_a_obj->post_title ), strtolower( $post_b_obj->post_title ), $title_pct );
-	$score += min( 0.35, ( $title_pct / 100 ) * 0.35 );
 
 	if ( null !== $graph && ! empty( $graph['posts'][ $post_b ]['is_orphan'] ) ) {
 		$score += 0.1;
@@ -574,14 +680,36 @@ function erankly_lb_editor_candidate_pool( int $post_id, array $graph ): array {
 	$existing_outbound = erankly_lb_existing_outbound_targets( $post_id, $graph );
 	$existing_inbound  = erankly_lb_graph_inbound_sources( $graph, $post_id );
 	$candidates        = array();
+	$post_ids          = array_map( 'intval', array_keys( $graph['posts'] ) );
+	$term_index        = erankly_lb_build_post_term_index( $post_ids );
+	$scan_limit        = max( ERANKLY_LB_AI_CANDIDATE_LIMIT, (int) apply_filters( 'erankly_lb_editor_scan_limit', ERANKLY_LB_EDITOR_SCAN_LIMIT ) );
+	$candidate_ids     = array_values( array_filter( array_map( 'intval', array_keys( $graph['posts'] ) ), static fn( int $id ): bool => $id !== $post_id ) );
 
-	foreach ( array_keys( $graph['posts'] ) as $candidate_id ) {
-		$candidate_id = (int) $candidate_id;
+	usort(
+		$candidate_ids,
+		static function ( int $a, int $b ) use ( $post_id, $term_index ): int {
+			$score = static function ( int $candidate_id ) use ( $post_id, $term_index ): int {
+				$value = 0;
 
-		if ( $candidate_id === $post_id ) {
-			continue;
+				if ( ! empty( erankly_lb_shared_term_ids_from_index( $post_id, $candidate_id, 'category', $term_index ) ) ) {
+					$value += 2;
+				}
+
+				if ( taxonomy_exists( 'post_tag' ) && ! empty( erankly_lb_shared_term_ids_from_index( $post_id, $candidate_id, 'post_tag', $term_index ) ) ) {
+					++$value;
+				}
+
+				return $value;
+			};
+
+			return $score( $b ) <=> $score( $a );
 		}
+	);
 
+	$candidate_ids = array_slice( $candidate_ids, 0, $scan_limit );
+	$candidates    = array();
+
+	foreach ( $candidate_ids as $candidate_id ) {
 		$candidate_post = get_post( $candidate_id );
 
 		if ( ! ( $candidate_post instanceof WP_Post ) || 'publish' !== $candidate_post->post_status ) {
@@ -595,8 +723,8 @@ function erankly_lb_editor_candidate_pool( int $post_id, array $graph ): array {
 			continue;
 		}
 
-		$out_score = erankly_lb_score_editor_relevance( $post_id, $candidate_id, $graph );
-		$in_score  = erankly_lb_score_editor_relevance( $candidate_id, $post_id, $graph );
+		$out_score = erankly_lb_score_editor_relevance( $post_id, $candidate_id, $graph, $term_index );
+		$in_score  = erankly_lb_score_editor_relevance( $candidate_id, $post_id, $graph, $term_index );
 
 		if ( isset( $existing_outbound[ $candidate_id ] ) ) {
 			$out_score = -1.0;

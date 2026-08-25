@@ -207,10 +207,6 @@ function erankly_extract_accordion_item_answer( array $item_block ): string {
 
 	$panel = $panels[0];
 
-	if ( function_exists( 'render_block' ) ) {
-		return erankly_schema_plain_text_from_html( (string) render_block( $panel ) );
-	}
-
 	$panel_inner = isset( $panel['innerBlocks'] ) && is_array( $panel['innerBlocks'] ) ? $panel['innerBlocks'] : array();
 
 	return erankly_schema_plain_text_from_inner_blocks( $panel_inner );

@@ -293,6 +293,10 @@ final class ERankly_Migration_Job_Runner {
 				return null;
 			}
 
+			if ( 'paused' === (string) ( $job['status'] ?? '' ) ) {
+				return $job;
+			}
+
 			if ( ! empty( $job['cancel_requested'] ) ) {
 				$this->finish_cancelled( $job );
 				return null;

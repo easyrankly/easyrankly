@@ -45,7 +45,7 @@ define( 'ERANKLY_HEALTH_SUGGESTION_PREFIX', 'erankly_health_sugg_' );
 /** Minimum text similarity (0..1) for a fuzzy slug/title suggestion to be offered. */
 define( 'ERANKLY_HEALTH_SUGGESTION_MIN_RATIO', 0.8 );
 /** Maximum published rows scanned when looking for a fuzzy suggestion. */
-define( 'ERANKLY_HEALTH_SUGGESTION_CANDIDATE_LIMIT', 2000 );
+define( 'ERANKLY_HEALTH_SUGGESTION_CANDIDATE_LIMIT', 500 );
 /** Transient key prefix for legacy suggestions and short-lived AI no-match results. */
 define( 'ERANKLY_HEALTH_AI_SUGGESTION_PREFIX', 'erankly_health_aisugg_' );
 /** Persistent AI suggestions, keyed by the source-path hash. */

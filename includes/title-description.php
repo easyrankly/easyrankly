@@ -35,7 +35,7 @@ function erankly_filter_document_title_parts( array $parts ): array {
 
 	if ( '' !== $seo_title ) {
 		$parts['title'] = $seo_title;
-		unset( $parts['site'], $parts['tagline'] );
+		unset( $parts['site'], $parts['tagline'], $parts['page'] );
 	}
 
 	return $parts;

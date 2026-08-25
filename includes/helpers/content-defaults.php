@@ -28,6 +28,24 @@ function erankly_default_organization_name_template(): string {
 }
 
 /**
+ * Returns the default WebSite name template.
+ *
+ * @return string
+ */
+function erankly_default_website_name_template(): string {
+	return '{{site_name}}';
+}
+
+/**
+ * Returns the default WebSite description template.
+ *
+ * @return string
+ */
+function erankly_default_website_description_template(): string {
+	return '{{site_description}}';
+}
+
+/**
  * Returns the default organization logo URL placeholder for admin fields.
  *
  * @return string
@@ -95,6 +113,76 @@ function erankly_get_organization_name(): string {
 
 	return '' !== $name ? $name : get_bloginfo( 'name' );
 }
+
+/**
+ * Returns the effective WebSite name for schema output.
+ *
+ * @return string
+ */
+function erankly_get_website_name(): string {
+	$name = erankly_replace_variables(
+		(string) erankly_get_setting( 'website_name', erankly_default_website_name_template() ),
+		0,
+		array( 'website_name' )
+	);
+
+	return '' !== $name ? $name : get_bloginfo( 'name' );
+}
+
+/**
+ * Returns the effective WebSite description for schema output.
+ *
+ * Empty when no tagline or custom value is configured.
+ *
+ * @return string
+ */
+function erankly_get_website_description(): string {
+	return trim(
+		erankly_replace_variables(
+			(string) erankly_get_setting( 'website_description', erankly_default_website_description_template() ),
+			0,
+			array( 'website_description' )
+		)
+	);
+}
+
+/**
+ * Returns Organization logo schema as an ImageObject.
+ *
+ * @return array<string,mixed>
+ */
+function erankly_schema_organization_logo(): array {
+	$logo_url = erankly_get_organization_logo_url();
+
+	if ( '' === $logo_url ) {
+		return array();
+	}
+
+	$logo = array(
+		'@type' => 'ImageObject',
+		'@id'   => home_url( '/#organization-logo' ),
+		'url'   => $logo_url,
+	);
+
+	$attachment_id = absint( erankly_get_setting( 'organization_logo', 0 ) );
+
+	if ( $attachment_id > 0 ) {
+		$metadata = wp_get_attachment_metadata( $attachment_id );
+
+		if ( is_array( $metadata ) ) {
+			if ( ! empty( $metadata['width'] ) ) {
+				$logo['width'] = (int) $metadata['width'];
+			}
+
+			if ( ! empty( $metadata['height'] ) ) {
+				$logo['height'] = (int) $metadata['height'];
+			}
+		}
+	}
+
+	return $logo;
+}
+
 /**
  * Returns the supported special page / archive entities keyed by slug.
  *

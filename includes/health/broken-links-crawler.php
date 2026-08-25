@@ -856,6 +856,17 @@ function erankly_health_bl_probe( string $url, bool $internal = false ): array {
 		);
 	}
 
+	if ( $internal && $code >= 300 && $code <= 399 ) {
+		$location = is_wp_error( $response ) ? '' : (string) wp_remote_retrieve_location( $response );
+		if ( '' === $location && ! is_wp_error( $response ) ) {
+			$location = (string) wp_remote_retrieve_header( $response, 'location' );
+		}
+		$location = erankly_health_bl_canonicalize( erankly_health_bl_resolve_url( $location, $url ) );
+		if ( '' !== $location && erankly_health_bl_is_http_request_allowed( $location, true ) ) {
+			return erankly_health_bl_probe( $location, true );
+		}
+	}
+
 	return array(
 		'code'  => $code,
 		'state' => 'ok',

@@ -30,7 +30,7 @@ function erankly_setup_wizard_handle_save(): void {
 
 	$settings['simplified_mode']       = '0' === $mode ? 0 : 1;
 	$settings['schema_identity']       = 'person' === $identity_raw ? 'person' : 'organization';
-	$settings['schema_person_user_id'] = $person_user_id;
+	$settings['schema_person_user_id'] = $person_user_id > 0 && get_userdata( $person_user_id ) ? $person_user_id : 0;
 	$settings['organization_name']     = '' !== $name_raw ? $name_raw : erankly_default_organization_name_template();
 	$settings['twitter_site']          = erankly_sanitize_twitter_handle( $twitter_site_raw );
 

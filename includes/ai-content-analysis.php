@@ -911,7 +911,7 @@ function erankly_content_analysis_rest_generate( WP_REST_Request $request ) {
 		}
 
 		$updated = update_post_meta( $post_id, ERANKLY_CONTENT_ANALYSIS_META_KEY, wp_slash( $record ) );
-		if ( false === $updated && get_post_meta( $post_id, ERANKLY_CONTENT_ANALYSIS_META_KEY, true ) !== $record ) {
+		if ( false === $updated && wp_unslash( (string) get_post_meta( $post_id, ERANKLY_CONTENT_ANALYSIS_META_KEY, true ) ) !== wp_unslash( (string) $record ) ) {
 			return new WP_Error( 'erankly_content_analysis_storage', __( 'The content analysis could not be saved.', 'easyrankly' ), array( 'status' => 500 ) );
 		}
 

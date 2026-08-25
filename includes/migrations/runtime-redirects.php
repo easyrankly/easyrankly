@@ -64,6 +64,24 @@ function erankly_import_prepare_redirect( array $row ): ?array {
 		return null;
 	}
 
+	// Same gates as the Redirects admin save path: reject catastrophic regex,
+	// malformed wildcards and non-path exact sources before they reach runtime.
+	if ( strlen( $source_path ) > 512 ) {
+		return null;
+	}
+
+	if ( $is_wildcard && ! ERankly_Redirects_Normalizer::is_valid_wildcard_source( $source_path ) ) {
+		return null;
+	}
+
+	if ( $is_regex && ! ERankly_Redirects_Normalizer::is_valid_regex( $source_path ) ) {
+		return null;
+	}
+
+	if ( ! $is_regex && ! $is_wildcard && ! ERankly_Redirects_Normalizer::is_valid_internal_path( $source_path ) ) {
+		return null;
+	}
+
 	$visibility = isset( $row['visibility'] ) ? sanitize_key( (string) $row['visibility'] ) : 'all';
 	if ( ! in_array( $visibility, array( 'all', 'logged_in', 'logged_out' ), true ) ) {
 		$visibility = 'all';

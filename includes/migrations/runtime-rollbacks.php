@@ -40,6 +40,8 @@ function erankly_migration_record_rollback_result( string $job_id, array $result
 		$report['verification']['state'] = 'rollback_running';
 	} elseif ( 'failed' === $status ) {
 		$report['verification']['state'] = 'rollback_failed';
+	} elseif ( 'partial' === $status ) {
+		$report['verification']['state'] = 'rollback_partial';
 	} elseif ( 'expired' === $status ) {
 		$report['verification']['state'] = 'blocked';
 	} else {

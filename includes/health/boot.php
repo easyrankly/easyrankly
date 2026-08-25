@@ -111,11 +111,28 @@ function erankly_health_dispatch_admin_action(): void {
 	call_user_func( $callbacks[ $hook ] );
 }
 
+/**
+ * Drops cached fuzzy suggestion rows after publishable content changes.
+ *
+ * @param int $post_id Post ID.
+ * @return void
+ */
+function erankly_health_invalidate_fuzzy_candidate_cache_on_post_change( int $post_id ): void {
+	if ( $post_id <= 0 || wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		return;
+	}
+
+	erankly_health_load_frontend();
+	erankly_health_invalidate_fuzzy_candidate_cache();
+}
+
 /** Registers the lightweight Health dispatchers. */
 function erankly_health_boot(): void {
 	add_action( 'template_redirect', 'erankly_health_dispatch_frontend_404', 100 );
 	add_action( ERANKLY_HEALTH_404_PRUNE_HOOK, 'erankly_health_dispatch_retention' );
 	add_action( 'rest_api_init', 'erankly_health_bootstrap_rest_routes', 5 );
+	add_action( 'save_post', 'erankly_health_invalidate_fuzzy_candidate_cache_on_post_change', 10, 1 );
+	add_action( 'deleted_post', 'erankly_health_invalidate_fuzzy_candidate_cache_on_post_change', 10, 1 );
 	erankly_health_maybe_schedule_retention_cron();
 
 	if ( is_admin() ) {

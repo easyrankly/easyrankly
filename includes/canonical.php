@@ -51,7 +51,12 @@ function erankly_get_canonical(): string {
 			}
 		}
 	} elseif ( is_post_type_archive() ) {
-		$canonical = get_post_type_archive_link( (string) get_query_var( 'post_type' ) );
+		$post_type = get_query_var( 'post_type' );
+		if ( is_array( $post_type ) ) {
+			$post_type = reset( $post_type );
+		}
+		$post_type = is_string( $post_type ) ? $post_type : '';
+		$canonical = '' !== $post_type ? get_post_type_archive_link( $post_type ) : '';
 	} elseif ( is_author() ) {
 		$user_id   = (int) get_queried_object_id();
 		$canonical = trim( (string) get_user_meta( $user_id, '_erankly_canonical', true ) );

@@ -26,4 +26,13 @@ erankly_io_batch_assert( str_contains( $runner, 'array_slice( $records, $offset,
 erankly_io_batch_assert( preg_match( '/SELECT %i FROM %i WHERE %i IN \(\{\$placeholders\}\)/s', $runner ) === 1, 'object IDs are not resolved in one prepared batch query' );
 erankly_io_batch_assert( str_contains( $runner, 'wp_schedule_single_event' ) && str_contains( $runner, 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION' ), 'the import cursor is not recoverable through WP-Cron' );
 
+$bootstrap = (string) file_get_contents( $root . '/easyrankly.php' );
+erankly_io_batch_assert(
+	preg_match(
+		'/function erankly_deactivate_current_site\(\): void \{.*?ERANKLY_MIGRATION_CRON_HOOK.*?ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK.*?ERANKLY_IMPORT_CRON_HOOK.*?\}/s',
+		$bootstrap
+	) === 1,
+	'deactivation must unschedule migration, rollback and import workers without relying on leftover Cron events'
+);
+
 fwrite( STDOUT, "Bounded export and resumable import contract passed.\n" );

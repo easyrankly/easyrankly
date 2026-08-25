@@ -241,7 +241,13 @@ function erankly_get_video_sitemap_xml( int $page = 1 ): string {
 			$video_block  = "\t\t<video:video>\n";
 			$video_block .= "\t\t\t<video:thumbnail_loc>" . esc_xml( esc_url_raw( $entry['thumbnail_loc'] ) ) . "</video:thumbnail_loc>\n";
 			$video_block .= "\t\t\t<video:title>" . esc_html( (string) $entry['title'] ) . "</video:title>\n";
-			$video_block .= "\t\t\t<video:description>" . esc_html( substr( (string) $entry['description'], 0, 2048 ) ) . "</video:description>\n";
+			$description = (string) $entry['description'];
+			if ( function_exists( 'mb_substr' ) ) {
+				$description = mb_substr( $description, 0, 2048, 'UTF-8' );
+			} else {
+				$description = substr( $description, 0, 2048 );
+			}
+			$video_block .= "\t\t\t<video:description>" . esc_html( $description ) . "</video:description>\n";
 
 			if ( ! empty( $entry['player_loc'] ) ) {
 				$video_block .= "\t\t\t<video:player_loc>" . esc_xml( esc_url_raw( $entry['player_loc'] ) ) . "</video:player_loc>\n";

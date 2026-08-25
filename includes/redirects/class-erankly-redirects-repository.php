@@ -17,7 +17,7 @@ final class ERankly_Redirects_Repository {
 	 * Non-autoloaded option containing frontend-ready active rules.
 	 */
 	private const RUNTIME_RULES_OPTION         = 'erankly_redirects_runtime_rules';
-	private const RUNTIME_RULES_VERSION        = 3;
+	private const RUNTIME_RULES_VERSION        = 4;
 	private const RUNTIME_GLOBAL_OPTION        = 'erankly_redirects_runtime_rules_global';
 	private const RUNTIME_ALL_OPTION           = 'erankly_redirects_runtime_rules_all';
 	private const RUNTIME_PREFIX_INDEX_OPTION  = 'erankly_redirects_runtime_rules_prefix_index';
@@ -442,6 +442,55 @@ final class ERankly_Redirects_Repository {
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
 
 		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * Returns active exact redirect source hashes from one batched lookup.
+	 *
+	 * @param array<int,string> $source_hashes Source hashes.
+	 * @return array<string,true> Map of hashes with an active exact rule.
+	 */
+	public function find_active_exact_hashes( array $source_hashes ): array {
+		global $wpdb;
+
+		$source_hashes = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'strval', $source_hashes ),
+					static fn( string $hash ): bool => '' !== $hash
+				)
+			)
+		);
+
+		if ( empty( $source_hashes ) ) {
+			return array();
+		}
+
+		$active = array();
+
+		foreach ( array_chunk( $source_hashes, 100 ) as $chunk ) {
+			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
+			$sql          = $wpdb->prepare(
+				"SELECT source_hash FROM %i WHERE source_hash IN ($placeholders) AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s AND visibility = %s AND conditions IS NULL AND start_at IS NULL AND end_at IS NULL",
+				array_merge(
+					array( $this->table_name ),
+					$chunk,
+					array( 'exact', 'ignore', 'ignore', 'all' )
+				)
+			);
+
+			$found = $wpdb->get_col( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Batched redirect coverage lookup prepared above.
+
+			foreach ( is_array( $found ) ? $found : array() as $hash ) {
+				$hash = (string) $hash;
+
+				if ( '' !== $hash ) {
+					$active[ $hash ] = true;
+				}
+			}
+		}
+
+		return $active;
 	}
 
 	/**

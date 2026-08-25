@@ -180,6 +180,8 @@ final class ERankly_Migration_Upload_Store {
 
 		$active      = function_exists( 'get_option' ) ? get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array() ) : array();
 		$active_file = is_array( $active ) ? wp_normalize_path( (string) ( $active['source_file'] ?? '' ) ) : '';
+		$import_job  = function_exists( 'get_option' ) ? get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() ) : array();
+		$import_file = is_array( $import_job ) ? wp_normalize_path( (string) ( $import_job['file'] ?? $import_job['source_file'] ?? '' ) ) : '';
 		$ttl         = max( 300, (int) apply_filters( 'erankly_migration_upload_ttl', defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400 ) );
 		$cutoff      = time() - $ttl;
 		$deleted     = 0;
@@ -195,7 +197,7 @@ final class ERankly_Migration_Upload_Store {
 				continue;
 			}
 			$path = wp_normalize_path( $file->getPathname() );
-			if ( '' !== $active_file && hash_equals( $active_file, $path ) ) {
+			if ( ( '' !== $active_file && hash_equals( $active_file, $path ) ) || ( '' !== $import_file && hash_equals( $import_file, $path ) ) ) {
 				continue;
 			}
 			if ( self::delete( $path ) ) {

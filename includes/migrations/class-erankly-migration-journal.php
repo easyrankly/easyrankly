@@ -616,7 +616,7 @@ final class ERankly_Migration_Journal {
 	private function set_rollback_state( int $id, string $state ): void {
 		global $wpdb;
 
-		$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable rollback result.
+		$result = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Durable rollback result.
 			self::table_name(),
 			array(
 				'state'          => sanitize_key( $state ),
@@ -624,6 +624,10 @@ final class ERankly_Migration_Journal {
 			),
 			array( 'id' => $id )
 		);
+
+		if ( false === $result ) {
+			throw new RuntimeException( 'EasyRankly could not persist a migration rollback result.' );
+		}
 	}
 
 	/**

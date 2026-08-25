@@ -128,6 +128,22 @@ function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id
 }
 
 /**
+ * Invalidates sitemap caches only for EasyRankly post metadata.
+ *
+ * @param mixed  $meta_id    Meta row ID or deleted row IDs.
+ * @param int    $object_id  Post ID.
+ * @param string $meta_key   Meta key.
+ * @return void
+ */
+function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_id, string $meta_key ): void {
+	unset( $meta_id, $object_id );
+
+	if ( str_starts_with( $meta_key, '_erankly_' ) ) {
+		erankly_flush_sitemap_cache();
+	}
+}
+
+/**
  * Returns a versioned sitemap transient key.
  *
  * Versioning makes invalidation a constant-time option update. Older transient

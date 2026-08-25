@@ -21,8 +21,6 @@ function erankly_render_head(): void {
 	$description = erankly_get_description();
 	$canonical   = erankly_get_canonical();
 
-	erankly_render_head_credit( 'open' );
-
 	if ( '' !== $description ) {
 		printf( '<meta name="description" content="%s">' . "\n", esc_attr( $description ) );
 	}
@@ -34,44 +32,6 @@ function erankly_render_head(): void {
 	erankly_render_opengraph_tags();
 	erankly_render_oembed_link();
 	erankly_render_schema();
-
-	erankly_render_head_credit( 'close' );
-}
-
-/**
- * Renders the HTML comment that brackets EasyRankly head output.
- *
- * @param string $position Either open or close.
- * @return void
- */
-function erankly_render_head_credit( string $position ): void {
-	if ( ! empty( erankly_get_setting( 'hide_head_credit', 0 ) ) ) {
-		return;
-	}
-
-	/**
-	 * Filters the product name shown in the head debug markers.
-	 *
-	 * @since 1.0.0
-	 * @param string $name Product name. Empty hides the markers.
-	 */
-	$name = (string) apply_filters( 'erankly_head_credit_name', 'EasyRankly' );
-	$name = trim( preg_replace( '/-{2,}|[<>]/', '', wp_strip_all_tags( $name ) ) );
-
-	if ( '' === $name ) {
-		return;
-	}
-
-	if ( 'open' === $position ) {
-		printf(
-			'<!-- This site is optimized with the %1$s SEO plugin v%2$s - https://easyrankly.com -->' . "\n",
-			esc_html( $name ),
-			esc_html( ERANKLY_VERSION )
-		);
-		return;
-	}
-
-	printf( '<!-- / %s SEO plugin. -->' . "\n", esc_html( $name ) );
 }
 
 /** Redirects attachment pages to their parent post or media file. */

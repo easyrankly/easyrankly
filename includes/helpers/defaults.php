@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function erankly_default_post_type_meta_template(): array {
 	return array(
-		'title'       => '{{post_title}} - {{site_name}}',
+		'title'       => '{{post_title}}',
 		'description' => '{{post_excerpt}}',
 	);
 }
@@ -30,7 +30,7 @@ function erankly_default_post_type_meta_template(): array {
  */
 function erankly_default_taxonomy_meta_template(): array {
 	return array(
-		'title'       => '{{term_name}} - {{site_name}}',
+		'title'       => '{{term_name}}',
 		'description' => '{{term_description}}',
 	);
 }
@@ -42,7 +42,7 @@ function erankly_default_taxonomy_meta_template(): array {
  */
 function erankly_default_social_meta_template(): array {
 	return array(
-		'title'       => '{{post_title}} - {{site_name}}',
+		'title'       => '{{post_title}}',
 		'description' => '{{post_excerpt}}',
 	);
 }
@@ -273,8 +273,8 @@ function erankly_default_settings(): array {
 
 	return array(
 		'organization_name'                   => erankly_default_organization_name_template(),
-		'website_name'                        => '',
-		'website_description'                 => '',
+		'website_name'                        => erankly_default_website_name_template(),
+		'website_description'                 => erankly_default_website_description_template(),
 		'organization_logo'                   => 0,
 		'organization_logo_url'               => erankly_default_organization_logo_url_template(),
 		'organization_description'            => '',
@@ -341,7 +341,6 @@ function erankly_default_settings(): array {
 		'robots_indexifembedded'              => 0,
 		'enable_redirects'                    => 0,
 		'redirect_exclude_admins'             => 0,
-		'hide_head_credit'                    => 1,
 		'bloat_remove_emoji'                  => 0,
 		'bloat_remove_generator'              => 0,
 		'bloat_remove_feed_links'             => 0,

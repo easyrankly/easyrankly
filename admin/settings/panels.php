@@ -101,6 +101,22 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 							<?php erankly_render_variable_picker(); ?>
 						</div>
 					</div>
+					<div class="erankly-field">
+						<label for="erankly-website-name"><?php esc_html_e( 'Website name', 'easyrankly' ); ?></label>
+						<div class="erankly-variable-field" data-erankly-variable-field>
+							<input id="erankly-website-name" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[website_name]" value="<?php echo esc_attr( (string) $settings['website_name'] ); ?>">
+							<?php erankly_render_variable_picker(); ?>
+						</div>
+						<p class="description"><?php esc_html_e( 'Used in the WebSite JSON-LD node. Leave blank to fall back to the WordPress site title.', 'easyrankly' ); ?></p>
+					</div>
+					<div class="erankly-field">
+						<label for="erankly-website-description"><?php esc_html_e( 'Website description', 'easyrankly' ); ?></label>
+						<div class="erankly-variable-field" data-erankly-variable-field>
+							<textarea id="erankly-website-description" class="widefat" rows="2" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[website_description]"><?php echo esc_textarea( (string) $settings['website_description'] ); ?></textarea>
+							<?php erankly_render_variable_picker(); ?>
+						</div>
+						<p class="description"><?php esc_html_e( 'Used in the WebSite JSON-LD node only when a value is available. Empty taglines are omitted from schema output.', 'easyrankly' ); ?></p>
+					</div>
 						<div class="erankly-schema-identity-fields<?php echo 'person' === $settings['schema_identity'] ? ' is-person' : ''; ?>" data-erankly-schema-identity-fields>
 						<div class="erankly-field">
 							<label for="erankly-schema-identity"><?php esc_html_e( 'Identity type', 'easyrankly' ); ?></label>
@@ -450,10 +466,6 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 					<div class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[simplified_mode]" value="1" <?php checked( $settings['simplified_mode'], 1 ); ?>> <?php esc_html_e( 'Simplified mode', 'easyrankly' ); ?></label>
 						<p class="description"><?php esc_html_e( 'Shows the essential controls and automates advanced SEO defaults.', 'easyrankly' ); ?></p>
-					</div>
-					<div class="erankly-field erankly-checkboxes">
-						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[add_head_credit]" value="1" <?php checked( empty( $settings['hide_head_credit'] ) ); ?>> <?php esc_html_e( 'Add the "optimized with EasyRankly" comment to the page source', 'easyrankly' ); ?></label>
-						<p class="description"><?php esc_html_e( 'Wraps the plugin\'s <head> output in an HTML comment that identifies EasyRankly in the page source.', 'easyrankly' ); ?></p>
 					</div>
 					<div class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[resolve_placeholders]" value="1" <?php checked( ! empty( $settings['resolve_placeholders'] ) ); ?>> <?php esc_html_e( 'Show resolved values for variables like {{site_name}}', 'easyrankly' ); ?></label>

@@ -117,6 +117,10 @@ function erankly_post_has_preview_image( int $post_id ): bool {
 		return true;
 	}
 
+	if ( absint( get_post_meta( $post_id, '_erankly_og_image_id', true ) ) > 0 ) {
+		return true;
+	}
+
 	if ( ! empty( erankly_get_post_content_image_urls( $post_id ) ) ) {
 		return true;
 	}
