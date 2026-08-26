@@ -1,3 +1,0 @@
-id,source,matching,destination,type,category,status,ignore
-8,/rank-old,exact,/rank-new,301,,active,yes
-9,^/rank-products/(.*)$,regex,/shop/$1,307,,inactive,no
