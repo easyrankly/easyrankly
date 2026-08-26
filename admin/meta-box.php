@@ -197,117 +197,7 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 			</div>
 		<?php endforeach; ?>
 	<?php endif; ?>
-	<?php if ( function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) : ?>
-	<div class="erankly-field erankly-ai-field">
-		<?php erankly_ai_render_editor_privacy_notice(); ?>
-		<button type="button" class="button erankly-ai-generate"
-			data-erankly-ai-object-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-			data-erankly-ai-object-type="post"
-			data-erankly-ai-target="seo"
-			data-erankly-ai-title-target="#erankly-title"
-			data-erankly-ai-desc-target="#erankly-description"><?php esc_html_e( 'Generate with AI', 'easyrankly' ); ?></button>
-		<span class="erankly-ai-status description" data-erankly-ai-status aria-live="polite"></span>
-	</div>
-	<?php endif; ?>
-	<?php
-}
-
-/**
- * Renders focus targeting and the persistent AI analysis launcher.
- *
- * This panel stays available in simplified mode. AI availability controls only
- * generation; saved reports can always be reopened or deleted.
- *
- * @param WP_Post $post Post object.
- * @return void
- */
-function erankly_render_post_content_analysis_fields( WP_Post $post ): void {
-	$keywords     = erankly_sanitize_string_list( get_post_meta( $post->ID, '_erankly_focus_keywords', true ) );
-	$has_analysis = is_array( get_post_meta( $post->ID, '_erankly_content_analysis_v1', true ) );
-	$ai_enabled   = function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled();
-	$modal_title  = 'erankly-content-analysis-title-' . $post->ID;
-	?>
-	<div class="erankly-analysis-targeting">
-		<div class="erankly-field erankly-keyword-field erankly-analysis-targeting__keywords" data-erankly-keyword-field>
-			<label for="erankly-focus-keywords"><?php esc_html_e( 'Focus keywords', 'easyrankly' ); ?></label>
-			<input
-				id="erankly-focus-keywords"
-				class="widefat"
-				type="text"
-				name="erankly_focus_keywords"
-				value="<?php echo esc_attr( implode( ', ', $keywords ) ); ?>"
-				placeholder="<?php esc_attr_e( 'Separate multiple keywords with commas', 'easyrankly' ); ?>"
-				data-erankly-keyword-source
-			>
-			<div class="erankly-keyword-ui" data-erankly-keyword-ui hidden>
-				<div class="erankly-keyword-tags" role="list" data-erankly-keyword-tags></div>
-				<div class="erankly-keyword-entry">
-				<input type="text" class="widefat" data-erankly-keyword-entry aria-label="<?php esc_attr_e( 'Focus keywords', 'easyrankly' ); ?>" placeholder="<?php esc_attr_e( 'Add a keyword, then press Enter', 'easyrankly' ); ?>">
-					<button type="button" class="button" data-erankly-keyword-add><?php esc_html_e( 'Add', 'easyrankly' ); ?></button>
-				</div>
-				<label class="erankly-keyword-primary" data-erankly-keyword-primary hidden>
-					<span><?php esc_html_e( 'Primary keyword', 'easyrankly' ); ?></span>
-					<select data-erankly-keyword-primary-select></select>
-				</label>
-			</div>
-		<span class="description"><?php esc_html_e( 'First keyword is primary. Add up to 10 related keyphrases.', 'easyrankly' ); ?></span>
-			<span class="description erankly-field-error" data-erankly-keyword-error aria-live="polite"></span>
-		</div>
-		<div class="erankly-field erankly-analysis-targeting__cornerstone">
-			<label><input type="checkbox" class="erankly-toggle" name="erankly_cornerstone" value="1" <?php checked( get_post_meta( $post->ID, '_erankly_cornerstone', true ), '1' ); ?> data-erankly-cornerstone> <?php esc_html_e( 'Cornerstone / pillar content', 'easyrankly' ); ?></label>
-		<span class="description"><?php esc_html_e( 'Uses stricter checks for depth, supporting content and internal links.', 'easyrankly' ); ?></span>
-		</div>
-	</div>
-	<div class="erankly-field erankly-content-analysis-launcher" data-erankly-content-analysis-root>
-		<?php if ( $ai_enabled ) : ?>
-		<p class="description erankly-ai-privacy">
-			<?php esc_html_e( 'Analyzing or suggesting a keyword shares the current editor content and measured signals with your configured WordPress AI provider. EasyRankly does not operate the AI service.', 'easyrankly' ); ?>
-		</p>
-		<?php endif; ?>
-		<div class="erankly-content-analysis-launcher__buttons">
-			<button
-				type="button"
-				class="button button-secondary"
-				data-erankly-content-analysis-open
-				<?php disabled( ! $has_analysis && ! $ai_enabled ); ?>
-			><?php echo esc_html( $has_analysis ? __( 'Open analysis', 'easyrankly' ) : __( 'Analyze', 'easyrankly' ) ); ?></button>
-			<button
-				type="button"
-				class="button button-secondary"
-				data-erankly-keyword-suggestion
-				<?php disabled( ! $ai_enabled ); ?>
-			><?php esc_html_e( 'Suggest keyword', 'easyrankly' ); ?></button>
-		</div>
-		<span class="description" data-erankly-content-analysis-summary aria-live="polite">
-			<?php if ( ! $ai_enabled && ! $has_analysis ) : ?>
-				<?php esc_html_e( 'Enable AI and connect a provider.', 'easyrankly' ); ?>
-			<?php endif; ?>
-		</span>
-
-		<div class="erankly-content-analysis-overlay" data-erankly-content-analysis-modal hidden>
-			<div class="erankly-content-analysis-modal" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr( $modal_title ); ?>" tabindex="-1">
-				<header class="erankly-content-analysis-modal__header">
-					<h2 id="<?php echo esc_attr( $modal_title ); ?>"><?php esc_html_e( 'Content analysis', 'easyrankly' ); ?></h2>
-					<button type="button" class="erankly-content-analysis-close" data-erankly-content-analysis-close aria-label="<?php esc_attr_e( 'Close analysis', 'easyrankly' ); ?>">&times;</button>
-				</header>
-				<div class="erankly-content-analysis-modal__body" data-erankly-content-analysis-body aria-live="polite"></div>
-				<footer class="erankly-content-analysis-modal__footer">
-					<div class="erankly-content-analysis-delete-group">
-						<button type="button" class="button-link-delete" data-erankly-content-analysis-delete hidden><?php esc_html_e( 'Delete analysis', 'easyrankly' ); ?></button>
-						<span data-erankly-content-analysis-delete-confirm hidden>
-							<?php esc_html_e( 'Delete this report?', 'easyrankly' ); ?>
-							<button type="button" class="button button-small" data-erankly-content-analysis-delete-yes><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
-							<button type="button" class="button-link" data-erankly-content-analysis-delete-no><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></button>
-						</span>
-					</div>
-					<div class="erankly-content-analysis-modal__actions">
-						<button type="button" class="button button-secondary" data-erankly-content-analysis-rerun <?php disabled( ! $ai_enabled ); ?> hidden><?php esc_html_e( 'Analyze again', 'easyrankly' ); ?></button>
-						<button type="button" class="button" data-erankly-content-analysis-close><?php esc_html_e( 'Close', 'easyrankly' ); ?></button>
-					</div>
-				</footer>
-			</div>
-		</div>
-	</div>
+	<?php do_action( 'erankly_post_general_fields_after', $post ); ?>
 	<?php
 }
 
@@ -404,18 +294,7 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 			<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
 		</details>
 	</div>
-	<?php if ( function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) : ?>
-	<div class="erankly-field erankly-ai-field">
-		<?php erankly_ai_render_editor_privacy_notice(); ?>
-		<button type="button" class="button erankly-ai-generate"
-			data-erankly-ai-object-id="<?php echo esc_attr( (string) $post->ID ); ?>"
-			data-erankly-ai-object-type="post"
-			data-erankly-ai-target="social"
-			data-erankly-ai-title-targets="#erankly-og-title,#erankly-twitter-title"
-			data-erankly-ai-desc-targets="#erankly-og-description,#erankly-twitter-description"><?php esc_html_e( 'Generate with AI', 'easyrankly' ); ?></button>
-		<span class="erankly-ai-status description" data-erankly-ai-status aria-live="polite"></span>
-	</div>
-	<?php endif; ?>
+	<?php do_action( 'erankly_post_social_fields_after', $post ); ?>
 	<?php
 }
 
@@ -559,35 +438,23 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
  */
 function erankly_render_meta_box( WP_Post $post ): void {
 	wp_nonce_field( 'erankly_save_meta_box', 'erankly_meta_box_nonce' );
-	$simplified_mode          = (bool) erankly_get_setting( 'simplified_mode', 1 );
-	$content_analysis_enabled = erankly_content_analysis_enabled();
+	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
 	?>
 	<div class="erankly-meta-box">
 			<div class="nav-tab-wrapper wp-clearfix erankly-tabs" role="tablist" aria-label="<?php esc_attr_e( 'SEO settings', 'easyrankly' ); ?>">
 				<button type="button" class="nav-tab nav-tab-active erankly-tab is-active" id="erankly-tab-general" role="tab" aria-selected="true" aria-controls="erankly-panel-general" data-erankly-tab="general"><?php esc_html_e( 'Search appearance', 'easyrankly' ); ?></button>
-				<?php if ( $content_analysis_enabled ) : ?>
-				<button type="button" class="nav-tab erankly-tab" id="erankly-tab-content-analysis" role="tab" aria-selected="false" aria-controls="erankly-panel-content-analysis" data-erankly-tab="content-analysis"><?php esc_html_e( 'Content analysis', 'easyrankly' ); ?></button>
-				<?php endif; ?>
 			<?php if ( ! $simplified_mode ) : ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-social" role="tab" aria-selected="false" aria-controls="erankly-panel-social" data-erankly-tab="social"><?php esc_html_e( 'Social sharing', 'easyrankly' ); ?></button>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-schema" role="tab" aria-selected="false" aria-controls="erankly-panel-schema" data-erankly-tab="schema"><?php esc_html_e( 'Schema', 'easyrankly' ); ?></button>
 			<?php endif; ?>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-visibility" role="tab" aria-selected="false" aria-controls="erankly-panel-visibility" data-erankly-tab="visibility"><?php esc_html_e( 'Search visibility', 'easyrankly' ); ?></button>
 			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-checklist" role="tab" aria-selected="false" aria-controls="erankly-panel-checklist" data-erankly-tab="checklist"><?php esc_html_e( 'SEO checklist', 'easyrankly' ); ?></button>
-			<?php if ( erankly_internal_links_available() && erankly_ai_module_enabled() ) : ?>
-			<button type="button" class="nav-tab erankly-tab" id="erankly-tab-internal-links" role="tab" aria-selected="false" aria-controls="erankly-panel-internal-links" data-erankly-tab="internal-links"><?php esc_html_e( 'Internal links', 'easyrankly' ); ?></button>
-			<?php endif; ?>
+			<?php do_action( 'erankly_meta_box_tabs', $post ); ?>
 			</div>
 
 			<div class="erankly-tab-panel is-active" id="erankly-panel-general" role="tabpanel" aria-labelledby="erankly-tab-general" data-erankly-panel="general">
 				<?php erankly_render_post_general_fields( $post ); ?>
 			</div>
-
-			<?php if ( $content_analysis_enabled ) : ?>
-			<div class="erankly-tab-panel" id="erankly-panel-content-analysis" role="tabpanel" aria-labelledby="erankly-tab-content-analysis" data-erankly-panel="content-analysis" hidden>
-				<?php erankly_render_post_content_analysis_fields( $post ); ?>
-			</div>
-			<?php endif; ?>
 
 		<?php if ( ! $simplified_mode ) : ?>
 		<div class="erankly-tab-panel" id="erankly-panel-social" role="tabpanel" aria-labelledby="erankly-tab-social" data-erankly-panel="social" hidden>
@@ -606,11 +473,7 @@ function erankly_render_meta_box( WP_Post $post ): void {
 			<?php erankly_render_post_seo_checklist( $post ); ?>
 		</div>
 
-		<?php if ( erankly_internal_links_available() && erankly_ai_module_enabled() && function_exists( 'erankly_render_post_internal_links_panel' ) ) : ?>
-		<div class="erankly-tab-panel" id="erankly-panel-internal-links" role="tabpanel" aria-labelledby="erankly-tab-internal-links" data-erankly-panel="internal-links" hidden>
-			<?php erankly_render_post_internal_links_panel( $post ); ?>
-		</div>
-		<?php endif; ?>
+		<?php do_action( 'erankly_meta_box_panels', $post ); ?>
 
 		</div>
 	<?php
@@ -728,18 +591,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 				</div>
 			</div>
 			<?php endif; ?>
-			<?php if ( $term_id > 0 && function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) : ?>
-			<div class="erankly-field erankly-ai-field">
-				<?php erankly_ai_render_editor_privacy_notice(); ?>
-				<button type="button" class="button erankly-ai-generate"
-					data-erankly-ai-object-id="<?php echo esc_attr( (string) $term_id ); ?>"
-					data-erankly-ai-object-type="term"
-					data-erankly-ai-target="seo"
-					data-erankly-ai-title-target="#erankly-term-title-<?php echo esc_attr( $id_suffix ); ?>"
-					data-erankly-ai-desc-target="#erankly-term-description-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Generate with AI', 'easyrankly' ); ?></button>
-				<span class="erankly-ai-status description" data-erankly-ai-status aria-live="polite"></span>
-			</div>
-			<?php endif; ?>
+			<?php do_action( 'erankly_term_general_fields_after', $term_id, $id_suffix ); ?>
 		</div>
 
 		<?php if ( ! $simplified_mode ) : ?>
@@ -813,18 +665,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 					<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
 				</details>
 			</div>
-			<?php if ( $term_id > 0 && function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) : ?>
-			<div class="erankly-field erankly-ai-field">
-				<?php erankly_ai_render_editor_privacy_notice(); ?>
-				<button type="button" class="button erankly-ai-generate"
-					data-erankly-ai-object-id="<?php echo esc_attr( (string) $term_id ); ?>"
-					data-erankly-ai-object-type="term"
-					data-erankly-ai-target="social"
-					data-erankly-ai-title-targets="#erankly-term-og-title-<?php echo esc_attr( $id_suffix ); ?>,#erankly-term-twitter-title-<?php echo esc_attr( $id_suffix ); ?>"
-					data-erankly-ai-desc-targets="#erankly-term-og-description-<?php echo esc_attr( $id_suffix ); ?>,#erankly-term-twitter-description-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Generate with AI', 'easyrankly' ); ?></button>
-				<span class="erankly-ai-status description" data-erankly-ai-status aria-live="polite"></span>
-			</div>
-			<?php endif; ?>
+			<?php do_action( 'erankly_term_social_fields_after', $term_id, $id_suffix ); ?>
 		</div>
 		<?php endif; ?>
 
@@ -1010,20 +851,13 @@ function erankly_save_meta_box( int $post_id ): void {
 		}
 	}
 
-	if ( erankly_content_analysis_enabled() ) {
-		$focus_keywords = erankly_sanitize_registered_meta( isset( $_POST['erankly_focus_keywords'] ) ? wp_unslash( $_POST['erankly_focus_keywords'] ) : array(), '_erankly_focus_keywords' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by the called field-specific sanitizer.
-		if ( empty( $focus_keywords ) ) {
-			delete_post_meta( $post_id, '_erankly_focus_keywords' );
-		} else {
-			update_post_meta( $post_id, '_erankly_focus_keywords', wp_slash( $focus_keywords ) );
-		}
-
-		if ( isset( $_POST['erankly_cornerstone'] ) ) {
-			update_post_meta( $post_id, '_erankly_cornerstone', '1' );
-		} else {
-			delete_post_meta( $post_id, '_erankly_cornerstone' );
-		}
-	}
+	/**
+	 * Fires after core saves the classic meta box fields.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 */
+	do_action( 'erankly_save_meta_box', $post_id, $post );
 
 	if ( ! $simplified_mode ) {
 		$complex_fields = array(

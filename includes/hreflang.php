@@ -64,8 +64,8 @@ function erankly_get_hreflang_alternates(): array {
  *
  * Same shape as erankly_get_hreflang_alternates(), but built for human
  * navigation rather than search-engine signalling: published translations are
- * included even when they are noindex. Used by visitor-facing features such as
- * a browser-language redirect add-on. Never use this set for hreflang output.
+ * included even when they are noindex. Used by visitor-facing language
+ * navigation. Never use this set for hreflang output.
  *
  * @return array<string,string>
  */

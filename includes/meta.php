@@ -23,7 +23,7 @@ require_once ERANKLY_PATH . 'includes/hreflang.php';
  * @return array<string,string>
  */
 function erankly_get_meta_keys(): array {
-	return array(
+	$keys = array(
 		'_erankly_title'                 => 'string',
 		'_erankly_description'           => 'string',
 		'_erankly_canonical'             => 'string',
@@ -53,8 +53,6 @@ function erankly_get_meta_keys(): array {
 		'_erankly_og_image_id'           => 'integer',
 		'_erankly_twitter_image_id'      => 'integer',
 		'_erankly_primary_terms'         => 'object',
-		'_erankly_focus_keywords'        => 'array',
-		'_erankly_cornerstone'           => 'boolean',
 		'_erankly_legacy_editorial'      => 'object',
 		'_erankly_schema_mode'           => 'string',
 		'_erankly_schema_blocks'         => 'array',
@@ -64,6 +62,17 @@ function erankly_get_meta_keys(): array {
 		'_erankly_exclude_archive'       => 'boolean',
 		'_erankly_exclude_from_news'     => 'boolean',
 	);
+
+	/**
+	 * Filters the registered EasyRankly meta keys.
+	 *
+	 * Add-ons may register extra keys so import/export and REST meta share one list.
+	 *
+	 * @param array<string,string> $keys Meta key => value type.
+	 */
+	$keys = apply_filters( 'erankly_meta_keys', $keys );
+
+	return is_array( $keys ) ? $keys : array();
 }
 
 /**
@@ -165,22 +174,31 @@ function erankly_register_meta(): void {
  */
 function erankly_get_registered_meta_rest_schema( string $key, string $type ): bool|array {
 	if ( 'array' !== $type && 'object' !== $type ) {
-		return true;
+		$schema = true;
+	} else {
+		$schema = array( 'type' => $type );
+
+		if ( '_erankly_schema_blocks' === $key ) {
+			$schema['items'] = array( 'type' => 'object' );
+		} elseif ( '_erankly_schema_disabled_types' === $key ) {
+			$schema['items'] = array( 'type' => 'string' );
+		} elseif ( '_erankly_primary_terms' === $key ) {
+			$schema['additionalProperties'] = array( 'type' => 'integer' );
+		} elseif ( 'object' === $type ) {
+			$schema['additionalProperties'] = true;
+		}
+
+		$schema = array( 'schema' => $schema );
 	}
 
-	$schema = array( 'type' => $type );
-
-	if ( '_erankly_schema_blocks' === $key ) {
-		$schema['items'] = array( 'type' => 'object' );
-	} elseif ( in_array( $key, array( '_erankly_focus_keywords', '_erankly_schema_disabled_types' ), true ) ) {
-		$schema['items'] = array( 'type' => 'string' );
-	} elseif ( '_erankly_primary_terms' === $key ) {
-		$schema['additionalProperties'] = array( 'type' => 'integer' );
-	} elseif ( 'object' === $type ) {
-		$schema['additionalProperties'] = true;
-	}
-
-	return array( 'schema' => $schema );
+	/**
+	 * Filters the REST schema used when registering a meta key.
+	 *
+	 * @param bool|array<string,mixed> $schema REST show_in_rest value.
+	 * @param string                   $key    Meta key.
+	 * @param string                   $type   WordPress metadata type.
+	 */
+	return apply_filters( 'erankly_registered_meta_rest_schema', $schema, $key, $type );
 }
 
 /**
@@ -237,8 +255,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 			return $value >= -1 ? (string) $value : '';
 		case '_erankly_primary_terms':
 			return erankly_sanitize_primary_terms( $value );
-		case '_erankly_focus_keywords':
-			return erankly_sanitize_string_list( $value );
 		case '_erankly_legacy_editorial':
 			return erankly_sanitize_legacy_editorial_data( $value );
 		case '_erankly_schema_mode':
@@ -254,14 +270,13 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 		case '_erankly_nofollow':
 		case '_erankly_noarchive':
 		case '_erankly_indexifembedded':
-		case '_erankly_cornerstone':
 		case '_erankly_disable_sitemap':
 		case '_erankly_exclude_search':
 		case '_erankly_exclude_archive':
 		case '_erankly_exclude_from_news':
 			return (bool) $value;
 		default:
-			return $value;
+			return apply_filters( 'erankly_sanitize_extension_meta', $value, $meta_key );
 	}
 }
 

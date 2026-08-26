@@ -9,7 +9,7 @@
 /* Uniform spacing between controls without adding extra panel-bottom space. */
 .erankly-panel .components-base-control,
 .erankly-panel .erankly-field {
-	margin-bottom: 16px;
+	margin-bottom: var(--erankly-space-field);
 }
 
 .erankly-panel .components-base-control:last-child,
@@ -36,7 +36,7 @@
 
 .erankly-editor-variable-control .components-base-control__label {
 	display: block;
-	margin-bottom: 8px;
+	margin-bottom: var(--erankly-space-label);
 }
 
 .erankly-editor-variable-field .components-text-control__input,
@@ -48,8 +48,8 @@
 /* Keep custom single-line SEO inputs at WordPress's current 40px standard. */
 .erankly-panel .components-text-control__input {
 	height: 40px;
-	padding-right: 12px;
-	padding-left: 12px;
+	padding-right: var(--erankly-space-3);
+	padding-left: var(--erankly-space-3);
 }
 
 .erankly-editor-variable-field .components-textarea-control__input {
@@ -63,7 +63,7 @@
 
 .erankly-editor-variable-menu {
 	min-width: 280px;
-	width: min(340px, calc(100vw - 32px));
+	width: min(340px, calc(100vw - var(--erankly-space-6)));
 }
 
 /* Align the switch with the top of its label, even when the label wraps. */
@@ -76,8 +76,8 @@
 /* Action button rows: spaced away from the field, full width, evenly split. */
 .erankly-field__actions {
 	display: flex;
-	gap: 8px;
-	margin-top: 8px;
+	gap: var(--erankly-space-2);
+	margin-top: var(--erankly-space-2);
 }
 
 .erankly-field__actions > * {
@@ -109,7 +109,7 @@
 	padding: 0;
 	position: relative;
 	border: 0;
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-control);
 	background: transparent;
 	box-shadow: none;
 }
@@ -126,10 +126,10 @@
 	box-sizing: border-box;
 	height: 40px;
 	min-height: 40px;
-	padding: 0 8px;
-	border: 1px solid #949494;
-	border-radius: 2px;
-	background: #fff;
+	padding: 0 var(--erankly-space-2);
+	border: 1px solid var(--erankly-color-border-strong);
+	border-radius: var(--erankly-radius-control);
+	background: var(--erankly-color-surface);
 	box-shadow: none;
 }
 
@@ -144,7 +144,7 @@
 	height: 38px;
 	min-height: 38px;
 	margin: 0;
-	padding: 0 8px;
+	padding: 0 var(--erankly-space-2);
 	font-size: 13px;
 	line-height: 38px;
 	border: none;
@@ -154,7 +154,7 @@
 
 .erankly-panel--translations .components-form-token-field__suggestions-list {
 	position: absolute;
-	top: calc(100% + 4px);
+	top: calc(100% + var(--erankly-space-1));
 	right: 0;
 	left: 0;
 	z-index: 1000;
@@ -167,9 +167,9 @@
 	padding: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
-	border: 1px solid #949494;
-	border-radius: 2px;
-	background: #fff;
+	border: 1px solid var(--erankly-color-border-strong);
+	border-radius: var(--erankly-radius-control);
+	background: var(--erankly-color-surface);
 	box-shadow: none;
 }
 
@@ -181,18 +181,18 @@
  * animations, scoped to its own block.
  */
 .erankly-serp-preview {
-	margin-bottom: 24px;
-	padding: 12px;
+	margin-bottom: var(--erankly-space-section);
+	padding: var(--erankly-space-3);
 	border: 1px solid #ddd;
-	border-radius: 2px;
-	background: #fff;
+	border-radius: var(--erankly-radius-control);
+	background: var(--erankly-color-surface);
 	font-family: Arial, Helvetica, sans-serif;
 }
 
 .erankly-serp-preview__source {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 }
 
 .erankly-serp-preview__favicon {
@@ -200,7 +200,7 @@
 	width: 26px;
 	height: 26px;
 	border: 1px solid #ecedef;
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-control);
 	background: #f1f3f4;
 	object-fit: contain;
 }
@@ -232,8 +232,8 @@
 .erankly-serp-preview__body {
 	display: flex;
 	align-items: flex-start;
-	gap: 12px;
-	margin-top: 8px;
+	gap: var(--erankly-space-3);
+	margin-top: var(--erankly-space-2);
 }
 
 .erankly-serp-preview__text {
@@ -251,7 +251,7 @@
 	max-height: 64px;
 	aspect-ratio: 1 / 1;
 	border: 1px solid #ecedef;
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-control);
 	object-fit: cover;
 }
 
@@ -272,36 +272,6 @@
 	-webkit-line-clamp: 2;
 }
 
-.erankly-ai-privacy {
-	margin: 0 0 10px;
-	color: var(--erankly-color-muted);
-	font-size: 12px;
-	line-height: 1.5;
-}
-
-.erankly-ai-field .components-button {
-	width: 100%;
-	justify-content: center;
-}
-
-.erankly-ai-improve {
-	margin-top: 10px;
-	padding-top: 10px;
-	border-top: 1px solid var(--erankly-color-border);
-}
-
-.erankly-ai-improve .components-base-control {
-	margin-bottom: 8px;
-}
-
-.erankly-ai-improve .components-textarea-control__input {
-	min-height: 84px;
-}
-
-.erankly-ai-field .erankly-ai-notice {
-	margin: 8px 0 0;
-}
-
 /*
  * Gutenberg Notices inside EasyRankly panels (info / success / warning / error)
  * share the plugin alert chrome, including a 2px corner radius.
@@ -310,10 +280,10 @@
 	background: var(--erankly-color-info-surface);
 	border: 1px solid var(--erankly-color-info-border);
 	border-left: 1px solid var(--erankly-color-info-border);
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-control);
 	box-shadow: none;
-	margin: 0 0 16px;
-	padding: 12px 14px;
+	margin: 0 0 var(--erankly-space-field);
+	padding: var(--erankly-space-3) var(--erankly-space-4);
 }
 
 .erankly-panel .components-notice.is-success {
@@ -333,147 +303,4 @@
 
 .erankly-panel .components-notice:last-child {
 	margin-bottom: 0;
-}
-
-/* Internal link suggestions: flat Gutenberg-style list, no nested cards. */
-.erankly-panel--internal-links .erankly-internal-links-stack {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.erankly-panel--internal-links .components-button.is-secondary {
-	width: 100%;
-	justify-content: center;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-status-line {
-	margin: 0;
-	font-size: 12px;
-	line-height: 1.4;
-	color: #757575;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-status-line.is-success {
-	color: var(--erankly-color-success);
-}
-
-.erankly-panel--internal-links .erankly-internal-links-section-label,
-.erankly-internal-links-section-label {
-	margin: 0 0 8px;
-	font-size: 13px;
-	font-weight: 500;
-	line-height: 1.4;
-	color: var(--erankly-color-text);
-}
-
-.erankly-panel--internal-links .erankly-internal-links-empty,
-.erankly-internal-links-empty {
-	margin: 0 0 4px;
-	font-size: 12px;
-	line-height: 1.4;
-	color: #757575;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-list,
-.erankly-internal-links-list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item,
-.erankly-internal-links-item {
-	margin: 0;
-	padding: 12px 0;
-	border-bottom: 1px solid rgba( 0, 0, 0, 0.08 );
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item:last-child,
-.erankly-internal-links-item:last-child {
-	border-bottom: 0;
-	padding-bottom: 0;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item:first-child,
-.erankly-internal-links-item:first-child {
-	padding-top: 0;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item .components-external-link,
-.erankly-internal-links-item__title {
-	display: inline;
-	font-size: 13px;
-	font-weight: 500;
-	line-height: 1.4;
-	color: var( --wp-admin-theme-color, #3858e9 );
-	text-decoration: none;
-	word-break: break-word;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item .components-external-link:hover,
-.erankly-internal-links-item__title:hover {
-	color: var( --wp-admin-theme-color-darker-10, #2145e6 );
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item__meta,
-.erankly-internal-links-item__meta {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	margin-top: 4px;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item__anchor,
-.erankly-internal-links-item__anchor {
-	font-size: 12px;
-	line-height: 1.45;
-	color: var(--erankly-color-text);
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item__detail,
-.erankly-internal-links-item__detail {
-	font-size: 12px;
-	line-height: 1.45;
-	color: #757575;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item__badge,
-.erankly-internal-links-item__badge {
-	flex-shrink: 0;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item__row,
-.erankly-internal-links-item__row {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-item__main,
-.erankly-internal-links-item__main {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-.erankly-panel--internal-links .erankly-internal-links-badge,
-.erankly-internal-links-badge {
-	display: inline-block;
-	padding: 0 6px;
-	font-size: 11px;
-	font-weight: 500;
-	line-height: 18px;
-	color: var(--erankly-color-text);
-	background: var(--erankly-color-surface-hover);
-	border-radius: 2px;
-}
-
-.erankly-internal-links-divider {
-	width: 100%;
-	height: 1px;
-	margin: 4px 0;
-	background: rgba( 0, 0, 0, 0.08 );
-	border: 0;
-	box-sizing: border-box;
 }

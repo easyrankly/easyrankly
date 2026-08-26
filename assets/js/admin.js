@@ -18,16 +18,9 @@
   document.addEventListener("DOMContentLoaded", function () {
     bindEach(".erankly-meta-box", "bindTabs");
     bindEach(".erankly-meta-box", "bindSeoChecklist");
-
-    if (window.eranklyLinkSuggestionsUi) {
-      document
-        .querySelectorAll(".erankly-meta-box")
-        .forEach(window.eranklyLinkSuggestionsUi.bindClassicInternalLinks);
-    }
     bindEach("[data-erankly-expandable]", "bindExpandablePanel");
     bindRoot("bindTabs");
     bindRoot("bindSettingsTabs");
-    bindRoot("bindSimplifiedMode");
     bindEach("[data-erankly-media-url-field]", "bindMediaUrlField");
     bindEach(".erankly-counted-field", "bindCharacterCounter");
     if (typeof ER.bindVariablePickers === "function") {
@@ -40,10 +33,6 @@
     bindEach("[data-erankly-local-business]", "bindLocalBusiness");
     bindEach("[data-erankly-file-dropzone]", "bindFileDropzone");
     bindEach("[data-erankly-segment-control]", "bindSegmentControl");
-    var bloatPanel = document.getElementById("erankly-settings-panel-bloat");
-    if (bloatPanel && typeof ER.bindBloatToggle === "function") {
-      ER.bindBloatToggle(bloatPanel);
-    }
 
     bindRoot("bindAllSettingsAutosave");
 

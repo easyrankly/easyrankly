@@ -237,6 +237,15 @@ final class ERankly_Import_Job_Runner {
 			erankly_update_special_meta_map( $data['special_meta'] );
 			$counts['settings'] = 1;
 		}
+
+		/**
+		 * Fires after a native EasyRankly export has restored core settings.
+		 *
+		 * Add-ons may read extra payload keys they own.
+		 *
+		 * @param array<string,mixed> $data Decoded export payload.
+		 */
+		do_action( 'erankly_imported_payload', $data );
 	}
 
 	/**

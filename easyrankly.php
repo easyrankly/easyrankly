@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.0.0
+ * Version:     2.1.0
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:      EasyRankly
@@ -25,7 +25,7 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.0.0' );
+define( 'ERANKLY_VERSION', '2.1.0' );
 define( 'ERANKLY_EXTENSION_API_VERSION', 1 );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
@@ -218,20 +218,12 @@ function erankly_bootstrap(): void {
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
 	add_action( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, 'erankly_process_migration_rollback' );
 	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
-	add_action( 'erankly_health_prune_404_cron', 'erankly_clear_disabled_health_cron', 0 );
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_rewrites' );
 	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
-	// Existing reports remain readable and deletable while the optional module
-	// is enabled, even if AI is later disabled or its provider is disconnected.
-	if ( erankly_content_analysis_enabled() ) {
-		add_action( 'rest_api_init', 'erankly_bootstrap_content_analysis_rest_routes', 5 );
-	}
 
-	// WP-CLI defines DOING_CRON only when it dispatches an event, after plugins
-	// have booted, so register the worker for CLI requests explicitly.
 	if (
 		is_multisite()
 		&& (
@@ -243,11 +235,6 @@ function erankly_bootstrap(): void {
 		require_once ERANKLY_PATH . 'includes/network-reset.php';
 		add_action( ERANKLY_NETWORK_RESET_CRON_HOOK, 'erankly_process_network_reset_batch' );
 		add_action( 'network_admin_notices', 'erankly_render_network_reset_status_notice' );
-	}
-
-	if ( erankly_bloat_enabled() ) {
-		require_once ERANKLY_PATH . 'includes/bloat.php';
-		erankly_bloat_bootstrap();
 	}
 
 	if ( erankly_redirects_enabled() ) {
@@ -307,26 +294,6 @@ function erankly_bootstrap(): void {
 		add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
 	}
 
-	if ( erankly_ai_module_enabled() ) {
-		add_action( 'rest_api_init', 'erankly_bootstrap_ai_rest_routes', 5 );
-
-		if ( is_admin() ) {
-			erankly_load_ai_module();
-		}
-	}
-
-	if ( erankly_health_enabled() ) {
-		require_once ERANKLY_PATH . 'includes/health.php';
-		erankly_health_boot();
-	}
-
-	if ( erankly_link_building_enabled() || ( is_admin() && erankly_ai_module_enabled() ) ) {
-		require_once ERANKLY_PATH . 'includes/link-building.php';
-		if ( erankly_link_building_enabled() ) {
-			erankly_lb_boot();
-		}
-	}
-
 	if ( is_admin() ) {
 		erankly_admin_bootstrap();
 	}
@@ -351,67 +318,16 @@ function erankly_bootstrap(): void {
 	} else {
 		add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_handle_settings_updated', 10, 2 );
 	}
+
+	/**
+	 * Fires after EasyRankly core has finished booting.
+	 *
+	 * Add-ons should load feature modules here so core helpers and settings are available.
+	 */
+	do_action( 'erankly_bootstrap' );
 }
 add_action( 'plugins_loaded', 'erankly_bootstrap', 5 );
 add_action( 'plugins_loaded', 'erankly_close_multilingual_provider_registry', 20 );
-
-/**
- * Loads the AI implementation and its minimal helper set once.
- *
- * @return void
- */
-function erankly_load_ai_module(): void {
-	erankly_load_ai_helpers();
-	require_once ERANKLY_PATH . 'includes/ai.php';
-}
-
-/**
- * Loads and registers AI routes only while WordPress initializes REST.
- *
- * REST_REQUEST is not reliably available at plugins_loaded, so the loader is
- * attached directly to rest_api_init instead of guessing from the request URI.
- *
- * @return void
- */
-function erankly_bootstrap_ai_rest_routes(): void {
-	if ( ! erankly_ai_module_enabled() ) {
-		return;
-	}
-
-	erankly_load_ai_module();
-	erankly_ai_register_rest_routes();
-}
-
-/**
- * Loads the lightweight content-analysis route shell during REST discovery.
- *
- * The full analysis implementation is deferred to the endpoint callback.
- *
- * @return void
- */
-function erankly_bootstrap_content_analysis_rest_routes(): void {
-	if ( ! erankly_content_analysis_enabled() ) {
-		return;
-	}
-
-	require_once ERANKLY_PATH . 'includes/ai-content-analysis-routes.php';
-	erankly_content_analysis_register_rest_routes();
-}
-
-/**
- * Removes a stale Health schedule if a disabled subsite receives its next run.
- *
- * The settings-update callback clears the current site's event immediately.
- * This small fallback lets Multisite installations clean schedules belonging
- * to other sites without an unbounded network sweep during the toggle request.
- *
- * @return void
- */
-function erankly_clear_disabled_health_cron(): void {
-	if ( ! erankly_health_enabled() ) {
-		wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
-	}
-}
 
 /**
  * Lazily loads and advances one resumable third-party migration batch.
@@ -685,14 +601,8 @@ function erankly_handle_network_settings_updated( string $option, mixed $value, 
 function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void {
 	erankly_clear_settings_cache();
 
-	$old_health_enabled  = is_array( $old_value ) && ! empty( $old_value['enable_health'] );
-	$new_health_enabled  = is_array( $value ) && ! empty( $value['enable_health'] );
 	$old_sitemap_enabled = is_array( $old_value ) && ! empty( $old_value['enable_sitemap'] );
 	$new_sitemap_enabled = is_array( $value ) && ! empty( $value['enable_sitemap'] );
-
-	if ( $old_health_enabled && ! $new_health_enabled ) {
-		wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
-	}
 
 	if ( $old_sitemap_enabled !== $new_sitemap_enabled ) {
 		erankly_load_sitemap_helpers();
@@ -742,7 +652,6 @@ function erankly_deactivate_current_site(): void {
 	foreach (
 		array(
 			ERANKLY_NETWORK_RESET_CRON_HOOK,
-			'erankly_health_prune_404_cron',
 			ERANKLY_MIGRATION_CRON_HOOK,
 			ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK,
 			ERANKLY_IMPORT_CRON_HOOK,

@@ -536,78 +536,7 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Parse a search string into a free-text remainder plus structured filters.
-	 *
-	 * Recognizes `status:on`/`status:off` (also `active`/`inactive`), `code:301`,
-	 * `type:exact|regex|wildcard`, and `visibility:all|logged_in|logged_out` (also
-	 * `public` as an alias for `all`) tokens anywhere in the string, so that, e.g.,
-	 * searching "code: 301" matches the status code column exactly instead of doing
-	 * a substring match that could also match "301" appearing inside an unrelated
-	 * source path. Filters can be combined; a standalone `&` or `and` between tokens
-	 * is treated the same as whitespace (implicit AND), it's purely a readability aid.
-	 *
-	 * @param string $search Raw search term.
-	 * @return array{text:string,status:bool|null,code:int|null,type:string|null,visibility:string|null}
-	 */
-	private function parse_search( string $search ): array {
-		$status     = null;
-		$code       = null;
-		$type       = null;
-		$visibility = null;
-
-		$search = preg_replace_callback(
-			'/\bstatus\s*:\s*(on|off|active|inactive)\b/i',
-			static function ( array $matches ) use ( &$status ): string {
-				$status = in_array( strtolower( $matches[1] ), array( 'on', 'active' ), true );
-				return '';
-			},
-			$search
-		);
-
-		$search = preg_replace_callback(
-			'/\bcode\s*:\s*(\d+)\b/i',
-			static function ( array $matches ) use ( &$code ): string {
-				$code = (int) $matches[1];
-				return '';
-			},
-			$search
-		);
-
-		$search = preg_replace_callback(
-			'/\btype\s*:\s*(exact|regex|wildcard|contains|starts_with|ends_with)\b/i',
-			static function ( array $matches ) use ( &$type ): string {
-				$type = strtolower( $matches[1] );
-				return '';
-			},
-			$search
-		);
-
-		$search = preg_replace_callback(
-			'/\bvisibility\s*:\s*(all|public|logged[-_]?in|logged[-_]?out)\b/i',
-			static function ( array $matches ) use ( &$visibility ): string {
-				$value      = strtolower( str_replace( '-', '_', $matches[1] ) );
-				$visibility = 'public' === $value ? 'all' : $value;
-				return '';
-			},
-			$search
-		);
-
-		// A standalone "&" or the word "and" is just a visual separator between
-		// filter tokens, not an operator. Collapse it into whitespace like any
-		// other token boundary.
-		$search = preg_replace( '/(?:^|\s)(?:&|and)(?:\s|$)/i', ' ', (string) $search );
-
-		return array(
-			'text'       => trim( preg_replace( '/\s+/', ' ', (string) $search ) ),
-			'status'     => $status,
-			'code'       => $code,
-			'type'       => $type,
-			'visibility' => $visibility,
-		);
-	}
-
-	/**
-	 * Build a WHERE clause and matching bind params for a search term.
+	 * Build a WHERE clause and matching bind params for a source-path search.
 	 *
 	 * @param string $search Raw search term.
 	 * @return array{0:string,1:array<int,mixed>}
@@ -615,40 +544,16 @@ final class ERankly_Redirects_Repository {
 	private function build_search_clause( string $search ): array {
 		global $wpdb;
 
-		$parsed     = $this->parse_search( $search );
-		$conditions = array();
-		$params     = array();
+		$search = trim( $search );
 
-		if ( '' !== $parsed['text'] ) {
-			$conditions[] = 'source_path LIKE %s';
-			$params[]     = '%' . $wpdb->esc_like( $parsed['text'] ) . '%';
-		}
-
-		if ( null !== $parsed['status'] ) {
-			$conditions[] = 'is_active = %d';
-			$params[]     = $parsed['status'] ? 1 : 0;
-		}
-
-		if ( null !== $parsed['code'] ) {
-			$conditions[] = 'status_code = %d';
-			$params[]     = $parsed['code'];
-		}
-
-		if ( null !== $parsed['type'] ) {
-			$conditions[] = 'match_type = %s';
-			$params[]     = $parsed['type'];
-		}
-
-		if ( null !== $parsed['visibility'] ) {
-			$conditions[] = 'visibility = %s';
-			$params[]     = $parsed['visibility'];
-		}
-
-		if ( empty( $conditions ) ) {
+		if ( '' === $search ) {
 			return array( '', array() );
 		}
 
-		return array( ' WHERE ' . implode( ' AND ', $conditions ), $params );
+		return array(
+			' WHERE source_path LIKE %s',
+			array( '%' . $wpdb->esc_like( $search ) . '%' ),
+		);
 	}
 
 	/**
@@ -664,8 +569,7 @@ final class ERankly_Redirects_Repository {
 	/**
 	 * List redirects for admin.
 	 *
-	 * @param string $search  Search term. Supports `status:on|off` and `code:301` filters
-	 *                        in addition to free-text matching against the source path.
+	 * @param string $search  Search term matched against the source path.
 	 * @param int    $page Page number.
 	 * @param int    $per_page Rows per page.
 	 * @param string $orderby Column to sort by. Must be a key of SORTABLE_COLUMNS; any other
@@ -707,9 +611,7 @@ final class ERankly_Redirects_Repository {
 	/**
 	 * Count redirects for admin pagination.
 	 *
-	 * @param string $search Search term. Supports `status:on|off`, `code:301`, `type:exact|regex|wildcard`,
-	 *                       and `visibility:all|logged_in|logged_out` filters (combinable, optionally
-	 *                       separated by "&" or "and") in addition to free-text matching against the source path.
+	 * @param string $search Search term matched against the source path.
 	 * @return int
 	 */
 	public function count_redirects( string $search = '' ): int {

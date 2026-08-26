@@ -11,15 +11,15 @@
  */
 #erankly.postbox .inside {
 	margin-top: 0;
-	padding-top: 12px;
+	padding-top: var(--erankly-space-3);
 }
 
 .erankly-meta-box > .erankly-tabs {
-	margin-bottom: 16px;
+	margin-bottom: var(--erankly-space-field);
 }
 
 .erankly-term-meta-box > .erankly-tabs {
-	margin-top: 12px;
+	margin-top: var(--erankly-space-3);
 }
 
 /* Match the 40px single-line control standard used in the block editor. */

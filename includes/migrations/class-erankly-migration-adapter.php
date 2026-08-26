@@ -698,6 +698,32 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
+	 * Lets add-ons attach destination keys they own to a mapped record.
+	 *
+	 * Core adapters pass generic editorial fields from the source plugin
+	 * (focus keyphrases, cornerstone/pillar flags) without writing add-on
+	 * meta keys themselves.
+	 *
+	 * @param array<string,mixed> $mapped    Core-owned mapped meta.
+	 * @param array<string,mixed> $editorial Editorial payload. Recognised keys:
+	 *                                       focus_keywords (list of strings) and
+	 *                                       cornerstone (bool).
+	 * @return array<string,mixed>
+	 */
+	protected function with_extension_meta( array $mapped, array $editorial = array() ): array {
+		/**
+		 * Filters mapped EasyRankly metadata before it is queued for import.
+		 *
+		 * @param array<string,mixed> $mapped    Core-owned mapped meta.
+		 * @param array<string,mixed> $editorial Source editorial fields.
+		 * @param string              $source    Adapter slug.
+		 */
+		$filtered = apply_filters( 'erankly_migration_mapped_meta', $mapped, $editorial, $this->slug() );
+
+		return is_array( $filtered ) ? $filtered : $mapped;
+	}
+
+	/**
 	 * Checks whether a source value represents an enabled flag.
 	 *
 	 * @param mixed $value Source value.

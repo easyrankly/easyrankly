@@ -762,7 +762,7 @@ function erankly_export_build_data( array $cursor = array(), int $limit = 500 ):
 		$done    = false;
 	}
 
-	return array(
+	$payload = array(
 		'plugin'       => 'erankly',
 		'format'       => ERANKLY_EXPORT_FORMAT,
 		'version'      => ERANKLY_VERSION,
@@ -780,6 +780,10 @@ function erankly_export_build_data( array $cursor = array(), int $limit = 500 ):
 		),
 		'done'         => $done,
 	);
+
+	$payload = apply_filters( 'erankly_export_header', $payload );
+
+	return is_array( $payload ) ? $payload : array();
 }
 
 /**
@@ -882,6 +886,17 @@ function erankly_export_download(): void {
 		'site_url'    => home_url(),
 		'settings'    => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
 	);
+
+	/**
+	 * Filters the native EasyRankly export header.
+	 *
+	 * Add-ons may attach extra keys they own. Do not mutate `settings`.
+	 *
+	 * @param array<string,mixed> $header Export header.
+	 */
+	$header = apply_filters( 'erankly_export_header', $header );
+	$header = is_array( $header ) ? $header : array();
+
 	$encoded_header = wp_json_encode( $header, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 	if ( false === $encoded_header ) {
 		wp_die( esc_html__( 'The export header could not be encoded.', 'easyrankly' ), '', array( 'response' => 500 ) );
@@ -933,6 +948,8 @@ function erankly_import_apply_legacy_unbounded( array $data ): array {
 		erankly_update_plugin_option( ERANKLY_OPTION, $clean );
 		$counts['settings'] = 1;
 	}
+
+	do_action( 'erankly_imported_payload', $data );
 
 	// Accept per-site special-page metadata on either architecture so imported
 	// configuration files remain portable.

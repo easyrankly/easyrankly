@@ -12,8 +12,8 @@
 .erankly-settings-layout {
 	align-items: flex-start;
 	display: flex;
-	gap: 24px;
-	margin-top: 16px;
+	gap: var(--erankly-space-5);
+	margin-top: var(--erankly-space-4);
 }
 
 .erankly-settings-sidebar-nav {
@@ -30,7 +30,7 @@
 	font-size: 23px;
 	font-weight: 400;
 	line-height: 1.3;
-	margin: 0 0 12px;
+	margin: 0 0 var(--erankly-space-3);
 	padding: 0;
 }
 
@@ -44,7 +44,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	margin-top: 10px;
+	margin-top: var(--erankly-space-3);
 }
 
 .erankly-settings-nav-heading {
@@ -53,17 +53,17 @@
 	font-weight: 600;
 	letter-spacing: 0.04em;
 	line-height: 1.4;
-	padding: 4px 12px;
+	padding: var(--erankly-space-1) var(--erankly-space-3);
 	text-transform: uppercase;
 }
 
 .erankly-settings-nav-section + .erankly-settings-nav-item {
-	margin-top: 10px;
+	margin-top: var(--erankly-space-3);
 }
 
 .erankly-settings-sidebar-toggle {
 	align-items: center;
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border);
 	border-radius: var(--erankly-radius-control);
 	cursor: pointer;
@@ -71,7 +71,7 @@
 	font-size: 14px;
 	font-weight: 600;
 	justify-content: space-between;
-	padding: 10px 12px;
+	padding: var(--erankly-space-3);
 	text-align: left;
 	width: 100%;
 }
@@ -82,7 +82,7 @@
 	content: "";
 	flex-shrink: 0;
 	height: 7px;
-	margin-left: 12px;
+	margin-left: var(--erankly-space-3);
 	transform: rotate(45deg);
 	transition: transform 0.15s;
 	width: 7px;
@@ -102,7 +102,7 @@
 	cursor: pointer;
 	font-size: 14px;
 	line-height: 1.4;
-	padding: 8px 10px 8px 9px;
+	padding: var(--erankly-space-2) 10px var(--erankly-space-2) 9px;
 	text-align: left;
 	text-decoration: none;
 	width: 100%;
@@ -116,14 +116,14 @@
 
 .erankly-settings-nav-item:disabled,
 .erankly-settings-nav-item[aria-disabled="true"] {
-	color: #a7aaad;
+	color: var(--erankly-color-disabled);
 	cursor: default;
 }
 
 .erankly-settings-nav-item:disabled:hover,
 .erankly-settings-nav-item[aria-disabled="true"]:hover {
 	background: transparent;
-	color: #a7aaad;
+	color: var(--erankly-color-disabled);
 }
 
 .erankly-settings-nav-item:focus-visible {
@@ -153,11 +153,11 @@
 }
 
 .erankly-settings-submit {
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border-top: 1px solid var(--erankly-color-border);
 	bottom: 0;
-	margin-top: 24px;
-	padding: 16px 0;
+	margin-top: var(--erankly-space-section);
+	padding: var(--erankly-space-4) 0;
 	position: sticky;
 }
 
@@ -173,17 +173,17 @@
 	max-height: 0;
 	opacity: 0;
 	overflow: hidden;
-	padding: 0 10px;
+	padding: 0 var(--erankly-space-3);
 	transform: translateY(-4px);
 	transition: opacity 0.15s ease, transform 0.15s ease, max-height 0.15s ease, margin-top 0.15s ease, padding 0.15s ease, background-color 0.15s ease;
 }
 
 .erankly-autosave-status.is-visible {
 	background: var(--erankly-color-success-surface);
-	margin-top: 6px;
+	margin-top: var(--erankly-space-2);
 	max-height: 34px;
 	opacity: 1;
-	padding: 8px 10px;
+	padding: var(--erankly-space-2) var(--erankly-space-3);
 	transform: translateY(0);
 }
 
@@ -200,7 +200,7 @@
 @media screen and (max-width: 782px) {
 	.erankly-settings-layout {
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--erankly-space-3);
 	}
 
 	.erankly-settings-sidebar-nav {
@@ -219,8 +219,8 @@
 		border: 1px solid var(--erankly-color-border);
 		border-radius: var(--erankly-radius-surface);
 		display: none;
-		margin-top: 4px;
-		padding: 8px;
+		margin-top: var(--erankly-space-1);
+		padding: var(--erankly-space-2);
 	}
 
 	.erankly-settings-sidebar-nav.is-expanded .erankly-settings-nav-tablist {
@@ -241,8 +241,69 @@
 }
 
 .erankly-field {
-	margin: 0 0 16px;
+	margin: 0 0 var(--erankly-space-field);
 	min-width: 0;
+}
+
+/*
+ * Field anatomy: one label-to-control gap on every classic admin surface.
+ * Help text after a control uses the tighter help gap; help text between a
+ * label and its control keeps the label gap below it.
+ */
+.erankly-field > label,
+.erankly-field > .erankly-field-label,
+.erankly-field > legend,
+.erankly-schema-field > label,
+.erankly-setup-section > label:not(.erankly-setup-choice),
+.erankly-setup-field-label,
+.erankly-redirects-form label > span {
+	display: block;
+	margin: 0 0 var(--erankly-space-label);
+}
+
+.erankly-field:not(fieldset) > label,
+.erankly-field > .erankly-field-label,
+.erankly-field > legend,
+.erankly-schema-field > label,
+.erankly-setup-section > label:not(.erankly-setup-choice),
+.erankly-setup-field-label,
+.erankly-redirects-form label > span {
+	font-weight: 600;
+}
+
+.erankly-field > .description,
+.erankly-field > p.description,
+.erankly-meta-box .description,
+.erankly-character-counter {
+	display: block;
+	margin: var(--erankly-space-help) 0 0;
+}
+
+/*
+ * Caption label, then help, then control: tighten label→help (4px) and keep
+ * the label gap below the help. Skip labels that wrap a control (toggles);
+ * those already are the control, so help uses the after-control gap above.
+ */
+.erankly-field > label:not(:has(input, select, textarea)):has(+ .description),
+.erankly-field > label:not(:has(input, select, textarea)):has(+ p.description),
+.erankly-field > .erankly-field-label:has(+ .description),
+.erankly-field > .erankly-field-label:has(+ p.description),
+.erankly-field > legend:has(+ .description),
+.erankly-field > legend:has(+ p.description) {
+	margin-bottom: var(--erankly-space-help);
+}
+
+.erankly-field > label:not(:has(input, select, textarea)) + .description,
+.erankly-field > label:not(:has(input, select, textarea)) + p.description,
+.erankly-field > .erankly-field-label + .description,
+.erankly-field > .erankly-field-label + p.description,
+.erankly-field > legend + .description,
+.erankly-field > legend + p.description {
+	margin: 0 0 var(--erankly-space-label);
+}
+
+.erankly-field > label:has(input, select, textarea) {
+	margin-bottom: 0;
 }
 
 /*
@@ -251,17 +312,17 @@
  * Restyle sections everywhere by editing this one block.
  */
 .erankly-card {
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border);
 	border-radius: var(--erankly-radius-surface);
 	box-sizing: border-box;
-	margin: 0 0 24px;
+	margin: 0 0 var(--erankly-space-section);
 	max-width: 720px;
-	padding: 24px;
+	padding: var(--erankly-space-section);
 }
 
 .erankly-settings-section {
-	margin: 0 0 24px;
+	margin: 0 0 var(--erankly-space-section);
 	max-width: 720px;
 }
 
@@ -278,7 +339,7 @@
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.04em;
-	margin: 0 0 8px;
+	margin: 0 0 var(--erankly-space-label);
 	text-transform: uppercase;
 }
 
@@ -316,7 +377,7 @@
    toolbar, table, notices, summary, action button) so every gap matches. */
 .erankly-panel-expandable > .erankly-card > * {
 	margin-top: 0;
-	margin-bottom: 12px;
+	margin-bottom: var(--erankly-space-3);
 }
 
 .erankly-panel-expandable > .erankly-card > *:last-child {
@@ -326,16 +387,16 @@
 .erankly-panel-toolbar {
 	align-items: center;
 	display: flex;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	justify-content: space-between;
-	margin: 0 0 12px;
+	margin: 0 0 var(--erankly-space-3);
 }
 
 .erankly-panel-controls {
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	margin: 0;
 }
 
@@ -377,7 +438,7 @@
 }
 
 .erankly-panel-table {
-	border-radius: var(--erankly-radius-surface, 2px);
+	border-radius: var(--erankly-radius-surface);
 	overflow: hidden;
 }
 
@@ -388,7 +449,7 @@
 
 .erankly-panel-table td.erankly-panel-empty {
 	color: var(--erankly-color-muted);
-	padding: 16px;
+	padding: var(--erankly-space-4);
 	text-align: center;
 }
 

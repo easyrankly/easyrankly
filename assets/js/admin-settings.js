@@ -10,7 +10,7 @@
   }
 
   function bindSettingsReplacement(root) {
-    ["bindTabs", "bindSettingsTabs", "bindSimplifiedMode"].forEach(
+    ["bindTabs", "bindSettingsTabs"].forEach(
       function (callbackName) {
         if (typeof ER[callbackName] === "function") {
           ER[callbackName](root);
@@ -29,11 +29,6 @@
     bindEach(root, "[data-erankly-local-business]", "bindLocalBusiness");
     bindEach(root, "[data-erankly-file-dropzone]", "bindFileDropzone");
     bindEach(root, "[data-erankly-segment-control]", "bindSegmentControl");
-
-    var bloatPanel = root.querySelector("#erankly-settings-panel-bloat");
-    if (bloatPanel && typeof ER.bindBloatToggle === "function") {
-      ER.bindBloatToggle(bloatPanel);
-    }
 
     bindAllSettingsAutosave(root);
   }

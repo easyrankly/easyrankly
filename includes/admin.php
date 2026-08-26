@@ -55,7 +55,6 @@ function erankly_admin_bootstrap(): void {
 		add_filter( 'plugin_action_links_' . plugin_basename( ERANKLY_FILE ), 'erankly_plugin_action_links' );
 	}
 
-	add_action( 'admin_init', 'erankly_maybe_disable_ai_without_provider' );
 	add_action( 'admin_init', 'erankly_setup_wizard_maybe_redirect' );
 	add_action( 'admin_post_erankly_setup_save', 'erankly_setup_wizard_save' );
 	add_action( 'admin_post_erankly_setup_skip', 'erankly_setup_wizard_skip' );
@@ -97,17 +96,6 @@ function erankly_admin_load_reset_module(): void {
 }
 
 /**
- * Loads the Health settings surface only for its owning admin request.
- *
- * @return void
- */
-function erankly_admin_load_health_module(): void {
-	if ( erankly_health_enabled() && function_exists( 'erankly_health_load_admin_surface' ) ) {
-		erankly_health_load_admin_surface();
-	}
-}
-
-/**
  * Returns the requested top-level settings tab.
  *
  * This deliberately performs only request routing. Availability and
@@ -141,27 +129,30 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 		if ( ! erankly_use_site_editor_special_page_panels() ) {
 			$site_tabs[] = 'special-pages';
 		}
-		if ( erankly_health_enabled() ) {
-			$site_tabs[] = 'health';
-		}
-		if ( erankly_link_building_enabled() ) {
-			$site_tabs[] = 'links';
-		}
 		if ( erankly_redirects_enabled() ) {
 			$site_tabs[] = 'redirects';
 		}
+
+		/**
+		 * Filters the per-site settings tabs available on Multisite.
+		 *
+		 * @param array<int,string> $site_tabs Tab slugs.
+		 */
+		$site_tabs = apply_filters( 'erankly_admin_site_settings_tabs', $site_tabs );
+		$site_tabs = is_array( $site_tabs ) ? array_values( array_filter( $site_tabs, 'is_string' ) ) : array();
 
 		return in_array( $requested_tab, $site_tabs, true )
 			? $requested_tab
 			: ( $site_tabs[0] ?? '' );
 	}
 
+	if ( 'advanced' === $requested_tab && (bool) erankly_get_setting( 'simplified_mode', 1 ) ) {
+		return 'settings';
+	}
+
 	$unavailable = (
 		( 'sitemap' === $requested_tab && ! erankly_sitemap_enabled() )
 		|| ( 'redirects' === $requested_tab && ( is_network_admin() || ! erankly_redirects_enabled() ) )
-		|| ( 'health' === $requested_tab && ( is_network_admin() || ! erankly_health_enabled() ) )
-		|| ( 'links' === $requested_tab && ( is_network_admin() || ! erankly_link_building_enabled() ) )
-		|| ( 'ai' === $requested_tab && ( ! erankly_ai_module_enabled() || erankly_get_setting( 'simplified_mode', 1 ) ) )
 		|| ( 'special-pages' === $requested_tab )
 	);
 
@@ -204,13 +195,18 @@ function erankly_admin_register_network_settings_page(): void {
  *
  * Classic themes and block themes before WordPress 6.6 expose the special-page
  * fallback. Block themes on WordPress 6.6+ register this page only when a
- * per-site module such as Redirects or Health is enabled. Import/Export stays
+ * per-site module such as Redirects is enabled, or an add-on reports one via
+ * `erankly_admin_site_settings_modules_enabled`. Import/Export stays
  * network-admin-only on Multisite.
  *
  * @return void
  */
 function erankly_admin_register_site_settings_page(): void {
-	if ( erankly_use_site_editor_special_page_panels() && ! erankly_redirects_enabled() && ! erankly_health_enabled() && ! erankly_link_building_enabled() ) {
+	if (
+		erankly_use_site_editor_special_page_panels()
+		&& ! erankly_redirects_enabled()
+		&& ! apply_filters( 'erankly_admin_site_settings_modules_enabled', false )
+	) {
 		return;
 	}
 
@@ -232,8 +228,6 @@ function erankly_admin_render_settings_page(): void {
 		erankly_admin_load_import_export_module();
 	} elseif ( 'settings' === $tab ) {
 		erankly_admin_load_reset_module();
-	} elseif ( 'health' === $resolved_tab ) {
-		erankly_admin_load_health_module();
 	}
 
 	erankly_render_settings_page();
@@ -513,12 +507,8 @@ function erankly_admin_asset_modules( string $surface ): array {
 		'social'        => array( 'tabs', 'media', 'variables', 'settings' ),
 		'schema'        => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
 		'sitemap'       => array( 'tabs', 'settings' ),
-		'health'        => array( 'tabs', 'panels' ),
-		'links'         => array( 'tabs', 'panels' ),
 		'settings'      => array( 'tabs', 'settings', 'reset' ),
 		'advanced'      => array( 'tabs', 'variables', 'settings' ),
-		'ai'            => array( 'tabs', 'panels', 'settings' ),
-		'bloat'         => array( 'tabs', 'widgets', 'settings' ),
 		'import-export' => array( 'tabs', 'fields' ),
 		'redirects'     => array( 'tabs', 'panels' ),
 		'special-pages' => array( 'tabs', 'media', 'variables', 'settings' ),
@@ -529,27 +519,37 @@ function erankly_admin_asset_modules( string $surface ): array {
 
 		// Add-on tabs historically received the complete bundle. Keep that public
 		// compatibility surface while core tabs use the strict manifest above.
-			return $settings_modules[ $tab ] ?? array_keys(
-				array(
-					'media'     => true,
-					'tabs'      => true,
-					'fields'    => true,
-					'variables' => true,
-					'schema'    => true,
-					'widgets'   => true,
-					'settings'  => true,
-					'panels'    => true,
-				)
-			);
+		$modules = $settings_modules[ $tab ] ?? array_keys(
+			array(
+				'media'     => true,
+				'tabs'      => true,
+				'fields'    => true,
+				'variables' => true,
+				'schema'    => true,
+				'widgets'   => true,
+				'settings'  => true,
+				'panels'    => true,
+			)
+		);
+	} else {
+		$surfaces = array(
+			'setup'          => array( 'widgets' ),
+			'classic-editor' => array( 'media', 'checklist', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
+			'taxonomy'       => array( 'media', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
+		);
+
+		$modules = $surfaces[ $surface ] ?? array();
 	}
 
-	$surfaces = array(
-		'setup'          => array( 'widgets' ),
-		'classic-editor' => array( 'media', 'checklist', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
-		'taxonomy'       => array( 'media', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
-	);
+	/**
+	 * Filters the JS modules enqueued for one admin surface.
+	 *
+	 * @param array<int,string> $modules Module slugs.
+	 * @param string            $surface Surface identifier such as "settings:general".
+	 */
+	$modules = apply_filters( 'erankly_admin_asset_modules', $modules, $surface );
 
-	return $surfaces[ $surface ] ?? array();
+	return is_array( $modules ) ? array_values( array_filter( $modules, 'is_string' ) ) : array();
 }
 
 /**
@@ -591,10 +591,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	$settings_tab = $is_settings ? erankly_admin_resolve_settings_tab( erankly_admin_requested_settings_tab() ) : '';
 	$surface      = $is_settings ? 'settings:' . $settings_tab : '';
 
-	if ( $is_settings && 'health' === $settings_tab ) {
-		erankly_admin_load_health_module();
-	}
-
 	if ( $is_setup ) {
 		$surface = 'setup';
 	} elseif ( $is_taxonomy ) {
@@ -628,10 +624,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 
 		if ( 'settings' === $settings_tab ) {
 			wp_enqueue_style( 'erankly-reset', ERANKLY_URL . 'assets/css/reset.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
-		}
-
-		if ( 'health' === $settings_tab ) {
-			wp_enqueue_style( 'erankly-health', ERANKLY_URL . 'assets/css/health.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 		}
 	} elseif ( $is_setup ) {
 		wp_enqueue_style( 'erankly-setup', ERANKLY_URL . 'assets/css/setup.css', array( 'erankly-admin' ), ERANKLY_VERSION );
@@ -699,93 +691,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		if ( $post instanceof WP_Post ) {
 			require_once ERANKLY_PATH . 'admin/meta-box.php';
 
-			if ( erankly_content_analysis_enabled() ) {
-				wp_enqueue_style(
-					'erankly-content-analysis',
-					ERANKLY_URL . 'assets/css/content-analysis.css',
-					array( 'erankly-classic-editor' ),
-					ERANKLY_VERSION
-				);
-				wp_enqueue_script(
-					'erankly-content-analysis',
-					ERANKLY_URL . 'assets/js/content-analysis.js',
-					array(),
-					ERANKLY_VERSION,
-					true
-				);
-				wp_localize_script(
-					'erankly-content-analysis',
-					'eranklyContentAnalysis',
-					array(
-						'aiEnabled'  => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
-						'suggestUrl' => esc_url_raw( rest_url( 'erankly/v1/ai/content-analysis/' . $post->ID . '/keyword-suggestion' ) ),
-						'nonce'      => wp_create_nonce( 'wp_rest' ),
-						'restUrl'    => esc_url_raw( rest_url( 'erankly/v1/ai/content-analysis/' . $post->ID ) ),
-						'i18n'       => array(
-							'analyze'          => __( 'Analyze', 'easyrankly' ),
-							'analyzing'        => __( 'Analyzing content…', 'easyrankly' ),
-							'suggestKeyword'   => __( 'Suggest keyword', 'easyrankly' ),
-							'suggesting'       => __( 'Suggesting keyword…', 'easyrankly' ),
-							'suggestError'     => __( 'Keyword suggestion failed. Try again.', 'easyrankly' ),
-							'suggestInvalid'   => __( 'The AI did not return a valid keyword.', 'easyrankly' ),
-							'suggestLimit'     => __( 'Remove a focus keyword before applying this suggestion.', 'easyrankly' ),
-							'openAnalysis'     => __( 'Open analysis', 'easyrankly' ),
-							'analysisUpdated'  => __( 'Analysis updated.', 'easyrankly' ),
-							'analysisDeleted'  => __( 'Analysis deleted.', 'easyrankly' ),
-							'analysisStale'    => __( 'Content changed after this analysis.', 'easyrankly' ),
-							'loadError'        => __( 'Could not load the saved analysis.', 'easyrankly' ),
-							'error'            => __( 'The content analysis failed. Please try again.', 'easyrankly' ),
-							'keywordRequired'  => __( 'Add at least one focus keyword before analyzing.', 'easyrankly' ),
-							'keywordLimit'     => __( 'Use no more than ten focus keywords for one analysis.', 'easyrankly' ),
-							'primary'          => __( 'Primary', 'easyrankly' ),
-							'removeKeyword'    => __( 'Remove keyword', 'easyrankly' ),
-							'inFocus'          => __( 'In focus', 'easyrankly' ),
-							'partiallyInFocus' => __( 'Partially in focus', 'easyrankly' ),
-							'outOfFocus'       => __( 'Out of focus', 'easyrankly' ),
-							'focusScore'       => __( 'Editorial focus score', 'easyrankly' ),
-							'searchIntent'     => __( 'Search intent', 'easyrankly' ),
-							'strengths'        => __( 'What already works', 'easyrankly' ),
-							'keywordReview'    => __( 'Keyword review', 'easyrankly' ),
-							'priorities'       => __( 'Priority improvements', 'easyrankly' ),
-							'morePriorities'   => __( 'More improvements', 'easyrankly' ),
-							'missingTopics'    => __( 'Missing topics', 'easyrankly' ),
-							'headings'         => __( 'Suggested structure', 'easyrankly' ),
-							'sentences'        => __( 'Ready-to-use sentences', 'easyrankly' ),
-							'pillar'           => __( 'Pillar readiness', 'easyrankly' ),
-							'clusterIdeas'     => __( 'Supporting content ideas', 'easyrankly' ),
-							'linkActions'      => __( 'Internal-link actions', 'easyrankly' ),
-							'warnings'         => __( 'Watch-outs', 'easyrankly' ),
-							'measuredSignals'  => __( 'Measured signals', 'easyrankly' ),
-							'coverage'         => __( 'Content coverage', 'easyrankly' ),
-							'words'            => __( 'Words', 'easyrankly' ),
-							'headingsCount'    => __( 'Headings', 'easyrankly' ),
-							'inboundLinks'     => __( 'Inbound links', 'easyrankly' ),
-							'outboundLinks'    => __( 'Outbound links', 'easyrankly' ),
-							'conflicts'        => __( 'Possible keyword cannibalization', 'easyrankly' ),
-							'copy'             => __( 'Copy', 'easyrankly' ),
-							'copied'           => __( 'Copied', 'easyrankly' ),
-							'showDetails'      => __( 'Show details', 'easyrankly' ),
-							'hideDetails'      => __( 'Hide details', 'easyrankly' ),
-							'analyzedAt'       => __( 'Analyzed', 'easyrankly' ),
-							'strong'           => __( 'Strong', 'easyrankly' ),
-							'partial'          => __( 'Partial', 'easyrankly' ),
-							'weak'             => __( 'Weak', 'easyrankly' ),
-							'missing'          => __( 'Missing', 'easyrankly' ),
-							'overused'         => __( 'Overused', 'easyrankly' ),
-							'notApplicable'    => __( 'Not applicable', 'easyrankly' ),
-							'highPriority'     => __( 'High priority', 'easyrankly' ),
-							'mediumPriority'   => __( 'Medium priority', 'easyrankly' ),
-							'lowPriority'      => __( 'Low priority', 'easyrankly' ),
-							'exactMentions'    => __( 'Exact mentions', 'easyrankly' ),
-							'title'            => __( 'Title', 'easyrankly' ),
-							'opening'          => __( 'Opening', 'easyrankly' ),
-							'yes'              => __( 'Yes', 'easyrankly' ),
-							'no'               => __( 'No', 'easyrankly' ),
-						),
-					)
-				);
-			}
-
 			wp_localize_script(
 				'erankly-admin',
 				'eranklyChecklist',
@@ -802,45 +707,8 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		}
 	}
 
-	// "Generate with AI" support for the classic editor meta box and the term
-	// forms. The block editor wires its own button through editor.js.
-	if ( ( $is_editor || $is_taxonomy ) && function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled() ) {
-		erankly_ai_enqueue_assets();
-	}
-
-	// The Health tab's Broken-Link Candidates crawler runs in batches over REST,
-	// driven by this script (see erankly_health_bl_render_section()).
-	if ( $is_settings && 'health' === $settings_tab && function_exists( 'erankly_health_bl_get_results' ) ) {
-		wp_enqueue_script(
-			'erankly-health-broken-links',
-			ERANKLY_URL . 'assets/js/health-broken-links.js',
-			array(),
-			ERANKLY_VERSION,
-			true
-		);
-
-		wp_localize_script(
-			'erankly-health-broken-links',
-			'eranklyHealthBrokenLinks',
-			array(
-				'i18n' => array(
-					'starting' => __( 'Starting…', 'easyrankly' ),
-					'crawling' => __( 'Crawling pages:', 'easyrankly' ),
-					'queued'   => __( 'queued', 'easyrankly' ),
-					'checking' => __( 'Checking links:', 'easyrankly' ),
-					'broken'   => __( 'broken', 'easyrankly' ),
-					'complete' => __( 'Scan complete. Reloading…', 'easyrankly' ),
-					'stopping' => __( 'Stopping…', 'easyrankly' ),
-					'stopped'  => __( 'Scan stopped.', 'easyrankly' ),
-					'error'    => __( 'The scan failed. Please try again.', 'easyrankly' ),
-				),
-			)
-		);
-	}
-
-	// Strings for the shared expandable table panel (bindExpandablePanel), used
-	// on the Redirects, Broken-Link, and Frequent 404 sections.
-	if ( $is_settings && in_array( $settings_tab, array( 'health', 'links', 'redirects' ), true ) ) {
+	// Strings for the shared expandable table panel (bindExpandablePanel).
+	if ( in_array( 'panels', $asset_modules, true ) ) {
 		wp_localize_script(
 			'erankly-admin',
 			'eranklyPanels',
@@ -878,15 +746,15 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				// request (only the page-render callback loads it, which runs
 				// after admin_enqueue_scripts), so calling into that registry
 				// here would fatal on Multisite.
-				'panels' => array_filter(
+				'panels' => apply_filters(
+					'erankly_settings_autosave_client_panels',
+					array_filter(
 					array(
 						'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
-						'ai'            => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/ai' ) ) ),
 						'advanced'      => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ) ),
 						'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
-						'bloat'         => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/bloat' ) ) ),
 						// Its checkboxes control which OTHER tabs are visible
-						// (Redirects/Sitemap/Health/AI), so the admin JS
+						// (Redirects/Sitemap and add-on feature tabs), so the admin JS
 						// refreshes the EasyRankly settings wrapper after a successful
 						// save to pick up the updated PHP-rendered navigation.
 						'features'      => array(
@@ -894,10 +762,9 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 							'reloadOnSave' => true,
 						),
 						// Simplified mode drives PHP-rendered markup across the whole
-						// page (Advanced/AI tab visibility, Bloat's simple vs advanced
-						// view, social/visibility defaults rendered as hidden inputs),
-						// so like Features it needs the settings wrapper refreshed
-						// after save.
+						// page (Advanced tab visibility, social/visibility defaults
+						// rendered as hidden inputs), so like Features it needs the
+						// settings wrapper refreshed after save.
 						'settings'      => array(
 							'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
 							'reloadOnSave' => true,
@@ -910,6 +777,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 						'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
 					),
 					'is_array'
+				)
 				),
 			)
 		);
@@ -931,87 +799,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			true
 		);
 
-		// The structured search-filter picker (status:/code:/type:/visibility:) is an
-		// advanced-only affordance; simplified mode keeps the redirects search plain.
-		$redirects_simplified     = (bool) erankly_get_setting( 'simplified_mode', 1 );
-		$redirects_search_filters = $redirects_simplified ? array() : array(
-			array(
-				'key'    => 'status',
-				'label'  => __( 'Status', 'easyrankly' ),
-				'values' => array(
-					array(
-						'value' => 'on',
-						'label' => __( 'On (active)', 'easyrankly' ),
-					),
-					array(
-						'value' => 'off',
-						'label' => __( 'Off (inactive)', 'easyrankly' ),
-					),
-				),
-			),
-			array(
-				'key'    => 'code',
-				'label'  => __( 'HTTP code', 'easyrankly' ),
-				'values' => array_map(
-					static function ( int $code ): array {
-						return array(
-							'value' => (string) $code,
-							'label' => ERankly_Redirects_Normalizer::status_code_label( $code ),
-						);
-					},
-					ERankly_Redirects_Normalizer::VALID_STATUS_CODES
-				),
-			),
-			array(
-				'key'    => 'type',
-				'label'  => __( 'Match type', 'easyrankly' ),
-				'values' => array(
-					array(
-						'value' => 'exact',
-						'label' => __( 'Exact path', 'easyrankly' ),
-					),
-					array(
-						'value' => 'regex',
-						'label' => __( 'Regex', 'easyrankly' ),
-					),
-					array(
-						'value' => 'wildcard',
-						'label' => __( 'Wildcard', 'easyrankly' ),
-					),
-					array(
-						'value' => 'contains',
-						'label' => __( 'Contains', 'easyrankly' ),
-					),
-					array(
-						'value' => 'starts_with',
-						'label' => __( 'Starts with', 'easyrankly' ),
-					),
-					array(
-						'value' => 'ends_with',
-						'label' => __( 'Ends with', 'easyrankly' ),
-					),
-				),
-			),
-			array(
-				'key'    => 'visibility',
-				'label'  => __( 'Visibility', 'easyrankly' ),
-				'values' => array(
-					array(
-						'value' => 'all',
-						'label' => __( 'Everyone', 'easyrankly' ),
-					),
-					array(
-						'value' => 'logged_out',
-						'label' => __( 'Logged-out users only', 'easyrankly' ),
-					),
-					array(
-						'value' => 'logged_in',
-						'label' => __( 'Logged-in users only', 'easyrankly' ),
-					),
-				),
-			),
-		);
-
 		wp_localize_script(
 			'erankly-redirects',
 			'eranklyRedirects',
@@ -1026,10 +813,29 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'activeNo'      => __( 'No', 'easyrankly' ),
 				'toggleError'   => __( 'The redirect status could not be changed.', 'easyrankly' ),
 				'deleteError'   => __( 'The redirect could not be deleted.', 'easyrankly' ),
-				'searchFilters' => $redirects_search_filters,
 			)
 		);
 	}
+
+	/**
+	 * Fires after EasyRankly has enqueued its admin assets for this screen.
+	 *
+	 * @param array<string,mixed> $context Screen flags for add-ons.
+	 */
+	do_action(
+		'erankly_admin_enqueue_assets',
+		array(
+			'hook_suffix'     => $hook_suffix,
+			'screen'          => $screen,
+			'is_settings'     => $is_settings,
+			'is_setup'        => $is_setup,
+			'is_editor'       => $is_editor,
+			'is_taxonomy'     => $is_taxonomy,
+			'is_block_editor' => false,
+			'is_site_editor'  => false,
+			'settings_tab'    => $settings_tab,
+		)
+	);
 }
 
 /**
@@ -1071,18 +877,6 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 
 	erankly_enqueue_editor_shared_assets();
 	erankly_enqueue_accordion_faq_schema_assets();
-	if ( erankly_content_analysis_enabled() ) {
-		wp_enqueue_style(
-			'erankly-content-analysis',
-			ERANKLY_URL . 'assets/css/content-analysis.css',
-			array( 'erankly-editor' ),
-			ERANKLY_VERSION
-		);
-	}
-
-	if ( erankly_internal_links_available() ) {
-		wp_enqueue_script( 'erankly-link-suggestions' );
-	}
 
 	$editor_deps = array(
 		'erankly-editor-shared',
@@ -1093,13 +887,10 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		'wp-edit-post',
 		'wp-editor',
 		'wp-element',
+		'wp-hooks',
 		'wp-i18n',
 		'wp-plugins',
 	);
-
-	if ( wp_script_is( 'erankly-link-suggestions', 'enqueued' ) ) {
-		$editor_deps[] = 'erankly-link-suggestions';
-	}
 
 	wp_enqueue_script(
 		'erankly-editor',
@@ -1129,14 +920,28 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 				'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
 				'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
 				'variables'                     => erankly_get_variable_groups(),
-				'aiEnabled'                     => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
-				'aiGeneratePath'                => '/erankly/v1/ai/generate',
-				'contentAnalysisEnabled'        => erankly_content_analysis_enabled(),
-				'contentAnalysisPath'           => '/erankly/v1/ai/content-analysis/',
-				'aiContentLimit'                => function_exists( 'erankly_ai_get_content_limit' ) ? erankly_ai_get_content_limit() : 4000,
-				'internalLinksEnabled'          => erankly_internal_links_available(),
 			),
 			erankly_get_seo_checklist_editor_config( $post )
+		)
+	);
+
+	/**
+	 * Fires after EasyRankly has enqueued its admin assets for this screen.
+	 *
+	 * @param array<string,mixed> $context Screen flags for add-ons.
+	 */
+	do_action(
+		'erankly_admin_enqueue_assets',
+		array(
+			'hook_suffix'     => '',
+			'screen'          => get_current_screen(),
+			'is_settings'     => false,
+			'is_setup'        => false,
+			'is_editor'       => true,
+			'is_taxonomy'     => false,
+			'is_block_editor' => true,
+			'is_site_editor'  => false,
+			'settings_tab'    => '',
 		)
 	);
 }
@@ -1172,6 +977,28 @@ function erankly_enqueue_editor_shared_assets(): void {
 		true
 	);
 	wp_set_script_translations( 'erankly-editor-shared', 'easyrankly', ERANKLY_PATH . 'languages' );
+	wp_localize_script(
+		'erankly-editor-shared',
+		'eranklyEditorShared',
+		array(
+			'panelOrder' => array_values(
+				array_filter(
+					(array) apply_filters(
+						'erankly_editor_panel_order',
+						array(
+							'erankly-panel--appearance',
+							'erankly-panel--social',
+							'erankly-panel--schema',
+							'erankly-panel--visibility',
+							'erankly-panel--checklist',
+							'erankly-panel--translations',
+						)
+					),
+					'is_string'
+				)
+			),
+		)
+	);
 }
 
 /**
@@ -1211,6 +1038,7 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'wp-data',
 			'wp-editor',
 			'wp-element',
+			'wp-hooks',
 			'wp-i18n',
 			'wp-plugins',
 		),
@@ -1224,9 +1052,6 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 		'eranklySiteEditor',
 		array(
 			'contextLabels'                  => erankly_special_page_keys(),
-			'aiEnabled'                      => function_exists( 'erankly_ai_enabled' ) && erankly_ai_enabled(),
-			'aiGeneratePath'                 => '/erankly/v1/ai/generate',
-			'aiContentLimit'                 => function_exists( 'erankly_ai_get_content_limit' ) ? erankly_ai_get_content_limit() : 4000,
 			'descriptionPlaceholder'         => '',
 			'homeUrl'                        => home_url( '/' ),
 			'ogDescriptionPlaceholder'       => (string) erankly_get_setting( 'default_og_description', '' ),
@@ -1246,6 +1071,21 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'variables'                      => erankly_get_variable_groups(),
 		)
 	);
+	do_action(
+		'erankly_admin_enqueue_assets',
+		array(
+			'hook_suffix'     => '',
+			'screen'          => get_current_screen(),
+			'is_settings'     => false,
+			'is_setup'        => false,
+			'is_editor'       => false,
+			'is_taxonomy'     => false,
+			'is_block_editor' => false,
+			'is_site_editor'  => true,
+			'settings_tab'    => '',
+		)
+	);
+
 }
 
 /**

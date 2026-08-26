@@ -448,9 +448,10 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			$mapped['_erankly_image_directive'] = 'noimageindex';
 		}
 
-		$keywords = $this->keywords( $meta['_seopress_analysis_target_kw'] ?? '' );
+		$editorial = array();
+		$keywords  = $this->keywords( $meta['_seopress_analysis_target_kw'] ?? '' );
 		if ( ! empty( $keywords ) ) {
-			$mapped['_erankly_focus_keywords'] = $keywords;
+			$editorial['focus_keywords'] = $keywords;
 		}
 
 		if ( 'post' === $object_type && absint( $meta['_seopress_robots_primary_cat'] ?? 0 ) > 0 ) {
@@ -498,7 +499,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			}
 		}
 
-		return $mapped;
+		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
 	/**

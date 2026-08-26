@@ -33,7 +33,6 @@ function erankly_uninstall_site(): void {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private migration uploads during uninstall.', 'easyrankly' ) );
 	}
 
-	wp_clear_scheduled_hook( 'erankly_health_prune_404_cron' );
 	wp_unschedule_hook( 'erankly_network_reset_batch' );
 	wp_unschedule_hook( 'erankly_migration_process_batch' );
 	wp_unschedule_hook( 'erankly_migration_rollback_batch' );
@@ -72,21 +71,6 @@ function erankly_uninstall_site(): void {
 	delete_option( 'erankly_rewrite_signature' );
 	delete_option( 'rewrite_rules' );
 	delete_option( 'erankly_sitemap_cache_version' );
-	delete_option( 'erankly_health_404_candidates' );
-	delete_option( 'erankly_health_404_frequent' );
-	delete_option( 'erankly_health_404_states' );
-	delete_option( 'erankly_health_404_storage_version' );
-	delete_option( 'erankly_health_404_storage_lock' );
-	delete_option( 'erankly_health_ai_suggestions' );
-	delete_option( 'erankly_health_thin_content' );
-	delete_option( 'erankly_health_bl_state' );
-	delete_option( 'erankly_health_bl_queue' );
-	delete_option( 'erankly_health_bl_visited' );
-	delete_option( 'erankly_health_bl_links' );
-	delete_option( 'erankly_health_bl_check_queue' );
-	delete_option( 'erankly_health_bl_found' );
-	delete_option( 'erankly_health_bl_results' );
-	delete_option( 'erankly_lb_graph' );
 	delete_option( 'erankly_migration_reports_v1' );
 	delete_option( 'erankly_migration_active_job_v1' );
 	delete_option( 'erankly_import_active_job_v1' );
@@ -159,11 +143,15 @@ function erankly_uninstall_site(): void {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove user metadata during uninstall.', 'easyrankly' ) );
 	}
 
-	$erankly_deleted_transients = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall cleanup removes all plugin-owned transients (sitemap caches, Health 404 suggestion caches).
+	$erankly_deleted_transients = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall removes core-owned transients (sitemap caches, visibility caches, redirect-cache flags).
 		$wpdb->prepare(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->esc_like( '_transient_erankly_' ) . '%',
-			$wpdb->esc_like( '_transient_timeout_erankly_' ) . '%'
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name IN (%s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->esc_like( '_transient_erankly_sitemap_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_erankly_sitemap_' ) . '%',
+			$wpdb->esc_like( '_transient_erankly_visibility_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_erankly_visibility_' ) . '%',
+			'_transient_erankly_redirect_cache_rotation_failed',
+			'_transient_timeout_erankly_redirect_cache_rotation_failed'
 		)
 	);
 

@@ -69,18 +69,14 @@ function erankly_clear_settings_cache(): void {
  * @return array<int,string>
  */
 function erankly_settings_toggle_keys(): array {
-	return array(
+	$keys = array(
 		'social_defaults_linked',
 		'global_post_type_meta_linked',
 		'global_taxonomy_meta_linked',
 		'enable_local_business',
 		'simplified_mode',
 		'resolve_placeholders',
-		'ai_enabled',
-		'enable_content_analysis',
 		'enable_sitemap',
-		'enable_health',
-		'enable_link_building',
 		'enable_news_sitemap',
 		'enable_image_sitemap',
 		'enable_video_sitemap',
@@ -91,29 +87,19 @@ function erankly_settings_toggle_keys(): array {
 		'robots_indexifembedded',
 		'enable_redirects',
 		'redirect_exclude_admins',
-		'bloat_remove_emoji',
-		'bloat_remove_generator',
-		'bloat_remove_feed_links',
-		'bloat_remove_rsd_link',
-		'bloat_remove_wlwmanifest',
-		'bloat_remove_shortlink',
-		'bloat_remove_rest_link',
-		'bloat_remove_oembed',
-		'bloat_remove_wp_embed',
-		'bloat_remove_adjacent_posts',
-		'bloat_remove_jquery_migrate',
-		'bloat_disable_self_pingbacks',
-		'bloat_disable_trackbacks',
-		'bloat_remove_dashicons',
-		'bloat_disable_heartbeat',
-		'bloat_limit_heartbeat_admin',
-		'bloat_disable_xmlrpc',
-		'bloat_remove_global_styles',
-		'bloat_remove_duotone',
-		'bloat_remove_block_library_css',
-		'bloat_limit_revisions',
-		'bloat_disable_speculative_loading',
 	);
+
+	/**
+	 * Filters setting keys backed by standalone on/off toggles.
+	 *
+	 * Add-ons must register keys they render as checkboxes so a partial
+	 * Features save does not leave them stuck on.
+	 *
+	 * @param array<int,string> $keys Toggle keys.
+	 */
+	$keys = apply_filters( 'erankly_settings_toggle_keys', $keys );
+
+	return is_array( $keys ) ? array_values( array_filter( $keys, 'is_string' ) ) : array();
 }
 
 /**
@@ -177,46 +163,6 @@ function erankly_active_panel_submission_slug( string $active_panel ): string {
 	}
 
 	return sanitize_key( $active_panel );
-}
-
-/**
- * Returns whether at least one bloat-removal feature is enabled.
- *
- * @return bool
- */
-function erankly_bloat_enabled(): bool {
-	$keys = array(
-		'bloat_remove_emoji',
-		'bloat_remove_generator',
-		'bloat_remove_feed_links',
-		'bloat_remove_rsd_link',
-		'bloat_remove_wlwmanifest',
-		'bloat_remove_shortlink',
-		'bloat_remove_rest_link',
-		'bloat_remove_oembed',
-		'bloat_remove_wp_embed',
-		'bloat_remove_adjacent_posts',
-		'bloat_remove_jquery_migrate',
-		'bloat_disable_self_pingbacks',
-		'bloat_disable_trackbacks',
-		'bloat_remove_dashicons',
-		'bloat_disable_heartbeat',
-		'bloat_limit_heartbeat_admin',
-		'bloat_disable_xmlrpc',
-		'bloat_remove_global_styles',
-		'bloat_remove_duotone',
-		'bloat_remove_block_library_css',
-		'bloat_limit_revisions',
-		'bloat_disable_speculative_loading',
-	);
-
-	foreach ( $keys as $key ) {
-		if ( ! empty( erankly_get_setting( $key, 0 ) ) ) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
 /**

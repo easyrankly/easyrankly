@@ -25,12 +25,6 @@ function erankly_load_content_helpers(): void {
 	require_once ERANKLY_PATH . 'includes/helpers/template-variables.php';
 }
 
-/** Loads only the defaults and connector utilities consumed by AI requests. */
-function erankly_load_ai_helpers(): void {
-	require_once ERANKLY_PATH . 'includes/helpers/content-defaults.php';
-	require_once ERANKLY_PATH . 'includes/helpers/utils.php';
-}
-
 /** Loads sitemap URL, transient-key and invalidation helpers on demand. */
 function erankly_load_sitemap_helpers(): void {
 	require_once ERANKLY_PATH . 'includes/helpers/sitemap-cache.php';

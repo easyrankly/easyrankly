@@ -563,11 +563,6 @@ function erankly_schema_article( int $post_id = 0 ): array {
 		$schema['articleSection'] = $primary_category->name;
 	}
 
-	$focus_keywords = get_post_meta( $post_id, '_erankly_focus_keywords', true );
-	if ( is_array( $focus_keywords ) && ! empty( $focus_keywords ) ) {
-		$schema['keywords'] = array_values( $focus_keywords );
-	}
-
 	/**
 	 * Filters Article schema.
 	 *

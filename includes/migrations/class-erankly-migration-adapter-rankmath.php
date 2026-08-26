@@ -536,12 +536,13 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			}
 		}
 
-		$keywords = $this->keywords( $meta['rank_math_focus_keyword'] ?? '' );
+		$editorial = array();
+		$keywords  = $this->keywords( $meta['rank_math_focus_keyword'] ?? '' );
 		if ( ! empty( $keywords ) ) {
-			$mapped['_erankly_focus_keywords'] = $keywords;
+			$editorial['focus_keywords'] = $keywords;
 		}
 		if ( $this->enabled( $meta['rank_math_pillar_content'] ?? '' ) ) {
-			$mapped['_erankly_cornerstone'] = true;
+			$editorial['cornerstone'] = true;
 		}
 
 		if ( 'post' === $object_type ) {
@@ -590,7 +591,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			}
 		}
 
-		return $mapped;
+		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
 	/**

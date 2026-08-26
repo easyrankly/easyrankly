@@ -320,6 +320,7 @@ final class ERankly_Migration_Export_Reader {
 
 		$object_type = 'post';
 		$meta        = array();
+		$editorial   = array();
 		if ( 'rankmath' === $source ) {
 			$type        = sanitize_key( (string) ( $row['object_type'] ?? $row['type'] ?? 'post' ) );
 			$object_type = in_array( $type, array( 'post', 'term', 'user' ), true ) ? $type : 'post';
@@ -333,9 +334,14 @@ final class ERankly_Migration_Export_Reader {
 				'_erankly_twitter_title'       => erankly_import_convert_variables( (string) ( $row['social_twitter_title'] ?? '' ), 'rankmath' ),
 				'_erankly_twitter_description' => erankly_import_convert_variables( (string) ( $row['social_twitter_description'] ?? '' ), 'rankmath' ),
 				'_erankly_twitter_image_url'   => (string) ( $row['social_twitter_thumbnail'] ?? '' ),
-				'_erankly_focus_keywords'      => self::list_value( (string) ( $row['focus_keyword'] ?? '' ) ),
-				'_erankly_cornerstone'         => self::truthy( $row['is_pillar_content'] ?? '' ),
 			);
+			$keywords = self::list_value( (string) ( $row['focus_keyword'] ?? '' ) );
+			if ( ! empty( $keywords ) ) {
+				$editorial['focus_keywords'] = $keywords;
+			}
+			if ( self::truthy( $row['is_pillar_content'] ?? '' ) ) {
+				$editorial['cornerstone'] = true;
+			}
 			$meta        = array_merge( $meta, self::robots_meta( (string) ( $row['robots'] ?? '' ), (string) ( $row['advanced_robots'] ?? '' ) ) );
 			$schema      = self::schema_blocks( $row['schema_data'] ?? '' );
 			if ( $schema ) {
@@ -358,8 +364,11 @@ final class ERankly_Migration_Export_Reader {
 				'_erankly_twitter_title'       => erankly_import_convert_variables( (string) ( $row['tw_title'] ?? '' ), 'seopress' ),
 				'_erankly_twitter_description' => erankly_import_convert_variables( (string) ( $row['tw_desc'] ?? '' ), 'seopress' ),
 				'_erankly_twitter_image_url'   => (string) ( $row['tw_img'] ?? '' ),
-				'_erankly_focus_keywords'      => self::list_value( (string) ( $row['target_kw'] ?? '' ) ),
 			);
+			$keywords = self::list_value( (string) ( $row['target_kw'] ?? '' ) );
+			if ( ! empty( $keywords ) ) {
+				$editorial['focus_keywords'] = $keywords;
+			}
 			if ( self::truthy( $row['noindex'] ?? '' ) ) {
 				$meta['_erankly_index_directive'] = 'noindex';
 			}
@@ -378,6 +387,17 @@ final class ERankly_Migration_Export_Reader {
 		}
 
 		$meta = array_filter( $meta, static fn( mixed $value ): bool => ! ( '' === $value || array() === $value || null === $value || false === $value ) );
+
+		/**
+		 * Filters mapped EasyRankly metadata from an official CSV/JSON export row.
+		 *
+		 * @param array<string,mixed> $meta      Core-owned mapped meta.
+		 * @param array<string,mixed> $editorial Source editorial fields.
+		 * @param string              $source    Adapter slug.
+		 */
+		$filtered = apply_filters( 'erankly_migration_mapped_meta', $meta, $editorial, $source );
+		$meta     = is_array( $filtered ) ? $filtered : $meta;
+
 		return array(
 			'object_type'      => $object_type,
 			'object_id'        => $object_id,

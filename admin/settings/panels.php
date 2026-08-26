@@ -16,15 +16,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Renders the Features settings panel.
  *
- * @param array<string,mixed> $settings             Plugin settings.
- * @param bool                $redirects_enabled    Whether the redirect module is enabled.
- * @param bool                $sitemap_enabled      Whether the sitemap module is enabled.
- * @param bool                $health_enabled       Whether the Health module is enabled.
- * @param bool                $ai_provider_available Whether an AI provider is available.
- * @param string              $active_panel         Active panel ID.
+ * @param array<string,mixed> $settings          Plugin settings.
+ * @param bool                $redirects_enabled Whether the redirect module is enabled.
+ * @param bool                $sitemap_enabled   Whether the sitemap module is enabled.
+ * @param string              $active_panel      Active panel ID.
  * @return void
  */
-function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $health_enabled, bool $ai_provider_available, string $active_panel ): void {
+function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, string $active_panel ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the
 	// only place autosave applies.
@@ -40,34 +38,14 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_sitemap]" value="1" <?php checked( $sitemap_enabled ); ?>> <?php esc_html_e( 'Enable the sitemap module', 'easyrankly' ); ?></label>
 						</div>
-						<div class="erankly-field erankly-checkboxes">
-							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_health]" value="1" <?php checked( $health_enabled ); ?>> <?php esc_html_e( 'Enable Health monitoring', 'easyrankly' ); ?></label>
-						</div>
-						<div class="erankly-field erankly-checkboxes">
-							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_content_analysis]" value="1" <?php checked( erankly_content_analysis_enabled() ); ?>> <?php esc_html_e( 'Enable content analysis', 'easyrankly' ); ?></label>
-						</div>
-						<div class="erankly-field erankly-checkboxes">
-							<span class="erankly-inline-row">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_link_building]" value="1" <?php checked( erankly_link_building_enabled() ); ?> <?php disabled( ! erankly_ai_module_enabled() || ! $ai_provider_available ); ?>> <?php esc_html_e( 'Enable internal link suggestions', 'easyrankly' ); ?></label>
-								<?php
-								if ( ! erankly_ai_module_enabled() || ! $ai_provider_available ) {
-									erankly_render_ai_features_requirement_status();
-								}
-								?>
-							</span>
-						</div>
-						<div class="erankly-field erankly-checkboxes">
-							<span class="erankly-inline-row">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[ai_enabled]" value="1" <?php checked( ! empty( $settings['ai_enabled'] ) && $ai_provider_available ); ?> <?php disabled( ! $ai_provider_available ); ?>> <?php esc_html_e( 'Enable AI features', 'easyrankly' ); ?></label>
-								<?php
-								if ( ! function_exists( 'wp_get_connectors' ) ) {
-									erankly_render_connectors_status();
-								} else {
-									erankly_render_ai_provider_status();
-								}
-								?>
-							</span>
-						</div>
+						<?php
+						/**
+						 * Prints extra feature-module toggles after Redirects and Sitemap.
+						 *
+						 * @param array<string,mixed> $settings Plugin settings.
+						 */
+						do_action( 'erankly_settings_features_modules', $settings );
+						?>
 							</div>
 					</div>
 				</div>
@@ -112,7 +90,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 					<div class="erankly-field">
 						<label for="erankly-website-description"><?php esc_html_e( 'Website description', 'easyrankly' ); ?></label>
 						<div class="erankly-variable-field" data-erankly-variable-field>
-							<textarea id="erankly-website-description" class="widefat" rows="2" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[website_description]"><?php echo esc_textarea( (string) $settings['website_description'] ); ?></textarea>
+							<textarea id="erankly-website-description" class="widefat" rows="3" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[website_description]"><?php echo esc_textarea( (string) $settings['website_description'] ); ?></textarea>
 							<?php erankly_render_variable_picker(); ?>
 						</div>
 						<p class="description"><?php esc_html_e( 'Used in the WebSite JSON-LD node only when a value is available. Empty taglines are omitted from schema output.', 'easyrankly' ); ?></p>
@@ -191,7 +169,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 				</div>
 
 						<?php if ( is_multisite() ) : ?>
-								<div class="erankly-settings-section" data-erankly-multisite-special-pages-section <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
+								<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 									<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
 									<div class="erankly-card">
 										<p class="description"><?php esc_html_e( 'Special pages and archives are configured individually on each site: use the Site Editor with block themes on WordPress 6.6 or later, or Settings → EasyRankly otherwise.', 'easyrankly' ); ?></p>
@@ -288,14 +266,6 @@ function erankly_render_settings_panel_social( array $settings ): void {
 						</div>
 						</div>
 					</div>
-					<?php if ( empty( $settings['bloat_remove_oembed'] ) ) : ?>
-					<div class="erankly-settings-section" data-erankly-oembed-json-section <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
-						<h3 class="erankly-section-title"><?php esc_html_e( 'oEmbed JSON', 'easyrankly' ); ?></h3>
-						<div class="erankly-card">
-							<p class="description"><?php esc_html_e( 'Active by default on public pages: outputs an oEmbed JSON discovery link (e.g. for LinkedIn) so platforms can fetch rich previews. Disable via "Remove oEmbed discovery links" in the Bloat tab.', 'easyrankly' ); ?></p>
-						</div>
-					</div>
-					<?php endif; ?>
 			</div>
 	<?php
 }
@@ -325,13 +295,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 						<?php erankly_render_local_business_settings( $settings ); ?>
 					</div>
 				</div>
-				<div class="erankly-settings-section" data-erankly-post-date-settings-section <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
-					<h3 class="erankly-section-title"><?php esc_html_e( 'Post Date Settings', 'easyrankly' ); ?></h3>
-					<div class="erankly-card">
-						<p class="description"><?php esc_html_e( 'Active by default on every page of the site. EasyRankly includes published and modified dates in automatic post schema when post data is available.', 'easyrankly' ); ?></p>
-					</div>
-				</div>
-				<div class="erankly-settings-section" data-erankly-custom-schema-section <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
+				<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 					<h3 class="erankly-section-title"><?php esc_html_e( 'Custom JSON-LD Schema', 'easyrankly' ); ?></h3>
 					<div class="erankly-schema-builder erankly-card" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $global_schema_blocks ) ); ?>">
 						<div class="erankly-schema-blocks <?php echo empty( $global_schema_blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks>
@@ -468,8 +432,8 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 						<p class="description"><?php esc_html_e( 'Shows the essential controls and automates advanced SEO defaults.', 'easyrankly' ); ?></p>
 					</div>
 					<div class="erankly-field erankly-checkboxes">
-						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[resolve_placeholders]" value="1" <?php checked( ! empty( $settings['resolve_placeholders'] ) ); ?>> <?php esc_html_e( 'Show resolved values for variables like {{site_name}}', 'easyrankly' ); ?></label>
-						<p class="description"><?php esc_html_e( 'Displays the resolved value (e.g. your site name) in editor fields instead of the raw {{variable}} tag. Click the field to edit the raw tag again.', 'easyrankly' ); ?></p>
+						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[resolve_placeholders]" value="1" <?php checked( ! empty( $settings['resolve_placeholders'] ) ); ?>> <?php esc_html_e( 'Show resolved values for variables', 'easyrankly' ); ?></label>
+						<p class="description"><?php esc_html_e( 'Shows resolved values instead of {{variables}}. Click to edit.', 'easyrankly' ); ?></p>
 					</div>
 					<?php if ( $redirects_enabled ) : ?>
 					<div class="erankly-field erankly-checkboxes">
@@ -499,7 +463,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-advanced" role="tabpanel" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced" data-erankly-advanced-panel <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-advanced" role="tabpanel" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<div class="erankly-settings-section">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Indexing & robots directives', 'easyrankly' ); ?></h3>
 						<div class="erankly-card">
@@ -584,129 +548,3 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 	<?php
 }
 
-/**
- * Renders the Bloat settings panel.
- *
- * @param array<string,mixed> $settings          Plugin settings.
- * @param bool                $safe_bloat_active Whether all safe bloat cleanups are active.
- * @return void
- */
-function erankly_render_settings_panel_bloat( array $settings, bool $safe_bloat_active ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
-	$autosave_active = ! is_multisite() || is_network_admin();
-	?>
-				<div class="erankly-tab-panel is-active" id="erankly-settings-panel-bloat" role="tabpanel" aria-labelledby="erankly-settings-tab-bloat" data-erankly-settings-panel="settings-bloat" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
-					<div class="erankly-bloat-view erankly-bloat-view-simple" data-erankly-bloat-view="simple" <?php echo ! empty( $settings['simplified_mode'] ) ? '' : 'hidden'; ?>>
-						<div class="erankly-settings-section">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'WordPress cleanup', 'easyrankly' ); ?></h3>
-							<div class="erankly-card">
-								<div class="erankly-field erankly-checkboxes">
-									<label><input type="checkbox" class="erankly-toggle" data-erankly-bloat-master <?php checked( $safe_bloat_active ); ?>> <?php esc_html_e( 'Lighten WordPress', 'easyrankly' ); ?></label>
-									<p class="description"><?php esc_html_e( 'Removes safe WordPress bloat in one click. Turn off Simplified mode for advanced cleanups.', 'easyrankly' ); ?></p>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="erankly-bloat-view erankly-bloat-view-advanced" data-erankly-bloat-view="advanced" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
-						<div class="erankly-settings-section">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'WordPress cleanup', 'easyrankly' ); ?></h3>
-							<div class="erankly-card">
-
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_emoji]" value="1" <?php checked( $settings['bloat_remove_emoji'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Remove WordPress emojis', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the WordPress emoji script and styles.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_generator]" value="1" <?php checked( $settings['bloat_remove_generator'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Remove WP Generator meta tag', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the WordPress version meta tag from the page source.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_feed_links]" value="1" <?php checked( $settings['bloat_remove_feed_links'], 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove RSS feed links', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes RSS feed auto-discovery links from the page header.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_rsd_link]" value="1" <?php checked( $settings['bloat_remove_rsd_link'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Remove Really Simple Discovery link', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the Really Simple Discovery (RSD) link from the page header.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_wlwmanifest]" value="1" <?php checked( $settings['bloat_remove_wlwmanifest'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Remove Windows Live Writer manifest link', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the Windows Live Writer manifest link from the page header.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_shortlink]" value="1" <?php checked( $settings['bloat_remove_shortlink'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Remove shortlink', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the shortlink from the page header and HTTP headers.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_rest_link]" value="1" <?php checked( $settings['bloat_remove_rest_link'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Remove REST API discovery link', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the REST API discovery link from the page header.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_oembed]" value="1" <?php checked( $settings['bloat_remove_oembed'], 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove oEmbed discovery links', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes oEmbed discovery links and disables auto-embeds.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_wp_embed]" value="1" <?php checked( ! empty( $settings['bloat_remove_wp_embed'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove wp-embed script', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the frontend wp-embed script.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_adjacent_posts]" value="1" <?php checked( ! empty( $settings['bloat_remove_adjacent_posts'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove adjacent posts links', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes adjacent post rel=prev/next links from the page header.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_jquery_migrate]" value="1" <?php checked( $settings['bloat_remove_jquery_migrate'], 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove jQuery Migrate', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes the jQuery Migrate compatibility script.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_dashicons]" value="1" <?php checked( $settings['bloat_remove_dashicons'], 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove Dashicons for guests', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes Dashicons for visitors who are not logged in.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_self_pingbacks]" value="1" <?php checked( $settings['bloat_disable_self_pingbacks'], 1 ); ?> data-erankly-bloat-item data-erankly-bloat-safe> <?php esc_html_e( 'Disable self-pingbacks', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Disables pingbacks when linking to your own posts.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_trackbacks]" value="1" <?php checked( ! empty( $settings['bloat_disable_trackbacks'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Disable trackbacks and pingbacks', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Disables pingbacks and trackbacks site-wide and removes related XML-RPC methods.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_heartbeat]" value="1" <?php checked( $settings['bloat_disable_heartbeat'], 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Disable Heartbeat on frontend', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Disables the Heartbeat API on public pages.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_limit_heartbeat_admin]" value="1" <?php checked( ! empty( $settings['bloat_limit_heartbeat_admin'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Limit Heartbeat in admin', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Limits the Heartbeat API in wp-admin to every 60 seconds.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_xmlrpc]" value="1" <?php checked( $settings['bloat_disable_xmlrpc'], 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Disable XML-RPC', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Disables the XML-RPC interface.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_global_styles]" value="1" <?php checked( ! empty( $settings['bloat_remove_global_styles'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove global and classic theme styles', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes global-styles and classic-theme-styles CSS on classic themes.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_duotone]" value="1" <?php checked( ! empty( $settings['bloat_remove_duotone'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove duotone SVG filters', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes frontend duotone SVG filters and related CSS.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_remove_block_library_css]" value="1" <?php checked( ! empty( $settings['bloat_remove_block_library_css'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Remove block library CSS when unused', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Removes wp-block-library CSS on singular pages that do not contain blocks.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_limit_revisions]" value="1" <?php checked( ! empty( $settings['bloat_limit_revisions'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Limit post revisions', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Limits post revisions to 5 per post.', 'easyrankly' ); ?></p>
-							</div>
-							<div class="erankly-field erankly-checkboxes">
-								<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[bloat_disable_speculative_loading]" value="1" <?php checked( ! empty( $settings['bloat_disable_speculative_loading'] ) ? 1 : 0, 1 ); ?> data-erankly-bloat-item> <?php esc_html_e( 'Disable speculative loading', 'easyrankly' ); ?></label>
-								<p class="description"><?php esc_html_e( 'Disables the Speculation Rules API (prefetch/prerender).', 'easyrankly' ); ?></p>
-							</div>
-
-							</div>
-						</div>
-					</div>
-				</div>
-	<?php
-}

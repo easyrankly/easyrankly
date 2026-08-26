@@ -21,8 +21,7 @@
 		return;
 	}
 
-	const { apiFetch } = wp;
-	const { Button, Notice, SelectControl, Spinner, TextareaControl } = wp.components;
+	const { Notice, SelectControl, Spinner } = wp.components;
 	const { useDispatch, useSelect } = wp.data;
 	const { createElement: el, Fragment, useState } = wp.element;
 	const { __ } = wp.i18n;
@@ -148,109 +147,6 @@
 		};
 	}
 
-	function AiGenerateButton( { context, data, target = 'seo', titleFields = [ 'title' ], descriptionFields = [ 'description' ] } ) {
-		const [ status, setStatus ] = useState( null );
-		const [ busy, setBusy ] = useState( false );
-		const [ busyAction, setBusyAction ] = useState( '' );
-		const [ hasGenerated, setHasGenerated ] = useState( false );
-		const [ instructions, setInstructions ] = useState( '' );
-		const primaryTitleField = titleFields[ 0 ] || 'title';
-		const primaryDescriptionField = descriptionFields[ 0 ] || 'description';
-
-		function applyResult( result ) {
-			if ( result.title ) {
-				titleFields.forEach( ( field ) => data.set( field, result.title ) );
-			}
-			if ( result.description ) {
-				descriptionFields.forEach( ( field ) => data.set( field, result.description ) );
-			}
-		}
-
-		function generate( isImprovement = false ) {
-			if ( isImprovement && ! instructions.trim() ) {
-				setStatus( { type: 'error', message: __( 'Add instructions before improving the results.', 'easyrankly' ) } );
-				return;
-			}
-
-			const requestData = { object_id: 0, object_type: 'special', context, target };
-
-			if ( isImprovement ) {
-				requestData.instructions = instructions.trim();
-				requestData.current_title = data.get( primaryTitleField );
-				requestData.current_description = data.get( primaryDescriptionField );
-			}
-
-			setBusy( true );
-			setBusyAction( isImprovement ? 'improve' : 'generate' );
-			setStatus( null );
-
-			apiFetch( {
-				path: config.aiGeneratePath,
-				method: 'POST',
-				data: requestData,
-			} )
-				.then( ( result ) => {
-					applyResult( result );
-					setHasGenerated( true );
-					setStatus( {
-						type: 'success',
-						message: isImprovement ? __( 'Results improved.', 'easyrankly' ) : __( 'Done.', 'easyrankly' ),
-					} );
-				} )
-				.catch( ( err ) => {
-					setStatus( {
-						type: 'error',
-						message: ( err && err.message ) || __( 'Generation failed. Please try again.', 'easyrankly' ),
-					} );
-				} )
-				.finally( () => {
-					setBusy( false );
-					setBusyAction( '' );
-				} );
-		}
-
-		return el(
-			'div',
-			{ className: 'erankly-ai-field' },
-			el(
-				'p',
-				{ className: 'description erankly-ai-privacy' },
-				__( 'Generating shares page context with your configured WordPress AI provider. Improving also shares your current fields and instructions. EasyRankly does not operate the AI service.', 'easyrankly' )
-			),
-			el(
-				Button,
-				{ variant: 'secondary', isBusy: busy, disabled: busy, onClick: () => generate( false ) },
-				'generate' === busyAction ? __( 'Generating…', 'easyrankly' ) : __( 'Generate with AI', 'easyrankly' )
-			),
-			! config.simplifiedMode && hasGenerated && el(
-				'div',
-				{ className: 'erankly-ai-improve' },
-				el( TextareaControl, {
-					label: __( 'Improvement instructions', 'easyrankly' ),
-					onChange: setInstructions,
-					placeholder: __( 'Make the title more specific, shorten the description, change the tone…', 'easyrankly' ),
-					rows: 3,
-					value: instructions,
-				} ),
-				el(
-					Button,
-					{
-						variant: 'secondary',
-						isBusy: busy,
-						disabled: busy || ! instructions.trim(),
-						onClick: () => generate( true ),
-					},
-					'improve' === busyAction ? __( 'Improving…', 'easyrankly' ) : __( 'Improve results', 'easyrankly' )
-				)
-			),
-			status && el(
-				Notice,
-				{ status: status.type, isDismissible: false, className: 'erankly-ai-notice' },
-				status.message
-			)
-		);
-	}
-
 	function SerpPreview( { context, data } ) {
 		const labels = config.contextLabels || {};
 		const descriptionPlaceholders = config.specialDescriptionPlaceholders || {};
@@ -319,19 +215,13 @@
 				selector,
 				config.simplifiedMode && el( SerpPreview, { context, data } ),
 				...shared.searchAppearanceFields( { config, data, features } ),
-				config.aiEnabled && el( AiGenerateButton, { context, data } )
+				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.searchAppearanceExtras', [], { context, data, config } ) : [] )
 			),
 			! config.simplifiedMode && el(
 				PluginDocumentSettingPanel,
 				{ className: 'erankly-panel erankly-panel--social', name: 'erankly-special-social', title: __( 'Social sharing', 'easyrankly' ) },
 				...shared.socialFields( { config, data, features } ),
-				config.aiEnabled && el( AiGenerateButton, {
-					context,
-					data,
-					descriptionFields: [ 'og_description', 'twitter_description' ],
-					target: 'social',
-					titleFields: [ 'og_title', 'twitter_title' ],
-				} )
+				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.socialExtras', [], { context, data, config } ) : [] )
 			),
 			el(
 				PluginDocumentSettingPanel,

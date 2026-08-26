@@ -220,46 +220,6 @@
     });
   }
 
-  function bindBloatToggle(panel) {
-    var advancedView = panel.querySelector(
-      '[data-erankly-bloat-view="advanced"]',
-    );
-    var master = panel.querySelector("[data-erankly-bloat-master]");
-
-    if (!advancedView || !master) {
-      return;
-    }
-
-    // The master toggle only drives the cleanups marked as safe; the riskier
-    // ones keep their saved state and stay advanced-mode only.
-    function getSafeItems() {
-      return Array.prototype.slice.call(
-        advancedView.querySelectorAll("[data-erankly-bloat-safe]"),
-      );
-    }
-
-    function syncMasterFromItems() {
-      var items = getSafeItems();
-      master.checked =
-        items.length > 0 &&
-        items.every(function (cb) {
-          return cb.checked;
-        });
-    }
-
-    master.addEventListener("change", function () {
-      getSafeItems().forEach(function (cb) {
-        cb.checked = master.checked;
-      });
-    });
-
-    getSafeItems().forEach(function (cb) {
-      cb.addEventListener("change", syncMasterFromItems);
-    });
-
-    syncMasterFromItems();
-  }
-
   function bindLocalBusiness(container) {
     var toggle = container.querySelector(
       "[data-erankly-local-business-toggle]",
@@ -328,6 +288,5 @@
   // 'erankly_settings' (every ERANKLY_OPTION-backed panel); Multilingual
 
   ER.bindUserSearch = bindUserSearch;
-  ER.bindBloatToggle = bindBloatToggle;
   ER.bindLocalBusiness = bindLocalBusiness;
 })(window.ERanklyAdmin = window.ERanklyAdmin || {});

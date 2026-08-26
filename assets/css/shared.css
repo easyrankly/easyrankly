@@ -10,17 +10,33 @@
 	--erankly-radius-control: 2px;
 	--erankly-radius-compact: 2px;
 	--erankly-radius-popover: 2px;
+
+	/* Spacing scale (4px base). Prefer the semantic aliases below for form anatomy. */
+	--erankly-space-1: 4px;
+	--erankly-space-2: 8px;
+	--erankly-space-3: 12px;
+	--erankly-space-4: 16px;
+	--erankly-space-5: 24px;
+	--erankly-space-6: 32px;
+	--erankly-space-7: 48px;
+	--erankly-space-label: var(--erankly-space-2);
+	--erankly-space-help: var(--erankly-space-1);
+	--erankly-space-field: var(--erankly-space-4);
+	--erankly-space-section: var(--erankly-space-5);
+	--erankly-space-divider: var(--erankly-space-6);
+
 	--erankly-color-border: #dcdcde;
 	--erankly-color-border-strong: #949494;
 	--erankly-color-text: #1d2327;
 	--erankly-color-text-muted: #787c82;
 	--erankly-color-muted: #646970;
+	--erankly-color-disabled: #a7aaad;
 	--erankly-color-surface: #fff;
 	--erankly-color-surface-hover: #f0f0f1;
 	--erankly-color-surface-subtle: #f6f7f7;
 	--erankly-color-control-border: #c3c4c7;
 	--erankly-color-info: var(--wp-admin-theme-color, #3858e9);
-	--erankly-color-info-surface: color-mix(in srgb, var(--erankly-color-info) 8%, #fff);
+	--erankly-color-info-surface: color-mix(in srgb, var(--erankly-color-info) 8%, var(--erankly-color-surface));
 	--erankly-color-info-border: color-mix(in srgb, var(--erankly-color-info) 28%, var(--erankly-color-border));
 	--erankly-color-success: #1a7f37;
 	--erankly-color-success-surface: #eef8f1;
@@ -37,33 +53,6 @@
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
 
-/* Layout utilities. Replace one-off inline styles in PHP templates. */
-
-.erankly-inline-row {
-	align-items: center;
-	display: inline-flex;
-	flex-wrap: wrap;
-	gap: 8px;
-}
-
-.erankly-inline-form {
-	display: inline-block;
-	margin: 0 0 0 6px;
-}
-
-.erankly-mt-sm {
-	margin-top: 0.5rem;
-}
-
-.erankly-mt-lg {
-	margin-top: 1.5rem;
-}
-
-.erankly-table-compact {
-	margin-top: 0.5rem;
-	max-width: 640px;
-}
-
 /* Popover / suggestion menu surfaces. */
 
 .erankly-popover-surface,
@@ -76,7 +65,6 @@
 
 .erankly-suggest-menu,
 .erankly-variable-menu,
-.erankly-redirects-search-suggest,
 .erankly-editor-variable-menu {
 	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border);
@@ -88,16 +76,15 @@
 }
 
 .erankly-suggest-option,
-.erankly-variable-option,
-.erankly-redirects-suggest-option {
+.erankly-variable-option {
 	align-items: baseline;
 	background: none;
 	border: 0;
 	cursor: pointer;
 	display: flex;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	margin: 0;
-	padding: 6px 10px;
+	padding: var(--erankly-space-2) var(--erankly-space-3);
 	text-align: left;
 	width: 100%;
 }
@@ -105,15 +92,12 @@
 .erankly-suggest-option:hover,
 .erankly-suggest-option.is-active,
 .erankly-variable-option:hover,
-.erankly-variable-option.is-active,
-.erankly-redirects-suggest-option:hover,
-.erankly-redirects-suggest-option.is-active {
+.erankly-variable-option.is-active {
 	background: var(--erankly-color-surface-hover);
 }
 
 .erankly-suggest-option-primary,
-.erankly-variable-option-primary,
-.erankly-redirects-suggest-primary {
+.erankly-variable-option-primary {
 	color: var(--erankly-color-text);
 	flex-shrink: 0;
 	font-family: var(--erankly-font-mono);
@@ -121,8 +105,7 @@
 }
 
 .erankly-suggest-option-secondary,
-.erankly-variable-option-secondary,
-.erankly-redirects-suggest-secondary {
+.erankly-variable-option-secondary {
 	color: var(--erankly-color-muted);
 	font-size: 12px;
 	overflow: hidden;
@@ -137,7 +120,7 @@
 }
 
 .erankly-seo-checklist-intro {
-	margin-bottom: 12px;
+	margin-bottom: var(--erankly-space-3);
 }
 
 .erankly-seo-checklist-help {
@@ -151,7 +134,7 @@
 }
 
 .erankly-seo-checklist-group + .erankly-seo-checklist-group {
-	margin-top: 14px;
+	margin-top: var(--erankly-space-4);
 }
 
 .erankly-seo-checklist-group-label {
@@ -159,16 +142,16 @@
 	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.04em;
-	margin: 0 0 8px;
+	margin: 0 0 var(--erankly-space-label);
 	text-transform: uppercase;
 }
 
 .erankly-seo-checklist-item {
 	align-items: flex-start;
 	display: flex;
-	gap: 6px;
+	gap: var(--erankly-space-2);
 	margin: 0;
-	padding: 6px 0;
+	padding: var(--erankly-space-2) 0;
 }
 
 .erankly-seo-checklist-icon {

@@ -20,7 +20,6 @@ function erankly_legacy_developer_api_hook_aliases(): array {
 		'easyrankly_enable_robots_txt_with_external_seo' => 'erankly_enable_robots_txt_with_external_seo',
 		'easyrankly_enable_sitemaps_with_external_seo'   => 'erankly_enable_sitemaps_with_external_seo',
 		'easyrankly_faq_items'                           => 'erankly_faq_items',
-		'easyrankly_health_404_sample_rate'              => 'erankly_health_404_sample_rate',
 		'easyrankly_hreflang_alternates'                 => 'erankly_hreflang_alternates',
 		'easyrankly_image_sitemap_url'                   => 'erankly_image_sitemap_url',
 		'easyrankly_include_user_sitemap'                => 'erankly_include_user_sitemap',

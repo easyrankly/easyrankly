@@ -679,13 +679,14 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$keywords = $this->keywords( array( $get( 'focuskw' ), $meta[ $prefix . 'focuskeywords' ] ?? array() ) );
+		$editorial = array();
+		$keywords  = $this->keywords( array( $get( 'focuskw' ), $meta[ $prefix . 'focuskeywords' ] ?? array() ) );
 		if ( ! empty( $keywords ) ) {
-			$mapped['_erankly_focus_keywords'] = $keywords;
+			$editorial['focus_keywords'] = $keywords;
 		}
 
 		if ( $this->enabled( $get( 'is_cornerstone' ) ) ) {
-			$mapped['_erankly_cornerstone'] = true;
+			$editorial['cornerstone'] = true;
 		}
 
 		if ( ! $is_term ) {
@@ -719,7 +720,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			$mapped['_erankly_legacy_editorial'] = array( 'yoast' => $legacy );
 		}
 
-		return $mapped;
+		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
 	/**

@@ -1,23 +1,5 @@
 /** EasyRankly shared settings, classic-editor, and taxonomy components. */
 
-/*
- * Shared admin UI classes. Several selectors below (erankly-section-divider,
- * erankly-status-description, erankly-inline-status, erankly-error-text,
- * erankly-option-list*, erankly-settings-table, is-success/is-error) are
- * not referenced by the free plugin's own markup: they are consumed by the
- * EasyRankly Pro add-on, which renders its panels inside this settings screen.
- * Do not remove them as "unused".
- */
-.erankly-section-divider {
-	border: 0;
-	border-top: 1px solid var(--erankly-color-border);
-	margin: 32px 0;
-}
-
-.erankly-status-description {
-	margin: 2px 0 8px;
-}
-
 .erankly-inline-status {
 	align-items: center;
 	display: inline-flex;
@@ -35,8 +17,7 @@
 	color: var(--erankly-color-warning);
 }
 
-.erankly-inline-status.is-error,
-.erankly-error-text {
+.erankly-inline-status.is-error {
 	color: var(--erankly-color-error);
 }
 
@@ -59,17 +40,17 @@
 	align-items: flex-start;
 	background: var(--erankly-alert-surface);
 	border: 1px solid var(--erankly-alert-border);
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-surface);
 	box-shadow: none;
 	box-sizing: border-box;
-	color: #3c434a;
+	color: var(--erankly-color-text);
 	display: flex;
-	gap: 14px;
+	gap: var(--erankly-space-4);
 	line-height: 1.45;
-	margin: 0 0 16px;
+	margin: 0 0 var(--erankly-space-field);
 	max-width: 100%;
 	min-width: 0;
-	padding: 20px 24px;
+	padding: var(--erankly-space-5);
 	width: 100%;
 }
 
@@ -196,30 +177,13 @@
 	display: inline;
 }
 
-.erankly-option-list {
-	gap: 4px 16px;
-}
-
-.erankly-option-list-inline {
-	display: flex;
-	flex-wrap: wrap;
-}
-
-.erankly-option-list-stacked {
-	display: grid;
-}
-
-.erankly-settings-table {
-	max-width: 900px;
-}
-
 .erankly-schema-identity-fields,
 .erankly-inline-fields {
-	column-gap: 16px;
+	column-gap: var(--erankly-space-4);
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	margin: 0 0 16px;
-	row-gap: 16px;
+	margin: 0 0 var(--erankly-space-field);
+	row-gap: var(--erankly-space-4);
 }
 
 .erankly-schema-identity-fields.is-person {
@@ -290,7 +254,7 @@
 .erankly-autocomplete-control {
 	align-items: center;
 	display: grid;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	grid-template-columns: minmax(0, 1fr) auto;
 }
 
@@ -302,7 +266,7 @@
 
 .erankly-user-selected-input[readonly],
 .erankly-user-search-input {
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border-radius: var(--erankly-radius-control);
 }
 
@@ -311,12 +275,12 @@
 }
 
 .erankly-autocomplete-results {
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border-strong);
 	border-radius: var(--erankly-radius-surface);
 	left: 0;
 	list-style: none;
-	margin: 4px 0 0;
+	margin: var(--erankly-space-1) 0 0;
 	max-height: 280px;
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -341,7 +305,7 @@
 	appearance: none;
 	background: none;
 	border: 0;
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-compact);
 	box-sizing: border-box;
 	color: var(--erankly-color-text);
 	cursor: pointer;
@@ -350,7 +314,7 @@
 	font-size: 13px;
 	line-height: 1.5;
 	margin: 0;
-	padding: 8px;
+	padding: var(--erankly-space-2);
 	text-align: left;
 	width: 100%;
 }
@@ -370,12 +334,12 @@
 .erankly-user-result-item {
 	align-items: center;
 	display: flex;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	min-height: 40px;
 }
 
 .erankly-user-result-avatar {
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-compact);
 	flex: 0 0 auto;
 	height: 24px;
 	object-fit: cover;
@@ -415,21 +379,7 @@
 .erankly-autocomplete-status {
 	color: var(--erankly-color-text-muted);
 	font-size: 13px;
-	padding: 8px;
-}
-
-.erankly-field > label,
-.erankly-field > .erankly-field-label,
-.erankly-field > legend {
-	display: block;
-	margin: 0 0 8px;
-}
-
-.erankly-field:not(fieldset) > label,
-.erankly-field > .erankly-field-label,
-.erankly-field > legend,
-.erankly-settings .erankly-field > .erankly-inline-row > label {
-	font-weight: 600;
+	padding: var(--erankly-space-2);
 }
 
 .erankly-segment-control.erankly-tabs {
@@ -455,7 +405,7 @@
 }
 
 .erankly-segment-control .erankly-tab:has(input:focus-visible) {
-	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--erankly-tab-color);
+	box-shadow: 0 0 0 2px var(--erankly-color-surface), 0 0 0 4px var(--erankly-tab-color);
 	outline: 2px solid transparent;
 }
 
@@ -493,7 +443,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-schema-block {
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border-strong);
 	border-radius: var(--erankly-radius-surface);
 	margin: 0;
@@ -501,10 +451,10 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-settings-details {
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border-strong);
 	border-radius: var(--erankly-radius-surface);
-	margin: 0 0 16px;
+	margin: 0 0 var(--erankly-space-field);
 	overflow: hidden;
 }
 
@@ -519,11 +469,11 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	display: flex;
 	font-size: 13px;
 	font-weight: 600;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	line-height: 2.92307692; /* 38px for 40px min-height with 13px font. */
 	list-style: none;
 	min-height: 40px;
-	padding: 0 12px;
+	padding: 0 var(--erankly-space-3);
 }
 
 .erankly-settings-details > summary::-webkit-details-marker {
@@ -557,16 +507,16 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-settings-details-content {
-	padding: 16px 14px 1px;
+	padding: var(--erankly-space-4) var(--erankly-space-4) 1px;
 }
 
 .erankly-schema-panel {
-	background: #fff;
-	padding: 16px 14px 1px;
+	background: var(--erankly-color-surface);
+	padding: var(--erankly-space-4) var(--erankly-space-4) 1px;
 }
 
 .erankly-local-business-fields {
-	margin-top: 16px;
+	margin-top: var(--erankly-space-4);
 }
 
 .erankly-local-business > .erankly-field {
@@ -575,28 +525,28 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 
 .erankly-opening-hours {
 	border-top: 1px solid var(--erankly-color-border);
-	margin: 16px 0;
+	margin: var(--erankly-space-4) 0;
 }
 
 .erankly-opening-hours-row {
 	align-items: center;
 	border-bottom: 1px solid var(--erankly-color-border);
 	display: grid;
-	gap: 12px;
+	gap: var(--erankly-space-3);
 	grid-template-columns: 110px 90px minmax(0, 1fr);
-	padding: 10px 0;
+	padding: var(--erankly-space-3) 0;
 }
 
 .erankly-opening-intervals {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 }
 
 .erankly-opening-intervals > span {
 	align-items: center;
 	display: inline-flex;
-	gap: 5px;
+	gap: var(--erankly-space-1);
 }
 
 @media screen and (max-width: 782px) {
@@ -612,18 +562,18 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
  */
 .erankly-defaults-section {
 	border-top: 1px solid var(--erankly-color-border);
-	margin-top: 24px;
-	padding-top: 24px;
+	margin-top: var(--erankly-space-section);
+	padding-top: var(--erankly-space-section);
 }
 
 .erankly-tabs {
 	--erankly-tab-color: var(--wp-admin-theme-color, #3858e9);
 	--erankly-tabs-border-width: 1px;
 	--erankly-tabs-padding: 3px;
-	--erankly-tabs-radius: var(--erankly-radius-surface, 2px);
-	--erankly-tabs-item-radius: var(--erankly-radius-control, 2px);
+	--erankly-tabs-radius: var(--erankly-radius-surface);
+	--erankly-tabs-item-radius: var(--erankly-radius-control);
 	align-items: center;
-	background: #fff;
+	background: var(--erankly-color-surface);
 	border: var(--erankly-tabs-border-width) solid var(--erankly-tab-color);
 	border-radius: var(--erankly-tabs-radius);
 	box-sizing: border-box;
@@ -669,7 +619,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 .erankly-tabs .erankly-tab.nav-tab-active {
 	background: var(--erankly-tab-color);
 	box-shadow: none;
-	color: #fff;
+	color: var(--erankly-color-surface);
 }
 
 .erankly-tabs .erankly-tab.is-active:hover,
@@ -677,23 +627,23 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 .erankly-tabs .erankly-tab.is-active:focus,
 .erankly-tabs .erankly-tab.nav-tab-active:focus {
 	background: var(--erankly-tab-color);
-	color: #fff;
+	color: var(--erankly-color-surface);
 }
 
 .erankly-tabs .erankly-tab:focus-visible {
-	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--erankly-tab-color);
+	box-shadow: 0 0 0 2px var(--erankly-color-surface), 0 0 0 4px var(--erankly-tab-color);
 	outline: 2px solid transparent;
 }
 
 .erankly-default-tabs {
-	margin: 0 0 24px;
+	margin: 0 0 var(--erankly-space-section);
 }
 
 .erankly-default-tabs-bar {
 	align-items: flex-end;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 }
 
 .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs {
@@ -744,7 +694,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	align-self: center;
 	flex: 0 0 auto;
 	font-weight: 500;
-	margin: 0 0 4px auto;
+	margin: 0 0 var(--erankly-space-1) auto;
 	overflow-wrap: anywhere;
 	text-align: left;
 }
@@ -754,11 +704,11 @@ button.erankly-linked-defaults-toggle.erankly-tabs {
 	cursor: pointer;
 	flex: 0 0 auto;
 	font: inherit;
-	margin: 0 0 4px;
+	margin: 0 0 var(--erankly-space-1);
 }
 
 button.erankly-linked-defaults-toggle.erankly-tabs:focus-visible {
-	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
+	box-shadow: 0 0 0 2px var(--erankly-color-surface), 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
 	outline: 2px solid transparent;
 }
 
@@ -766,15 +716,15 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	flex: 0 0 auto;
 	font-weight: 600;
 	min-width: 42px;
-	padding-left: 12px;
-	padding-right: 12px;
+	padding-left: var(--erankly-space-3);
+	padding-right: var(--erankly-space-3);
 }
 
 .erankly-default-tabs.is-linked button.erankly-linked-defaults-toggle .erankly-linked-defaults-option.is-yes,
 .erankly-default-tabs:not(.is-linked) button.erankly-linked-defaults-toggle .erankly-linked-defaults-option.is-no {
 	background: var(--wp-admin-theme-color, #3858e9);
 	box-shadow: none;
-	color: #fff;
+	color: var(--erankly-color-surface);
 }
 
 .erankly-tabs.has-sliding-indicator {
@@ -830,24 +780,19 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	margin-bottom: 0;
 }
 
-.erankly-meta-box .description {
-	display: block;
-	margin-top: 4px;
-}
-
 /* stylelint-disable declaration-no-important -- Overrides WordPress hidden and linked-tab utility states. */
 .erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab,
 .erankly-tabs .erankly-tab:disabled {
 	background: transparent;
 	box-shadow: none;
-	color: #a7aaad;
+	color: var(--erankly-color-disabled);
 	cursor: default;
 	opacity: 0.8;
 	pointer-events: none;
 }
 
 .erankly-default-tabs.is-linked > .erankly-default-tabs-bar > .nav-tab-wrapper.erankly-tabs .erankly-tab {
-	color: #949494;
+	color: var(--erankly-color-border-strong);
 	opacity: 1;
 }
 
@@ -859,34 +804,19 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	display: inline-flex !important;
 }
 
-.erankly-meta-box .erankly-internal-links-panel .hidden {
-	display: none !important;
-}
-
-.erankly-meta-box .erankly-internal-links-status.is-error {
-	color: var(--erankly-color-error);
-}
-
-.erankly-meta-box .erankly-internal-links-status.is-success {
-	color: var(--erankly-color-success);
-}
-
 /* Without JavaScript, expose inner tab panels; top-level navigation is links. */
-.no-js .erankly-settings .erankly-tab-panel[hidden],
-.no-js .erankly-settings [data-erankly-advanced-panel][hidden] {
+.no-js .erankly-settings .erankly-tab-panel[hidden] {
 	display: block !important;
 }
 /* stylelint-enable declaration-no-important */
 
 .erankly-default-tab-panel {
 	margin-top: 0;
-	padding-top: 16px;
+	padding-top: var(--erankly-space-4);
 }
 
 .erankly-character-counter {
 	color: var(--erankly-color-muted);
-	display: block;
-	margin-top: 4px;
 }
 
 .erankly-character-counter.is-warning {
@@ -894,7 +824,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-media-preview {
-	margin: 0 0 8px;
+	margin: 0 0 var(--erankly-space-2);
 	min-height: 0;
 }
 
@@ -906,7 +836,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-media-url-field {
-	margin: 8px 0 0;
+	margin: var(--erankly-space-2) 0 0;
 }
 
 /* Flex-wrap keeps the buttons usable in narrow containers such as the
@@ -915,7 +845,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	align-items: flex-start;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 }
 
 .erankly-media-url-control .erankly-variable-field {
@@ -924,7 +854,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 }
 
 .erankly-media-url-preview {
-	margin-top: 8px;
+	margin-top: var(--erankly-space-2);
 }
 
 .erankly-checkboxes {
@@ -940,13 +870,13 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 input[type="checkbox"].erankly-toggle {
 	--erankly-toggle-inset: 2px;
 	appearance: none;
-	background: #dcdcde;
+	background: var(--erankly-color-border);
 	border: 0;
-	border-radius: 2px;
+	border-radius: var(--erankly-radius-compact);
 	cursor: pointer;
 	flex-shrink: 0;
 	height: 20px;
-	margin: 0 6px 0 0;
+	margin: 0 var(--erankly-space-2) 0 0;
 	padding: 0;
 	position: relative;
 	transition: background-color 0.15s ease-in-out;
@@ -955,8 +885,8 @@ input[type="checkbox"].erankly-toggle {
 }
 
 input[type="checkbox"].erankly-toggle::before {
-	background: #fff;
-	border-radius: 2px;
+	background: var(--erankly-color-surface);
+	border-radius: var(--erankly-radius-compact);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	content: "";
 	height: 16px;
@@ -1005,7 +935,7 @@ input[type="checkbox"].erankly-toggle:focus {
 }
 
 input[type="checkbox"].erankly-toggle:focus-visible {
-	box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
+	box-shadow: 0 0 0 2px var(--erankly-color-surface), 0 0 0 4px var(--wp-admin-theme-color, #3858e9);
 	outline: 2px solid transparent;
 }
 
@@ -1023,7 +953,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 .erankly-checkbox-options {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px 20px;
+	gap: var(--erankly-space-2) var(--erankly-space-4);
 }
 
 .erankly-visibility-defaults .erankly-checkbox-options label {
@@ -1034,7 +964,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-visibility-defaults .erankly-checkbox-options input[type="checkbox"] {
-	margin: 0 4px 0 0;
+	margin: 0 var(--erankly-space-1) 0 0;
 }
 
 .erankly-variable-field {
@@ -1044,7 +974,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 .erankly-variable-field .widefat,
 .erankly-variable-field .regular-text,
 .erankly-variable-field .large-text {
-	padding-right: 12px;
+	padding-right: var(--erankly-space-3);
 }
 
 .erankly-term-meta-box .erankly-variable-field .widefat {
@@ -1076,7 +1006,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	font: inherit;
 	inset: 0;
 	overflow: hidden;
-	padding: 0 12px;
+	padding: 0 var(--erankly-space-3);
 	pointer-events: none;
 	position: absolute;
 	text-overflow: ellipsis;
@@ -1096,14 +1026,14 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-variable-field textarea + .erankly-variable-preview {
 	align-items: flex-start;
-	padding-top: 8px;
+	padding-top: var(--erankly-space-2);
 	white-space: pre-wrap;
 }
 
 /* Suggestion dropdown positioning. Surface/row styles live in shared.css. */
 .erankly-variable-menu {
 	left: 0;
-	margin-top: 4px;
+	margin-top: var(--erankly-space-1);
 	position: absolute;
 	right: 0;
 	top: 100%;
@@ -1112,7 +1042,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-schema-blocks {
 	display: grid;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 }
 
 .erankly-schema-blocks.is-empty {
@@ -1121,12 +1051,12 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-schema-block-header {
 	align-items: center;
-	background: #fff;
+	background: var(--erankly-color-surface);
 	cursor: pointer;
 	display: grid;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	grid-template-columns: minmax(0, 1fr) auto 16px;
-	padding: 0 8px 0 14px;
+	padding: 0 var(--erankly-space-2) 0 var(--erankly-space-4);
 }
 
 .erankly-schema-block-header::-webkit-details-marker {
@@ -1138,18 +1068,18 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-schema-targeting {
-	margin: 0 0 16px;
+	margin: 0 0 var(--erankly-space-field);
 	padding: 0;
 }
 
 .erankly-schema-targeting legend {
 	font-weight: 600;
-	padding: 0 4px;
+	padding: 0 var(--erankly-space-1);
 }
 
 .erankly-schema-targeting label {
 	display: block;
-	margin: 4px 0;
+	margin: var(--erankly-space-1) 0;
 }
 
 .erankly-schema-targeting-group {
@@ -1160,21 +1090,21 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-schema-targeting-grid {
 	display: grid;
-	gap: 16px;
+	gap: var(--erankly-space-4);
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	margin-top: 12px;
+	margin-top: var(--erankly-space-3);
 }
 
 .erankly-schema-title {
 	font-weight: 600;
 	line-height: 1.4;
-	padding: 12px 0;
+	padding: var(--erankly-space-3) 0;
 }
 
 .erankly-schema-row-actions {
 	align-items: center;
 	display: flex;
-	gap: 8px;
+	gap: var(--erankly-space-2);
 	justify-content: flex-end;
 }
 
@@ -1185,11 +1115,8 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-schema-field > label {
-	color: #3c434a;
-	display: block;
-	font-weight: 600;
+	color: var(--erankly-color-text);
 	line-height: 1.4;
-	margin-bottom: 8px;
 }
 
 .erankly-schema-field .widefat {
@@ -1210,7 +1137,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 .erankly-schema-actions {
-	margin: 16px 0;
+	margin: var(--erankly-space-4) 0;
 }
 
 .erankly-schema-blocks.is-empty ~ .erankly-schema-actions {
@@ -1231,13 +1158,8 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 .erankly-additional-contexts {
 	border-top: 1px solid var(--erankly-color-border);
-	margin-top: 32px;
-	padding-top: 32px;
-}
-
-.erankly-global-meta-default label {
-	display: block;
-	margin: 0 0 4px;
+	margin-top: var(--erankly-space-divider);
+	padding-top: var(--erankly-space-divider);
 }
 
 .erankly-term-meta-box {
@@ -1250,7 +1172,7 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	}
 
 	.erankly-schema-block-header {
-		padding: 0 10px 0 14px;
+		padding: 0 var(--erankly-space-3) 0 var(--erankly-space-4);
 	}
 
 	.erankly-schema-row-actions {
@@ -1260,87 +1182,4 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	.erankly-schema-field > label {
 		padding-top: 0;
 	}
-}
-
-
-/* AI meta generation */
-.erankly-ai-field {
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
-	gap: 6px;
-}
-
-.erankly-ai-privacy {
-	margin: 0;
-	max-width: 52em;
-}
-
-.erankly-ai-field .button {
-	width: 100%;
-	text-align: center;
-}
-
-.erankly-ai-improve {
-	padding-top: 8px;
-	border-top: 1px solid var(--erankly-color-border);
-}
-
-.erankly-ai-improve label {
-	display: block;
-	margin-bottom: 4px;
-	font-weight: 600;
-}
-
-.erankly-ai-improve textarea {
-	display: block;
-	min-height: 84px;
-}
-
-.erankly-ai-improve .button {
-	margin-top: 6px;
-}
-
-.erankly-ai-status {
-	margin: 0;
-}
-
-.erankly-ai-status.erankly-ai-error {
-	color: var(--erankly-color-error);
-}
-
-.erankly-ai-privacy-notice {
-	margin: 0 0 20px;
-	max-width: 52em;
-}
-
-.erankly-ai-privacy-notice__content {
-	flex: 1 1 auto;
-	max-width: 100%;
-	min-width: 0;
-}
-
-.erankly-ai-privacy-notice__content p {
-	flex: none;
-	margin: 0 0 0.75em;
-}
-
-.erankly-ai-privacy-notice__content ul {
-	flex: none;
-	margin: 0 0 0.75em 1.5em;
-}
-
-.erankly-ai-privacy-notice__content > :last-child {
-	margin-bottom: 0;
-}
-
-.erankly-ai-privacy-notice .ul-disc {
-	list-style: disc;
-}
-
-
-/* Link graph maintenance (Features panel) */
-.erankly-lb-stats {
-	margin: 0 0 12px;
-	padding-left: 1.2em;
 }

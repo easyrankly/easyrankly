@@ -25,16 +25,20 @@
 	const { createElement: el, useEffect, useRef, useState } = wp.element;
 	const { useSelect } = wp.data;
 	const { __, sprintf } = wp.i18n;
-	const PANEL_ORDER = [
-		'erankly-panel--appearance',
-		'erankly-panel--analysis',
-		'erankly-panel--social',
-		'erankly-panel--schema',
-		'erankly-panel--visibility',
-		'erankly-panel--internal-links',
-		'erankly-panel--checklist',
-		'erankly-panel--translations',
-	];
+	const PANEL_ORDER = (
+		window.eranklyEditorShared &&
+		Array.isArray( window.eranklyEditorShared.panelOrder ) &&
+		window.eranklyEditorShared.panelOrder.length
+	)
+		? window.eranklyEditorShared.panelOrder
+		: [
+				'erankly-panel--appearance',
+				'erankly-panel--social',
+				'erankly-panel--schema',
+				'erankly-panel--visibility',
+				'erankly-panel--checklist',
+				'erankly-panel--translations',
+		  ];
 
 	// Gutenberg renders plugin document panels before several Core panels and
 	// does not expose a placement prop. Keep only EasyRankly panels at the end

@@ -439,12 +439,13 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$keywords = $this->keywords( $row['keyphrases'] ?? $row['keywords'] ?? '' );
+		$editorial = array();
+		$keywords  = $this->keywords( $row['keyphrases'] ?? $row['keywords'] ?? '' );
 		if ( ! empty( $keywords ) ) {
-			$mapped['_erankly_focus_keywords'] = $keywords;
+			$editorial['focus_keywords'] = $keywords;
 		}
 		if ( $this->enabled( $row['pillar_content'] ?? false ) ) {
-			$mapped['_erankly_cornerstone'] = true;
+			$editorial['cornerstone'] = true;
 		}
 
 		if ( 'post' === $object_type ) {
@@ -500,7 +501,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			}
 		}
 
-		return $mapped;
+		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
 	/**
@@ -533,15 +534,16 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$keywords = $this->keywords( $meta['_aioseop_keywords'] ?? '' );
+		$editorial = array();
+		$keywords  = $this->keywords( $meta['_aioseop_keywords'] ?? '' );
 		if ( ! empty( $keywords ) ) {
-			$mapped['_erankly_focus_keywords'] = $keywords;
+			$editorial['focus_keywords'] = $keywords;
 		}
 		if ( $this->enabled( $meta['_aioseop_sitemap_exclude'] ?? false ) || $this->enabled( $meta['_aioseop_disable'] ?? false ) ) {
 			$mapped['_erankly_disable_sitemap'] = true;
 		}
 
-		return $mapped;
+		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
 	/**

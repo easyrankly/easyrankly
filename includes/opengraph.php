@@ -368,16 +368,11 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 /**
  * Renders the oEmbed JSON discovery link.
  *
- * Always active on every public page unless the Bloat tab removes oEmbed.
+ * Always active on every public page.
  *
  * @return void
  */
 function erankly_render_oembed_link(): void {
-	// Honour the Bloat tab: if oEmbed removal is active, emit nothing.
-	if ( (bool) erankly_get_setting( 'bloat_remove_oembed', 0 ) ) {
-		return;
-	}
-
 	// Suppress the native WP discovery (runs at priority 10, JSON + XML) so
 	// that our single JSON-only link does not appear twice on singular pages.
 	remove_action( 'wp_head', 'wp_oembed_add_discovery_links' );

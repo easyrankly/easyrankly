@@ -215,14 +215,6 @@
       return;
     }
 
-    var tabs = Array.prototype.slice.call(
-      tablist.querySelectorAll("[data-erankly-tab]"),
-    );
-    var panels = Array.prototype.slice.call(
-      root.querySelectorAll("[data-erankly-settings-panel]"),
-    );
-    var referer = root.querySelector('input[name="_wp_http_referer"]');
-    var settingsSubmit = root.querySelector("[data-erankly-settings-submit]");
     var sidebarNav = root.querySelector("[data-erankly-sidebar-nav]");
     var sidebarToggle = root.querySelector("[data-erankly-sidebar-toggle]");
     var sidebarToggleLabel = root.querySelector(
@@ -250,14 +242,6 @@
 
       return !!(
         tab &&
-        !tab.hidden &&
-        !tab.disabled &&
-        tab.getAttribute("aria-disabled") !== "true"
-      );
-    }
-
-    function isTabFocusable(tab) {
-      return (
         !tab.hidden &&
         !tab.disabled &&
         tab.getAttribute("aria-disabled") !== "true"
@@ -315,278 +299,17 @@
     // Top-level settings tabs are real links and only the active panel exists
     // in the response. Keep JavaScript limited to the mobile navigation and
     // inner tab groups; navigation must continue to work with JS disabled.
-    if (tablist.hasAttribute("data-erankly-server-tabs")) {
-      var currentLink = tablist.querySelector('[aria-current="page"]');
-      var requestedSubtab =
-        tablist.getAttribute("data-erankly-active-subtab") || "";
-
-      if (currentLink && sidebarToggleLabel) {
-        sidebarToggleLabel.textContent = getTabLabel(currentLink);
-      }
-
-      if (requestedSubtab) {
-        activateInnerTab(requestedSubtab);
-      }
-
-      return;
-    }
-
-    // Keep the Settings API redirect on the active tab after "Save Changes".
-    function syncReferer(target, subtab) {
-      if (!referer) {
-        return;
-      }
-
-      var base = referer.value
-        .split("#")[0]
-        .replace(/([?&])erankly_tab=[^&]*&?/, "$1")
-        .replace(/([?&])erankly_subtab=[^&]*&?/, "$1")
-        .replace(/[?&]$/, "");
-
-      // Keep the redirect on whatever tab is active so saving never bounces
-      // back to General. "general" is the server default, so it needs no param.
-      if (target && target !== "settings-general") {
-        base +=
-          (base.indexOf("?") === -1 ? "?" : "&") +
-          "erankly_tab=" +
-          target.replace("settings-", "");
-      }
-
-      if (subtab) {
-        base +=
-          (base.indexOf("?") === -1 ? "?" : "&") + "erankly_subtab=" + subtab;
-      }
-
-      referer.value = base;
-    }
-
-    // Keep the active-tab URL in sync so that F5 / reload restores the correct tab.
-    // Uses replaceState (not pushState) to avoid polluting the browser history.
-    function syncUrl(target, subtab) {
-      if (
-        !window.history ||
-        typeof window.history.replaceState !== "function"
-      ) {
-        return;
-      }
-
-      var shortName = target.replace("settings-", "");
-      var url = new URL(window.location.href);
-
-      url.searchParams.set("erankly_tab", shortName);
-      if (subtab) {
-        url.searchParams.set("erankly_subtab", subtab);
-      } else {
-        url.searchParams.delete("erankly_subtab");
-      }
-      url.hash = "";
-      history.replaceState(history.state, "", url.toString());
-    }
-
-    // setFocus=true moves keyboard focus to the tab button (for keyboard navigation).
-    function activate(target, setFocus, subtab) {
-      var activeMenuTab = null;
-
-      subtab = subtab || "";
-
-      if (subtab && !canActivateInnerTab(subtab)) {
-        subtab = "";
-      }
-
-      tabs.forEach(function (tab) {
-        var isActive = tab.getAttribute("data-erankly-tab") === target;
-
-        tab.classList.toggle("is-active", isActive);
-        tab.setAttribute("aria-selected", isActive ? "true" : "false");
-        // Roving tabindex: only the active tab is reachable via Tab key.
-        tab.setAttribute("tabindex", isActive ? "0" : "-1");
-
-        if (isActive) {
-          activeMenuTab = tab;
-        }
-      });
-
-      if (activeMenuTab && sidebarToggleLabel) {
-        sidebarToggleLabel.textContent = getTabLabel(activeMenuTab);
-      } else {
-        tabs.forEach(function (tab) {
-          var isActive = tab.getAttribute("data-erankly-tab") === target;
-
-          if (isActive && sidebarToggleLabel) {
-            sidebarToggleLabel.textContent = getTabLabel(tab);
-          }
-        });
-      }
-
-      // Collapse the mobile accordion once a section has been chosen.
-      setSidebarExpanded(false);
-
-      panels.forEach(function (panel) {
-        var isActive =
-          panel.getAttribute("data-erankly-settings-panel") === target;
-
-        panel.classList.toggle("is-active", isActive);
-        panel.hidden = !isActive;
-      });
-
-      if (settingsSubmit) {
-        // Panels that carry their own form (the core's external panels and any
-        // extension tab) opt out of the shared "Save Changes" button.
-        var activePanel = panels.filter(function (panel) {
-          return panel.getAttribute("data-erankly-settings-panel") === target;
-        })[0];
-        var standalone = activePanel
-          ? activePanel.hasAttribute("data-erankly-standalone-panel")
-          : false;
-
-        // Every built-in panel now has data-erankly-standalone-panel or matches
-        // one of the four slugs below, so this always evaluates to hidden=true
-        // today. It is kept as-is rather than simplified, since it's still what
-        // correctly hides the button for a third-party extension tab (no
-        // control over whether those carry the standalone attribute) and for
-        // any future built-in panel that doesn't autosave.
-        settingsSubmit.hidden =
-          standalone ||
-          target === "settings-health" ||
-          target === "settings-links" ||
-          target === "settings-import-export" ||
-          target === "settings-redirects";
-      }
-
-      if (subtab) {
-        activateInnerTab(subtab);
-      }
-
-      syncReferer(target, subtab);
-
-      if (setFocus && activeMenuTab) {
-        activeMenuTab.focus();
-      }
-    }
-
-    // Initialise roving tabindex from the server-rendered aria-selected state.
-    tabs.forEach(function (tab) {
-      tab.setAttribute(
-        "tabindex",
-        tab.getAttribute("aria-selected") === "true" ? "0" : "-1",
-      );
-    });
-
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        var target = tab.getAttribute("data-erankly-tab");
-
-        activate(target, false, "");
-        syncUrl(target, "");
-      });
-    });
-
-    // Keyboard navigation per the ARIA Tabs pattern (§3.23) for a vertically
-    // oriented tablist: ArrowDown / ArrowUp cycle focus; Home / End jump to endpoints.
-    tablist.addEventListener("keydown", function (e) {
-      var key = e.key;
-
-      if (
-        key !== "ArrowUp" &&
-        key !== "ArrowDown" &&
-        key !== "Home" &&
-        key !== "End"
-      ) {
-        return;
-      }
-
-      var focusable = tabs.filter(isTabFocusable);
-
-      if (focusable.length === 0) {
-        return;
-      }
-
-      var current = focusable.indexOf(document.activeElement);
-      var next;
-
-      if (key === "ArrowDown") {
-        next = (current + 1) % focusable.length;
-      } else if (key === "ArrowUp") {
-        next = (current - 1 + focusable.length) % focusable.length;
-      } else if (key === "Home") {
-        next = 0;
-      } else {
-        next = focusable.length - 1;
-      }
-
-      e.preventDefault();
-      var nextTarget = focusable[next].getAttribute("data-erankly-tab");
-
-      activate(nextTarget, true, "");
-      syncUrl(nextTarget, "");
-    });
-
-    // Activate the server-requested panel on init. For panels that PHP already
-    // renders as active (general, features, health, redirects, import-export) this
-    // is a no-op in terms of visibility. For JS-only panels (social, schema,
-    // sitemap, settings, advanced, bloat) it removes the hardcoded `hidden`
-    // attribute so that a direct URL reload restores the correct tab.
-    var initialPanel = tablist.getAttribute("data-erankly-active-panel");
-    var initialSubtab =
+    var currentLink = tablist.querySelector('[aria-current="page"]');
+    var requestedSubtab =
       tablist.getAttribute("data-erankly-active-subtab") || "";
 
-    if (initialPanel) {
-      activate(initialPanel, false, initialSubtab);
+    if (currentLink && sidebarToggleLabel) {
+      sidebarToggleLabel.textContent = getTabLabel(currentLink);
     }
 
-    root.eranklyActivateSettingsTab = activate;
-  }
-
-  function bindSimplifiedMode(root) {
-    var simplifiedMode = root.querySelector('input[name$="[simplified_mode]"]');
-    var advancedTab = root.querySelector("[data-erankly-advanced-tab]");
-    var advancedPanel = root.querySelector("[data-erankly-advanced-panel]");
-    var customSchemaSection = root.querySelector(
-      "[data-erankly-custom-schema-section]",
-    );
-    var multisiteSpecialPagesSection = root.querySelector(
-      "[data-erankly-multisite-special-pages-section]",
-    );
-    var oembedJsonSection = root.querySelector(
-      "[data-erankly-oembed-json-section]",
-    );
-    var postDateSettingsSection = root.querySelector(
-      "[data-erankly-post-date-settings-section]",
-    );
-
-    if (!simplifiedMode || !advancedTab || !advancedPanel) {
-      return;
+    if (requestedSubtab) {
+      activateInnerTab(requestedSubtab);
     }
-
-    function syncAdvancedVisibility() {
-      var isSimplified = advancedTab.hidden;
-
-      if (customSchemaSection) {
-        customSchemaSection.hidden = isSimplified;
-      }
-
-      if (multisiteSpecialPagesSection) {
-        multisiteSpecialPagesSection.hidden = isSimplified;
-      }
-
-      if (oembedJsonSection) {
-        oembedJsonSection.hidden = isSimplified;
-      }
-
-      if (postDateSettingsSection) {
-        postDateSettingsSection.hidden = isSimplified;
-      }
-
-      if (
-        isSimplified &&
-        advancedPanel.classList.contains("is-active") &&
-        typeof root.eranklyActivateSettingsTab === "function"
-      ) {
-        root.eranklyActivateSettingsTab("settings-settings");
-      }
-    }
-
-    syncAdvancedVisibility();
   }
 
   // Linked fields are matched by an explicit data-erankly-linked-field
@@ -809,7 +532,6 @@
 
   ER.bindTabs = bindTabs;
   ER.bindSettingsTabs = bindSettingsTabs;
-  ER.bindSimplifiedMode = bindSimplifiedMode;
   ER.getLinkedFieldName = getLinkedFieldName;
   ER.getLinkedDefaultFields = getLinkedDefaultFields;
   ER.getLinkedDefaultSource = getLinkedDefaultSource;
