@@ -33,6 +33,8 @@ $main_source   = (string) file_get_contents( $root . '/easyrankly.php' );
 $schema_source = (string) file_get_contents( $root . '/includes/schema.php' );
 $video_source  = (string) file_get_contents( $root . '/includes/helpers/video.php' );
 $admin_source  = (string) file_get_contents( $root . '/includes/admin.php' );
+$settings_assets_source = (string) file_get_contents( $root . '/admin/assets/settings.php' );
+$editor_assets_source = (string) file_get_contents( $root . '/admin/assets/editor.php' );
 $settings_source = (string) file_get_contents( $root . '/admin/settings-page.php' );
 $settings_renderer_source = (string) file_get_contents( $root . '/admin/settings/page-renderer.php' );
 $readme        = (string) file_get_contents( $root . '/readme.txt' );
@@ -53,6 +55,15 @@ erankly_p2_assert( str_contains( $settings_renderer_source, 'function erankly_re
 erankly_p2_assert( str_contains( $admin_source, "require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';" ), 'the admin settings loader must include the extracted page renderer' );
 erankly_p2_assert( count( file( $root . '/admin/settings-page.php' ) ?: array() ) <= 700, 'settings-page.php must remain below the structural size ceiling' );
 erankly_p2_assert( count( file( $root . '/admin/settings/page-renderer.php' ) ?: array() ) <= 700, 'page-renderer.php must remain below the structural size ceiling' );
+
+erankly_p2_assert( ! str_contains( $admin_source, 'function erankly_admin_enqueue_assets(' ), 'admin bootstrapping must stay separate from screen-specific asset loading' );
+erankly_p2_assert( str_contains( $settings_assets_source, 'function erankly_admin_enqueue_assets(' ), 'settings and classic editor asset loading must remain available' );
+erankly_p2_assert( str_contains( $editor_assets_source, 'function erankly_enqueue_accordion_faq_schema_assets(' ), 'block editor asset loading must remain available' );
+erankly_p2_assert( str_contains( $admin_source, "require_once ERANKLY_PATH . 'admin/assets/settings.php';" ), 'the admin bootstrap must include settings assets' );
+erankly_p2_assert( str_contains( $admin_source, "require_once ERANKLY_PATH . 'admin/assets/editor.php';" ), 'the admin bootstrap must include editor assets' );
+foreach ( array( 'includes/admin.php', 'admin/assets/settings.php', 'admin/assets/editor.php' ) as $admin_path ) {
+	erankly_p2_assert( count( file( $root . '/' . $admin_path ) ?: array() ) <= 800, basename( $admin_path ) . ' must remain below the structural size ceiling' );
+}
 
 $removed_functions = array(
 	'erankly_import_apply_legacy_unbounded',
