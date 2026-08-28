@@ -49,7 +49,7 @@ function erankly_external_seo_head_owners(): array {
 		),
 		'slim-seo'          => array(
 			'label'     => 'Slim SEO',
-			'constants' => array( 'SLIM_SEO_VERSION' ),
+			'constants' => array( 'SLIM_SEO_VER', 'SLIM_SEO_VERSION' ),
 		),
 	);
 	$owners      = array();
@@ -195,6 +195,18 @@ function erankly_should_suppress_sitemaps(): bool {
 	 * @param bool $suppress True to suppress EasyRankly sitemaps.
 	 */
 	return (bool) apply_filters( 'erankly_enable_sitemaps_with_external_seo', $suppress );
+}
+
+/**
+ * Determines whether EasyRankly should register and serve its sitemap output.
+ *
+ * Keeping this decision in one function prevents persisted rewrite rules from
+ * outliving the renderer when another SEO plugin takes ownership.
+ *
+ * @return bool True when EasyRankly sitemap routes and renderers should run.
+ */
+function erankly_should_serve_sitemaps(): bool {
+	return erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps();
 }
 
 /**

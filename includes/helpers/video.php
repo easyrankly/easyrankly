@@ -155,10 +155,6 @@ function erankly_get_video_thumbnail_url( int $post_id, string $video_url ): str
 		return 'https://img.youtube.com/vi/' . $m[1] . '/0.jpg';
 	}
 
-	if ( preg_match( '#vimeo\.com/(\d+)#', $video_url, $m ) ) {
-		return 'https://vumbnail.com/' . $m[1] . '.jpg';
-	}
-
 	return '';
 }
 

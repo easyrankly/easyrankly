@@ -55,7 +55,6 @@
 
 /* Popover / suggestion menu surfaces. */
 
-.erankly-popover-surface,
 .erankly-editor-variable-popover .components-popover__content {
 	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border);
@@ -63,7 +62,6 @@
 	box-shadow: var(--erankly-shadow-popover);
 }
 
-.erankly-suggest-menu,
 .erankly-variable-menu,
 .erankly-editor-variable-menu {
 	background: var(--erankly-color-surface);
@@ -75,7 +73,6 @@
 	overflow-y: auto;
 }
 
-.erankly-suggest-option,
 .erankly-variable-option {
 	align-items: baseline;
 	background: none;
@@ -89,14 +86,11 @@
 	width: 100%;
 }
 
-.erankly-suggest-option:hover,
-.erankly-suggest-option.is-active,
 .erankly-variable-option:hover,
 .erankly-variable-option.is-active {
 	background: var(--erankly-color-surface-hover);
 }
 
-.erankly-suggest-option-primary,
 .erankly-variable-option-primary {
 	color: var(--erankly-color-text);
 	flex-shrink: 0;
@@ -104,7 +98,6 @@
 	font-size: 12px;
 }
 
-.erankly-suggest-option-secondary,
 .erankly-variable-option-secondary {
 	color: var(--erankly-color-muted);
 	font-size: 12px;
@@ -117,14 +110,6 @@
 
 .erankly-panel--checklist .erankly-seo-checklist {
 	margin-top: 0;
-}
-
-.erankly-seo-checklist-intro {
-	margin-bottom: var(--erankly-space-3);
-}
-
-.erankly-seo-checklist-help {
-	margin: 0;
 }
 
 .erankly-seo-checklist-items {

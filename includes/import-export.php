@@ -700,11 +700,8 @@ function erankly_import_export_handle_migration_evidence_action( string $report_
 				)
 			);
 		}
-		$verifier                    = new ERankly_Migration_Live_Verifier();
-		$report['live_verification'] = $verifier->verify( $report );
-		$manager->update_report( $report );
-		$gate   = $manager->evaluate_go_live_gate( $report, true );
-		$notice = ! empty( $gate['go_live'] ) ? 'migration-live-verified' : 'migration-live-review';
+		$queued = ERankly_Migration_Verification_Job::queue( $report_id );
+		$notice = $queued ? 'migration-live-running' : 'migration-evidence-error';
 	} else {
 		$result = erankly_migration_journal()->rollback( $report_id );
 		erankly_migration_record_rollback_result( $report_id, $result );
@@ -878,7 +875,7 @@ function erankly_export_download(): void {
 	header( 'Content-Type: application/json; charset=utf-8' );
 	header( 'Content-Disposition: attachment; filename=' . $filename );
 
-	$header         = array(
+	$header = array(
 		'plugin'      => 'erankly',
 		'format'      => ERANKLY_EXPORT_FORMAT,
 		'version'     => ERANKLY_VERSION,
@@ -928,136 +925,6 @@ function erankly_import_apply( array $data, array $checkpoint = array() ): array
 }
 
 /**
- * Legacy implementation retained only for source-level rollback comparison.
- *
- * @param array<string,mixed> $data Decoded export data.
- * @return array<string,int> Import counts.
- */
-function erankly_import_apply_legacy_unbounded( array $data ): array {
-	$counts = array(
-		'settings'  => 0,
-		'redirects' => 0,
-		'post_meta' => 0,
-		'term_meta' => 0,
-		'user_meta' => 0,
-	);
-
-	// Settings.
-	if ( isset( $data['settings'] ) && is_array( $data['settings'] ) && function_exists( 'erankly_sanitize_settings' ) ) {
-		$clean = erankly_sanitize_settings( $data['settings'] );
-		erankly_update_plugin_option( ERANKLY_OPTION, $clean );
-		$counts['settings'] = 1;
-	}
-
-	do_action( 'erankly_imported_payload', $data );
-
-	// Accept per-site special-page metadata on either architecture so imported
-	// configuration files remain portable.
-	if ( isset( $data['special_meta'] ) && is_array( $data['special_meta'] ) ) {
-		erankly_update_special_meta_map( $data['special_meta'] );
-		$counts['settings'] = 1;
-	}
-
-	// Redirects. Restore regardless of whether the module is currently enabled.
-	// The redirect table is created on demand so data is never lost.
-	if ( ! empty( $data['redirects'] ) && is_array( $data['redirects'] ) ) {
-		erankly_ensure_redirect_classes_available();
-
-		if ( class_exists( 'ERankly_Redirects_Repository' ) && class_exists( 'ERankly_Redirects_Normalizer' ) ) {
-			// Make sure the DB table exists even if the module was never activated.
-			if ( class_exists( 'ERankly_Redirects_Activator' ) ) {
-				ERankly_Redirects_Activator::activate();
-			}
-
-			$repository = new ERankly_Redirects_Repository();
-			$repository->begin_bulk();
-
-			try {
-				foreach ( $data['redirects'] as $row ) {
-					if ( ! is_array( $row ) ) {
-						continue;
-					}
-
-					$redirect = erankly_import_prepare_redirect( $row );
-
-					if ( null === $redirect ) {
-						continue;
-					}
-
-					if ( in_array( $repository->upsert_by_hash( $redirect ), array( 'created', 'updated' ), true ) ) {
-						++$counts['redirects'];
-					}
-				}
-			} finally {
-				$repository->end_bulk();
-			}
-		}
-	}
-
-	if ( ! empty( $data['user_meta'] ) && is_array( $data['user_meta'] ) ) {
-		$allowed = erankly_get_meta_keys();
-
-		foreach ( $data['user_meta'] as $entry ) {
-			$user_id = is_array( $entry ) && isset( $entry['id'] ) ? absint( $entry['id'] ) : 0;
-			$key     = is_array( $entry ) && isset( $entry['key'] ) ? (string) $entry['key'] : '';
-
-			if ( $user_id < 1 || ! get_user_by( 'id', $user_id ) || ! isset( $allowed[ $key ] ) ) {
-				continue;
-			}
-
-			update_user_meta( $user_id, $key, wp_slash( erankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
-			++$counts['user_meta'];
-		}
-	}
-
-	// Post meta.
-	if ( ! empty( $data['post_meta'] ) && is_array( $data['post_meta'] ) ) {
-		$allowed = erankly_get_meta_keys();
-
-		foreach ( $data['post_meta'] as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-
-			$post_id = isset( $entry['id'] ) ? absint( $entry['id'] ) : 0;
-			$key     = isset( $entry['key'] ) ? (string) $entry['key'] : '';
-
-			if ( $post_id <= 0 || ! isset( $allowed[ $key ] ) || ! get_post( $post_id ) ) {
-				continue;
-			}
-
-			// wp_slash(): update_post_meta() unslashes its input, which would strip
-			// literal backslashes from the imported value.
-			update_post_meta( $post_id, $key, wp_slash( erankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
-			++$counts['post_meta'];
-		}
-	}
-
-	// Term meta.
-	if ( ! empty( $data['term_meta'] ) && is_array( $data['term_meta'] ) ) {
-		$allowed = erankly_get_meta_keys();
-
-		foreach ( $data['term_meta'] as $entry ) {
-			if ( ! is_array( $entry ) ) {
-				continue;
-			}
-
-			$term_id = isset( $entry['id'] ) ? absint( $entry['id'] ) : 0;
-			$key     = isset( $entry['key'] ) ? (string) $entry['key'] : '';
-
-			if ( $term_id <= 0 || ! isset( $allowed[ $key ] ) || ! get_term( $term_id ) instanceof WP_Term ) {
-				continue;
-			}
-
-			update_term_meta( $term_id, $key, wp_slash( erankly_sanitize_registered_meta( $entry['value'] ?? '', $key ) ) );
-			++$counts['term_meta'];
-		}
-	}
-
-	return $counts;
-}
-
-/**
  * Imports useful per-content SEO data from a third-party plugin.
  *
  * Existing EasyRankly values are never overwritten, so the import only fills in
@@ -1080,432 +947,15 @@ function erankly_import_third_party( string $source ): array {
 }
 
 /**
- * Imports post meta from a third-party plugin.
- *
- * @param string                             $source Source plugin: yoast|rankmath.
- * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
- * @return void
- */
-function erankly_import_third_party_posts( string $source, array &$counts ): void {
-	global $wpdb;
-
-	$source_keys = erankly_third_party_source_keys( $source );
-
-	if ( empty( $source_keys ) ) {
-		return;
-	}
-
-	$placeholders = implode( ', ', array_fill( 0, count( $source_keys ), '%s' ) );
-	$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Importer needs third-party post meta rows for migration.
-		$wpdb->prepare(
-			"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-			$source_keys
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return;
-	}
-
-	$by_post = array();
-
-	foreach ( $rows as $row ) {
-		$by_post[ (int) $row['post_id'] ][ (string) $row['meta_key'] ] = (string) $row['meta_value'];
-	}
-
-	foreach ( $by_post as $post_id => $meta ) {
-		if ( ! get_post( $post_id ) ) {
-			continue;
-		}
-
-		$mapped = 'yoast' === $source
-			? erankly_map_yoast_meta( $meta )
-			: erankly_map_rankmath_meta( $meta );
-
-		$counts['post_meta'] += erankly_apply_imported_meta( 'post', $post_id, $mapped );
-	}
-}
-
-/**
- * Imports Yoast term SEO from the wpseo_taxonomy_meta option.
- *
- * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
- * @return void
- */
-function erankly_import_yoast_terms( array &$counts ): void {
-	$taxonomy_meta = get_option( 'wpseo_taxonomy_meta' );
-
-	if ( ! is_array( $taxonomy_meta ) ) {
-		return;
-	}
-
-	foreach ( $taxonomy_meta as $terms ) {
-		if ( ! is_array( $terms ) ) {
-			continue;
-		}
-
-		foreach ( $terms as $term_id => $meta ) {
-			$term_id = absint( $term_id );
-
-			if ( $term_id <= 0 || ! is_array( $meta ) || ! get_term( $term_id ) instanceof WP_Term ) {
-				continue;
-			}
-
-			$mapped               = erankly_map_yoast_meta( $meta, true );
-			$counts['term_meta'] += erankly_apply_imported_meta( 'term', $term_id, $mapped );
-		}
-	}
-}
-
-/**
- * Imports Rank Math term SEO from term meta.
- *
- * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
- * @return void
- */
-function erankly_import_rankmath_terms( array &$counts ): void {
-	global $wpdb;
-
-	$source_keys = erankly_third_party_source_keys( 'rankmath' );
-
-	if ( empty( $source_keys ) ) {
-		return;
-	}
-
-	$placeholders = implode( ', ', array_fill( 0, count( $source_keys ), '%s' ) );
-	$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Importer needs third-party term meta rows for migration.
-		$wpdb->prepare(
-			"SELECT term_id, meta_key, meta_value FROM {$wpdb->termmeta} WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-			$source_keys
-		),
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return;
-	}
-
-	$by_term = array();
-
-	foreach ( $rows as $row ) {
-		$by_term[ (int) $row['term_id'] ][ (string) $row['meta_key'] ] = (string) $row['meta_value'];
-	}
-
-	foreach ( $by_term as $term_id => $meta ) {
-		if ( ! get_term( $term_id ) instanceof WP_Term ) {
-			continue;
-		}
-
-		$mapped               = erankly_map_rankmath_meta( $meta );
-		$counts['term_meta'] += erankly_apply_imported_meta( 'term', $term_id, $mapped );
-	}
-}
-
-/**
- * Imports All in One SEO post data from the wp_aioseo_posts custom table.
- *
- * Unlike Yoast and Rank Math, AIOSEO v4+ stores per-post SEO data in its own
- * table rather than in postmeta.
- *
- * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
- * @return void
- */
-function erankly_import_aioseo_posts( array &$counts ): void {
-	global $wpdb;
-
-	$table = esc_sql( $wpdb->prefix . 'aioseo_posts' );
-
-	if ( ! erankly_table_exists( $table ) ) {
-		return;
-	}
-
-	$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Importer needs third-party rows for migration.
-		"SELECT post_id, title, description, canonical_url, og_title, og_description, og_image_custom_url, twitter_title, twitter_description, robots_default, robots_noindex, robots_nofollow, robots_noarchive FROM {$table}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted $wpdb prefix.
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return;
-	}
-
-	foreach ( $rows as $row ) {
-		$post_id = isset( $row['post_id'] ) ? (int) $row['post_id'] : 0;
-
-		if ( $post_id <= 0 || ! get_post( $post_id ) ) {
-			continue;
-		}
-
-		$mapped               = erankly_map_aioseo_meta( $row );
-		$counts['post_meta'] += erankly_apply_imported_meta( 'post', $post_id, $mapped );
-	}
-}
-
-/**
- * Imports All in One SEO term data from the wp_aioseo_terms custom table.
- *
- * The terms table only exists on recent AIOSEO versions, so its absence is
- * treated as "nothing to import".
- *
- * @param array{post_meta:int,term_meta:int} $counts Running counts (by reference).
- * @return void
- */
-function erankly_import_aioseo_terms( array &$counts ): void {
-	global $wpdb;
-
-	$table = esc_sql( $wpdb->prefix . 'aioseo_terms' );
-
-	if ( ! erankly_table_exists( $table ) ) {
-		return;
-	}
-
-	$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Importer needs third-party rows for migration.
-		"SELECT term_id, title, description, canonical_url, og_title, og_description, og_image_custom_url, twitter_title, twitter_description, robots_default, robots_noindex, robots_nofollow, robots_noarchive FROM {$table}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted $wpdb prefix.
-		ARRAY_A
-	);
-
-	if ( ! is_array( $rows ) ) {
-		return;
-	}
-
-	foreach ( $rows as $row ) {
-		$term_id = isset( $row['term_id'] ) ? (int) $row['term_id'] : 0;
-
-		if ( $term_id <= 0 || ! get_term( $term_id ) instanceof WP_Term ) {
-			continue;
-		}
-
-		$mapped               = erankly_map_aioseo_meta( $row );
-		$counts['term_meta'] += erankly_apply_imported_meta( 'term', $term_id, $mapped );
-	}
-}
-
-/**
- * Maps an All in One SEO post/term row to EasyRankly meta.
- *
- * @param array<string,mixed> $row Source row from wp_aioseo_posts/wp_aioseo_terms.
- * @return array<string,mixed>
- */
-function erankly_map_aioseo_meta( array $row ): array {
-	$get = static function ( string $key ) use ( $row ): string {
-		return isset( $row[ $key ] ) ? (string) $row[ $key ] : '';
-	};
-
-	$mapped = array(
-		'_erankly_title'               => erankly_import_convert_variables( $get( 'title' ), 'aioseo' ),
-		'_erankly_description'         => erankly_import_convert_variables( $get( 'description' ), 'aioseo' ),
-		'_erankly_canonical'           => $get( 'canonical_url' ),
-		'_erankly_og_title'            => erankly_import_convert_variables( $get( 'og_title' ), 'aioseo' ),
-		'_erankly_og_description'      => erankly_import_convert_variables( $get( 'og_description' ), 'aioseo' ),
-		'_erankly_social_image_url'    => $get( 'og_image_custom_url' ),
-		'_erankly_twitter_title'       => erankly_import_convert_variables( $get( 'twitter_title' ), 'aioseo' ),
-		'_erankly_twitter_description' => erankly_import_convert_variables( $get( 'twitter_description' ), 'aioseo' ),
-	);
-
-	// robots_default = 1 means "use the site defaults", so the per-row flags are
-	// only meaningful when the post/term has its own custom robots settings.
-	if ( '1' !== $get( 'robots_default' ) ) {
-		if ( '1' === $get( 'robots_noindex' ) ) {
-			$mapped['_erankly_noindex'] = true;
-		}
-
-		if ( '1' === $get( 'robots_nofollow' ) ) {
-			$mapped['_erankly_nofollow'] = true;
-		}
-
-		if ( '1' === $get( 'robots_noarchive' ) ) {
-			$mapped['_erankly_noarchive'] = true;
-		}
-	}
-
-	return $mapped;
-}
-
-/**
- * Writes mapped meta values without overwriting existing EasyRankly data.
- *
- * @param string              $object_type 'post' or 'term'.
- * @param int                 $object_id   Object ID.
- * @param array<string,mixed> $mapped      EasyRankly meta key => value.
- * @return int Number of fields written.
- */
-function erankly_apply_imported_meta( string $object_type, int $object_id, array $mapped ): int {
-	$written = 0;
-
-	foreach ( $mapped as $key => $value ) {
-		// Skip empty strings, nulls, and zero image IDs; keep boolean true flags.
-		if ( true !== $value && empty( $value ) ) {
-			continue;
-		}
-
-		$existing = 'post' === $object_type
-			? get_post_meta( $object_id, $key, true )
-			: get_term_meta( $object_id, $key, true );
-
-		if ( '' !== $existing && null !== $existing && false !== $existing ) {
-			continue;
-		}
-
-		$clean = erankly_sanitize_registered_meta( $value, $key );
-
-		if ( '' === $clean || false === $clean ) {
-			continue;
-		}
-
-		// wp_slash(): update_*_meta() unslashes its input, which would strip
-		// literal backslashes from the migrated value.
-		if ( 'post' === $object_type ) {
-			update_post_meta( $object_id, $key, wp_slash( $clean ) );
-		} else {
-			update_term_meta( $object_id, $key, wp_slash( $clean ) );
-		}
-
-		++$written;
-	}
-
-	return $written;
-}
-
-/**
- * Returns the source meta keys read from a third-party plugin.
- *
- * @param string $source Source plugin: yoast|rankmath.
- * @return array<int,string>
- */
-function erankly_third_party_source_keys( string $source ): array {
-	if ( 'yoast' === $source ) {
-		return array(
-			'_yoast_wpseo_title',
-			'_yoast_wpseo_metadesc',
-			'_yoast_wpseo_canonical',
-			'_yoast_wpseo_bctitle',
-			'_yoast_wpseo_opengraph-title',
-			'_yoast_wpseo_opengraph-description',
-			'_yoast_wpseo_opengraph-image',
-			'_yoast_wpseo_opengraph-image-id',
-			'_yoast_wpseo_twitter-title',
-			'_yoast_wpseo_twitter-description',
-			'_yoast_wpseo_meta-robots-noindex',
-			'_yoast_wpseo_meta-robots-nofollow',
-			'_yoast_wpseo_meta-robots-adv',
-		);
-	}
-
-	return array(
-		'rank_math_title',
-		'rank_math_description',
-		'rank_math_canonical_url',
-		'rank_math_breadcrumb_title',
-		'rank_math_facebook_title',
-		'rank_math_facebook_description',
-		'rank_math_facebook_image',
-		'rank_math_facebook_image_id',
-		'rank_math_twitter_title',
-		'rank_math_twitter_description',
-		'rank_math_twitter_image_id',
-		'rank_math_robots',
-	);
-}
-
-/**
- * Maps Yoast meta (post meta keys or wpseo_taxonomy_meta keys) to EasyRankly meta.
- *
- * @param array<string,mixed> $meta    Source meta.
- * @param bool                $is_term Whether the keys use the wpseo_taxonomy_meta short form.
- * @return array<string,mixed>
- */
-function erankly_map_yoast_meta( array $meta, bool $is_term = false ): array {
-	// Term meta in wpseo_taxonomy_meta uses short keys (wpseo_title); post meta
-	// uses the full prefix (_yoast_wpseo_title). Normalize to the short form.
-	$prefix = $is_term ? 'wpseo_' : '_yoast_wpseo_';
-	$get    = static function ( string $key ) use ( $meta, $prefix ): string {
-		return isset( $meta[ $prefix . $key ] ) ? (string) $meta[ $prefix . $key ] : '';
-	};
-
-	$mapped = array(
-		'_erankly_title'               => erankly_import_convert_variables( $get( 'title' ), 'yoast' ),
-		'_erankly_description'         => erankly_import_convert_variables( $is_term ? $get( 'desc' ) : $get( 'metadesc' ), 'yoast' ),
-		'_erankly_canonical'           => $get( 'canonical' ),
-		'_erankly_breadcrumb_name'     => $get( 'bctitle' ),
-		'_erankly_og_title'            => erankly_import_convert_variables( $get( 'opengraph-title' ), 'yoast' ),
-		'_erankly_og_description'      => erankly_import_convert_variables( $get( 'opengraph-description' ), 'yoast' ),
-		'_erankly_social_image_url'    => $get( 'opengraph-image' ),
-		'_erankly_og_image_id'         => absint( $get( 'opengraph-image-id' ) ),
-		'_erankly_twitter_title'       => erankly_import_convert_variables( $get( 'twitter-title' ), 'yoast' ),
-		'_erankly_twitter_description' => erankly_import_convert_variables( $get( 'twitter-description' ), 'yoast' ),
-	);
-
-	// Robots: Yoast stores "1" for noindex and "1" for nofollow; the advanced
-	// field is a comma list that may contain "noarchive".
-	if ( '1' === $get( 'meta-robots-noindex' ) || 'noindex' === $get( 'noindex' ) ) {
-		$mapped['_erankly_noindex'] = true;
-	}
-
-	if ( '1' === $get( 'meta-robots-nofollow' ) ) {
-		$mapped['_erankly_nofollow'] = true;
-	}
-
-	if ( false !== strpos( $get( 'meta-robots-adv' ), 'noarchive' ) ) {
-		$mapped['_erankly_noarchive'] = true;
-	}
-
-	return $mapped;
-}
-
-/**
- * Maps Rank Math post/term meta to EasyRankly meta.
- *
- * @param array<string,mixed> $meta Source meta.
- * @return array<string,mixed>
- */
-function erankly_map_rankmath_meta( array $meta ): array {
-	$get = static function ( string $key ) use ( $meta ): string {
-		return isset( $meta[ $key ] ) ? (string) $meta[ $key ] : '';
-	};
-
-	$mapped = array(
-		'_erankly_title'               => erankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' ),
-		'_erankly_description'         => erankly_import_convert_variables( $get( 'rank_math_description' ), 'rankmath' ),
-		'_erankly_canonical'           => $get( 'rank_math_canonical_url' ),
-		'_erankly_breadcrumb_name'     => $get( 'rank_math_breadcrumb_title' ),
-		'_erankly_og_title'            => erankly_import_convert_variables( $get( 'rank_math_facebook_title' ), 'rankmath' ),
-		'_erankly_og_description'      => erankly_import_convert_variables( $get( 'rank_math_facebook_description' ), 'rankmath' ),
-		'_erankly_social_image_url'    => $get( 'rank_math_facebook_image' ),
-		'_erankly_og_image_id'         => absint( $get( 'rank_math_facebook_image_id' ) ),
-		'_erankly_twitter_title'       => erankly_import_convert_variables( $get( 'rank_math_twitter_title' ), 'rankmath' ),
-		'_erankly_twitter_description' => erankly_import_convert_variables( $get( 'rank_math_twitter_description' ), 'rankmath' ),
-		'_erankly_twitter_image_id'    => absint( $get( 'rank_math_twitter_image_id' ) ),
-	);
-
-	// Robots is a serialized array such as ["noindex","nofollow","noarchive"].
-	$robots = maybe_unserialize( $get( 'rank_math_robots' ) );
-
-	if ( is_array( $robots ) ) {
-		if ( in_array( 'noindex', $robots, true ) ) {
-			$mapped['_erankly_noindex'] = true;
-		}
-
-		if ( in_array( 'nofollow', $robots, true ) ) {
-			$mapped['_erankly_nofollow'] = true;
-		}
-
-		if ( in_array( 'noarchive', $robots, true ) ) {
-			$mapped['_erankly_noarchive'] = true;
-		}
-	}
-
-	return $mapped;
-}
-
-/**
  * Renders the focused second upload required after an official-export preview.
  *
  * @param array<string,mixed> $report     Reviewed preview report.
  * @param string              $action_url Form action.
- * @param int                 $upload_max Maximum upload size.
+ * @param int                 $csv_upload_max  Maximum CSV upload size.
+ * @param int                 $json_upload_max Maximum JSON upload size.
  * @return void
  */
-function erankly_migration_render_reviewed_export_upload( array $report, string $action_url, int $upload_max ): void {
+function erankly_migration_render_reviewed_export_upload( array $report, string $action_url, int $csv_upload_max, int $json_upload_max ): void {
 	$source_label = sanitize_text_field( (string) ( $report['source_label'] ?? $report['source'] ?? '' ) );
 	?>
 	<div id="erankly-migration-export-form" class="erankly-settings-section">
@@ -1515,10 +965,11 @@ function erankly_migration_render_reviewed_export_upload( array $report, string 
 				<?php
 				echo esc_html(
 					sprintf(
-						/* translators: 1: source plugin name, 2: maximum upload size. */
-						__( 'Upload the same official %1$s export that you just reviewed. EasyRankly will validate it again before importing. Maximum size: %2$s.', 'easyrankly' ),
+						/* translators: 1: source plugin name, 2: maximum CSV size, 3: maximum JSON size. */
+						__( 'Upload the same official %1$s export that you just reviewed. EasyRankly will validate it again before importing. Maximum size: CSV %2$s; JSON %3$s.', 'easyrankly' ),
 						$source_label,
-						size_format( $upload_max )
+						size_format( $csv_upload_max ),
+						size_format( $json_upload_max )
 					)
 				);
 				?>
@@ -1600,7 +1051,8 @@ function erankly_import_export_render_panel(): void {
 	$active_job        = erankly_migration_job_runner()->active_job();
 	$active_import_job = ERankly_Import_Job_Runner::active_job();
 	$import_max        = erankly_import_export_max_bytes();
-	$upload_max        = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
+	$csv_upload_max    = ERankly_Migration_Upload_Store::export_max_bytes( 'csv' );
+	$json_upload_max   = ERankly_Migration_Upload_Store::export_max_bytes( 'json' );
 	$focused_report_id = isset( $_GET['report_id'] ) ? sanitize_text_field( wp_unslash( $_GET['report_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report context.
 	$focused_report    = '' !== $focused_report_id ? erankly_migration_manager()->get_report( $focused_report_id ) : null;
 
@@ -1624,7 +1076,7 @@ function erankly_import_export_render_panel(): void {
 		$focused_profile      = is_array( $focused_report['source_profile'] ?? null ) ? $focused_report['source_profile'] : array();
 		$focused_verification = is_array( $focused_report['verification'] ?? null ) ? $focused_report['verification'] : array();
 		if ( 'preview' === (string) ( $focused_report['mode'] ?? '' ) && 'official_export' === (string) ( $focused_profile['mode'] ?? '' ) && ! empty( $focused_verification['ready_to_import'] ) ) {
-			erankly_migration_render_reviewed_export_upload( $focused_report, $action_url, $upload_max );
+			erankly_migration_render_reviewed_export_upload( $focused_report, $action_url, $csv_upload_max, $json_upload_max );
 		}
 		?>
 		<p class="erankly-migration-back"><a href="<?php echo esc_url( erankly_import_export_url() ); ?>">&larr; <?php esc_html_e( 'Back to all import and export tools', 'easyrankly' ); ?></a></p>
@@ -1723,9 +1175,10 @@ function erankly_import_export_render_panel(): void {
 				<p class="description">
 					<?php
 					printf(
-						/* translators: %s: maximum upload size. */
-						esc_html__( 'Use an official CSV or JSON export when the original plugin is unavailable or its database signature is unsupported. EasyRankly validates the exact format and stores the file privately only until the job ends. Maximum size: %s.', 'easyrankly' ),
-						esc_html( size_format( $upload_max ) )
+						/* translators: 1: maximum CSV upload size, 2: maximum JSON upload size. */
+						esc_html__( 'Use an official CSV or JSON export when the original plugin is unavailable or its database signature is unsupported. EasyRankly validates the exact format and stores the file privately only until the job ends. Maximum size: CSV %1$s; JSON %2$s.', 'easyrankly' ),
+						esc_html( size_format( $csv_upload_max ) ),
+						esc_html( size_format( $json_upload_max ) )
 					);
 					?>
 				</p>
@@ -1853,6 +1306,7 @@ function erankly_import_export_render_notice(): void {
 
 	$evidence_notices = array(
 		'migration-live-verified'       => array( 'notice-success', __( 'Live verification passed: the sampled SEO output, redirects, robots.txt and sitemap are equivalent after the provider change.', 'easyrankly' ) ),
+		'migration-live-running'        => array( 'notice-info', __( 'Live verification was queued and will continue in bounded background batches. Reload this report shortly to see the final result.', 'easyrankly' ) ),
 		'migration-live-review'         => array( 'notice-warning', __( 'Live verification found differences or unreachable samples. Review the report before deleting the source plugin.', 'easyrankly' ) ),
 		'migration-gate-blocked'        => array( 'notice-error', __( 'Live verification is unavailable because the go-live preflight gate is blocked. Resolve every blocking check and run a fresh migration before cutover.', 'easyrankly' ) ),
 		'migration-source-still-active' => array( 'notice-warning', __( 'Live verification was not run because another SEO plugin still owns the frontend output. Deactivate the migrated source plugin, purge caches, then verify again.', 'easyrankly' ) ),
@@ -2765,35 +2219,6 @@ function erankly_migration_render_active_job( array $job ): void {
  */
 function erankly_third_party_data_exists( string $source ): bool {
 	$adapter = erankly_migration_manager()->adapter( $source );
-	if ( $adapter ) {
-		return $adapter->is_available();
-	}
 
-	global $wpdb;
-
-	if ( 'yoast' === $source && is_array( get_option( 'wpseo_taxonomy_meta' ) ) ) {
-		return true;
-	}
-
-	// AIOSEO v4+ keeps its data in custom tables rather than postmeta.
-	if ( 'aioseo' === $source ) {
-		$table = esc_sql( $wpdb->prefix . 'aioseo_posts' );
-
-		if ( ! erankly_table_exists( $table ) ) {
-			return false;
-		}
-
-		return null !== $wpdb->get_var( "SELECT id FROM {$table} LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Presence check; table name from trusted $wpdb prefix.
-	}
-
-	$source_keys  = erankly_third_party_source_keys( $source );
-	$placeholders = implode( ', ', array_fill( 0, count( $source_keys ), '%s' ) );
-	$found        = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight presence check for importer availability.
-		$wpdb->prepare(
-			"SELECT meta_id FROM {$wpdb->postmeta} WHERE meta_key IN ( {$placeholders} ) LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-			$source_keys
-		)
-	);
-
-	return null !== $found;
+	return $adapter ? $adapter->is_available() : false;
 }

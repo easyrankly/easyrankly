@@ -35,8 +35,12 @@ function erankly_get_canonical(): string {
 		} else {
 			$canonical = erankly_replace_variables( $canonical, $post_id, array( 'canonical_url' ) );
 		}
-	} elseif ( is_front_page() || is_home() ) {
+	} elseif ( is_front_page() ) {
 		$canonical = home_url( '/' );
+	} elseif ( is_home() ) {
+		$posts_page_id  = (int) get_option( 'page_for_posts', 0 );
+		$posts_page_url = $posts_page_id > 0 ? get_permalink( $posts_page_id ) : '';
+		$canonical      = is_string( $posts_page_url ) && '' !== $posts_page_url ? $posts_page_url : home_url( '/' );
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
 

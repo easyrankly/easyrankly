@@ -16,6 +16,21 @@ final class ERankly_Migration_Upload_Store {
 	private const SOURCES            = array( 'yoast', 'rankmath', 'aioseo', 'seopress' );
 
 	/**
+	 * Returns the enforced upload/read ceiling for one official export type.
+	 *
+	 * @param string $extension csv or json.
+	 */
+	public static function export_max_bytes( string $extension = 'csv' ): int {
+		$maximum   = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
+		$extension = sanitize_key( $extension );
+		if ( 'json' === $extension && class_exists( 'ERankly_Migration_Export_Reader' ) ) {
+			$maximum = min( $maximum, ERankly_Migration_Export_Reader::json_max_bytes() );
+		}
+
+		return $maximum;
+	}
+
+	/**
 	 * Stages one genuine PHP upload and identifies its source signature.
 	 *
 	 * @param array<string,mixed> $file             One normalized $_FILES entry.
@@ -28,14 +43,16 @@ final class ERankly_Migration_Upload_Store {
 			return self::failure( 'invalid_source' );
 		}
 
-		$stored = self::store_wordpress_upload(
+		$name      = isset( $file['name'] ) ? sanitize_file_name( wp_unslash( (string) $file['name'] ) ) : '';
+		$extension = strtolower( (string) pathinfo( $name, PATHINFO_EXTENSION ) );
+		$stored    = self::store_wordpress_upload(
 			$file,
 			self::FILE_PREFIX,
 			array(
 				'csv'  => 'text/csv',
 				'json' => 'application/json',
 			),
-			max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) )
+			self::export_max_bytes( $extension )
 		);
 		if ( empty( $stored['ok'] ) ) {
 			return $stored;
@@ -140,9 +157,12 @@ final class ERankly_Migration_Upload_Store {
 		$path      = wp_normalize_path( $path );
 		$basename  = basename( $path );
 
+		$source_pattern = preg_quote( self::FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.(?:csv|json(?:\.ndjson)?)';
+		$import_pattern = preg_quote( self::IMPORT_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json(?:\.spool)?';
+
 		return '' !== $directory
 			&& hash_equals( $directory, untrailingslashit( wp_normalize_path( dirname( $path ) ) ) )
-			&& 1 === preg_match( '/^' . preg_quote( self::FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.(csv|json)$/', $basename );
+			&& 1 === preg_match( '/^(?:' . $source_pattern . '|' . $import_pattern . ')$/', $basename );
 	}
 
 	/**
@@ -155,16 +175,26 @@ final class ERankly_Migration_Upload_Store {
 		if ( ! self::owns( $path ) ) {
 			return false;
 		}
-		if ( ! file_exists( $path ) ) {
-			return true;
-		}
-		if ( is_link( $path ) || ! is_file( $path ) ) {
-			return false;
+		$paths = array( $path );
+		if ( 1 === preg_match( '/^' . preg_quote( self::FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json$/', basename( $path ) ) ) {
+			$paths[] = $path . '.ndjson';
 		}
 
-		$deleted = unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- The file is verified private OS-temp data; bypassing wp_delete_file filters prevents path substitution.
-		clearstatcache( true, $path );
-		return $deleted && ! file_exists( $path );
+		$success = true;
+		foreach ( $paths as $managed_path ) {
+			if ( ! self::owns( $managed_path ) || ! file_exists( $managed_path ) ) {
+				continue;
+			}
+			if ( is_link( $managed_path ) || ! is_file( $managed_path ) ) {
+				$success = false;
+				continue;
+			}
+			$deleted = unlink( $managed_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- The file is verified private OS-temp data; bypassing wp_delete_file filters prevents path substitution.
+			clearstatcache( true, $managed_path );
+			$success = $deleted && ! file_exists( $managed_path ) && $success;
+		}
+
+		return $success;
 	}
 
 	/**
@@ -181,7 +211,7 @@ final class ERankly_Migration_Upload_Store {
 		$active      = function_exists( 'get_option' ) ? get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array() ) : array();
 		$active_file = is_array( $active ) ? wp_normalize_path( (string) ( $active['source_file'] ?? '' ) ) : '';
 		$import_job  = function_exists( 'get_option' ) ? get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() ) : array();
-		$import_file = is_array( $import_job ) ? wp_normalize_path( (string) ( $import_job['file'] ?? $import_job['source_file'] ?? '' ) ) : '';
+		$import_file = is_array( $import_job ) ? wp_normalize_path( (string) ( $import_job['path'] ?? $import_job['file'] ?? $import_job['source_file'] ?? '' ) ) : '';
 		$ttl         = max( 300, (int) apply_filters( 'erankly_migration_upload_ttl', defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400 ) );
 		$cutoff      = time() - $ttl;
 		$deleted     = 0;
@@ -197,7 +227,10 @@ final class ERankly_Migration_Upload_Store {
 				continue;
 			}
 			$path = wp_normalize_path( $file->getPathname() );
-			if ( ( '' !== $active_file && hash_equals( $active_file, $path ) ) || ( '' !== $import_file && hash_equals( $import_file, $path ) ) ) {
+			if ( ( '' !== $active_file && ( hash_equals( $active_file, $path ) || hash_equals( $active_file . '.ndjson', $path ) ) ) || ( '' !== $import_file && hash_equals( $import_file, $path ) ) ) {
+				continue;
+			}
+			if ( ! file_exists( $path ) ) {
 				continue;
 			}
 			if ( self::delete( $path ) ) {
@@ -273,7 +306,7 @@ final class ERankly_Migration_Upload_Store {
 		}
 
 		$size    = filesize( $source_path );
-		$maximum = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
+		$maximum = self::export_max_bytes( $extension );
 		if ( false === $size || $size < 1 ) {
 			return self::failure( 'empty_upload' );
 		}

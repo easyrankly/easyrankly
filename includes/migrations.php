@@ -25,6 +25,7 @@ $erankly_migration_files = array(
 	'class-erankly-migration-journal.php',
 	'class-erankly-migration-auditor.php',
 	'class-erankly-migration-live-verifier.php',
+	'class-erankly-migration-verification-job.php',
 	'class-erankly-migration-source-changed-exception.php',
 	'class-erankly-migration-job-runner.php',
 );

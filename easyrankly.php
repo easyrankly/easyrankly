@@ -3,7 +3,7 @@
  * Plugin Name: EasyRankly
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
- * Version:     2.1.0
+ * Version:     2.0.0
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:      EasyRankly
@@ -25,7 +25,7 @@ if ( defined( 'ERANKLY_VERSION' ) ) {
 	return;
 }
 
-define( 'ERANKLY_VERSION', '2.1.0' );
+define( 'ERANKLY_VERSION', '2.0.0' );
 define( 'ERANKLY_EXTENSION_API_VERSION', 1 );
 define( 'ERANKLY_FILE', __FILE__ );
 define( 'ERANKLY_PATH', plugin_dir_path( __FILE__ ) );
@@ -52,13 +52,18 @@ define( 'ERANKLY_MIGRATION_CRON_HOOK', 'erankly_migration_process_batch' );
 define( 'ERANKLY_MIGRATION_BATCH_SIZE', 100 );
 define( 'ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK', 'erankly_migration_rollback_batch' );
 define( 'ERANKLY_MIGRATION_ROLLBACK_BATCH_SIZE', 100 );
+define( 'ERANKLY_MIGRATION_VERIFY_CRON_HOOK', 'erankly_migration_verify_batch' );
 define( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION', 'erankly_import_active_job_v1' );
 define( 'ERANKLY_IMPORT_LAST_RESULT_OPTION', 'erankly_import_last_result_v1' );
 define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
 define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
-require_once ERANKLY_PATH . 'includes/plugin-check.php';
+$erankly_plugin_check_helper = ERANKLY_PATH . 'includes/plugin-check.php';
+if ( file_exists( $erankly_plugin_check_helper ) && ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) ) {
+	require_once $erankly_plugin_check_helper;
+}
+unset( $erankly_plugin_check_helper );
 require_once ERANKLY_PATH . 'includes/settings-lock.php';
 require_once ERANKLY_PATH . 'includes/localized-value-writer.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-registry.php';
@@ -217,6 +222,7 @@ function erankly_bootstrap(): void {
 
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
 	add_action( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, 'erankly_process_migration_rollback' );
+	add_action( ERANKLY_MIGRATION_VERIFY_CRON_HOOK, 'erankly_process_migration_verification' );
 	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_rewrites' );
@@ -242,7 +248,7 @@ function erankly_bootstrap(): void {
 		erankly_redirects_boot();
 	}
 
-	if ( erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps() ) {
+	if ( erankly_should_serve_sitemaps() ) {
 		erankly_load_sitemap_helpers();
 		erankly_load_content_helpers();
 		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
@@ -352,6 +358,16 @@ function erankly_process_migration_rollback( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	$result = erankly_migration_journal()->process_rollback( $job_id );
 	erankly_migration_record_rollback_result( $job_id, $result );
+}
+
+/**
+ * Advances one bounded, background live-verification page.
+ *
+ * @param string $report_id Migration report UUID.
+ */
+function erankly_process_migration_verification( string $report_id ): void {
+	require_once ERANKLY_PATH . 'includes/migrations.php';
+	ERankly_Migration_Verification_Job::process( $report_id );
 }
 
 /**
@@ -560,7 +576,7 @@ function erankly_network_lifecycle_requires_cli(): bool {
 function erankly_get_rewrite_signature(): string {
 	$generation = (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '0' );
 
-	return ERANKLY_VERSION . ':' . $generation . ':' . ( erankly_sitemap_enabled() ? '1' : '0' );
+	return ERANKLY_VERSION . ':' . $generation . ':' . ( erankly_should_serve_sitemaps() ? '1' : '0' );
 }
 
 /**
@@ -654,6 +670,7 @@ function erankly_deactivate_current_site(): void {
 			ERANKLY_NETWORK_RESET_CRON_HOOK,
 			ERANKLY_MIGRATION_CRON_HOOK,
 			ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK,
+			ERANKLY_MIGRATION_VERIFY_CRON_HOOK,
 			ERANKLY_IMPORT_CRON_HOOK,
 		) as $hook
 	) {

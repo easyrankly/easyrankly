@@ -12,6 +12,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Captures the old-plugin baseline and compares it after controlled cutover. */
 final class ERankly_Migration_Live_Verifier {
 	private const PROFILE_VERSION = 2;
+	/**
+	 * Requests issued by this verifier instance.
+	 *
+	 * @var int
+	 */
+	private int $request_count = 0;
+	/**
+	 * Monotonic request-budget start timestamp.
+	 *
+	 * @var float
+	 */
+	private float $started_at;
+
+	/** Starts a fresh, request-scoped network budget. */
+	public function __construct() {
+		$this->started_at = microtime( true );
+	}
 
 	/**
 	 * Captures representative responses while the source plugin is still active.
@@ -103,95 +120,161 @@ final class ERankly_Migration_Live_Verifier {
 	 * @return array<string,mixed>
 	 */
 	public function verify( array $report ): array {
+		$checkpoint = array();
+		do {
+			$batch      = $this->verify_batch( $report, $checkpoint );
+			$checkpoint = is_array( $batch['checkpoint'] ?? null ) ? $batch['checkpoint'] : array();
+		} while ( empty( $batch['done'] ) );
+
+		return is_array( $batch['result'] ?? null ) ? $batch['result'] : $this->empty_verification( 'inconclusive' );
+	}
+
+	/**
+	 * Runs a bounded group of post-cutover comparison targets.
+	 *
+	 * @param array<string,mixed> $report     Migration report.
+	 * @param array<string,mixed> $checkpoint Durable task cursor and partial result.
+	 * @return array{done:bool,checkpoint:array<string,mixed>,result:array<string,mixed>}
+	 */
+	public function verify_batch( array $report, array $checkpoint = array() ): array {
 		$baseline = is_array( $report['html_baseline'] ?? null ) ? $report['html_baseline'] : array();
 		if ( ! in_array( (string) ( $baseline['state'] ?? '' ), array( 'captured', 'partial' ), true ) ) {
+			$result = $this->empty_verification( 'no_baseline' );
 			return array(
-				'verified_at'      => gmdate( 'c' ),
-				'state'            => 'no_baseline',
-				'matched'          => 0,
-				'expected_changes' => 0,
-				'mismatch'         => 0,
-				'request_failed'   => 0,
-				'pages'            => array(),
-				'redirects'        => array(),
-				'surfaces'         => array(),
-				'follow_redirects' => false,
+				'done'       => true,
+				'checkpoint' => array(),
+				'result'     => $result,
 			);
 		}
-		$pages     = array();
-		$redirects = array();
-		$surfaces  = array();
-		$matched   = 0;
-		$expected  = 0;
-		$mismatch  = 0;
-		$failed    = 0;
 
+		$tasks = array();
 		foreach ( is_array( $baseline['pages'] ?? null ) ? $baseline['pages'] : array() as $url => $before ) {
-			$after      = $this->page_probe( (string) $url );
-			$comparison = $this->compare_page( is_array( $before ) ? $before : array(), $after );
-			$pages[]    = array(
-				'url'         => esc_url_raw( (string) $url ),
-				'status'      => (string) $comparison['status'],
-				'scope'       => (string) $comparison['scope'],
-				'reasons'     => $comparison['reasons'],
-				'before_hash' => sanitize_text_field( (string) ( $before['semantic_hash'] ?? '' ) ),
-				'after_hash'  => sanitize_text_field( (string) ( $after['semantic_hash'] ?? '' ) ),
-				'http_code'   => absint( $after['status_code'] ?? 0 ),
+			$tasks[] = array(
+				'type'   => 'page',
+				'key'    => (string) $url,
+				'before' => is_array( $before ) ? $before : array(),
 			);
-			$this->tally( (string) $comparison['status'], $matched, $expected, $mismatch, $failed );
+		}
+		foreach ( is_array( $baseline['redirects'] ?? null ) ? $baseline['redirects'] : array() as $path => $before ) {
+			$tasks[] = array(
+				'type'   => 'redirect',
+				'key'    => (string) $path,
+				'before' => is_array( $before ) ? $before : array(),
+			);
+		}
+		foreach ( is_array( $baseline['surfaces'] ?? null ) ? $baseline['surfaces'] : array() as $name => $before ) {
+			$tasks[] = array(
+				'type'   => 'surface',
+				'key'    => sanitize_key( (string) $name ),
+				'before' => is_array( $before ) ? $before : array(),
+			);
 		}
 
-		foreach ( is_array( $baseline['redirects'] ?? null ) ? $baseline['redirects'] : array() as $path => $before ) {
-			$after       = $this->response_probe( $this->same_origin_url( (string) $path ) );
-			$comparison  = 'ok' !== (string) ( $after['request_state'] ?? '' ) ? 'request_failed' : (
+		$task_count = count( $tasks );
+		$result     = is_array( $checkpoint['result'] ?? null ) ? $checkpoint['result'] : $this->empty_verification( 'running' );
+		$position   = min( $task_count, absint( $checkpoint['position'] ?? 0 ) );
+		$limit      = max( 1, min( 5, (int) apply_filters( 'erankly_migration_live_batch_size', 2 ) ) );
+		$processed  = 0;
+		while ( $position < $task_count && $processed < $limit ) {
+			$task   = $tasks[ $position ];
+			$type   = (string) $task['type'];
+			$key    = (string) $task['key'];
+			$before = is_array( $task['before'] ) ? $task['before'] : array();
+			$status = 'request_failed';
+
+			if ( 'page' === $type ) {
+				$url               = $key;
+				$after             = $this->page_probe( (string) $url );
+				$comparison        = $this->compare_page( $before, $after );
+				$result['pages'][] = array(
+					'url'         => esc_url_raw( (string) $url ),
+					'status'      => (string) $comparison['status'],
+					'scope'       => (string) $comparison['scope'],
+					'reasons'     => $comparison['reasons'],
+					'before_hash' => sanitize_text_field( (string) ( $before['semantic_hash'] ?? '' ) ),
+					'after_hash'  => sanitize_text_field( (string) ( $after['semantic_hash'] ?? '' ) ),
+					'http_code'   => absint( $after['status_code'] ?? 0 ),
+				);
+				$status            = (string) $comparison['status'];
+			} elseif ( 'redirect' === $type ) {
+				$after                 = $this->response_probe( $this->same_origin_url( $key ) );
+				$status                = 'ok' !== (string) ( $after['request_state'] ?? '' ) ? 'request_failed' : (
 				absint( $before['status_code'] ?? 0 ) === absint( $after['status_code'] ?? 0 )
 				&& $this->normalize_url( (string) ( $before['location'] ?? '' ) ) === $this->normalize_url( (string) ( $after['location'] ?? '' ) ) ? 'match' : 'mismatch'
-			);
-			$redirects[] = array(
-				'source_path'     => sanitize_text_field( (string) $path ),
-				'status'          => $comparison,
-				'before_status'   => absint( $before['status_code'] ?? 0 ),
-				'after_status'    => absint( $after['status_code'] ?? 0 ),
-				'before_location' => esc_url_raw( (string) ( $before['location'] ?? '' ) ),
-				'after_location'  => esc_url_raw( (string) ( $after['location'] ?? '' ) ),
-			);
-			$this->tally( $comparison, $matched, $expected, $mismatch, $failed );
+				);
+				$result['redirects'][] = array(
+					'source_path'     => sanitize_text_field( $key ),
+					'status'          => $status,
+					'before_status'   => absint( $before['status_code'] ?? 0 ),
+					'after_status'    => absint( $after['status_code'] ?? 0 ),
+					'before_location' => esc_url_raw( (string) ( $before['location'] ?? '' ) ),
+					'after_location'  => esc_url_raw( (string) ( $after['location'] ?? '' ) ),
+				);
+			} elseif ( 'surface' === $type ) {
+				$after_url                  = 'robots' === $key ? home_url( '/robots.txt' ) : $this->destination_sitemap_url();
+				$after                      = 'robots' === $key ? $this->robots_probe( $after_url ) : $this->sitemap_probe( $after_url );
+				$after['url']               = $after_url;
+				$comparison                 = $this->compare_surface( $key, $before, $after );
+				$before_count               = 'sitemap' === $key ? absint( $before['top_level_count'] ?? $before['entry_count'] ?? 0 ) : absint( $before['sitemap_count'] ?? $before['entry_count'] ?? 0 );
+				$after_count                = 'sitemap' === $key ? absint( $after['top_level_count'] ?? $after['entry_count'] ?? 0 ) : absint( $after['sitemap_count'] ?? $after['entry_count'] ?? 0 );
+				$result['surfaces'][ $key ] = array(
+					'status'       => (string) $comparison['status'],
+					'scope'        => (string) $comparison['scope'],
+					'reasons'      => $comparison['reasons'],
+					'before_url'   => esc_url_raw( (string) ( $before['url'] ?? '' ) ),
+					'after_url'    => esc_url_raw( $after_url ),
+					'before_hash'  => sanitize_text_field( (string) ( $before['semantic_hash'] ?? '' ) ),
+					'after_hash'   => sanitize_text_field( (string) ( $after['semantic_hash'] ?? '' ) ),
+					'before_count' => $before_count,
+					'after_count'  => $after_count,
+				);
+				$status                     = (string) $comparison['status'];
+			}
+
+			$this->tally( $status, $result['matched'], $result['expected_changes'], $result['mismatch'], $result['request_failed'] );
+			++$position;
+			++$processed;
 		}
 
-		foreach ( is_array( $baseline['surfaces'] ?? null ) ? $baseline['surfaces'] : array() as $name => $before ) {
-			$before                                     = is_array( $before ) ? $before : array();
-			$after_url                                  = 'robots' === $name ? home_url( '/robots.txt' ) : $this->destination_sitemap_url();
-			$after                                      = 'robots' === $name ? $this->robots_probe( $after_url ) : $this->sitemap_probe( $after_url );
-			$after['url']                               = $after_url;
-			$comparison                                 = $this->compare_surface( (string) $name, $before, $after );
-			$before_count                               = 'sitemap' === $name ? absint( $before['top_level_count'] ?? $before['entry_count'] ?? 0 ) : absint( $before['sitemap_count'] ?? $before['entry_count'] ?? 0 );
-			$after_count                                = 'sitemap' === $name ? absint( $after['top_level_count'] ?? $after['entry_count'] ?? 0 ) : absint( $after['sitemap_count'] ?? $after['entry_count'] ?? 0 );
-			$surfaces[ sanitize_key( (string) $name ) ] = array(
-				'status'       => (string) $comparison['status'],
-				'scope'        => (string) $comparison['scope'],
-				'reasons'      => $comparison['reasons'],
-				'before_url'   => esc_url_raw( (string) ( $before['url'] ?? '' ) ),
-				'after_url'    => esc_url_raw( $after_url ),
-				'before_hash'  => sanitize_text_field( (string) ( $before['semantic_hash'] ?? '' ) ),
-				'after_hash'   => sanitize_text_field( (string) ( $after['semantic_hash'] ?? '' ) ),
-				'before_count' => $before_count,
-				'after_count'  => $after_count,
+		$done = $position >= $task_count;
+		if ( $done ) {
+			unset( $result['progress'], $result['updated_at'] );
+			$result['verified_at'] = gmdate( 'c' );
+			$result['state']       = $result['request_failed'] > 0 ? 'inconclusive' : ( $result['mismatch'] > 0 ? 'differences_found' : ( $result['matched'] + $result['expected_changes'] > 0 ? 'verified' : 'no_baseline' ) );
+		} else {
+			$result['updated_at'] = gmdate( 'c' );
+			$result['progress']   = array(
+				'processed' => $position,
+				'total'     => $task_count,
 			);
-			$this->tally( (string) $comparison['status'], $matched, $expected, $mismatch, $failed );
 		}
-
-		$state = $failed > 0 ? 'inconclusive' : ( $mismatch > 0 ? 'differences_found' : ( $matched + $expected > 0 ? 'verified' : 'no_baseline' ) );
 
 		return array(
+			'done'       => $done,
+			'checkpoint' => $done ? array() : array(
+				'position' => $position,
+				'result'   => $result,
+			),
+			'result'     => $result,
+		);
+	}
+
+	/**
+	 * Builds a stable empty/partial live-verification payload.
+	 *
+	 * @param string $state Verification state.
+	 */
+	private function empty_verification( string $state ): array {
+		return array(
 			'verified_at'      => gmdate( 'c' ),
-			'state'            => $state,
-			'matched'          => $matched,
-			'expected_changes' => $expected,
-			'mismatch'         => $mismatch,
-			'request_failed'   => $failed,
-			'pages'            => $pages,
-			'redirects'        => $redirects,
-			'surfaces'         => $surfaces,
+			'state'            => sanitize_key( $state ),
+			'matched'          => 0,
+			'expected_changes' => 0,
+			'mismatch'         => 0,
+			'request_failed'   => 0,
+			'pages'            => array(),
+			'redirects'        => array(),
+			'surfaces'         => array(),
 			'follow_redirects' => false,
 		);
 	}
@@ -315,7 +398,7 @@ final class ERankly_Migration_Live_Verifier {
 		$inventory        = array();
 		$top_level        = array();
 		$errors           = array();
-		$document_limit   = max( 10, min( 1000, (int) apply_filters( 'erankly_migration_sitemap_document_limit', 200 ) ) );
+		$document_limit   = max( 5, min( 50, (int) apply_filters( 'erankly_migration_sitemap_document_limit', 20 ) ) );
 		$url_limit        = max( 100, min( 250000, (int) apply_filters( 'erankly_migration_sitemap_url_limit', 50000 ) ) );
 		$root_status_code = 0;
 
@@ -895,15 +978,45 @@ final class ERankly_Migration_Live_Verifier {
 			return new WP_Error( 'migration_probe_rejected', 'The migration probe URL is not same-origin.' );
 		}
 
-		return wp_remote_get(
-			$url,
-			array(
-				'timeout'     => max( 2, min( 15, (int) apply_filters( 'erankly_migration_probe_timeout', 5 ) ) ),
-				'redirection' => 0,
-				'headers'     => array( 'X-EasyRankly-Migration-Probe' => '1' ),
-				'user-agent'  => 'EasyRankly/' . ERANKLY_VERSION . ' migration verifier',
-			)
-		);
+		$max_requests = max( 1, min( 50, (int) apply_filters( 'erankly_migration_probe_request_limit', 20 ) ) );
+		$max_seconds  = max( 2, min( 60, (int) apply_filters( 'erankly_migration_probe_time_limit', 25 ) ) );
+		$elapsed      = microtime( true ) - $this->started_at;
+		if ( $this->request_count >= $max_requests || $elapsed >= $max_seconds ) {
+			return new WP_Error( 'migration_probe_budget_exhausted', 'The migration probe request budget was exhausted.' );
+		}
+		++$this->request_count;
+		$remaining = max( 1, (int) floor( $max_seconds - $elapsed ) );
+		$timeout   = max( 1, min( $remaining, (int) apply_filters( 'erankly_migration_probe_timeout', 5 ) ) );
+		$max_bytes = max( 16384, min( 5 * MB_IN_BYTES, (int) apply_filters( 'erankly_migration_probe_response_max_bytes', 2 * MB_IN_BYTES ) ) );
+
+		// wp_safe_remote_get() rejects private/reserved IPs by default. A local or
+		// intranet WordPress home is nevertheless safe here because the URL has
+		// already passed exact scheme, host and port equality above.
+		$allow_home_origin = function ( bool $external, string $host, string $request_url ): bool {
+			unset( $host );
+			return $this->is_same_origin( $request_url ) ? true : $external;
+		};
+		add_filter( 'http_request_host_is_external', $allow_home_origin, 10, 3 );
+		try {
+			$response = wp_safe_remote_get(
+				$url,
+				array(
+					'timeout'             => $timeout,
+					'redirection'         => 0,
+					'reject_unsafe_urls'  => true,
+					'limit_response_size' => $max_bytes,
+					'headers'             => array( 'X-EasyRankly-Migration-Probe' => '1' ),
+					'user-agent'          => 'EasyRankly/' . ERANKLY_VERSION . ' migration verifier',
+				)
+			);
+		} finally {
+			remove_filter( 'http_request_host_is_external', $allow_home_origin, 10 );
+		}
+		if ( ! is_wp_error( $response ) && strlen( (string) wp_remote_retrieve_body( $response ) ) >= $max_bytes ) {
+			return new WP_Error( 'migration_probe_response_too_large', 'The migration probe response reached its byte limit.' );
+		}
+
+		return $response;
 	}
 
 	/**
@@ -954,7 +1067,8 @@ final class ERankly_Migration_Live_Verifier {
 		$home_parts = wp_parse_url( home_url( '/' ) );
 		return is_array( $url_parts )
 			&& is_array( $home_parts )
-			&& in_array( strtolower( (string) ( $url_parts['scheme'] ?? '' ) ), array( 'http', 'https' ), true )
+			&& in_array( strtolower( (string) ( $home_parts['scheme'] ?? '' ) ), array( 'http', 'https' ), true )
+			&& strtolower( (string) ( $url_parts['scheme'] ?? '' ) ) === strtolower( (string) ( $home_parts['scheme'] ?? '' ) )
 			&& strtolower( (string) ( $url_parts['host'] ?? '' ) ) === strtolower( (string) ( $home_parts['host'] ?? '' ) )
 			&& (int) ( $url_parts['port'] ?? 0 ) === (int) ( $home_parts['port'] ?? 0 );
 	}

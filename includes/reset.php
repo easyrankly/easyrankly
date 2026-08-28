@@ -58,17 +58,25 @@ function erankly_reset_handle_actions(): void {
 	}
 
 	$action = sanitize_key( wp_unslash( $_POST['erankly_reset_action'] ) );
+	if ( '' === $action ) {
+		return;
+	}
+
+	// Core and add-ons share the same action-scoped nonce contract. Verify it
+	// before notifying extensions so an unauthenticated request cannot trigger
+	// work merely by choosing a custom action slug.
+	check_admin_referer( 'erankly_' . $action );
 
 	/**
-	 * Handles add-on reset actions before core's built-in reset paths.
+	 * Handles authenticated add-on reset actions before core's built-in paths.
 	 *
-	 * @param string $action Reset action slug.
+	 * Extensions must render a nonce for the `erankly_{$action}` action.
+	 *
+	 * @param string $action Authenticated reset action slug.
 	 */
 	do_action( 'erankly_reset_action', $action );
 
 	if ( 'reset_local' === $action ) {
-		check_admin_referer( 'erankly_reset_local' );
-
 		try {
 			erankly_reset_site_data();
 			erankly_reset_redirect( array( 'erankly_reset_notice' => 'local' ) );
@@ -80,8 +88,6 @@ function erankly_reset_handle_actions(): void {
 	// The network-wide reset is only ever reachable from Network Admin. A
 	// per-site admin on Multisite never sees this button (see erankly_reset_render_panel()).
 	if ( 'reset_global' === $action && is_multisite() && is_network_admin() ) {
-		check_admin_referer( 'erankly_reset_global' );
-
 		try {
 			$queued = erankly_reset_network();
 		} catch ( Throwable ) {
@@ -148,6 +154,9 @@ function erankly_reset_site_data(): void {
 	if ( ! class_exists( 'ERankly_Migration_Upload_Store' ) ) {
 		require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-upload-store.php';
 	}
+	if ( ! class_exists( 'ERankly_Migration_Verification_Job' ) ) {
+		require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-verification-job.php';
+	}
 	require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 	if ( ! ERankly_Migration_Upload_Store::purge_all() ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private migration uploads during reset.', 'easyrankly' ) );
@@ -155,9 +164,13 @@ function erankly_reset_site_data(): void {
 	if ( ! ERankly_Import_Job_Runner::purge_all() ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private import uploads during reset.', 'easyrankly' ) );
 	}
+	if ( ! ERankly_Migration_Verification_Job::purge_all() ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove live-verification checkpoints during reset.', 'easyrankly' ) );
+	}
 
 	wp_unschedule_hook( ERANKLY_MIGRATION_CRON_HOOK );
 	wp_unschedule_hook( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK );
+	wp_unschedule_hook( ERANKLY_MIGRATION_VERIFY_CRON_HOOK );
 	wp_unschedule_hook( ERANKLY_IMPORT_CRON_HOOK );
 	$active_migration = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array() );
 	if ( is_array( $active_migration ) && ! empty( $active_migration['id'] ) ) {
@@ -366,9 +379,9 @@ function erankly_reset_render_panel(): void {
 	$action_url = erankly_reset_url();
 	$is_network = is_multisite() && is_network_admin();
 
-	$local_label      = $is_network ? __( 'Reset this site', 'easyrankly' ) : __( 'Reset plugin', 'easyrankly' );
-	$title_local      = $is_network ? __( 'Reset this site?', 'easyrankly' ) : __( 'Reset EasyRankly?', 'easyrankly' );
-	$confirm_local    = $is_network
+	$local_label   = $is_network ? __( 'Reset this site', 'easyrankly' ) : __( 'Reset plugin', 'easyrankly' );
+	$title_local   = $is_network ? __( 'Reset this site?', 'easyrankly' ) : __( 'Reset EasyRankly?', 'easyrankly' );
+	$confirm_local = $is_network
 		? __( 'This will permanently delete this site\'s redirects, SEO metadata and special page defaults. This does not affect the network-wide settings or other sites. This action cannot be undone.', 'easyrankly' )
 		: __( 'This will permanently delete all EasyRankly settings, redirects and SEO metadata on this site, and restore everything to their defaults. This action cannot be undone.', 'easyrankly' );
 	?>

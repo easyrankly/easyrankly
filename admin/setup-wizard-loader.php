@@ -83,7 +83,7 @@ function erankly_setup_wizard_register_page(): void {
 function erankly_setup_wizard_set_admin_title(): void {
 	global $title;
 
-	$title = __( 'EasyRankly setup', 'easyrankly' );
+	$title = __( 'EasyRankly setup', 'easyrankly' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Core reads this global when rendering the hidden admin screen title.
 }
 
 /**

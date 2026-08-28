@@ -15,6 +15,7 @@ final class ERankly_Migration_Journal {
 	private const SCHEMA_VERSION_OPTION  = 'erankly_migration_journal_db_version';
 	private const ROLLBACK_OPTION_PREFIX = 'erankly_migration_rollback_';
 	private const ROLLBACK_LOCK_PREFIX   = 'erankly_migration_rollback_lock_';
+	private const ROLLBACK_LOCK_TTL      = 300;
 
 	/** Returns the site-scoped journal table name. */
 	public static function table_name(): string {
@@ -279,6 +280,10 @@ final class ERankly_Migration_Journal {
 			$this->schedule_rollback( $job_id, 10 );
 			return $result;
 		}
+		if ( ! $this->renew_rollback_lock( $job_id, $token ) ) {
+			$this->schedule_rollback( $job_id, 10 );
+			return $result;
+		}
 
 		$summary = $this->summary( $job_id );
 		if ( ! empty( $summary['expired'] ) ) {
@@ -324,6 +329,11 @@ final class ERankly_Migration_Journal {
 				$result['cursor'] = absint( $row['id'] ?? 0 );
 			}
 		} catch ( Throwable ) {
+			if ( ! $this->owns_rollback_lock( $job_id, $token ) ) {
+				$this->schedule_rollback( $job_id, 10 );
+				$current = $this->rollback_checkpoint( $job_id );
+				return is_array( $current ) ? $current : $result;
+			}
 			$result['status'] = 'failed';
 			++$result['failed'];
 			$this->save_rollback_checkpoint( $job_id, $result );
@@ -333,6 +343,11 @@ final class ERankly_Migration_Journal {
 			if ( $repository ) {
 				$repository->end_bulk();
 			}
+		}
+		if ( ! $this->renew_rollback_lock( $job_id, $token ) ) {
+			$this->schedule_rollback( $job_id, 10 );
+			$current = $this->rollback_checkpoint( $job_id );
+			return is_array( $current ) ? $current : $result;
 		}
 
 		++$result['batches'];
@@ -428,19 +443,32 @@ final class ERankly_Migration_Journal {
 	 * @param string $job_id Migration UUID.
 	 */
 	private function acquire_rollback_lock( string $job_id ): string {
+		global $wpdb;
+
 		$key   = $this->rollback_lock_key( $job_id );
 		$token = wp_generate_uuid4();
 		$lock  = array(
 			'token'   => $token,
-			'expires' => time() + 300,
+			'expires' => time() + self::ROLLBACK_LOCK_TTL,
 		);
 		if ( add_option( $key, $lock, '', 'no' ) ) {
 			return $token;
 		}
 		$existing = get_option( $key, array() );
 		if ( is_array( $existing ) && (int) ( $existing['expires'] ?? 0 ) < time() ) {
-			delete_option( $key );
-			return add_option( $key, $lock, '', 'no' ) ? $token : '';
+			$updated = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic compare-and-swap prevents concurrent stale-lock takeover.
+				$wpdb->prepare(
+					'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
+					$wpdb->options,
+					maybe_serialize( $lock ),
+					$key,
+					maybe_serialize( $existing )
+				)
+			);
+			if ( 1 === $updated ) {
+				wp_cache_delete( $key, 'options' );
+				return $token;
+			}
 		}
 
 		return '';
@@ -453,11 +481,68 @@ final class ERankly_Migration_Journal {
 	 * @param string $token  Lock owner token.
 	 */
 	private function release_rollback_lock( string $job_id, string $token ): void {
+		global $wpdb;
+
 		$key      = $this->rollback_lock_key( $job_id );
 		$existing = get_option( $key, array() );
-		if ( is_array( $existing ) && hash_equals( (string) ( $existing['token'] ?? '' ), $token ) ) {
-			delete_option( $key );
+		if ( ! is_array( $existing ) || ! hash_equals( (string) ( $existing['token'] ?? '' ), $token ) ) {
+			return;
 		}
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional delete cannot release a successor's lease.
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE option_name = %s AND option_value = %s',
+				$wpdb->options,
+				$key,
+				maybe_serialize( $existing )
+			)
+		);
+		wp_cache_delete( $key, 'options' );
+	}
+
+	/**
+	 * Renews a rollback lease using an atomic token-and-value comparison.
+	 *
+	 * @param string $job_id Migration UUID.
+	 * @param string $token  Owned lock token.
+	 */
+	private function renew_rollback_lock( string $job_id, string $token ): bool {
+		global $wpdb;
+
+		$key      = $this->rollback_lock_key( $job_id );
+		$existing = get_option( $key, array() );
+		if ( ! is_array( $existing ) || ! hash_equals( (string) ( $existing['token'] ?? '' ), $token ) ) {
+			return false;
+		}
+		$renewed            = $existing;
+		$renewed['expires'] = max( time() + self::ROLLBACK_LOCK_TTL, (int) ( $existing['expires'] ?? 0 ) + 1 );
+		$updated            = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic lease renewal fences stale workers.
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
+				$wpdb->options,
+				maybe_serialize( $renewed ),
+				$key,
+				maybe_serialize( $existing )
+			)
+		);
+		if ( 1 === $updated ) {
+			wp_cache_delete( $key, 'options' );
+		}
+
+		return 1 === $updated;
+	}
+
+	/**
+	 * Returns whether this worker still owns an unexpired rollback lease.
+	 *
+	 * @param string $job_id Migration UUID.
+	 * @param string $token  Candidate lock token.
+	 */
+	private function owns_rollback_lock( string $job_id, string $token ): bool {
+		$existing = get_option( $this->rollback_lock_key( $job_id ), array() );
+
+		return is_array( $existing )
+			&& (int) ( $existing['expires'] ?? 0 ) >= time()
+			&& hash_equals( (string) ( $existing['token'] ?? '' ), $token );
 	}
 
 	/**
@@ -612,6 +697,7 @@ final class ERankly_Migration_Journal {
 	 *
 	 * @param int    $id    Journal row ID.
 	 * @param string $state rolled_back|preserved|failed.
+	 * @throws RuntimeException When the durable state cannot be persisted.
 	 */
 	private function set_rollback_state( int $id, string $state ): void {
 		global $wpdb;

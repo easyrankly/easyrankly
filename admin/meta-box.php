@@ -702,10 +702,11 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 /**
  * Saves meta box values.
  *
- * @param int $post_id Post ID.
+ * @param int     $post_id Post ID.
+ * @param WP_Post $post    Post object.
  * @return void
  */
-function erankly_save_meta_box( int $post_id ): void {
+function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 	if ( ! isset( $_POST['erankly_meta_box_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['erankly_meta_box_nonce'] ) ), 'erankly_save_meta_box' ) ) {
 		return;
 	}
@@ -851,14 +852,6 @@ function erankly_save_meta_box( int $post_id ): void {
 		}
 	}
 
-	/**
-	 * Fires after core saves the classic meta box fields.
-	 *
-	 * @param int     $post_id Post ID.
-	 * @param WP_Post $post    Post object.
-	 */
-	do_action( 'erankly_save_meta_box', $post_id, $post );
-
 	if ( ! $simplified_mode ) {
 		$complex_fields = array(
 			'_erankly_primary_terms'         => isset( $_POST['erankly_primary_terms'] ) ? wp_unslash( $_POST['erankly_primary_terms'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
@@ -885,6 +878,14 @@ function erankly_save_meta_box( int $post_id ): void {
 			update_post_meta( $post_id, '_erankly_schema_mode', $schema_mode );
 		}
 	}
+
+	/**
+	 * Fires after core saves all classic meta box fields.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 */
+	do_action( 'erankly_save_meta_box', $post_id, $post );
 }
 
 /**

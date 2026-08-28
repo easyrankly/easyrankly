@@ -137,7 +137,9 @@ abstract class ERankly_Migration_Adapter {
 			return false;
 		}
 
-		$maximum = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
+		$maximum = class_exists( 'ERankly_Migration_Upload_Store' )
+			? ERankly_Migration_Upload_Store::export_max_bytes( $ext )
+			: max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
 		$size    = filesize( $real );
 		if ( false === $size || $size < 1 || $size > $maximum ) {
 			return false;

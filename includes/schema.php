@@ -437,11 +437,11 @@ function erankly_schema_person(): array {
  */
 function erankly_schema_website(): array {
 	$schema = array(
-		'@type'     => 'WebSite',
-		'@id'       => home_url( '/#website' ),
-		'url'       => home_url( '/' ),
-		'name'      => erankly_get_website_name(),
-		'publisher' => array(
+		'@type'           => 'WebSite',
+		'@id'             => home_url( '/#website' ),
+		'url'             => home_url( '/' ),
+		'name'            => erankly_get_website_name(),
+		'publisher'       => array(
 			'@id' => erankly_schema_identity_id(),
 		),
 		'potentialAction' => erankly_schema_website_search_action(),

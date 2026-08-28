@@ -294,22 +294,6 @@ function erankly_sanitize_meta_enum( mixed $value, array $allowed ): string {
 }
 
 /**
- * Sanitizes a list of unique non-empty strings.
- *
- * @param mixed $value Raw value.
- * @return array<int,string>
- */
-function erankly_sanitize_string_list( mixed $value ): array {
-	if ( is_string( $value ) ) {
-		$value = preg_split( '/[\r\n,]+/', $value );
-	}
-
-	$clean = array_map( 'erankly_sanitize_text', is_array( $value ) ? $value : array() );
-
-	return array_values( array_unique( array_filter( $clean, 'strlen' ) ) );
-}
-
-/**
  * Sanitizes taxonomy-to-primary-term mappings.
  *
  * @param mixed $value Raw mapping.

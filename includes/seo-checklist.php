@@ -254,22 +254,6 @@ function erankly_get_seo_checklist_items( int $post_id ): array {
 }
 
 /**
- * Returns the aggregate checklist status.
- *
- * @param array<string,array{label:string,done:bool,group:string}> $items Checklist items.
- * @return string One of 'incomplete', 'partial' or 'complete'.
- */
-function erankly_get_seo_checklist_status( array $items ): string {
-	$done = count( array_filter( wp_list_pluck( $items, 'done' ) ) );
-
-	if ( 0 === $done ) {
-		return 'incomplete';
-	}
-
-	return count( $items ) === $done ? 'complete' : 'partial';
-}
-
-/**
  * Returns editor-side checklist configuration for a post.
  *
  * @param WP_Post $post Post object.

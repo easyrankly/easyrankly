@@ -346,7 +346,7 @@ function erankly_force_robots_txt_request( WP $wp ): void {
  * @return void
  */
 function erankly_register_rewrites(): void {
-	if ( ! erankly_sitemap_enabled() ) {
+	if ( ! erankly_should_serve_sitemaps() ) {
 		return;
 	}
 
