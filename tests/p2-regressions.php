@@ -32,6 +32,9 @@ $import_source = implode(
 $main_source   = (string) file_get_contents( $root . '/easyrankly.php' );
 $schema_source = (string) file_get_contents( $root . '/includes/schema.php' );
 $video_source  = (string) file_get_contents( $root . '/includes/helpers/video.php' );
+$admin_source  = (string) file_get_contents( $root . '/includes/admin.php' );
+$settings_source = (string) file_get_contents( $root . '/admin/settings-page.php' );
+$settings_renderer_source = (string) file_get_contents( $root . '/admin/settings/page-renderer.php' );
 $readme        = (string) file_get_contents( $root . '/readme.txt' );
 $distignore    = (string) file_get_contents( $root . '/.distignore' );
 $composer      = json_decode( (string) file_get_contents( $root . '/composer.json' ), true );
@@ -44,6 +47,12 @@ foreach ( $import_module_paths as $module_path ) {
 	$line_count = count( file( $module_path ) ?: array() );
 	erankly_p2_assert( $line_count <= 800, basename( $module_path ) . ' must remain below the structural size ceiling' );
 }
+
+erankly_p2_assert( ! str_contains( $settings_source, 'function erankly_render_settings_page(' ), 'settings registration and sanitization must stay separate from page rendering' );
+erankly_p2_assert( str_contains( $settings_renderer_source, 'function erankly_render_settings_page(' ), 'the settings page renderer must remain available' );
+erankly_p2_assert( str_contains( $admin_source, "require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';" ), 'the admin settings loader must include the extracted page renderer' );
+erankly_p2_assert( count( file( $root . '/admin/settings-page.php' ) ?: array() ) <= 700, 'settings-page.php must remain below the structural size ceiling' );
+erankly_p2_assert( count( file( $root . '/admin/settings/page-renderer.php' ) ?: array() ) <= 700, 'page-renderer.php must remain below the structural size ceiling' );
 
 $removed_functions = array(
 	'erankly_import_apply_legacy_unbounded',

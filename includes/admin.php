@@ -75,6 +75,7 @@ function erankly_admin_load_settings_modules(): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'admin/settings-page.php';
 	require_once ERANKLY_PATH . 'admin/settings/panels.php';
+	require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';
 }
 
 /**
