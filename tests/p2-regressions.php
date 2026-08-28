@@ -17,14 +17,33 @@ function erankly_p2_assert( bool $condition, string $message ): void {
 	}
 }
 
-$root          = dirname( __DIR__ );
-$import_source = (string) file_get_contents( $root . '/includes/import-export.php' );
+$root                = dirname( __DIR__ );
+$import_loader_path  = $root . '/includes/import-export.php';
+$import_module_paths = glob( $root . '/includes/import-export/*.php' ) ?: array();
+sort( $import_module_paths, SORT_STRING );
+$import_loader = (string) file_get_contents( $import_loader_path );
+$import_source = implode(
+	"\n",
+	array_map(
+		static fn( string $path ): string => (string) file_get_contents( $path ),
+		array_merge( array( $import_loader_path ), $import_module_paths )
+	)
+);
 $main_source   = (string) file_get_contents( $root . '/easyrankly.php' );
 $schema_source = (string) file_get_contents( $root . '/includes/schema.php' );
 $video_source  = (string) file_get_contents( $root . '/includes/helpers/video.php' );
 $readme        = (string) file_get_contents( $root . '/readme.txt' );
 $distignore    = (string) file_get_contents( $root . '/.distignore' );
 $composer      = json_decode( (string) file_get_contents( $root . '/composer.json' ), true );
+
+$expected_import_modules = array( 'actions.php', 'export.php', 'guidance.php', 'panel.php', 'report.php' );
+$actual_import_modules   = array_map( 'basename', $import_module_paths );
+erankly_p2_assert( $expected_import_modules === $actual_import_modules, 'import/export responsibilities must remain split into the expected modules' );
+erankly_p2_assert( ! str_contains( $import_loader, 'function erankly_' ), 'the import/export facade must remain a loader without business logic' );
+foreach ( $import_module_paths as $module_path ) {
+	$line_count = count( file( $module_path ) ?: array() );
+	erankly_p2_assert( $line_count <= 800, basename( $module_path ) . ' must remain below the structural size ceiling' );
+}
 
 $removed_functions = array(
 	'erankly_import_apply_legacy_unbounded',
