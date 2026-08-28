@@ -41,18 +41,11 @@ Desktop.ini
 # Licensed release evidence must remain outside version control
 /pro-evidence*.json
 
-# Development-only tooling and docs (kept locally, excluded from the public repo)
-/.github/
-/tests/
-/docs/
-/bin/
-/composer.json
-/composer.lock
+# Local-only tooling. Tracked release tooling and documentation are excluded
+# from the WordPress.org archive by .distignore.
 /package.json
 /package-lock.json
 /phpcs.xml
 /eslint.config.mjs
 /stylelint.config.mjs
 /.editorconfig
-/.gitattributes
-/.distignore

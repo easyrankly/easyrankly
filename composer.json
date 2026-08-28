@@ -1,0 +1,36 @@
+{
+  "name": "easyrankly/easyrankly",
+  "description": "Development tooling for the EasyRankly WordPress plugin.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpcsstandards/phpcsextra": "^1.5",
+    "phpcsstandards/phpcsutils": "^1.2",
+    "squizlabs/php_codesniffer": "^3.13",
+    "wp-coding-standards/wpcs": "^3.4"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "platform": {
+      "php": "8.0.0"
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "build": "php bin/build-release.php",
+    "check:php": "phpcs --standard=phpcs.xml.dist --extensions=php .",
+    "check:release": "php bin/verify-release.php",
+    "test": [
+      "@test:p0",
+      "@test:p2",
+      "@test:release"
+    ],
+    "test:p0": "php tests/p0-regressions.php",
+    "test:p2": "php tests/p2-regressions.php",
+    "test:release": "php tests/release-tooling.php"
+  }
+}
