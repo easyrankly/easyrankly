@@ -80,25 +80,39 @@
     control.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  // Shows a resolved friendly value (e.g. the real site name, or the first
-  // post's title as a stand-in for {{post_title}} on fields that aren't
-  // tied to any single post) over a {{variable}} field while it's blurred,
-  // and reveals the raw token again on focus so it stays editable. Only
-  // touches the overlay text node, never control.value itself. The
+  // Shows a resolved friendly value (e.g. the real site name or tagline, or
+  // the first post's title as a stand-in for {{post_title}} on fields that
+  // aren't tied to any single post) over a {{variable}} field while it's
+  // blurred, and reveals the raw token again on focus so it stays editable.
+  // Only touches the overlay text node, never control.value itself. The
   // autosave serializer (bindSettingsAutosave) reads field.value straight
   // off the DOM, so swapping the real value would risk saving the resolved
   // text instead of the token on a mistimed autosave. Any token with no
   // example (e.g. a post type with no published posts yet) is left as-is.
-  function resolveVariablePreviewText(raw, examples, siteName) {
+  function resolveVariablePreviewText(
+    raw,
+    examples,
+    siteName,
+    siteDescription,
+  ) {
+    var resolved = examples ? Object.assign({}, examples) : {};
+
+    if (siteName && !Object.prototype.hasOwnProperty.call(resolved, "site_name")) {
+      resolved.site_name = siteName;
+    }
+
+    if (
+      siteDescription &&
+      !Object.prototype.hasOwnProperty.call(resolved, "site_description")
+    ) {
+      resolved.site_description = siteDescription;
+    }
+
     return raw.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, function (match, key) {
       var normalizedKey = key.toLowerCase();
 
-      if (examples && Object.prototype.hasOwnProperty.call(examples, normalizedKey)) {
-        return examples[normalizedKey];
-      }
-
-      if ("site_name" === normalizedKey && siteName) {
-        return siteName;
+      if (Object.prototype.hasOwnProperty.call(resolved, normalizedKey)) {
+        return resolved[normalizedKey];
       }
 
       return match;
@@ -127,7 +141,12 @@
     function update() {
       var raw = control.value;
       var resolved = raw
-        ? resolveVariablePreviewText(raw, examples, config.siteName)
+        ? resolveVariablePreviewText(
+            raw,
+            examples,
+            config.siteName,
+            config.siteDescription,
+          )
         : raw;
 
       if (resolved !== raw) {

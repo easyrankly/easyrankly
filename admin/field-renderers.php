@@ -90,6 +90,19 @@ function erankly_get_variable_groups(): array {
  * @return void
  */
 function erankly_render_variable_picker( array $examples = array() ): void {
+	if ( array() === $examples ) {
+		static $site_examples = null;
+
+		if ( null === $site_examples ) {
+			if ( ! function_exists( 'erankly_get_admin_variable_examples' ) ) {
+				erankly_load_content_helpers();
+			}
+
+			$site_examples = erankly_get_admin_variable_examples();
+		}
+
+		$examples = $site_examples;
+	}
 	?>
 	<span class="erankly-variable-preview" data-erankly-variable-preview aria-hidden="true" <?php echo $examples ? 'data-erankly-variable-examples="' . esc_attr( (string) wp_json_encode( $examples ) ) . '"' : ''; ?>></span>
 	<div class="erankly-variable-menu" data-erankly-variable-menu role="listbox" hidden>

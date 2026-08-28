@@ -325,6 +325,10 @@ function erankly_admin_maybe_handle_import_export(): void {
 	if ( ! $has_action && ( 'erankly' !== $page || 'import-export' !== $tab ) ) {
 		return;
 	}
+	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
+	if ( ! current_user_can( $required_cap ) ) {
+		return;
+	}
 
 	// Load the full settings modules, not just import-export.php: a JSON import
 	// restores settings through erankly_sanitize_settings(), which lives in
@@ -344,6 +348,10 @@ function erankly_admin_maybe_handle_reset(): void {
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 
 	if ( 'erankly' !== $page || ! isset( $_POST['erankly_reset_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The module verifies the action-specific nonce before mutation.
+		return;
+	}
+	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
+	if ( ! current_user_can( $required_cap ) ) {
 		return;
 	}
 
@@ -613,6 +621,8 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	// Fields, tabs, schema builders and other admin components are shared by
 	// settings, the classic editor, and taxonomy screens. Keep one canonical
 	// implementation instead of duplicating it in classic-editor.css.
+	// Autocomplete chrome lives in admin-core.css so the setup wizard can
+	// reuse the Person reference control without this heavier sheet.
 	if ( ! $is_setup ) {
 		wp_enqueue_style( 'erankly-admin-settings', ERANKLY_URL . 'assets/css/admin-settings.css', array( 'erankly-admin' ), ERANKLY_VERSION );
 	}
@@ -680,6 +690,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			'eranklyVariablePreview',
 			array(
 				'resolvePlaceholders' => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
+				'siteDescription'     => get_bloginfo( 'description' ),
 				'siteName'            => get_bloginfo( 'name' ),
 			)
 		);
@@ -698,8 +709,10 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 					array(
 						'descriptionPlaceholder' => erankly_get_post_global_meta_placeholder( $post, 'description', ERANKLY_SEO_CHECKLIST_DESCRIPTION_LIMIT ),
 						'simplifiedMode'         => (bool) erankly_get_setting( 'simplified_mode', 1 ),
+						'siteDescription'        => get_bloginfo( 'description' ),
 						'siteName'               => get_bloginfo( 'name' ),
 						'titlePlaceholder'       => erankly_get_post_global_meta_placeholder( $post, 'title', ERANKLY_SEO_CHECKLIST_TITLE_LIMIT ),
+						'variableExamples'       => erankly_get_admin_variable_examples( $post ),
 					),
 					erankly_get_seo_checklist_editor_config( $post )
 				)
@@ -749,35 +762,35 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'panels' => apply_filters(
 					'erankly_settings_autosave_client_panels',
 					array_filter(
-					array(
-						'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
-						'advanced'      => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ) ),
-						'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
-						// Its checkboxes control which OTHER tabs are visible
-						// (Redirects/Sitemap and add-on feature tabs), so the admin JS
-						// refreshes the EasyRankly settings wrapper after a successful
-						// save to pick up the updated PHP-rendered navigation.
-						'features'      => array(
-							'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
-							'reloadOnSave' => true,
+						array(
+							'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
+							'advanced'      => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ) ),
+							'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
+							// Its checkboxes control which OTHER tabs are visible
+							// (Redirects/Sitemap and add-on feature tabs), so the admin JS
+							// refreshes the EasyRankly settings wrapper after a successful
+							// save to pick up the updated PHP-rendered navigation.
+							'features'      => array(
+								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
+								'reloadOnSave' => true,
+							),
+							// Simplified mode drives PHP-rendered markup across the whole
+							// page (Advanced tab visibility, social/visibility defaults
+							// rendered as hidden inputs), so like Features it needs the
+							// settings wrapper refreshed after save.
+							'settings'      => array(
+								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
+								'reloadOnSave' => true,
+							),
+							'social'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/social' ) ) ),
+							'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
+							// Multisite-only (a per-site admin's "General" tab there);
+							// its own bespoke route, not part of erankly_settings_autosave_panels()
+							// See erankly_rest_save_special_pages() in easyrankly.php.
+							'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
 						),
-						// Simplified mode drives PHP-rendered markup across the whole
-						// page (Advanced tab visibility, social/visibility defaults
-						// rendered as hidden inputs), so like Features it needs the
-						// settings wrapper refreshed after save.
-						'settings'      => array(
-							'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
-							'reloadOnSave' => true,
-						),
-						'social'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/social' ) ) ),
-						'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
-						// Multisite-only (a per-site admin's "General" tab there);
-						// its own bespoke route, not part of erankly_settings_autosave_panels()
-						// See erankly_rest_save_special_pages() in easyrankly.php.
-						'special-pages' => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/special-pages' ) ) ),
-					),
-					'is_array'
-				)
+						'is_array'
+					)
 				),
 			)
 		);
@@ -911,6 +924,7 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 				'resolvePlaceholders'           => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
 				'simplifiedMode'                => (bool) erankly_get_setting( 'simplified_mode', 1 ),
 				'siteIconUrl'                   => get_site_icon_url( 48 ),
+				'siteDescription'               => get_bloginfo( 'description' ),
 				'siteName'                      => get_bloginfo( 'name' ),
 				'titlePlaceholder'              => erankly_get_post_global_meta_placeholder( $post, 'title', 70 ),
 				'descriptionPlaceholder'        => erankly_get_post_global_meta_placeholder( $post, 'description', 160 ),
@@ -919,6 +933,7 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 				'twitterTitlePlaceholder'       => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_title', 70 ),
 				'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
 				'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
+				'variableExamples'              => erankly_get_admin_variable_examples( $post ),
 				'variables'                     => erankly_get_variable_groups(),
 			),
 			erankly_get_seo_checklist_editor_config( $post )
@@ -1059,6 +1074,7 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'resolvePlaceholders'            => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
 			'simplifiedMode'                 => (bool) erankly_get_setting( 'simplified_mode', 1 ),
 			'siteIconUrl'                    => get_site_icon_url( 48 ),
+			'siteDescription'                => get_bloginfo( 'description' ),
 			'siteName'                       => get_bloginfo( 'name' ),
 			'socialImagePlaceholder'         => (string) erankly_get_setting( 'default_social_image_url', '' ),
 			'specialDescriptionPlaceholders' => erankly_admin_get_site_editor_special_description_placeholders(),
@@ -1068,6 +1084,7 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'titlePlaceholder'               => '',
 			'twitterDescriptionPlaceholder'  => (string) erankly_get_setting( 'default_twitter_description', '' ),
 			'twitterTitlePlaceholder'        => (string) erankly_get_setting( 'default_twitter_title', '' ),
+			'variableExamples'               => erankly_get_admin_variable_examples(),
 			'variables'                      => erankly_get_variable_groups(),
 		)
 	);
@@ -1085,7 +1102,6 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'settings_tab'    => '',
 		)
 	);
-
 }
 
 /**

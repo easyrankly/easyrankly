@@ -153,11 +153,12 @@
 		const titlePlaceholders = config.specialTitlePlaceholders || {};
 		const previewUrls = config.specialPreviewUrls || {};
 		const siteName = config.siteName || '';
+		const siteDescription = config.siteDescription || '';
 		const contextLabel = labels[ context ] || context;
 		const titleFallback = titlePlaceholders[ context ] || contextLabel || siteName;
-		const title = shared.serpResolveVariables( data.get( 'title' ), titleFallback, siteName )
+		const title = shared.serpResolveVariables( data.get( 'title' ), titleFallback, siteName, siteDescription, config.variableExamples )
 			|| titleFallback;
-		const description = shared.serpResolveVariables( data.get( 'description' ), titleFallback, siteName )
+		const description = shared.serpResolveVariables( data.get( 'description' ), titleFallback, siteName, siteDescription, config.variableExamples )
 			|| descriptionPlaceholders[ context ]
 			|| __( 'Add a meta description to control this text in search results.', 'easyrankly' );
 

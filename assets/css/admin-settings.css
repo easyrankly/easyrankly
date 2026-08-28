@@ -21,15 +21,7 @@
 	color: var(--erankly-color-error);
 }
 
-/*
- * Shared plugin alerts.
- *
- * WordPress admin notices emitted inside the EasyRankly screen are restyled to
- * match the plugin's custom callout pattern: soft surface, full border, and a
- * state icon.
- */
-.erankly-alert,
-.erankly-panel-callout,
+/* WordPress admin notices inside EasyRankly use the plugin's visual language. */
 .erankly-settings .notice.notice-info,
 .erankly-settings .notice.notice-success,
 .erankly-settings .notice.notice-warning,
@@ -54,7 +46,6 @@
 	width: 100%;
 }
 
-.erankly-alert--info,
 .erankly-settings .notice.notice-info {
 	--erankly-alert-color: var(--erankly-color-info);
 	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27M12%2011v5%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%208h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
@@ -62,7 +53,6 @@
 	--erankly-alert-border: var(--erankly-color-info-border);
 }
 
-.erankly-alert--success,
 .erankly-settings .notice.notice-success {
 	--erankly-alert-color: var(--erankly-color-success);
 	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M22%2011.08V12a10%2010%200%201%201-5.93-9.14%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%2011%203%203L22%204%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E");
@@ -70,8 +60,6 @@
 	--erankly-alert-border: var(--erankly-color-success-border);
 }
 
-.erankly-alert--warning,
-.erankly-panel-callout,
 .erankly-settings .notice.notice-warning {
 	--erankly-alert-color: var(--erankly-color-warning);
 	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cpath%20d%3D%27M10.29%203.86%201.82%2018a2%202%200%200%200%201.71%203h16.94a2%202%200%200%200%201.71-3L13.71%203.86a2%202%200%200%200-3.42%200Z%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linejoin%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%209v4%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M12%2017h.01%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
@@ -79,7 +67,6 @@
 	--erankly-alert-border: var(--erankly-color-warning-border);
 }
 
-.erankly-alert--error,
 .erankly-settings .notice.notice-error {
 	--erankly-alert-color: var(--erankly-color-error);
 	--erankly-alert-icon: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%2710%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%2F%3E%3Cpath%20d%3D%27m15%209-6%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27m9%209%206%206%27%20stroke%3D%27black%27%20stroke-width%3D%271.8%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E");
@@ -111,8 +98,6 @@
 	width: 24px;
 }
 
-.erankly-alert p,
-.erankly-panel-callout p,
 .erankly-settings .notice.notice-info p,
 .erankly-settings .notice.notice-success p,
 .erankly-settings .notice.notice-warning p,
@@ -124,15 +109,6 @@
 	overflow-wrap: anywhere;
 	padding: 0;
 	white-space: normal;
-}
-
-.erankly-alert__icon,
-.erankly-panel-callout-icon {
-	color: var(--erankly-alert-color);
-	flex: 0 0 auto;
-	height: 24px;
-	margin-top: 0;
-	width: 24px;
 }
 
 .erankly-settings .notice.notice-info.is-dismissible,
@@ -184,10 +160,6 @@
 	grid-template-columns: minmax(0, 1fr);
 	margin: 0 0 var(--erankly-space-field);
 	row-gap: var(--erankly-space-4);
-}
-
-.erankly-schema-identity-fields.is-person {
-	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .erankly-schema-identity-fields .erankly-field select.widefat,
@@ -250,138 +222,6 @@
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* Shared autocomplete used by Person references and multilingual links. */
-.erankly-autocomplete-control {
-	align-items: center;
-	display: grid;
-	gap: var(--erankly-space-2);
-	grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.erankly-autocomplete-value,
-.erankly-autocomplete-search {
-	grid-column: 1;
-	min-width: 0;
-}
-
-.erankly-user-selected-input[readonly],
-.erankly-user-search-input {
-	background: var(--erankly-color-surface);
-	border-radius: var(--erankly-radius-control);
-}
-
-.erankly-autocomplete-search {
-	position: relative;
-}
-
-.erankly-autocomplete-results {
-	background: var(--erankly-color-surface);
-	border: 1px solid var(--erankly-color-border-strong);
-	border-radius: var(--erankly-radius-surface);
-	left: 0;
-	list-style: none;
-	margin: var(--erankly-space-1) 0 0;
-	max-height: 280px;
-	overflow-x: hidden;
-	overflow-y: auto;
-	overscroll-behavior: contain;
-	padding: 0;
-	position: absolute;
-	right: 0;
-	top: 100%;
-	z-index: 1000;
-}
-
-.erankly-autocomplete-results li {
-	margin: 0;
-	padding: 0;
-}
-
-.erankly-autocomplete-results li + li {
-	border-top: 1px solid var(--erankly-color-surface-hover);
-}
-
-.erankly-autocomplete-item {
-	appearance: none;
-	background: none;
-	border: 0;
-	border-radius: var(--erankly-radius-compact);
-	box-sizing: border-box;
-	color: var(--erankly-color-text);
-	cursor: pointer;
-	display: block;
-	font-family: inherit;
-	font-size: 13px;
-	line-height: 1.5;
-	margin: 0;
-	padding: var(--erankly-space-2);
-	text-align: left;
-	width: 100%;
-}
-
-.erankly-autocomplete-item:hover,
-.erankly-autocomplete-item:focus {
-	background: var(--erankly-color-surface-subtle);
-	color: var(--erankly-color-text);
-	outline: none;
-}
-
-.erankly-autocomplete-item:focus-visible {
-	box-shadow: inset 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
-}
-
-/* Rich user result: avatar + two-line details. */
-.erankly-user-result-item {
-	align-items: center;
-	display: flex;
-	gap: var(--erankly-space-2);
-	min-height: 40px;
-}
-
-.erankly-user-result-avatar {
-	border-radius: var(--erankly-radius-compact);
-	flex: 0 0 auto;
-	height: 24px;
-	object-fit: cover;
-	width: 24px;
-}
-
-.erankly-user-result-details {
-	display: flex;
-	flex-direction: column;
-	gap: 1px;
-	min-width: 0;
-}
-
-.erankly-user-result-name {
-	color: var(--erankly-color-text);
-	font-weight: 500;
-	line-height: 1.35;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.erankly-user-result-meta {
-	color: var(--erankly-color-muted);
-	font-size: 12px;
-	line-height: 1.35;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.erankly-autocomplete-item:hover .erankly-user-result-meta,
-.erankly-autocomplete-item:focus .erankly-user-result-meta {
-	color: var(--erankly-color-muted);
-}
-
-.erankly-autocomplete-status {
-	color: var(--erankly-color-text-muted);
-	font-size: 13px;
-	padding: var(--erankly-space-2);
-}
-
 .erankly-segment-control.erankly-tabs {
 	display: flex;
 	flex-wrap: nowrap;
@@ -431,7 +271,6 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 @media screen and (max-width: 782px) {
-	.erankly-schema-identity-fields.is-person,
 	.erankly-inline-fields-two-columns {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -1154,12 +993,6 @@ input[type="checkbox"].erankly-toggle:focus-visible {
  * trailing 16px field margin inside the card. */
 .erankly-global-meta-default .erankly-field:not(:has(~ .erankly-field)) {
 	margin-bottom: 0;
-}
-
-.erankly-additional-contexts {
-	border-top: 1px solid var(--erankly-color-border);
-	margin-top: var(--erankly-space-divider);
-	padding-top: var(--erankly-space-divider);
 }
 
 .erankly-term-meta-box {

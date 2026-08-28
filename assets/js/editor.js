@@ -105,11 +105,11 @@
 					|| '',
 			};
 		}, [] );
-		const title = shared.serpResolveVariables( data.get( 'title' ), postTitle, config.siteName )
+		const title = shared.serpResolveVariables( data.get( 'title' ), postTitle, config.siteName, config.siteDescription, config.variableExamples )
 			|| config.titlePlaceholder
 			|| postTitle
 			|| config.siteName;
-		const description = shared.serpResolveVariables( data.get( 'description' ), postTitle, config.siteName )
+		const description = shared.serpResolveVariables( data.get( 'description' ), postTitle, config.siteName, config.siteDescription, config.variableExamples )
 			|| config.descriptionPlaceholder
 			|| __( 'Add a meta description for search results.', 'easyrankly' );
 

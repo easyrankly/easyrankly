@@ -1,18 +1,45 @@
 (function (ER) {
   "use strict";
 
-  function checklistResolveVariables(text, postTitle, siteName) {
+  function checklistResolveVariables(
+    text,
+    postTitle,
+    siteName,
+    siteDescription,
+    examples,
+  ) {
+    var resolved = examples ? Object.assign({}, examples) : {};
+
+    if (siteName && !Object.prototype.hasOwnProperty.call(resolved, "site_name")) {
+      resolved.site_name = siteName;
+    }
+
+    if (
+      siteDescription &&
+      !Object.prototype.hasOwnProperty.call(resolved, "site_description")
+    ) {
+      resolved.site_description = siteDescription;
+    }
+
+    if (postTitle) {
+      if (!resolved.post_title) {
+        resolved.post_title = postTitle;
+      }
+
+      if (!resolved.seo_title) {
+        resolved.seo_title = postTitle;
+      }
+    }
+
     return String(text || "")
       .replace(/{{\s*([a-z0-9_]+)\s*}}/gi, function (match, key) {
-        switch (String(key || "").toLowerCase()) {
-          case "post_title":
-          case "seo_title":
-            return postTitle;
-          case "site_name":
-            return siteName;
-          default:
-            return "";
+        var normalizedKey = String(key || "").toLowerCase();
+
+        if (Object.prototype.hasOwnProperty.call(resolved, normalizedKey)) {
+          return resolved[normalizedKey] || "";
         }
+
+        return "";
       })
       .replace(/\s+/g, " ")
       .trim();
@@ -80,6 +107,8 @@
     var descriptionLimit = config.descriptionLimit || 160;
     var minContentLength = config.minContentLength || 300;
     var siteName = config.siteName || "";
+    var siteDescription = config.siteDescription || "";
+    var variableExamples = config.variableExamples || null;
     var state = {};
 
     checklist
@@ -117,7 +146,13 @@
 
     function effectiveTitle(customTitle) {
       var postTitle = getPostTitle();
-      var resolved = checklistResolveVariables(customTitle, postTitle, siteName);
+      var resolved = checklistResolveVariables(
+        customTitle,
+        postTitle,
+        siteName,
+        siteDescription,
+        variableExamples,
+      );
 
       return (
         resolved ||
@@ -134,6 +169,8 @@
         customDescription,
         postTitle,
         siteName,
+        siteDescription,
+        variableExamples,
       );
 
       if (resolved) {

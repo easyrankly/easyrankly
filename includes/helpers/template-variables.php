@@ -317,7 +317,7 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 			}
 			break;
 		case 'post_content':
-			$value = $post ? wp_strip_all_tags( strip_shortcodes( $post->post_content ) ) : '';
+			$value = $post ? erankly_trim_text( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ), 160 ) : '';
 			break;
 		case 'post_url':
 			$value = $post ? (string) get_permalink( $post ) : '';
@@ -431,6 +431,21 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 		case 'site_icon_url':
 			$value = function_exists( 'erankly_get_site_icon_url' ) ? erankly_get_site_icon_url() : '';
 			break;
+		case 'schema_identity_id':
+			if ( function_exists( 'erankly_schema_identity_id' ) ) {
+				$value = erankly_schema_identity_id();
+			} else {
+				$type  = (string) erankly_get_setting( 'schema_identity', 'organization' );
+				$value = home_url( 'person' === $type ? '/#person' : '/#organization' );
+			}
+			break;
+		case 'page_number':
+		case 'max_pages':
+			// Admin screens have no paginated query; use the same floor the
+			// frontend resolver uses so {{page_number}} / {{max_pages}} can
+			// still preview on settings fields.
+			$value = '1';
+			break;
 	}
 
 	return trim( wp_strip_all_tags( (string) $value ) );
@@ -441,18 +456,21 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
  * skipping any key that has no example (its {{token}} then stays literal
  * in the field, e.g. when a post type has no published posts yet).
  *
+ * Site-level keys resolve even without a sample post or term, so identity
+ * fields on Settings can preview values such as {{site_description}}.
+ *
  * @param WP_Post|null $post Sample or currently-edited post, if any.
  * @param WP_Term|null $term Sample or currently-edited term, if any.
  * @return array<string,string>
  */
 function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $term = null ): array {
-	if ( ! $post && ! $term ) {
-		return array();
-	}
-
+	// Keep this list aligned with erankly_get_variable_groups(). Empty
+	// preview values are skipped below, so request-only keys such as
+	// search_query stay literal until they have a stand-in.
 	$keys = array(
 		'post_title',
 		'post_excerpt',
+		'post_content',
 		'post_url',
 		'post_date',
 		'post_year',
@@ -469,6 +487,12 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'term_slug',
 		'term_url',
 		'taxonomy_name',
+		'seo_title',
+		'meta_description',
+		'canonical_url',
+		'search_query',
+		'page_number',
+		'max_pages',
 		'site_name',
 		'current_year',
 		'current_month',
@@ -478,7 +502,26 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'site_url',
 		'site_language',
 		'organization_name',
+		'website_name',
+		'website_description',
+		'organization_logo_url',
+		'site_icon_url',
+		'schema_identity_id',
 	);
+
+	if ( function_exists( 'erankly_get_variable_groups' ) ) {
+		foreach ( erankly_get_variable_groups() as $group ) {
+			if ( empty( $group['variables'] ) || ! is_array( $group['variables'] ) ) {
+				continue;
+			}
+
+			foreach ( array_keys( $group['variables'] ) as $key ) {
+				$keys[] = (string) $key;
+			}
+		}
+
+		$keys = array_values( array_unique( $keys ) );
+	}
 
 	$examples = array();
 

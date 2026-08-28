@@ -95,7 +95,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 						</div>
 						<p class="description"><?php esc_html_e( 'Used in the WebSite JSON-LD node only when a value is available. Empty taglines are omitted from schema output.', 'easyrankly' ); ?></p>
 					</div>
-						<div class="erankly-schema-identity-fields<?php echo 'person' === $settings['schema_identity'] ? ' is-person' : ''; ?>" data-erankly-schema-identity-fields>
+						<div class="erankly-schema-identity-fields" data-erankly-schema-identity-fields>
 						<div class="erankly-field">
 							<label for="erankly-schema-identity"><?php esc_html_e( 'Identity type', 'easyrankly' ); ?></label>
 							<select id="erankly-schema-identity" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[schema_identity]" data-erankly-schema-identity>
@@ -399,7 +399,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 							<p class="description">
 								<a href="<?php echo esc_url( erankly_get_sitemap_url( '/sitemap-video-1.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open sitemap-video-1.xml', 'easyrankly' ); ?></a>
 							</p>
-							<p class="description"><?php esc_html_e( 'Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. A Video sitemap does not guarantee indexing. The player must also be crawlable.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos; each video on a page counts. Vimeo entries require a featured image. A Video sitemap does not guarantee indexing. The player must also be crawlable.', 'easyrankly' ); ?></p>
 							</div>
 						</div>
 					</div>
@@ -547,4 +547,3 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 			</div>
 	<?php
 }
-

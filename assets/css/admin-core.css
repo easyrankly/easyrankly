@@ -333,8 +333,7 @@
 
 /* Shared section heading. */
 .erankly-section-title,
-.erankly-global-meta-default h4,
-.erankly-additional-contexts h4 {
+.erankly-global-meta-default h4 {
 	color: var(--erankly-color-muted);
 	font-size: 12px;
 	font-weight: 600;
@@ -356,6 +355,173 @@
 	margin-bottom: 0;
 }
 
+/*
+ * Shared autocomplete used by Person references (settings + setup wizard)
+ * and multilingual links. Lives here so every classic admin surface,
+ * including the setup wizard, gets the same control chrome.
+ */
+[data-erankly-user-search-wrap],
+.erankly-user-search-wrap {
+	width: 100%;
+}
+
+.erankly-autocomplete-control {
+	align-items: stretch;
+	box-sizing: border-box;
+	display: grid;
+	gap: var(--erankly-space-2);
+	grid-template-columns: minmax(0, 1fr) auto;
+	width: 100%;
+}
+
+.erankly-autocomplete-control:not(:has([data-erankly-user-remove]:not([hidden]))) {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.erankly-autocomplete-value,
+.erankly-autocomplete-search {
+	grid-column: 1;
+	min-width: 0;
+	width: 100%;
+}
+
+.erankly-autocomplete-value[hidden],
+.erankly-autocomplete-search[hidden],
+.erankly-autocomplete-control [data-erankly-user-remove][hidden] {
+	display: none !important;
+}
+
+.erankly-autocomplete-control .widefat,
+.erankly-user-selected-input[readonly],
+.erankly-user-search-input {
+	background: var(--erankly-color-surface);
+	border-radius: var(--erankly-radius-control);
+	box-sizing: border-box;
+	max-width: none;
+	width: 100%;
+}
+
+.erankly-autocomplete-control > .button {
+	border-radius: var(--erankly-radius-control);
+	box-sizing: border-box;
+	white-space: nowrap;
+}
+
+.erankly-autocomplete-search {
+	position: relative;
+}
+
+.erankly-autocomplete-results {
+	background: var(--erankly-color-surface);
+	border: 1px solid var(--erankly-color-border-strong);
+	border-radius: var(--erankly-radius-surface);
+	box-sizing: border-box;
+	left: 0;
+	list-style: none;
+	margin: var(--erankly-space-1) 0 0;
+	max-height: 280px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 0;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	width: 100%;
+	z-index: 1000;
+}
+
+.erankly-autocomplete-results li {
+	margin: 0;
+	padding: 0;
+}
+
+.erankly-autocomplete-results li + li {
+	border-top: 1px solid var(--erankly-color-surface-hover);
+}
+
+.erankly-autocomplete-item {
+	appearance: none;
+	background: none;
+	border: 0;
+	border-radius: var(--erankly-radius-compact);
+	box-sizing: border-box;
+	color: var(--erankly-color-text);
+	cursor: pointer;
+	display: block;
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.5;
+	margin: 0;
+	padding: var(--erankly-space-2);
+	text-align: left;
+	width: 100%;
+}
+
+.erankly-autocomplete-item:hover,
+.erankly-autocomplete-item:focus {
+	background: var(--erankly-color-surface-subtle);
+	color: var(--erankly-color-text);
+	outline: none;
+}
+
+.erankly-autocomplete-item:focus-visible {
+	box-shadow: inset 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+}
+
+/* Rich user result: avatar + two-line details. */
+.erankly-user-result-item {
+	align-items: center;
+	display: flex;
+	gap: var(--erankly-space-2);
+	min-height: 40px;
+}
+
+.erankly-user-result-avatar {
+	border-radius: var(--erankly-radius-compact);
+	flex: 0 0 auto;
+	height: 24px;
+	object-fit: cover;
+	width: 24px;
+}
+
+.erankly-user-result-details {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+
+.erankly-user-result-name,
+.erankly-user-result-meta {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.erankly-user-result-name {
+	color: var(--erankly-color-text);
+	font-weight: 500;
+	line-height: 1.35;
+}
+
+.erankly-user-result-meta {
+	color: var(--erankly-color-muted);
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.erankly-autocomplete-item:hover .erankly-user-result-meta,
+.erankly-autocomplete-item:focus .erankly-user-result-meta {
+	color: var(--erankly-color-muted);
+}
+
+.erankly-autocomplete-status {
+	color: var(--erankly-color-text-muted);
+	font-size: 13px;
+	padding: var(--erankly-space-2);
+}
 
 /*
  * Reusable expandable table panel.
@@ -390,18 +556,6 @@
 	gap: var(--erankly-space-2);
 	justify-content: space-between;
 	margin: 0 0 var(--erankly-space-3);
-}
-
-.erankly-panel-controls {
-	align-items: center;
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--erankly-space-2);
-	margin: 0;
-}
-
-.erankly-panel-filter {
-	min-width: 240px;
 }
 
 .button.erankly-panel-expand-toggle {
@@ -447,28 +601,10 @@
 	word-break: break-word;
 }
 
-.erankly-panel-table td.erankly-panel-empty {
-	color: var(--erankly-color-muted);
-	padding: var(--erankly-space-4);
-	text-align: center;
-}
-
-/* Panel callouts use the shared plugin alert styles above. */
-
 @media screen and (max-width: 960px) {
 	.erankly-panel-toolbar {
 		align-items: stretch;
 		flex-direction: column;
-	}
-
-	.erankly-panel-controls {
-		align-items: stretch;
-		flex-direction: column;
-	}
-
-	.erankly-panel-filter {
-		min-width: 0;
-		width: 100%;
 	}
 
 	.erankly-panel-expand-toggle {

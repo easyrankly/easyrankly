@@ -74,23 +74,13 @@
     var personField = container
       ? container.querySelector("[data-erankly-person-reference-field]")
       : null;
-    var identityFields = container
-      ? container.querySelector("[data-erankly-schema-identity-fields]")
-      : null;
 
     if (!personField) {
       return;
     }
 
     function updatePersonField() {
-      var isPerson = field.value === "person";
-
-      personField.hidden = !isPerson;
-
-      if (identityFields) {
-        identityFields.classList.toggle("is-person", isPerson);
-      }
-
+      personField.hidden = field.value !== "person";
       syncOrganizationFieldsVisibility(container);
     }
 

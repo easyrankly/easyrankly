@@ -150,22 +150,39 @@
 		}, [ enabled ] );
 	}
 
-	// Resolves the subset of variables whose value is known outside of any
-	// specific field (site_name, and the currently edited post's own title),
-	// for the "show friendly value" field display. Unrecognized tokens are
-	// left as-is (unlike serpResolveVariables, which blanks them for a clean
-	// preview) so the field never silently drops data.
-	function resolveDisplayVariables( text, { postTitle = '', siteName = '' } = {} ) {
-		return text.replace( /{{\s*([a-z0-9_]+)\s*}}/gi, ( match, key ) => {
-			switch ( key.toLowerCase() ) {
-				case 'site_name':
-					return siteName || match;
-				case 'post_title':
-				case 'seo_title':
-					return postTitle || match;
-				default:
-					return match;
+	// Resolves variables whose preview value is known in this editor
+	// (site-level keys, dates, and the currently edited post or sample).
+	// Unrecognized tokens are left as-is (unlike serpResolveVariables, which
+	// blanks them for a clean preview) so the field never silently drops data.
+	function resolveDisplayVariables( text, { postTitle = '', siteName = '', siteDescription = '', examples = null } = {} ) {
+		const resolved = examples ? { ...examples } : {};
+
+		if ( siteName && ! Object.prototype.hasOwnProperty.call( resolved, 'site_name' ) ) {
+			resolved.site_name = siteName;
+		}
+
+		if ( siteDescription && ! Object.prototype.hasOwnProperty.call( resolved, 'site_description' ) ) {
+			resolved.site_description = siteDescription;
+		}
+
+		if ( postTitle ) {
+			if ( ! resolved.post_title ) {
+				resolved.post_title = postTitle;
 			}
+
+			if ( ! resolved.seo_title ) {
+				resolved.seo_title = postTitle;
+			}
+		}
+
+		return text.replace( /{{\s*([a-z0-9_]+)\s*}}/gi, ( match, key ) => {
+			const normalizedKey = key.toLowerCase();
+
+			if ( Object.prototype.hasOwnProperty.call( resolved, normalizedKey ) && resolved[ normalizedKey ] ) {
+				return resolved[ normalizedKey ];
+			}
+
+			return match;
 		} );
 	}
 
@@ -528,18 +545,36 @@
 
 	// Resolves the variables a preview can know about in the editor; the rest
 	// are stripped so raw {{tokens}} never show up in the SERP preview.
-	function serpResolveVariables( text, postTitle, siteName ) {
+	function serpResolveVariables( text, postTitle, siteName, siteDescription = '', examples = null ) {
+		const resolved = examples ? { ...examples } : {};
+
+		if ( siteName && ! Object.prototype.hasOwnProperty.call( resolved, 'site_name' ) ) {
+			resolved.site_name = siteName;
+		}
+
+		if ( siteDescription && ! Object.prototype.hasOwnProperty.call( resolved, 'site_description' ) ) {
+			resolved.site_description = siteDescription;
+		}
+
+		if ( postTitle ) {
+			if ( ! resolved.post_title ) {
+				resolved.post_title = postTitle;
+			}
+
+			if ( ! resolved.seo_title ) {
+				resolved.seo_title = postTitle;
+			}
+		}
+
 		return text
 			.replace( /{{\s*([a-z0-9_]+)\s*}}/gi, ( match, key ) => {
-				switch ( key.toLowerCase() ) {
-					case 'post_title':
-					case 'seo_title':
-						return postTitle;
-					case 'site_name':
-						return siteName;
-					default:
-						return '';
+				const normalizedKey = key.toLowerCase();
+
+				if ( Object.prototype.hasOwnProperty.call( resolved, normalizedKey ) ) {
+					return resolved[ normalizedKey ] || '';
 				}
+
+				return '';
 			} )
 			.replace( /\s+/g, ' ' )
 			.trim();
@@ -632,7 +667,7 @@
 	// keyed by short field names; `features` toggles the optional controls.
 	function searchAppearanceFields( { config, data, features = {} } ) {
 		const resolveDisplay = config.resolvePlaceholders
-			? ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName } )
+			? ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName, siteDescription: config.siteDescription, examples: config.variableExamples } )
 			: null;
 		const fields = [
 			el( VariableControl, {
@@ -686,7 +721,7 @@
 	// Builds the "Social sharing" controls.
 	function socialFields( { config, data, features = {} } ) {
 		const resolveDisplay = config.resolvePlaceholders
-			? ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName } )
+			? ( text ) => resolveDisplayVariables( text, { postTitle: config.postTitle, siteName: config.siteName, siteDescription: config.siteDescription, examples: config.variableExamples } )
 			: null;
 		const fields = [
 			el( VariableControl, {
@@ -1219,7 +1254,7 @@
 	}
 
 	function checklistEffectiveTitle( customTitle, postTitle, config ) {
-		const resolved = serpResolveVariables( customTitle, postTitle, config.siteName || '' );
+		const resolved = serpResolveVariables( customTitle, postTitle, config.siteName || '', config.siteDescription || '', config.variableExamples || null );
 
 		return resolved
 			|| config.titlePlaceholder
@@ -1229,7 +1264,7 @@
 	}
 
 	function checklistEffectiveDescription( customDescription, postTitle, config, content, excerpt ) {
-		const resolved = serpResolveVariables( customDescription, postTitle, config.siteName || '' );
+		const resolved = serpResolveVariables( customDescription, postTitle, config.siteName || '', config.siteDescription || '', config.variableExamples || null );
 
 		if ( resolved ) {
 			return resolved;

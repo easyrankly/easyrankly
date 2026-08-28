@@ -33,22 +33,21 @@ final class ERankly_Redirects_Runner {
 	 * Register frontend hook.
 	 */
 	public function register_hooks(): void {
-		add_action( 'parse_request', array( $this, 'maybe_redirect' ), 1 );
+		// Core identifies and serves REST requests at priority 10. Running after
+		// that callback makes REST_REQUEST reliable while still preceding query
+		// execution and template selection for ordinary frontend requests.
+		add_action( 'parse_request', array( $this, 'maybe_redirect' ), 11 );
 	}
 
 	/**
 	 * Try to redirect the current frontend request.
 	 */
 	public function maybe_redirect(): void {
-		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
-			return;
-		}
-
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
 			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
 			: '';
 
-		if ( '' === $request_uri ) {
+		if ( '' === $request_uri || $this->should_skip_request( $request_uri ) ) {
 			return;
 		}
 
@@ -83,12 +82,12 @@ final class ERankly_Redirects_Runner {
 					$case_sensitive,
 					$trailing_slash
 				);
-				$capture_path = ERankly_Redirects_Normalizer::normalize_match_path_for_capture(
+				$capture_path   = ERankly_Redirects_Normalizer::normalize_match_path_for_capture(
 					$request_uri,
 					$case_sensitive,
 					$trailing_slash
 				);
-				$match_type   = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : 'regex' ) );
+				$match_type     = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : 'regex' ) );
 
 				if ( 'wildcard' === $match_type ) {
 					$target_url = ERankly_Redirects_Normalizer::apply_wildcard_target(
@@ -123,7 +122,7 @@ final class ERankly_Redirects_Runner {
 		}
 
 		// Global setting: never redirect administrators.
-		if ( erankly_get_setting( 'redirect_exclude_admins', 0 ) && current_user_can( 'manage_options' ) ) {
+		if ( erankly_get_setting( 'redirect_exclude_admins', 1 ) && current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -157,6 +156,45 @@ final class ERankly_Redirects_Runner {
 
 		wp_safe_redirect( $target_url, $status_code, 'EasyRankly' );
 		exit;
+	}
+
+	/**
+	 * Determines whether WordPress or another core endpoint owns the request.
+	 *
+	 * Explicit path and query checks complement REST_REQUEST so a changed hook
+	 * priority or custom REST prefix cannot expose core endpoints to broad rules.
+	 *
+	 * @param string $request_uri Current request URI.
+	 * @return bool True when redirect matching must not run.
+	 */
+	private function should_skip_request( string $request_uri ): bool {
+		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return true;
+		}
+
+		global $pagenow;
+
+		if ( 'wp-login.php' === (string) $pagenow ) {
+			return true;
+		}
+
+		if ( isset( $_GET['rest_route'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only core request routing.
+			return true;
+		}
+
+		$request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+		$request_path = is_string( $request_path ) ? '/' . ltrim( $request_path, '/' ) : '';
+
+		if ( 'wp-login.php' === basename( $request_path ) ) {
+			return true;
+		}
+
+		$rest_url  = rest_url();
+		$rest_path = wp_parse_url( $rest_url, PHP_URL_PATH );
+		$rest_path = is_string( $rest_path ) ? '/' . trim( $rest_path, '/' ) : '';
+
+		return '' !== $rest_path
+			&& ( $request_path === $rest_path || str_starts_with( $request_path, $rest_path . '/' ) );
 	}
 
 	/**
