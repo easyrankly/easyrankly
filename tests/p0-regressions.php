@@ -60,10 +60,19 @@ foreach ( $scenarios as $scenario ) {
 	erankly_p0_run_isolated( $scenario );
 }
 
-$root          = dirname( __DIR__ );
-$plugin_source = (string) file_get_contents( $root . '/easyrankly.php' );
-$readme        = (string) file_get_contents( $root . '/readme.txt' );
-$meta_source   = (string) file_get_contents( $root . '/admin/meta-box.php' );
+$root              = dirname( __DIR__ );
+$plugin_source     = (string) file_get_contents( $root . '/easyrankly.php' );
+$readme            = (string) file_get_contents( $root . '/readme.txt' );
+$meta_renderer     = (string) file_get_contents( $root . '/admin/meta-box.php' );
+$meta_module_paths = glob( $root . '/admin/meta-box/*.php' ) ?: array();
+sort( $meta_module_paths, SORT_STRING );
+$meta_source = implode(
+	"\n",
+	array_map(
+		static fn( string $path ): string => (string) file_get_contents( $path ),
+		array_merge( array( $root . '/admin/meta-box.php' ), $meta_module_paths )
+	)
+);
 $runner_source = (string) file_get_contents( $root . '/includes/redirects/class-erankly-redirects-runner.php' );
 
 erankly_p0_assert( str_contains( $plugin_source, '* Version:     2.0.0' ), 'plugin header must advertise 2.0.0' );
@@ -73,6 +82,12 @@ erankly_p0_assert( ! str_contains( $readme, '= 2.1.0 =' ), 'unreleased 2.1.0 sec
 erankly_p0_assert( str_contains( $plugin_source, "erankly_should_serve_sitemaps() ? '1' : '0'" ), 'rewrite signature must track effective sitemap ownership' );
 erankly_p0_assert( str_contains( $runner_source, "array( \$this, 'maybe_redirect' ), 11" ), 'redirect runner must execute after the core REST callback' );
 erankly_p0_assert( str_contains( $meta_source, 'function erankly_save_meta_box( int $post_id, WP_Post $post ): void' ), 'meta-box callback must accept the post object' );
+erankly_p0_assert( array( 'post-saver.php', 'term-saver.php' ) === array_map( 'basename', $meta_module_paths ), 'post and taxonomy persistence must remain in dedicated modules' );
+erankly_p0_assert( ! str_contains( $meta_renderer, 'function erankly_save_meta_box(' ), 'meta-box rendering must stay separate from post persistence' );
+erankly_p0_assert( ! str_contains( $meta_renderer, 'function erankly_save_term_fields(' ), 'meta-box rendering must stay separate from taxonomy persistence' );
+foreach ( array_merge( array( $root . '/admin/meta-box.php' ), $meta_module_paths ) as $meta_path ) {
+	erankly_p0_assert( count( file( $meta_path ) ?: array() ) <= 800, basename( $meta_path ) . ' must remain below the structural size ceiling' );
+}
 
 $schema_save = strpos( $meta_source, '$schema_mode = erankly_sanitize_registered_meta' );
 $save_hook   = strpos( $meta_source, "do_action( 'erankly_save_meta_box', \$post_id, \$post );" );
