@@ -866,11 +866,11 @@ msgid "Organization or person name"
 msgstr ""
 
 #: admin/settings/panels.php:88
-msgid "Used in the WebSite JSON-LD node. Leave blank to fall back to the WordPress site title."
+msgid "Leave blank to fall back to the WordPress site title."
 msgstr ""
 
 #: admin/settings/panels.php:96
-msgid "Used in the WebSite JSON-LD node only when a value is available. Empty taglines are omitted from schema output."
+msgid "Empty taglines are omitted from schema output."
 msgstr ""
 
 #: admin/settings/panels.php:100
@@ -959,7 +959,6 @@ msgid "X (Twitter) Site"
 msgstr ""
 
 #: admin/settings/panels.php:265
-#: admin/settings/panels.php:505
 msgid "One absolute URL per line."
 msgstr ""
 
@@ -972,7 +971,7 @@ msgid "Show search engines how your pages are organized"
 msgstr ""
 
 #: admin/settings/panels.php:293
-msgid "Example: Home → Blog → Article. Search engines can read this information in the background. Visitors see it only if the site is already set up to show it."
+msgid "Example: Home → Blog → Article. Helps search engines understand your site structure. Visible to visitors only if your theme supports breadcrumbs."
 msgstr ""
 
 #: admin/settings/panels.php:299
@@ -1133,6 +1132,10 @@ msgstr ""
 msgid "robots.txt: custom rules"
 msgstr ""
 
+#: admin/settings/panels.php:505
+msgid "One robots.txt directive per line, for example Disallow: /private/. Appended to the generated file."
+msgstr ""
+
 #: admin/settings/panels.php:508
 msgid "robots.txt preview"
 msgstr ""
@@ -1226,7 +1229,7 @@ msgid "Add one physical business location for search engines"
 msgstr ""
 
 #: admin/settings/renderers.php:97
-msgid "Search engines can read its address, opening hours and contact details. Nothing new is shown to visitors. Use the same details as your Google Business Profile."
+msgid "Search engines can read its address, opening hours and contact details. Use the same details as your Google Business Profile."
 msgstr ""
 
 #: admin/settings/renderers.php:102

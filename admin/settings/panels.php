@@ -85,7 +85,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 							<input id="erankly-website-name" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[website_name]" value="<?php echo esc_attr( (string) $settings['website_name'] ); ?>">
 							<?php erankly_render_variable_picker(); ?>
 						</div>
-						<p class="description"><?php esc_html_e( 'Used in the WebSite JSON-LD node. Leave blank to fall back to the WordPress site title.', 'easyrankly' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Leave blank to fall back to the WordPress site title.', 'easyrankly' ); ?></p>
 					</div>
 					<div class="erankly-field">
 						<label for="erankly-website-description"><?php esc_html_e( 'Website description', 'easyrankly' ); ?></label>
@@ -93,7 +93,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 							<textarea id="erankly-website-description" class="widefat" rows="3" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[website_description]"><?php echo esc_textarea( (string) $settings['website_description'] ); ?></textarea>
 							<?php erankly_render_variable_picker(); ?>
 						</div>
-						<p class="description"><?php esc_html_e( 'Used in the WebSite JSON-LD node only when a value is available. Empty taglines are omitted from schema output.', 'easyrankly' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Empty taglines are omitted from schema output.', 'easyrankly' ); ?></p>
 					</div>
 						<div class="erankly-schema-identity-fields" data-erankly-schema-identity-fields>
 						<div class="erankly-field">
@@ -290,7 +290,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 					<div class="erankly-card">
 					<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_breadcrumbs]" value="1" <?php checked( $settings['enable_breadcrumbs'], 1 ); ?>> <?php esc_html_e( 'Show search engines how your pages are organized', 'easyrankly' ); ?></label>
-							<p class="description"><?php esc_html_e( 'Example: Home → Blog → Article. Search engines can read this information in the background. Visitors see it only if the site is already set up to show it.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Example: Home → Blog → Article. Helps search engines understand your site structure. Visible to visitors only if your theme supports breadcrumbs.', 'easyrankly' ); ?></p>
 					</div>
 						<?php erankly_render_local_business_settings( $settings ); ?>
 					</div>
@@ -502,7 +502,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						<div class="erankly-field">
 						<label for="erankly-robots-txt-extra"><?php esc_html_e( 'robots.txt: custom rules', 'easyrankly' ); ?></label>
 						<textarea id="erankly-robots-txt-extra" class="widefat code" rows="12" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_txt_extra]"><?php echo esc_textarea( (string) $settings['robots_txt_extra'] ); ?></textarea>
-						<p class="description"><?php esc_html_e( 'One absolute URL per line.', 'easyrankly' ); ?></p>
+						<p class="description"><?php esc_html_e( 'One robots.txt directive per line, for example Disallow: /private/. Appended to the generated file.', 'easyrankly' ); ?></p>
 						</div>
 						<div class="erankly-field">
 						<label for="erankly-robots-txt-preview"><?php esc_html_e( 'robots.txt preview', 'easyrankly' ); ?></label>

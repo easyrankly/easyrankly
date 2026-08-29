@@ -94,7 +94,7 @@ function erankly_render_local_business_settings( array $settings ): void {
 	<div class="erankly-local-business" data-erankly-local-business>
 		<div class="erankly-field erankly-checkboxes">
 			<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_local_business]" value="1" <?php checked( $enabled ); ?> data-erankly-local-business-toggle> <?php esc_html_e( 'Add one physical business location for search engines', 'easyrankly' ); ?></label>
-			<p class="description"><?php esc_html_e( 'Search engines can read its address, opening hours and contact details. Nothing new is shown to visitors. Use the same details as your Google Business Profile.', 'easyrankly' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Search engines can read its address, opening hours and contact details. Use the same details as your Google Business Profile.', 'easyrankly' ); ?></p>
 		</div>
 		<div class="erankly-local-business-fields" data-erankly-local-business-fields <?php echo $enabled ? '' : 'hidden'; ?>>
 			<div class="erankly-inline-fields erankly-inline-fields-two-columns">
