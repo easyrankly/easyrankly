@@ -8,11 +8,11 @@ Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Lightweight, modular, developer-first SEO essentials for WordPress.
+Take control of your WordPress SEO with simple, fast, and flexible tools.
 
 == Description ==
 
-EasyRankly brings together the SEO essentials for WordPress in a modular toolkit with sensible defaults and optional features you can enable when needed.
+EasyRankly gives you the essential tools to take control of your WordPress SEO. Sensible defaults help you get started quickly, while flexible features let you enable only what your site needs.
 
 Here's what it does:
 
@@ -36,53 +36,58 @@ All of it lives in a redesigned, responsive admin interface with consistent form
 
 = Can I run EasyRankly alongside another SEO plugin such as Yoast SEO or Rank Math? =
 
-No, running two full SEO plugins at the same time is not recommended because their overlapping features can produce conflicts or inconsistent output. If EasyRankly detects a recognised SEO plugin, it displays an admin notice and disables its own head metadata, structured data, sitemaps, and robots.txt customisations to reduce the risk of duplicates; redirects and breadcrumbs remain available. If you are switching from Yoast SEO, Rank Math, All in One SEO, or SEOPress, use EasyRankly's migration tools and complete the guided checks before deactivating the previous plugin.
+Yes, temporarily, such as during a migration, but two full SEO plugins should not remain responsible for the same output. If EasyRankly detects a recognised SEO plugin, it displays an admin notice and disables its own head metadata, structured data, sitemap output, and robots.txt customisations to reduce the risk of duplicates; redirects and breadcrumbs remain available. If you are switching from Yoast SEO, Rank Math, All in One SEO, or SEOPress, use EasyRankly's migration assistant and complete its guided checks before deactivating the previous plugin.
 
 = Does it support WooCommerce? =
 
-Yes. Product JSON-LD supports core product fields, GTIN, offers, ratings and approved reviews. Variable products can use AggregateOffer. EasyRankly leaves Product schema to WooCommerce when its native structured data is active; developers can override this with the documented filters.
+Yes. By default, EasyRankly leaves Product structured data to WooCommerce when WooCommerce's native schema is active, avoiding duplicate Product markup. Developers can opt into EasyRankly's Product JSON-LD with the `erankly_woocommerce_structured_data_enabled` and `erankly_render_woocommerce_product_schema` filters. When enabled, it supports core product fields, SKU, brand, GTIN, offers, aggregate ratings, and approved reviews; variable products use AggregateOffer.
 
 = Does EasyRankly work on WordPress Multisite? =
 
-Yes. EasyRankly supports WordPress Multisite with network-level global settings. Multilingual features are supplied only by the separate EasyRankly Multilingual plugin through the provider API; the core no longer contains multilingual storage, screens, routes, shortcodes, or assets.
+Yes. EasyRankly is network-aware and stores global SEO settings at network level, while content metadata and special-page values remain scoped appropriately to each site. Multilingual functionality requires the separate EasyRankly Multilingual plugin, which integrates through the provider API.
 
-Each site refreshes its own rewrite rules when needed. Network resets run in background batches. Networks above 100 sites use WP-CLI for deactivation and uninstall to avoid HTTP timeouts: run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly`.
+Each site refreshes its own rewrite rules when needed, and network resets run in background batches. By default, networks with more than 100 sites require WP-CLI for network deactivation and uninstall to avoid HTTP timeouts: run `wp plugin deactivate easyrankly --network`, then `wp plugin uninstall easyrankly`.
 
 = Does EasyRankly collect any personal data or phone home? =
 
-No analytics, tracking, telemetry, or EasyRankly phone-home calls are added.
+EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses or the referrer, user-agent, language, or cookie values read temporarily when evaluating redirect conditions. Migration verification may make bounded same-origin requests to your own site; it does not phone home.
 
 = How do I display breadcrumbs? =
 
-Call `erankly_breadcrumbs()` in your theme template. You can customise the markup with the `erankly_breadcrumb_items` and `erankly_breadcrumbs_html` filters. Legacy `easyrankly_breadcrumbs()` and `easyrankly_*` hook aliases remain available for backward compatibility.
+Enable breadcrumbs under Settings > EasyRankly > Features, then call `erankly_breadcrumbs()` in your theme template. The function echoes its HTML by default; pass `array( 'echo' => false )` to return it without printing. You can customise the items and final markup with the `erankly_breadcrumb_items` and `erankly_breadcrumbs_html` filters. The legacy `easyrankly_breadcrumbs()` function and supported `easyrankly_*` hook aliases remain available for backward compatibility.
 
 = Is there an extension API? =
 
-Yes. Extension API v1 includes `erankly_register_multilingual_provider()`, localized-value writes, neutral SEO-state reads, and filtered hreflang output. These contracts remain in core for add-ons even when they are not called by the core UI.
+Yes. Extension API v1 includes multilingual provider registration through `erankly_register_multilingual_provider()`, neutral SEO-state reads, localised-value reads and writes, and filtered hreflang output. Localised-value reads and writes are available only on single-site installations; the provider and SEO-state contracts support provider-defined site topologies. These contracts remain in core for add-ons even when they are not called by the core UI.
 
 = Can I migrate from Yoast SEO, Rank Math, All in One SEO or SEOPress? =
 
-Yes. Open Settings > EasyRankly > Import/Export. Edition-aware adapters read supported data from Yoast SEO, Rank Math, AIOSEO and SEOPress installations or official exports. Uploaded CSV/JSON files are staged privately and deleted after preview, import or cancellation.
+Yes, for supported fields and certified storage signatures. Open Settings > EasyRankly > Import/Export. Edition-aware database adapters read supported data from Yoast SEO, Rank Math, AIOSEO, and SEOPress installations. Supported official exports are format-specific: Yoast redirect CSV, Rank Math metadata or redirect CSV, AIOSEO redirect CSV or JSON, and SEOPress metadata CSV.
 
-Preview never writes. Imports run in resumable background batches, recheck targets, preserve existing EasyRankly values and stop if the source changes. Database migrations can capture and verify a same-origin output baseline and provide a seven-day conditional rollback. Native export/import covers settings, redirects and registered metadata with size and structural safeguards.
+Preview does not modify destination SEO metadata or redirects; it writes only temporary job, staging, and report data. Imports run in resumable background batches, recheck targets before applying them, preserve existing EasyRankly values, and pause if the source changes. Uploaded CSV/JSON files are staged privately and deleted when preview, import, or cancellation reaches a terminal state; if immediate deletion fails, stale-file cleanup retries it. Database migrations can capture and verify a same-origin output baseline and provide a seven-day conditional rollback. Native EasyRankly export/import covers settings, redirects, and registered metadata with size and structural safeguards.
 
 == External Services ==
 
-EasyRankly makes no server-side external requests and adds no analytics or telemetry. For posts that already embed YouTube or Vimeo, video markup can expose provider player URLs and a YouTube thumbnail URL derived from the public video ID. A visitor or search engine loading those URLs sends its normal request data to the provider. See YouTube terms (https://www.youtube.com/static?template=terms) and privacy policy (https://policies.google.com/privacy), and Vimeo terms (https://vimeo.com/terms) and privacy policy (https://vimeo.com/privacy). EasyRankly does not use vumbnail.com.
+EasyRankly does not send server-side requests to third-party services and does not add analytics, tracking, telemetry, or phone-home calls. During migration verification, it may make bounded server-side requests only to URLs on the exact same origin as the WordPress site; redirects are not followed.
+
+For posts containing YouTube or Vimeo URLs or embeds, EasyRankly may include provider player URLs in VideoObject structured data and video sitemaps. For YouTube videos without a featured image, it may also include a thumbnail URL derived from the public video ID. EasyRankly does not fetch video metadata or thumbnails server-side and does not use vumbnail.com. A browser or search engine that loads these provider URLs sends its normal request data to the provider. See YouTube terms (https://www.youtube.com/static?template=terms) and privacy policy (https://policies.google.com/privacy), and Vimeo terms (https://vimeo.com/legal) and privacy policy (https://vimeo.com/legal/privacy).
+
+EasyRankly uses WordPress's avatar API when searching for a user in its administration screens and when a WordPress user is selected for Person schema. Depending on the site's avatar configuration and installed filters, this may return a Gravatar URL containing a hash derived from the user's email address. Loading that image sends the usual request data to Gravatar. See Gravatar (https://gravatar.com/), terms (https://wordpress.com/tos/) and privacy policy (https://automattic.com/privacy/).
 
 == Changelog ==
 
 = 2.0.0 =
-Major upgrade from the public 1.0.0 release. Core now focuses on metadata, schema, sitemaps, redirects, breadcrumbs, and import/export. AI generation, content analysis, internal linking, and Health monitoring require a separate add-on. Multilingual runtime moved to the separate EasyRankly Multilingual plugin through the provider API — for uninterrupted multilingual operation, update EasyRankly Multilingual to 1.1.1 before upgrading; existing multilingual data is not inspected, converted, reset, or deleted.
+EasyRankly 2.0.0 marks the transition from the initial foundation introduced with version 1.0.0 to a more mature, capable, and extensible SEO platform. This release revisits every major area of the plugin, with a renewed focus on delivering essential SEO tools through a fast, modular, and developer-friendly core.
 
-* **Rebuilt admin experience:** new setup wizard, URL-addressable settings tabs, editor panels, and a shared responsive design system, with broad accessibility improvements (explicit labels, fieldsets, ARIA relationships, keyboard-safe tabs and dialogs).
-* **Block editor and Site Editor integration:** native block-editor controls alongside the classic editor and taxonomy forms, plus contextual Site Editor panels for homepage, blog, author, date, search, and 404 metadata on block themes (WordPress 6.6+).
-* **Richer metadata controls:** primary taxonomy terms, ordered focus keyphrases, a cornerstone/pillar flag, granular robots directives (max-snippet, max-image-preview, indexifembedded, and more), and an integrated editor SEO checklist replacing the 1.0.0 floating checklist.
-* **Dedicated social images:** separate Open Graph and X image fields for posts and terms, `og:image:alt`/`twitter:image:alt` with a shared value and Media Library alt-text fallback; legacy shared images still work.
-* **Expanded structured data:** per-content schema modes (automatic, merged, replacement, disabled), FAQ/HowTo extraction from Yoast and Rank Math blocks, Event and VideoObject output, and WooCommerce GTIN, AggregateOffer, and Review support.
-* **Much stronger redirects:** contains, starts-with, and ends-with matching, 307/308/410/451 responses, query-string, trailing-slash, and case controls, scheduling and audience targeting, plus a compiled runtime with per-pattern safety limits.
-* **Safer migrations:** edition-aware adapters for Yoast SEO, Rank Math, AIOSEO, and SEOPress with non-writing preview, resumable background batches, live-output verification, and a seven-day conditional rollback journal.
-* **Under the hood:** contextual module loading so inactive features cost nothing, bounded background processing, Multisite hardening with WP-CLI flows for large networks, and a lowered WordPress baseline (6.2) with PHP 8.0+.
+The entire experience has been redesigned around a new setup wizard, clearer URL-addressable settings, native controls for the block editor, improved classic-editor and taxonomy panels, and contextual Site Editor integration for block themes. Accessibility has also been strengthened throughout, with more explicit labels, better semantic relationships, and keyboard-safe navigation and dialogs.
+
+Metadata and structured data now offer substantially greater control. Primary taxonomy terms, ordered focus keyphrases, cornerstone content, advanced robots directives, dedicated Open Graph and X images, richer schema modes, FAQ and HowTo extraction, Event and VideoObject markup, and expanded WooCommerce support make it possible to describe and optimize content with far greater precision.
+
+Redirect management and migration tools have evolved with the same attention to reliability. Redirects now support additional matching strategies, response codes, scheduling, audience targeting, and fine-grained URL controls, backed by a compiled runtime with per-pattern safety limits. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, live-output verification, and a seven-day conditional rollback journal.
+
+Behind the scenes, contextual module loading keeps inactive features from adding unnecessary overhead, while bounded background processing, stronger Multisite support, and dedicated WP-CLI workflows provide a more dependable foundation for sites of every size. EasyRankly 2.0.0 supports WordPress 6.2 and later with PHP 8.0 or newer.
+
+As part of this clearer modular direction, AI generation, content analysis, internal linking, and Health monitoring are now provided through a separate add-on, allowing the core to remain focused, efficient, and easier to extend.
 
 = 1.0.0 =
 Release date: June 14, 2026
@@ -92,7 +97,7 @@ Release date: June 14, 2026
 == Upgrade Notice ==
 
 = 2.0.0 =
-Back up first. SEO content and redirects are retained. Multilingual moved out of core; update EasyRankly Multilingual to 1.1.1 first if used. AI, analysis, linking and Health require an add-on. Review settings after upgrading.
+EasyRankly 2.0.0 introduces a substantially redesigned core. Before upgrading, create a full backup. Existing SEO content and redirects are preserved. AI generation, content analysis, internal linking, and Health monitoring have moved to a separate add-on. Review your settings after completing the upgrade.
 
 = 1.0.0 =
 First public release of EasyRankly.
