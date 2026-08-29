@@ -95,6 +95,70 @@ function erankly_release_version( ?string $root = null ): string {
 	return $unique[0];
 }
 
+/** Fails when a source reference in the POT points to a missing file or line. */
+function erankly_release_assert_pot_references( ?string $root = null ): void {
+	$root     = $root ?? erankly_release_root();
+	$pot_path = $root . '/languages/easyrankly.pot';
+	$pot      = file( $pot_path, FILE_IGNORE_NEW_LINES );
+	if ( false === $pot ) {
+		throw new RuntimeException( 'Unable to read the translation template.' );
+	}
+
+	$line_counts = array();
+	$checked     = 0;
+	foreach ( $pot as $pot_line ) {
+		if ( ! str_starts_with( $pot_line, '#:' ) ) {
+			continue;
+		}
+
+		$references = preg_split( '/\s+/', trim( substr( $pot_line, 2 ) ) );
+		if ( false === $references ) {
+			throw new RuntimeException( 'Unable to parse POT source references.' );
+		}
+		foreach ( $references as $reference ) {
+			if ( '' === $reference ) {
+				continue;
+			}
+
+			$line_number = 0;
+			$relative    = $reference;
+			if ( 1 === preg_match( '/^(.+):([1-9][0-9]*)$/', $reference, $matches ) ) {
+				$relative    = $matches[1];
+				$line_number = (int) $matches[2];
+			}
+			$relative = erankly_release_normalize_path( $relative );
+			if ( str_starts_with( $relative, './' ) ) {
+				$relative = substr( $relative, 2 );
+			}
+			if ( '' === $relative || str_starts_with( $relative, '/' ) || str_contains( $relative, '../' ) ) {
+				throw new RuntimeException( 'POT contains an unsafe source reference: ' . $reference );
+			}
+
+			$source = $root . '/' . $relative;
+			if ( ! is_file( $source ) ) {
+				throw new RuntimeException( 'POT references a missing source file: ' . $relative );
+			}
+			if ( 0 < $line_number ) {
+				if ( ! isset( $line_counts[ $relative ] ) ) {
+					$source_lines = file( $source );
+					if ( false === $source_lines ) {
+						throw new RuntimeException( 'Unable to read POT source file: ' . $relative );
+					}
+					$line_counts[ $relative ] = count( $source_lines );
+				}
+				if ( $line_number > $line_counts[ $relative ] ) {
+					throw new RuntimeException( 'POT references a missing source line: ' . $reference );
+				}
+			}
+			++$checked;
+		}
+	}
+
+	if ( 0 === $checked ) {
+		throw new RuntimeException( 'The translation template has no source references.' );
+	}
+}
+
 /** Returns normalized, fail-closed .distignore patterns. */
 function erankly_release_ignore_patterns( ?string $root = null ): array {
 	$root     = $root ?? erankly_release_root();

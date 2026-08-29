@@ -16,6 +16,7 @@ try {
 	$options = getopt( '', array( 'output:', 'force', 'allow-dirty', 'source-date-epoch:' ) );
 	$root    = erankly_release_root();
 	$version = erankly_release_version( $root );
+	erankly_release_assert_pot_references( $root );
 	if ( ! isset( $options['allow-dirty'] ) ) {
 		erankly_release_assert_clean( $root );
 	}

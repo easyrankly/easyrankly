@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-28T16:39:16+00:00\n"
+"POT-Creation-Date: 2026-08-29T08:33:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easyrankly\n"
@@ -20,11 +20,11 @@ msgstr ""
 #: admin/meta-box.php:35
 #: admin/meta-box.php:491
 #: admin/meta-box.php:506
-#: admin/settings-page.php:829
-#: includes/admin.php:169
+#: admin/settings/page-renderer.php:286
 #: includes/admin.php:170
-#: includes/admin.php:185
+#: includes/admin.php:171
 #: includes/admin.php:186
+#: includes/admin.php:187
 #: assets/js/accordion-faq-schema.js:54
 msgid "EasyRankly"
 msgstr ""
@@ -42,6 +42,124 @@ msgstr ""
 #. Author URI of the plugin
 #: easyrankly.php
 msgid "https://easyrankly.com/"
+msgstr ""
+
+#: admin/assets/editor.php:280
+#: admin/assets/editor.php:300
+msgid "example"
+msgstr ""
+
+#: admin/assets/editor.php:295
+#: includes/helpers/content-defaults.php:200
+msgid "Author archive"
+msgstr ""
+
+#: admin/assets/editor.php:296
+#: includes/helpers/content-defaults.php:201
+msgid "Date archive"
+msgstr ""
+
+#. translators: %s: Search query.
+#: admin/assets/editor.php:299
+#: includes/title-description.php:134
+#, php-format
+msgid "Search results for %s"
+msgstr ""
+
+#: admin/assets/editor.php:302
+#: includes/breadcrumbs.php:260
+#: includes/title-description.php:144
+msgid "Page not found"
+msgstr ""
+
+#: admin/assets/settings.php:106
+msgid "Searching…"
+msgstr ""
+
+#: admin/assets/settings.php:107
+msgid "No matches found."
+msgstr ""
+
+#: admin/assets/settings.php:108
+#: admin/field-renderers.php:265
+#: admin/settings/panels.php:132
+#: admin/setup-wizard.php:183
+#: assets/js/editor-shared.js:503
+msgid "Remove"
+msgstr ""
+
+#: admin/assets/settings.php:109
+msgid "No user selected"
+msgstr ""
+
+#: admin/assets/settings.php:178
+#: includes/admin.php:422
+#: includes/admin.php:435
+msgid "Expand table"
+msgstr ""
+
+#: admin/assets/settings.php:179
+msgid "Collapse table"
+msgstr ""
+
+#: admin/assets/settings.php:199
+msgid "Saving…"
+msgstr ""
+
+#: admin/assets/settings.php:200
+msgid "Saved"
+msgstr ""
+
+#: admin/assets/settings.php:201
+msgid "Saved with warnings"
+msgstr ""
+
+#: admin/assets/settings.php:202
+msgid "Saving failed. Retrying…"
+msgstr ""
+
+#: admin/assets/settings.php:203
+msgid "Could not save. Reload the page."
+msgstr ""
+
+#: admin/assets/settings.php:271
+msgid "Delete this redirect?"
+msgstr ""
+
+#: admin/assets/settings.php:272
+#: includes/redirects/class-erankly-redirects-admin.php:361
+msgid "Enable"
+msgstr ""
+
+#: admin/assets/settings.php:273
+#: includes/redirects/class-erankly-redirects-admin.php:361
+msgid "Disable"
+msgstr ""
+
+#: admin/assets/settings.php:274
+#: admin/settings/renderers.php:272
+#: admin/settings/renderers.php:398
+#: includes/redirects/class-erankly-redirects-admin.php:356
+msgid "Yes"
+msgstr ""
+
+#: admin/assets/settings.php:275
+#: admin/settings/renderers.php:271
+#: admin/settings/renderers.php:397
+#: includes/redirects/class-erankly-redirects-admin.php:356
+msgid "No"
+msgstr ""
+
+#: admin/assets/settings.php:276
+#: includes/redirects/class-erankly-redirects-admin.php:155
+#: includes/redirects/class-erankly-redirects-rest.php:100
+msgid "The redirect status could not be changed."
+msgstr ""
+
+#: admin/assets/settings.php:277
+#: includes/redirects/class-erankly-redirects-admin.php:154
+#: includes/redirects/class-erankly-redirects-rest.php:128
+msgid "The redirect could not be deleted."
 msgstr ""
 
 #: admin/field-renderers.php:20
@@ -302,14 +420,6 @@ msgstr ""
 #: admin/field-renderers.php:264
 #: assets/js/editor-shared.js:496
 msgid "Select image"
-msgstr ""
-
-#: admin/field-renderers.php:265
-#: admin/settings/panels.php:132
-#: admin/setup-wizard.php:183
-#: includes/admin.php:659
-#: assets/js/editor-shared.js:503
-msgid "Remove"
 msgstr ""
 
 #: admin/meta-box.php:141
@@ -627,7 +737,7 @@ msgid "Social sharing"
 msgstr ""
 
 #: admin/meta-box.php:448
-#: admin/settings-page.php:837
+#: admin/settings/page-renderer.php:294
 #: assets/js/editor.js:199
 msgid "Schema"
 msgstr ""
@@ -656,80 +766,80 @@ msgstr ""
 msgid "Permission denied."
 msgstr ""
 
-#: admin/settings-page.php:804
-#: admin/settings-page.php:809
+#: admin/settings/page-renderer.php:261
+#: admin/settings/page-renderer.php:266
 msgid "Settings saved."
 msgstr ""
 
 #. translators: %s: Network Admin settings URL.
-#: admin/settings-page.php:820
+#: admin/settings/page-renderer.php:277
 #, php-format
 msgid "Global SEO settings are managed from the %s."
 msgstr ""
 
-#: admin/settings-page.php:821
+#: admin/settings/page-renderer.php:278
 msgid "Network Admin"
 msgstr ""
 
-#: admin/settings-page.php:833
+#: admin/settings/page-renderer.php:290
 msgid "Plugin settings"
 msgstr ""
 
-#: admin/settings-page.php:835
-#: admin/settings-page.php:840
+#: admin/settings/page-renderer.php:292
+#: admin/settings/page-renderer.php:297
 msgid "General"
 msgstr ""
 
-#: admin/settings-page.php:836
+#: admin/settings/page-renderer.php:293
 msgid "Social"
 msgstr ""
 
-#: admin/settings-page.php:843
+#: admin/settings/page-renderer.php:300
 #: admin/setup-wizard.php:217
 msgid "Advanced"
 msgstr ""
 
-#: admin/settings-page.php:844
+#: admin/settings/page-renderer.php:301
 msgid "Features"
 msgstr ""
 
-#: admin/settings-page.php:845
-#: includes/admin.php:398
+#: admin/settings/page-renderer.php:302
+#: includes/admin.php:399
 msgid "Settings"
 msgstr ""
 
-#: admin/settings-page.php:848
+#: admin/settings/page-renderer.php:305
 msgid "Import / Export"
 msgstr ""
 
-#: admin/settings-page.php:852
+#: admin/settings/page-renderer.php:309
 #: admin/settings/panels.php:33
 msgid "Feature modules"
 msgstr ""
 
-#: admin/settings-page.php:854
-#: includes/import-export.php:1938
-#: includes/import-export.php:1968
+#: admin/settings/page-renderer.php:311
+#: includes/import-export/report.php:160
+#: includes/import-export/report.php:190
 msgid "Redirects"
 msgstr ""
 
-#: admin/settings-page.php:857
+#: admin/settings/page-renderer.php:314
 msgid "Sitemap"
 msgstr ""
 
-#: admin/settings-page.php:866
+#: admin/settings/page-renderer.php:323
 msgid "Additional Modules"
 msgstr ""
 
-#: admin/settings-page.php:873
+#: admin/settings/page-renderer.php:330
 msgid "Useful resources"
 msgstr ""
 
-#: admin/settings-page.php:874
+#: admin/settings/page-renderer.php:331
 msgid "Documentation"
 msgstr ""
 
-#: admin/settings-page.php:931
+#: admin/settings/page-renderer.php:388
 #: admin/settings/panels.php:173
 #: admin/settings/panels.php:182
 #: includes/special-meta.php:40
@@ -1253,20 +1363,6 @@ msgstr ""
 msgid "Default metadata by content type"
 msgstr ""
 
-#: admin/settings/renderers.php:271
-#: admin/settings/renderers.php:397
-#: includes/admin.php:826
-#: includes/redirects/class-erankly-redirects-admin.php:356
-msgid "No"
-msgstr ""
-
-#: admin/settings/renderers.php:272
-#: admin/settings/renderers.php:398
-#: includes/admin.php:825
-#: includes/redirects/class-erankly-redirects-admin.php:356
-msgid "Yes"
-msgstr ""
-
 #: admin/settings/renderers.php:338
 msgid "Open Graph"
 msgstr ""
@@ -1491,104 +1587,8 @@ msgstr ""
 msgid "Unknown settings panel."
 msgstr ""
 
-#: includes/admin.php:403
+#: includes/admin.php:404
 msgid "Setup wizard"
-msgstr ""
-
-#: includes/admin.php:421
-#: includes/admin.php:434
-#: includes/admin.php:729
-msgid "Expand table"
-msgstr ""
-
-#: includes/admin.php:657
-msgid "Searching…"
-msgstr ""
-
-#: includes/admin.php:658
-msgid "No matches found."
-msgstr ""
-
-#: includes/admin.php:660
-msgid "No user selected"
-msgstr ""
-
-#: includes/admin.php:730
-msgid "Collapse table"
-msgstr ""
-
-#: includes/admin.php:750
-msgid "Saving…"
-msgstr ""
-
-#: includes/admin.php:751
-msgid "Saved"
-msgstr ""
-
-#: includes/admin.php:752
-msgid "Saved with warnings"
-msgstr ""
-
-#: includes/admin.php:753
-msgid "Saving failed. Retrying…"
-msgstr ""
-
-#: includes/admin.php:754
-msgid "Could not save. Reload the page."
-msgstr ""
-
-#: includes/admin.php:822
-msgid "Delete this redirect?"
-msgstr ""
-
-#: includes/admin.php:823
-#: includes/redirects/class-erankly-redirects-admin.php:361
-msgid "Enable"
-msgstr ""
-
-#: includes/admin.php:824
-#: includes/redirects/class-erankly-redirects-admin.php:361
-msgid "Disable"
-msgstr ""
-
-#: includes/admin.php:827
-#: includes/redirects/class-erankly-redirects-admin.php:155
-#: includes/redirects/class-erankly-redirects-rest.php:100
-msgid "The redirect status could not be changed."
-msgstr ""
-
-#: includes/admin.php:828
-#: includes/redirects/class-erankly-redirects-admin.php:154
-#: includes/redirects/class-erankly-redirects-rest.php:128
-msgid "The redirect could not be deleted."
-msgstr ""
-
-#: includes/admin.php:1122
-#: includes/admin.php:1142
-msgid "example"
-msgstr ""
-
-#: includes/admin.php:1137
-#: includes/helpers/content-defaults.php:200
-msgid "Author archive"
-msgstr ""
-
-#: includes/admin.php:1138
-#: includes/helpers/content-defaults.php:201
-msgid "Date archive"
-msgstr ""
-
-#. translators: %s: Search query.
-#: includes/admin.php:1141
-#: includes/title-description.php:134
-#, php-format
-msgid "Search results for %s"
-msgstr ""
-
-#: includes/admin.php:1144
-#: includes/breadcrumbs.php:260
-#: includes/title-description.php:144
-msgid "Page not found"
 msgstr ""
 
 #: includes/breadcrumbs.php:37
@@ -1769,1154 +1769,1154 @@ msgstr ""
 msgid "WordPress Multisite: Not detected"
 msgstr ""
 
-#: includes/import-export.php:601
-#: includes/import-export.php:625
+#: includes/import-export/actions.php:601
+#: includes/import-export/actions.php:625
 msgid "Migration report not found."
 msgstr ""
 
-#: includes/import-export.php:606
+#: includes/import-export/actions.php:606
 msgid "The migration report could not be encoded."
 msgstr ""
 
-#: includes/import-export.php:636
+#: includes/import-export/actions.php:636
 msgid "The exception report could not be opened."
 msgstr ""
 
-#: includes/import-export.php:899
+#: includes/import-export/export.php:178
 msgid "The export header could not be encoded."
 msgstr ""
 
-#: includes/import-export.php:962
-#: includes/import-export.php:995
-msgid "Import the reviewed file"
-msgstr ""
-
-#. translators: 1: source plugin name, 2: maximum CSV size, 3: maximum JSON size.
-#: includes/import-export.php:969
-#, php-format
-msgid "Upload the same official %1$s export that you just reviewed. EasyRankly will validate it again before importing. Maximum size: CSV %2$s; JSON %3$s."
-msgstr ""
-
-#: includes/import-export.php:991
-msgid "Choose the reviewed export"
-msgstr ""
-
-#: includes/import-export.php:992
-msgid "or drag and drop it here"
-msgstr ""
-
-#: includes/import-export.php:1065
-msgid "EasyRankly import in progress"
-msgstr ""
-
-#. translators: 1: processed records, 2: total records, 3: stage name.
-#: includes/import-export.php:1066
-#, php-format
-msgid "%1$d of %2$d records processed. Current stage: %3$s. The private source and cursor are saved; WP-Cron will continue automatically."
-msgstr ""
-
-#: includes/import-export.php:1082
-msgid "Back to all import and export tools"
-msgstr ""
-
-#: includes/import-export.php:1088
-msgid "Export"
-msgstr ""
-
-#: includes/import-export.php:1090
-msgid "Download a JSON backup of your EasyRankly settings, redirects and SEO metadata. Keep it as a backup or import it on another site."
-msgstr ""
-
-#: includes/import-export.php:1092
-msgid "On this network the file holds the network-wide settings plus this primary site's content (redirects, post/term metadata, special page defaults), not a whole-network export of every site."
-msgstr ""
-
-#: includes/import-export.php:1094
-msgid "Export data"
-msgstr ""
-
-#: includes/import-export.php:1099
-#: includes/import-export.php:1864
-#: includes/import-export.php:2104
-#: includes/import-export.php:2146
-msgid "Import"
-msgstr ""
-
-#: includes/import-export.php:1101
-msgid "Upload a JSON file previously exported by EasyRankly. Settings, redirects and special page defaults are replaced; post and term metadata is matched by ID and overwritten."
-msgstr ""
-
-#. translators: %s: maximum safe complete-import size.
-#: includes/import-export.php:1106
-#, php-format
-msgid "For memory safety, complete JSON imports are limited to %s on this request."
-msgstr ""
-
-#: includes/import-export.php:1124
-msgid "Click to choose a file"
-msgstr ""
-
-#: includes/import-export.php:1125
-msgid "or drag and drop a JSON file here"
-msgstr ""
-
-#: includes/import-export.php:1128
-msgid "Import file"
-msgstr ""
-
-#: includes/import-export.php:1134
-msgid "Import from other plugins"
-msgstr ""
-
-#: includes/import-export.php:1136
-msgid "Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, keyphrases, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts."
-msgstr ""
-
-#: includes/import-export.php:1138
-msgid "SEO source data was detected with an unrecognized version or storage signature. EasyRankly will not guess: use a certified official export or update the adapter before migrating."
-msgstr ""
-
-#: includes/import-export.php:1142
-msgid "From the installed database"
-msgstr ""
-
-#: includes/import-export.php:1147
-msgid "Source plugin"
-msgstr ""
-
-#. translators: %s: source plugin name.
-#: includes/import-export.php:1157
-#, php-format
-msgid "%s: unsupported storage signature"
-msgstr ""
-
-#. translators: %s: source plugin name.
-#: includes/import-export.php:1160
-#, php-format
-msgid "%s: no data found"
-msgstr ""
-
-#: includes/import-export.php:1167
-msgid "Preview migration"
-msgstr ""
-
-#: includes/import-export.php:1168
-msgid "The preview scans everything without writing data. When it is ready, the migration assistant will offer the reviewed import as the next step."
-msgstr ""
-
-#: includes/import-export.php:1171
-msgid "No certified source-plugin database data was found. You can use an official export instead."
-msgstr ""
-
-#: includes/import-export.php:1174
-msgid "From an official export file"
-msgstr ""
-
-#. translators: 1: maximum CSV upload size, 2: maximum JSON upload size.
-#: includes/import-export.php:1179
-#, php-format
-msgid "Use an official CSV or JSON export when the original plugin is unavailable or its database signature is unsupported. EasyRankly validates the exact format and stores the file privately only until the job ends. Maximum size: CSV %1$s; JSON %2$s."
-msgstr ""
-
-#: includes/import-export.php:1188
-msgid "Export source"
-msgstr ""
-
-#: includes/import-export.php:1190
-msgid "Detect automatically"
-msgstr ""
-
-#: includes/import-export.php:1204
-msgid "Choose an official export"
-msgstr ""
-
-#: includes/import-export.php:1205
-msgid "or drag and drop a CSV/JSON file here"
-msgstr ""
-
-#: includes/import-export.php:1208
-msgid "Preview file migration"
-msgstr ""
-
-#: includes/import-export.php:1209
-msgid "The private upload is deleted after preview. If every check passes, the assistant will ask you to upload the same file once more for the reviewed import."
-msgstr ""
-
-#: includes/import-export.php:1212
-msgid "A migration is already active. Its checkpoint, controls and live counters are shown above; finish or cancel it before starting another source."
-msgstr ""
-
-#: includes/import-export.php:1235
-msgid "Import queued. It is continuing in bounded, restart-safe background batches."
-msgstr ""
-
-#: includes/import-export.php:1238
-msgid "The background import completed successfully. Settings, redirects and metadata were restored from the saved checkpoint."
-msgstr ""
-
-#: includes/import-export.php:1241
-msgid "The background import stopped before completion. No unchecked batch will be retried; review the PHP/database log before uploading again."
-msgstr ""
-
-#: includes/import-export.php:1249
-msgid "The import job could not be persisted or completed. The private upload was removed and no further background write is scheduled."
-msgstr ""
-
-#: includes/import-export.php:1279
-#: includes/redirects/class-erankly-redirects-admin.php:152
-msgid "Security check failed. Please try again."
-msgstr ""
-
-#: includes/import-export.php:1284
-msgid "The file could not be imported. Please upload a valid EasyRankly export file."
-msgstr ""
-
-#. translators: %s: maximum safe complete-import size.
-#: includes/import-export.php:1294
-#, php-format
-msgid "The EasyRankly export exceeds the safe import limit of %s and was rejected before being read into memory."
-msgstr ""
-
-#: includes/import-export.php:1303
-msgid "The EasyRankly export is too structurally complex for the available PHP memory and was rejected before JSON decoding."
-msgstr ""
-
-#: includes/import-export.php:1308
-msgid "Live verification passed: the sampled SEO output, redirects, robots.txt and sitemap are equivalent after the provider change."
-msgstr ""
-
-#: includes/import-export.php:1309
-msgid "Live verification was queued and will continue in bounded background batches. Reload this report shortly to see the final result."
-msgstr ""
-
-#: includes/import-export.php:1310
-msgid "Live verification found differences or unreachable samples. Review the report before deleting the source plugin."
-msgstr ""
-
-#: includes/import-export.php:1311
-msgid "Live verification is unavailable because the go-live preflight gate is blocked. Resolve every blocking check and run a fresh migration before cutover."
-msgstr ""
-
-#: includes/import-export.php:1312
-msgid "Live verification was not run because another SEO plugin still owns the frontend output. Deactivate the migrated source plugin, purge caches, then verify again."
-msgstr ""
-
-#: includes/import-export.php:1313
-msgid "Conditional rollback finished. Later manual edits were preserved and are listed separately in the report."
-msgstr ""
-
-#: includes/import-export.php:1314
-msgid "Conditional rollback started and will continue in bounded background batches. Its cursor is persisted after every batch."
-msgstr ""
-
-#: includes/import-export.php:1315
-msgid "The rollback safety window has expired. No value was changed."
-msgstr ""
-
-#: includes/import-export.php:1316
-msgid "Rollback could not be completed. Review the journal summary before making manual changes."
-msgstr ""
-
-#: includes/import-export.php:1317
-msgid "The requested migration evidence action is not valid for this report."
-msgstr ""
-
-#: includes/import-export.php:1327
-msgid "The official export exceeds the permitted upload size."
-msgstr ""
-
-#: includes/import-export.php:1328
-msgid "The selected source does not match the certified signature of this export file."
-msgstr ""
-
-#: includes/import-export.php:1329
-msgid "The export signature is ambiguous. Select the source plugin explicitly and try again."
-msgstr ""
-
-#: includes/import-export.php:1330
-msgid "A private non-public temporary directory is not available. Configure a writable system temporary directory before uploading source SEO data."
-msgstr ""
-
-#: includes/import-export.php:1331
-msgid "The official export could not be stored in the private temporary directory."
-msgstr ""
-
-#: includes/import-export.php:1332
-msgid "The private temporary file could not be restricted to the current server account. No migration was started and the upload was removed."
-msgstr ""
-
-#: includes/import-export.php:1333
-msgid "Only official CSV and JSON exports are accepted."
-msgstr ""
-
-#: includes/import-export.php:1334
-msgid "The file does not match a certified Yoast, Rank Math, AIOSEO or SEOPress export signature."
-msgstr ""
-
-#: includes/import-export.php:1336
-msgid "The official export upload failed validation. No migration was started and no file was retained."
-msgstr ""
-
-#: includes/import-export.php:1343
-msgid "Migration queued. It will continue in restart-safe background batches; you can leave this page."
-msgstr ""
-
-#: includes/import-export.php:1346
-msgid "The migration is still running from its latest saved checkpoint."
-msgstr ""
-
-#: includes/import-export.php:1349
-msgid "Migration blocked: the detected source version or database signature is not certified. No data was written; use a supported official export or update EasyRankly."
-msgstr ""
-
-#: includes/import-export.php:1352
-msgid "The migration could not be queued. Check database permissions and source-plugin data, then try again."
-msgstr ""
-
-#: includes/import-export.php:1355
-msgid "The migration command could not be saved. No unchecked write was performed; review the database/PHP log and retry from the saved checkpoint."
-msgstr ""
-
-#: includes/import-export.php:1369
-msgid "The migration could not be completed. Review the report for details."
-msgstr ""
-
-#: includes/import-export.php:1371
-msgid "Migration cancelled at its saved checkpoint. Values already written were kept; review the final report."
-msgstr ""
-
-#: includes/import-export.php:1373
-msgid "Migration completed with write errors. Existing EasyRankly data was preserved; review the report before switching SEO plugins."
-msgstr ""
-
-#: includes/import-export.php:1375
-msgid "Migration preview complete. No EasyRankly data was changed."
-msgstr ""
-
-#: includes/import-export.php:1377
-msgid "Migration complete. Existing EasyRankly data was preserved."
-msgstr ""
-
-#. translators: 1: settings count, 2: redirects count, 3: post meta count, 4: term meta count, 5: user meta count.
-#: includes/import-export.php:1393
-#, php-format
-msgid "Import complete. Settings: %1$d. Redirects: %2$d. Post metadata: %3$d. Term metadata: %4$d. User metadata: %5$d."
-msgstr ""
-
-#: includes/import-export.php:1405
-msgid "Yoast SEO"
-msgstr ""
-
-#: includes/import-export.php:1406
-msgid "Rank Math"
-msgstr ""
-
-#: includes/import-export.php:1407
-msgid "All in One SEO"
-msgstr ""
-
-#: includes/import-export.php:1408
-msgid "SEOPress"
-msgstr ""
-
-#. translators: 1: source plugin name, 2: post meta count, 3: term meta count.
-#: includes/import-export.php:1415
-#, php-format
-msgid "Imported from %1$s. Post metadata: %2$d. Term metadata: %3$d."
-msgstr ""
-
-#: includes/import-export.php:1434
+#: includes/import-export/guidance.php:22
 msgid "Preview evidence only"
 msgstr ""
 
-#: includes/import-export.php:1435
+#: includes/import-export/guidance.php:23
 msgid "Final verification blocked"
 msgstr ""
 
-#: includes/import-export.php:1436
+#: includes/import-export/guidance.php:24
 msgid "Ready for final verification"
 msgstr ""
 
-#: includes/import-export.php:1437
+#: includes/import-export/guidance.php:25
 msgid "Import contract verified"
 msgstr ""
 
-#: includes/import-export.php:1437
+#: includes/import-export/guidance.php:25
 msgid "Migration fully verified"
 msgstr ""
 
-#: includes/import-export.php:1438
+#: includes/import-export/guidance.php:26
 msgid "Recovery decision required"
 msgstr ""
 
-#: includes/import-export.php:1439
+#: includes/import-export/guidance.php:27
 msgid "Rollback completed"
 msgstr ""
 
-#: includes/import-export.php:1440
+#: includes/import-export/guidance.php:28
 msgid "Rollback incomplete. Manual recovery required"
 msgstr ""
 
-#: includes/import-export.php:1452
+#: includes/import-export/guidance.php:40
 msgid "A preview can validate source coverage, but it never authorizes deactivation of the source SEO plugin."
 msgstr ""
 
-#: includes/import-export.php:1453
+#: includes/import-export/guidance.php:41
 msgid "Keep the source SEO plugin active. At least one mandatory proof is missing or failed."
 msgstr ""
 
-#: includes/import-export.php:1454
+#: includes/import-export/guidance.php:42
 msgid "The import checks passed. Deactivate the source plugin without deleting its data, clear any cache you use, then run the final verification."
 msgstr ""
 
-#: includes/import-export.php:1455
+#: includes/import-export/guidance.php:43
 msgid "All mandatory proofs for this migration scope passed. Keep the report and source backup during monitoring."
 msgstr ""
 
-#: includes/import-export.php:1456
+#: includes/import-export/guidance.php:44
 msgid "Post-cutover output differs from the baseline or could not be proven. Retry after cache checks or run the conditional rollback."
 msgstr ""
 
-#: includes/import-export.php:1457
+#: includes/import-export/guidance.php:45
 msgid "The conditional rollback completed; later manual edits were preserved."
 msgstr ""
 
-#: includes/import-export.php:1458
+#: includes/import-export/guidance.php:46
 msgid "Automated rollback did not complete safely. Reactivate the source plugin and inspect the rollback evidence."
 msgstr ""
 
-#: includes/import-export.php:1461
+#: includes/import-export/guidance.php:49
 msgid "Migration reached a successful terminal state"
 msgstr ""
 
-#: includes/import-export.php:1462
+#: includes/import-export/guidance.php:50
 msgid "Immutable source fingerprint verified before apply"
 msgstr ""
 
-#: includes/import-export.php:1463
+#: includes/import-export/guidance.php:51
 msgid "Every discovered occurrence classified exactly once"
 msgstr ""
 
-#: includes/import-export.php:1464
+#: includes/import-export/guidance.php:52
 msgid "No failed writes"
 msgstr ""
 
-#: includes/import-export.php:1465
+#: includes/import-export/guidance.php:53
 msgid "No invalid source records"
 msgstr ""
 
-#: includes/import-export.php:1466
+#: includes/import-export/guidance.php:54
 msgid "No unresolved conflicts"
 msgstr ""
 
-#: includes/import-export.php:1467
+#: includes/import-export/guidance.php:55
 msgid "No unsupported records"
 msgstr ""
 
-#: includes/import-export.php:1468
+#: includes/import-export/guidance.php:56
 msgid "No values silently preserved instead of migrated"
 msgstr ""
 
-#: includes/import-export.php:1469
+#: includes/import-export/guidance.php:57
 msgid "No unresolved diagnostics"
 msgstr ""
 
-#: includes/import-export.php:1470
+#: includes/import-export/guidance.php:58
 msgid "Stored semantics match normalized source values"
 msgstr ""
 
-#: includes/import-export.php:1471
+#: includes/import-export/guidance.php:59
 msgid "No unresolved source placeholders"
 msgstr ""
 
-#: includes/import-export.php:1472
+#: includes/import-export/guidance.php:60
 msgid "Every imported redirect matches persistent storage"
 msgstr ""
 
-#: includes/import-export.php:1473
+#: includes/import-export/guidance.php:61
 msgid "No redirect loops"
 msgstr ""
 
-#: includes/import-export.php:1474
+#: includes/import-export/guidance.php:62
 msgid "No redirect chains"
 msgstr ""
 
-#: includes/import-export.php:1475
+#: includes/import-export/guidance.php:63
 msgid "No redirect collisions"
 msgstr ""
 
-#: includes/import-export.php:1476
+#: includes/import-export/guidance.php:64
 msgid "No dangerous redirect regular expressions"
 msgstr ""
 
-#: includes/import-export.php:1477
+#: includes/import-export/guidance.php:65
 msgid "Rollback journal covers every migration write and is not expired"
 msgstr ""
 
-#: includes/import-export.php:1478
+#: includes/import-export/guidance.php:66
 msgid "Old-plugin frontend baseline captured before cutover"
 msgstr ""
 
-#: includes/import-export.php:1479
+#: includes/import-export/guidance.php:67
 msgid "Current HTML, redirects, robots.txt and sitemap preserve the saved SEO meaning"
 msgstr ""
 
-#: includes/import-export.php:1480
+#: includes/import-export/guidance.php:68
 msgid "Conditional rollback completed without failures"
 msgstr ""
 
-#: includes/import-export.php:1483
-#: includes/import-export.php:1960
+#: includes/import-export/guidance.php:71
+#: includes/import-export/report.php:182
 msgid "Passed"
 msgstr ""
 
-#: includes/import-export.php:1484
+#: includes/import-export/guidance.php:72
 msgid "Needs attention"
 msgstr ""
 
-#: includes/import-export.php:1485
+#: includes/import-export/guidance.php:73
 msgid "Waiting"
 msgstr ""
 
-#: includes/import-export.php:1486
+#: includes/import-export/guidance.php:74
 msgid "Not required"
 msgstr ""
 
-#: includes/import-export.php:1497
+#: includes/import-export/guidance.php:85
 msgid "Proof boundary:"
 msgstr ""
 
-#: includes/import-export.php:1497
+#: includes/import-export/guidance.php:85
 msgid "the certified export contract and stored migration evidence passed. The source plugin did not own this site frontend, so no old-plugin HTML comparison was possible or claimed."
 msgstr ""
 
 #. translators: 1: proof scope, 2: decision SHA-256.
-#: includes/import-export.php:1517
+#: includes/import-export/guidance.php:105
 #, php-format
 msgid "Proof scope: %1$s. Decision SHA-256: %2$s."
 msgstr ""
 
-#: includes/import-export.php:1550
+#: includes/import-export/guidance.php:138
 msgid "the previous SEO plugin"
 msgstr ""
 
-#: includes/import-export.php:1553
+#: includes/import-export/guidance.php:141
 msgid "Preview complete"
 msgstr ""
 
-#: includes/import-export.php:1554
+#: includes/import-export/guidance.php:142
 msgid "Step 1 of 3. Import your SEO data"
 msgstr ""
 
-#: includes/import-export.php:1555
+#: includes/import-export/guidance.php:143
 msgid "No blocking issue was found. Existing EasyRankly values will still be preserved and reported."
 msgstr ""
 
-#: includes/import-export.php:1558
+#: includes/import-export/guidance.php:146
 msgid "Review required before importing"
 msgstr ""
 
-#: includes/import-export.php:1559
-#: includes/import-export.php:1601
+#: includes/import-export/guidance.php:147
+#: includes/import-export/guidance.php:189
 msgid "Resolve the items that need attention"
 msgstr ""
 
-#: includes/import-export.php:1560
+#: includes/import-export/guidance.php:148
 msgid "Keep the source plugin active. No final switch is authorized while a required check is unresolved."
 msgstr ""
 
-#: includes/import-export.php:1563
+#: includes/import-export/guidance.php:151
 msgid "Import complete"
 msgstr ""
 
 #. translators: %s: source SEO plugin name.
-#: includes/import-export.php:1565
+#: includes/import-export/guidance.php:153
 #, php-format
 msgid "Step 2 of 3. Deactivate %s"
 msgstr ""
 
 #. translators: %s: source SEO plugin name.
-#: includes/import-export.php:1567
+#: includes/import-export/guidance.php:155
 #, php-format
 msgid "Do not delete %s or its data yet. Keep this report open while you deactivate it from the Plugins screen."
 msgstr ""
 
-#: includes/import-export.php:1570
+#: includes/import-export/guidance.php:158
 msgid "The previous SEO plugin is no longer active"
 msgstr ""
 
-#: includes/import-export.php:1571
+#: includes/import-export/guidance.php:159
 msgid "Step 3 of 3. Verify the site"
 msgstr ""
 
-#: includes/import-export.php:1572
+#: includes/import-export/guidance.php:160
 msgid "Clear any WordPress, page or CDN cache you use, then let EasyRankly compare the current site with the saved baseline."
 msgstr ""
 
-#: includes/import-export.php:1575
+#: includes/import-export/guidance.php:163
 msgid "Migration complete and verified"
 msgstr ""
 
-#: includes/import-export.php:1576
+#: includes/import-export/guidance.php:164
 msgid "EasyRankly is now managing the site SEO output"
 msgstr ""
 
-#: includes/import-export.php:1577
+#: includes/import-export/guidance.php:165
 msgid "The checked SEO meaning, redirects and sitemap inventory were preserved. Expected provider-specific markup and endpoint changes were accepted. Keep the old plugin data during the monitoring window."
 msgstr ""
 
-#: includes/import-export.php:1580
+#: includes/import-export/guidance.php:168
 msgid "Data import complete"
 msgstr ""
 
-#: includes/import-export.php:1581
+#: includes/import-export/guidance.php:169
 msgid "The certified import contract was verified"
 msgstr ""
 
-#: includes/import-export.php:1582
+#: includes/import-export/guidance.php:170
 msgid "A before-and-after frontend comparison was not available for this file import. Review representative pages before deleting the source backup."
 msgstr ""
 
-#: includes/import-export.php:1585
+#: includes/import-export/guidance.php:173
 msgid "The final verification needs attention"
 msgstr ""
 
-#: includes/import-export.php:1586
+#: includes/import-export/guidance.php:174
 msgid "Review the differences before deciding"
 msgstr ""
 
-#: includes/import-export.php:1587
+#: includes/import-export/guidance.php:175
 msgid "Do not delete the previous plugin data. Clear the caches you use, inspect the differences, then retry or use the safe rollback."
 msgstr ""
 
-#: includes/import-export.php:1590
+#: includes/import-export/guidance.php:178
 msgid "Rollback complete"
 msgstr ""
 
-#: includes/import-export.php:1591
+#: includes/import-export/guidance.php:179
 msgid "Reactivate the previous SEO plugin"
 msgstr ""
 
-#: includes/import-export.php:1592
+#: includes/import-export/guidance.php:180
 msgid "Only values that still matched this migration were restored or removed. Later manual edits were preserved."
 msgstr ""
 
-#: includes/import-export.php:1595
+#: includes/import-export/guidance.php:183
 msgid "Manual recovery is required"
 msgstr ""
 
-#: includes/import-export.php:1596
+#: includes/import-export/guidance.php:184
 msgid "Review the rollback evidence before changing data"
 msgstr ""
 
-#: includes/import-export.php:1597
+#: includes/import-export/guidance.php:185
 msgid "Reactivate the previous SEO plugin and use the technical report to complete recovery safely."
 msgstr ""
 
-#: includes/import-export.php:1600
+#: includes/import-export/guidance.php:188
 msgid "Migration not ready"
 msgstr ""
 
-#: includes/import-export.php:1602
+#: includes/import-export/guidance.php:190
 msgid "Keep the previous SEO plugin active. EasyRankly will not authorize the final switch while required evidence is missing."
 msgstr ""
 
-#: includes/import-export.php:1625
+#: includes/import-export/guidance.php:213
 msgid "Import data"
 msgstr ""
 
-#: includes/import-export.php:1626
+#: includes/import-export/guidance.php:214
 msgid "Deactivate old plugin"
 msgstr ""
 
-#: includes/import-export.php:1627
+#: includes/import-export/guidance.php:215
 msgid "Verify site"
 msgstr ""
 
-#: includes/import-export.php:1630
+#: includes/import-export/guidance.php:218
 msgid "Migration progress"
 msgstr ""
 
-#: includes/import-export.php:1671
+#: includes/import-export/guidance.php:259
 msgid "Open Plugins to reactivate it"
 msgstr ""
 
-#: includes/import-export.php:1671
+#: includes/import-export/guidance.php:259
 msgid "Open Plugins in a new tab"
 msgstr ""
 
-#: includes/import-export.php:1675
+#: includes/import-export/guidance.php:263
 msgid "I deactivated it. Check again"
 msgstr ""
 
-#: includes/import-export.php:1682
+#: includes/import-export/guidance.php:270
 msgid "Start final verification"
 msgstr ""
 
-#: includes/import-export.php:1686
+#: includes/import-export/guidance.php:274
 msgid "Import the reviewed data now? Existing EasyRankly values will still be preserved."
 msgstr ""
 
-#: includes/import-export.php:1691
+#: includes/import-export/guidance.php:279
 msgid "Import the reviewed data"
 msgstr ""
 
-#: includes/import-export.php:1694
+#: includes/import-export/guidance.php:282
 msgid "Upload the official export again"
 msgstr ""
 
-#: includes/import-export.php:1697
+#: includes/import-export/guidance.php:285
 msgid "Review the differences"
 msgstr ""
 
-#: includes/import-export.php:1699
+#: includes/import-export/guidance.php:287
 msgid "Open recovery details"
 msgstr ""
 
-#: includes/import-export.php:1701
+#: includes/import-export/guidance.php:289
 msgid "Review items that need attention"
 msgstr ""
 
-#: includes/import-export.php:1703
+#: includes/import-export/guidance.php:291
 msgid "Go to EasyRankly settings"
 msgstr ""
 
-#: includes/import-export.php:1728
+#: includes/import-export/guidance.php:316
 msgid "The migration did not finish successfully."
 msgstr ""
 
-#: includes/import-export.php:1729
+#: includes/import-export/guidance.php:317
 msgid "The source data changed while it was being processed."
 msgstr ""
 
-#: includes/import-export.php:1730
+#: includes/import-export/guidance.php:318
 msgid "Not every discovered value has a final outcome."
 msgstr ""
 
-#: includes/import-export.php:1731
+#: includes/import-export/guidance.php:319
 msgid "Some values could not be written."
 msgstr ""
 
-#: includes/import-export.php:1732
+#: includes/import-export/guidance.php:320
 msgid "Some source records are invalid."
 msgstr ""
 
-#: includes/import-export.php:1733
+#: includes/import-export/guidance.php:321
 msgid "Some existing EasyRankly values were preserved and need review."
 msgstr ""
 
-#: includes/import-export.php:1734
+#: includes/import-export/guidance.php:322
 msgid "Some source records are not supported."
 msgstr ""
 
-#: includes/import-export.php:1735
+#: includes/import-export/guidance.php:323
 msgid "Some source values were preserved instead of imported."
 msgstr ""
 
-#: includes/import-export.php:1736
+#: includes/import-export/guidance.php:324
 msgid "The report contains warnings that need review."
 msgstr ""
 
-#: includes/import-export.php:1737
+#: includes/import-export/guidance.php:325
 msgid "Some normalized values differ from the source meaning."
 msgstr ""
 
-#: includes/import-export.php:1738
+#: includes/import-export/guidance.php:326
 msgid "Some source template variables could not be resolved."
 msgstr ""
 
-#: includes/import-export.php:1739
+#: includes/import-export/guidance.php:327
 msgid "Some redirects do not match their stored values."
 msgstr ""
 
-#: includes/import-export.php:1740
+#: includes/import-export/guidance.php:328
 msgid "A redirect loop was detected."
 msgstr ""
 
-#: includes/import-export.php:1741
+#: includes/import-export/guidance.php:329
 msgid "A redirect chain was detected."
 msgstr ""
 
-#: includes/import-export.php:1742
+#: includes/import-export/guidance.php:330
 msgid "Two redirects use the same source path."
 msgstr ""
 
-#: includes/import-export.php:1743
+#: includes/import-export/guidance.php:331
 msgid "A redirect pattern requires manual review."
 msgstr ""
 
-#: includes/import-export.php:1744
+#: includes/import-export/guidance.php:332
 msgid "The safe rollback window is unavailable or incomplete."
 msgstr ""
 
-#: includes/import-export.php:1745
+#: includes/import-export/guidance.php:333
 msgid "The previous frontend output could not be captured."
 msgstr ""
 
-#: includes/import-export.php:1746
+#: includes/import-export/guidance.php:334
 msgid "The current site output differs from the saved baseline."
 msgstr ""
 
-#: includes/import-export.php:1747
+#: includes/import-export/guidance.php:335
 msgid "The rollback did not complete safely."
 msgstr ""
 
-#: includes/import-export.php:1751
+#: includes/import-export/guidance.php:339
 msgid "What needs attention"
 msgstr ""
 
-#: includes/import-export.php:1761
+#: includes/import-export/guidance.php:349
 msgid "A page could not be reached: "
 msgstr ""
 
-#: includes/import-export.php:1761
+#: includes/import-export/guidance.php:349
 msgid "Page SEO output differs: "
 msgstr ""
 
-#: includes/import-export.php:1766
+#: includes/import-export/guidance.php:354
 msgid "Redirect response differs: "
 msgstr ""
 
 #. translators: %s: robots.txt or sitemap.
-#: includes/import-export.php:1771
+#: includes/import-export/guidance.php:359
 #, php-format
 msgid "%s differs from the saved baseline."
 msgstr ""
 
-#: includes/import-export.php:1783
+#: includes/import-export/guidance.php:371
 msgid "Run verification again"
 msgstr ""
 
-#: includes/import-export.php:1859
-#: includes/import-export.php:2141
+#: includes/import-export/panel.php:25
+#: includes/import-export/panel.php:58
+msgid "Import the reviewed file"
+msgstr ""
+
+#. translators: 1: source plugin name, 2: maximum CSV size, 3: maximum JSON size.
+#: includes/import-export/panel.php:32
+#, php-format
+msgid "Upload the same official %1$s export that you just reviewed. EasyRankly will validate it again before importing. Maximum size: CSV %2$s; JSON %3$s."
+msgstr ""
+
+#: includes/import-export/panel.php:54
+msgid "Choose the reviewed export"
+msgstr ""
+
+#: includes/import-export/panel.php:55
+msgid "or drag and drop it here"
+msgstr ""
+
+#: includes/import-export/panel.php:128
+msgid "EasyRankly import in progress"
+msgstr ""
+
+#. translators: 1: processed records, 2: total records, 3: stage name.
+#: includes/import-export/panel.php:129
+#, php-format
+msgid "%1$d of %2$d records processed. Current stage: %3$s. The private source and cursor are saved; WP-Cron will continue automatically."
+msgstr ""
+
+#: includes/import-export/panel.php:145
+msgid "Back to all import and export tools"
+msgstr ""
+
+#: includes/import-export/panel.php:151
+msgid "Export"
+msgstr ""
+
+#: includes/import-export/panel.php:153
+msgid "Download a JSON backup of your EasyRankly settings, redirects and SEO metadata. Keep it as a backup or import it on another site."
+msgstr ""
+
+#: includes/import-export/panel.php:155
+msgid "On this network the file holds the network-wide settings plus this primary site's content (redirects, post/term metadata, special page defaults), not a whole-network export of every site."
+msgstr ""
+
+#: includes/import-export/panel.php:157
+msgid "Export data"
+msgstr ""
+
+#: includes/import-export/panel.php:162
+#: includes/import-export/report.php:86
+#: includes/import-export/report.php:326
+#: includes/import-export/report.php:368
+msgid "Import"
+msgstr ""
+
+#: includes/import-export/panel.php:164
+msgid "Upload a JSON file previously exported by EasyRankly. Settings, redirects and special page defaults are replaced; post and term metadata is matched by ID and overwritten."
+msgstr ""
+
+#. translators: %s: maximum safe complete-import size.
+#: includes/import-export/panel.php:169
+#, php-format
+msgid "For memory safety, complete JSON imports are limited to %s on this request."
+msgstr ""
+
+#: includes/import-export/panel.php:187
+msgid "Click to choose a file"
+msgstr ""
+
+#: includes/import-export/panel.php:188
+msgid "or drag and drop a JSON file here"
+msgstr ""
+
+#: includes/import-export/panel.php:191
+msgid "Import file"
+msgstr ""
+
+#: includes/import-export/panel.php:197
+msgid "Import from other plugins"
+msgstr ""
+
+#: includes/import-export/panel.php:199
+msgid "Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, keyphrases, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts."
+msgstr ""
+
+#: includes/import-export/panel.php:201
+msgid "SEO source data was detected with an unrecognized version or storage signature. EasyRankly will not guess: use a certified official export or update the adapter before migrating."
+msgstr ""
+
+#: includes/import-export/panel.php:205
+msgid "From the installed database"
+msgstr ""
+
+#: includes/import-export/panel.php:210
+msgid "Source plugin"
+msgstr ""
+
+#. translators: %s: source plugin name.
+#: includes/import-export/panel.php:220
+#, php-format
+msgid "%s: unsupported storage signature"
+msgstr ""
+
+#. translators: %s: source plugin name.
+#: includes/import-export/panel.php:223
+#, php-format
+msgid "%s: no data found"
+msgstr ""
+
+#: includes/import-export/panel.php:230
+msgid "Preview migration"
+msgstr ""
+
+#: includes/import-export/panel.php:231
+msgid "The preview scans everything without writing data. When it is ready, the migration assistant will offer the reviewed import as the next step."
+msgstr ""
+
+#: includes/import-export/panel.php:234
+msgid "No certified source-plugin database data was found. You can use an official export instead."
+msgstr ""
+
+#: includes/import-export/panel.php:237
+msgid "From an official export file"
+msgstr ""
+
+#. translators: 1: maximum CSV upload size, 2: maximum JSON upload size.
+#: includes/import-export/panel.php:242
+#, php-format
+msgid "Use an official CSV or JSON export when the original plugin is unavailable or its database signature is unsupported. EasyRankly validates the exact format and stores the file privately only until the job ends. Maximum size: CSV %1$s; JSON %2$s."
+msgstr ""
+
+#: includes/import-export/panel.php:251
+msgid "Export source"
+msgstr ""
+
+#: includes/import-export/panel.php:253
+msgid "Detect automatically"
+msgstr ""
+
+#: includes/import-export/panel.php:267
+msgid "Choose an official export"
+msgstr ""
+
+#: includes/import-export/panel.php:268
+msgid "or drag and drop a CSV/JSON file here"
+msgstr ""
+
+#: includes/import-export/panel.php:271
+msgid "Preview file migration"
+msgstr ""
+
+#: includes/import-export/panel.php:272
+msgid "The private upload is deleted after preview. If every check passes, the assistant will ask you to upload the same file once more for the reviewed import."
+msgstr ""
+
+#: includes/import-export/panel.php:275
+msgid "A migration is already active. Its checkpoint, controls and live counters are shown above; finish or cancel it before starting another source."
+msgstr ""
+
+#: includes/import-export/panel.php:298
+msgid "Import queued. It is continuing in bounded, restart-safe background batches."
+msgstr ""
+
+#: includes/import-export/panel.php:301
+msgid "The background import completed successfully. Settings, redirects and metadata were restored from the saved checkpoint."
+msgstr ""
+
+#: includes/import-export/panel.php:304
+msgid "The background import stopped before completion. No unchecked batch will be retried; review the PHP/database log before uploading again."
+msgstr ""
+
+#: includes/import-export/panel.php:312
+msgid "The import job could not be persisted or completed. The private upload was removed and no further background write is scheduled."
+msgstr ""
+
+#: includes/import-export/panel.php:342
+#: includes/redirects/class-erankly-redirects-admin.php:152
+msgid "Security check failed. Please try again."
+msgstr ""
+
+#: includes/import-export/panel.php:347
+msgid "The file could not be imported. Please upload a valid EasyRankly export file."
+msgstr ""
+
+#. translators: %s: maximum safe complete-import size.
+#: includes/import-export/panel.php:357
+#, php-format
+msgid "The EasyRankly export exceeds the safe import limit of %s and was rejected before being read into memory."
+msgstr ""
+
+#: includes/import-export/panel.php:366
+msgid "The EasyRankly export is too structurally complex for the available PHP memory and was rejected before JSON decoding."
+msgstr ""
+
+#: includes/import-export/panel.php:371
+msgid "Live verification passed: the sampled SEO output, redirects, robots.txt and sitemap are equivalent after the provider change."
+msgstr ""
+
+#: includes/import-export/panel.php:372
+msgid "Live verification was queued and will continue in bounded background batches. Reload this report shortly to see the final result."
+msgstr ""
+
+#: includes/import-export/panel.php:373
+msgid "Live verification found differences or unreachable samples. Review the report before deleting the source plugin."
+msgstr ""
+
+#: includes/import-export/panel.php:374
+msgid "Live verification is unavailable because the go-live preflight gate is blocked. Resolve every blocking check and run a fresh migration before cutover."
+msgstr ""
+
+#: includes/import-export/panel.php:375
+msgid "Live verification was not run because another SEO plugin still owns the frontend output. Deactivate the migrated source plugin, purge caches, then verify again."
+msgstr ""
+
+#: includes/import-export/panel.php:376
+msgid "Conditional rollback finished. Later manual edits were preserved and are listed separately in the report."
+msgstr ""
+
+#: includes/import-export/panel.php:377
+msgid "Conditional rollback started and will continue in bounded background batches. Its cursor is persisted after every batch."
+msgstr ""
+
+#: includes/import-export/panel.php:378
+msgid "The rollback safety window has expired. No value was changed."
+msgstr ""
+
+#: includes/import-export/panel.php:379
+msgid "Rollback could not be completed. Review the journal summary before making manual changes."
+msgstr ""
+
+#: includes/import-export/panel.php:380
+msgid "The requested migration evidence action is not valid for this report."
+msgstr ""
+
+#: includes/import-export/panel.php:390
+msgid "The official export exceeds the permitted upload size."
+msgstr ""
+
+#: includes/import-export/panel.php:391
+msgid "The selected source does not match the certified signature of this export file."
+msgstr ""
+
+#: includes/import-export/panel.php:392
+msgid "The export signature is ambiguous. Select the source plugin explicitly and try again."
+msgstr ""
+
+#: includes/import-export/panel.php:393
+msgid "A private non-public temporary directory is not available. Configure a writable system temporary directory before uploading source SEO data."
+msgstr ""
+
+#: includes/import-export/panel.php:394
+msgid "The official export could not be stored in the private temporary directory."
+msgstr ""
+
+#: includes/import-export/panel.php:395
+msgid "The private temporary file could not be restricted to the current server account. No migration was started and the upload was removed."
+msgstr ""
+
+#: includes/import-export/panel.php:396
+msgid "Only official CSV and JSON exports are accepted."
+msgstr ""
+
+#: includes/import-export/panel.php:397
+msgid "The file does not match a certified Yoast, Rank Math, AIOSEO or SEOPress export signature."
+msgstr ""
+
+#: includes/import-export/panel.php:399
+msgid "The official export upload failed validation. No migration was started and no file was retained."
+msgstr ""
+
+#: includes/import-export/panel.php:406
+msgid "Migration queued. It will continue in restart-safe background batches; you can leave this page."
+msgstr ""
+
+#: includes/import-export/panel.php:409
+msgid "The migration is still running from its latest saved checkpoint."
+msgstr ""
+
+#: includes/import-export/panel.php:412
+msgid "Migration blocked: the detected source version or database signature is not certified. No data was written; use a supported official export or update EasyRankly."
+msgstr ""
+
+#: includes/import-export/panel.php:415
+msgid "The migration could not be queued. Check database permissions and source-plugin data, then try again."
+msgstr ""
+
+#: includes/import-export/panel.php:418
+msgid "The migration command could not be saved. No unchecked write was performed; review the database/PHP log and retry from the saved checkpoint."
+msgstr ""
+
+#: includes/import-export/panel.php:432
+msgid "The migration could not be completed. Review the report for details."
+msgstr ""
+
+#: includes/import-export/panel.php:434
+msgid "Migration cancelled at its saved checkpoint. Values already written were kept; review the final report."
+msgstr ""
+
+#: includes/import-export/panel.php:436
+msgid "Migration completed with write errors. Existing EasyRankly data was preserved; review the report before switching SEO plugins."
+msgstr ""
+
+#: includes/import-export/panel.php:438
+msgid "Migration preview complete. No EasyRankly data was changed."
+msgstr ""
+
+#: includes/import-export/panel.php:440
+msgid "Migration complete. Existing EasyRankly data was preserved."
+msgstr ""
+
+#. translators: 1: settings count, 2: redirects count, 3: post meta count, 4: term meta count, 5: user meta count.
+#: includes/import-export/panel.php:456
+#, php-format
+msgid "Import complete. Settings: %1$d. Redirects: %2$d. Post metadata: %3$d. Term metadata: %4$d. User metadata: %5$d."
+msgstr ""
+
+#: includes/import-export/panel.php:468
+msgid "Yoast SEO"
+msgstr ""
+
+#: includes/import-export/panel.php:469
+msgid "Rank Math"
+msgstr ""
+
+#: includes/import-export/panel.php:470
+msgid "All in One SEO"
+msgstr ""
+
+#: includes/import-export/panel.php:471
+msgid "SEOPress"
+msgstr ""
+
+#. translators: 1: source plugin name, 2: post meta count, 3: term meta count.
+#: includes/import-export/panel.php:478
+#, php-format
+msgid "Imported from %1$s. Post metadata: %2$d. Term metadata: %3$d."
+msgstr ""
+
+#: includes/import-export/report.php:81
+#: includes/import-export/report.php:363
 msgid "Migration assistant"
 msgstr ""
 
-#: includes/import-export.php:1864
-#: includes/import-export.php:2104
-#: includes/import-export.php:2146
+#: includes/import-export/report.php:86
+#: includes/import-export/report.php:326
+#: includes/import-export/report.php:368
 msgid "Preview"
 msgstr ""
 
-#: includes/import-export.php:1876
+#: includes/import-export/report.php:98
 msgid "Migration summary"
 msgstr ""
 
-#: includes/import-export.php:1877
-#: includes/import-export.php:2161
+#: includes/import-export/report.php:99
+#: includes/import-export/report.php:383
 msgid "SEO fields ready"
 msgstr ""
 
-#: includes/import-export.php:1877
-#: includes/import-export.php:2161
+#: includes/import-export/report.php:99
+#: includes/import-export/report.php:383
 msgid "SEO fields imported"
 msgstr ""
 
-#: includes/import-export.php:1878
+#: includes/import-export/report.php:100
 msgid "Redirects ready"
 msgstr ""
 
-#: includes/import-export.php:1878
+#: includes/import-export/report.php:100
 msgid "Redirects imported"
 msgstr ""
 
-#: includes/import-export.php:1879
+#: includes/import-export/report.php:101
 msgid "Items needing attention"
 msgstr ""
 
-#: includes/import-export.php:1886
+#: includes/import-export/report.php:108
 msgid "Technical details"
 msgstr ""
 
 #. translators: 1: passed checks, 2: checks needing attention, 3: waiting checks, 4: checks not required.
-#: includes/import-export.php:1892
+#: includes/import-export/report.php:114
 #, php-format
 msgid "%1$d passed, %2$d need attention, %3$d waiting, %4$d not required"
 msgstr ""
 
 #. translators: 1: edition, 2: source mode, 3: storage format, 4: source fingerprint state.
-#: includes/import-export.php:1909
+#: includes/import-export/report.php:131
 #, php-format
 msgid "Edition: %1$s. Source: %2$s. Certified signature: %3$s. Fingerprint: %4$s."
 msgstr ""
 
-#: includes/import-export.php:1913
+#: includes/import-export/report.php:135
 msgid "verified before apply"
 msgstr ""
 
-#: includes/import-export.php:1913
+#: includes/import-export/report.php:135
 msgid "captured"
 msgstr ""
 
-#: includes/import-export.php:1919
+#: includes/import-export/report.php:141
 msgid "Detected modules:"
 msgstr ""
 
 #. translators: %d: source inventory count.
-#: includes/import-export.php:1922
+#: includes/import-export/report.php:144
 #, php-format
 msgid "Source inventory: %d records across certified surfaces."
 msgstr ""
 
-#: includes/import-export.php:1928
-#: includes/import-export.php:1963
+#: includes/import-export/report.php:150
+#: includes/import-export/report.php:185
 msgid "Area"
 msgstr ""
 
-#: includes/import-export.php:1928
+#: includes/import-export/report.php:150
 msgid "Found"
 msgstr ""
 
-#: includes/import-export.php:1928
+#: includes/import-export/report.php:150
 msgid "Ready / written"
 msgstr ""
 
-#: includes/import-export.php:1928
+#: includes/import-export/report.php:150
 msgid "Preserved / unchanged"
 msgstr ""
 
-#: includes/import-export.php:1928
+#: includes/import-export/report.php:150
 msgid "Conflicts / invalid"
 msgstr ""
 
-#: includes/import-export.php:1931
-#: includes/import-export.php:1967
+#: includes/import-export/report.php:153
+#: includes/import-export/report.php:189
 msgid "SEO metadata"
 msgstr ""
 
 #. translators: 1: post count, 2: term count, 3: user count.
-#: includes/import-export.php:1950
+#: includes/import-export/report.php:172
 #, php-format
 msgid "Objects scanned. Posts: %1$d; terms: %2$d; authors: %3$d."
 msgstr ""
 
-#: includes/import-export.php:1958
+#: includes/import-export/report.php:180
 msgid "Evidence ledger"
 msgstr ""
 
-#: includes/import-export.php:1960
+#: includes/import-export/report.php:182
 msgid "Failed"
 msgstr ""
 
-#: includes/import-export.php:1960
+#: includes/import-export/report.php:182
 msgid "Every discovered occurrence is assigned to exactly one terminal outcome."
 msgstr ""
 
-#: includes/import-export.php:1963
+#: includes/import-export/report.php:185
 msgid "Discovered"
 msgstr ""
 
-#: includes/import-export.php:1963
+#: includes/import-export/report.php:185
 msgid "Imported"
 msgstr ""
 
-#: includes/import-export.php:1963
+#: includes/import-export/report.php:185
 msgid "Identical"
 msgstr ""
 
-#: includes/import-export.php:1963
+#: includes/import-export/report.php:185
 msgid "Preserved"
 msgstr ""
 
-#: includes/import-export.php:1963
+#: includes/import-export/report.php:185
 msgid "Conflict / invalid / failed"
 msgstr ""
 
 #. translators: 1: transformed values, 2: unresolved placeholder warnings.
-#: includes/import-export.php:1990
+#: includes/import-export/report.php:212
 #, php-format
 msgid "Normalized transformations: %1$d. Unresolved placeholder diagnostics: %2$d."
 msgstr ""
 
-#: includes/import-export.php:1999
+#: includes/import-export/report.php:221
 msgid "Normalized before/after comparison"
 msgstr ""
 
 #. translators: 1: matches, 2: mismatches, 3: planned.
-#: includes/import-export.php:2002
+#: includes/import-export/report.php:224
 #, php-format
 msgid "%1$d match; %2$d mismatch; %3$d planned."
 msgstr ""
 
-#: includes/import-export.php:2009
+#: includes/import-export/report.php:231
 msgid "Redirect safety audit"
 msgstr ""
 
 #. translators: 1: loops, 2: chains, 3: collisions, 4: dangerous regex.
-#: includes/import-export.php:2010
+#: includes/import-export/report.php:232
 #, php-format
 msgid "Loops: %1$d. Chains: %2$d. Collisions: %3$d. Dangerous regex: %4$d. Status and Location were tested with redirects disabled in the HTTP client."
 msgstr ""
 
-#: includes/import-export.php:2014
+#: includes/import-export/report.php:236
 msgid "Final verification evidence"
 msgstr ""
 
 #. translators: 1: baseline state, 2: live verification state, 3: exact matches, 4: expected provider changes, 5: regressions, 6: failed requests.
-#: includes/import-export.php:2020
+#: includes/import-export/report.php:242
 #, php-format
 msgid "Saved baseline: %1$s. Current verification: %2$s. Exact matches: %3$d; expected provider changes: %4$d; regressions: %5$d; unreachable probes: %6$d."
 msgstr ""
 
-#: includes/import-export.php:2034
+#: includes/import-export/report.php:256
 msgid "Warnings requiring review"
 msgstr ""
 
-#: includes/import-export.php:2044
+#: includes/import-export/report.php:266
 msgid "Record-level diagnostics"
 msgstr ""
 
-#: includes/import-export.php:2057
+#: includes/import-export/report.php:279
 msgid "Download technical report"
 msgstr ""
 
-#: includes/import-export.php:2059
+#: includes/import-export/report.php:281
 msgid "Download items to review"
 msgstr ""
 
-#: includes/import-export.php:2068
+#: includes/import-export/report.php:290
 msgid "Recovery and rollback"
 msgstr ""
 
-#: includes/import-export.php:2069
+#: includes/import-export/report.php:291
 msgid "Use only if you need to abandon this migration"
 msgstr ""
 
-#: includes/import-export.php:2073
+#: includes/import-export/report.php:295
 msgid "Automated recovery did not finish safely."
 msgstr ""
 
-#: includes/import-export.php:2073
+#: includes/import-export/report.php:295
 msgid "Reactivate the previous SEO plugin and inspect the technical evidence before making manual data changes."
 msgstr ""
 
-#: includes/import-export.php:2075
+#: includes/import-export/report.php:297
 msgid "The safe rollback changes only values that still exactly match this migration. Later manual edits are preserved."
 msgstr ""
 
 #. translators: %s: localized rollback expiry.
-#: includes/import-export.php:2077
+#: includes/import-export/report.php:299
 #, php-format
 msgid "Available until %s."
 msgstr ""
 
-#: includes/import-export.php:2079
+#: includes/import-export/report.php:301
 msgid "Roll back this migration now? Only unchanged migration values will be affected."
 msgstr ""
 
-#: includes/import-export.php:2083
+#: includes/import-export/report.php:305
 msgid "Roll back this migration"
 msgstr ""
 
-#: includes/import-export.php:2086
+#: includes/import-export/report.php:308
 msgid "The automatic rollback window is no longer available. Download the technical report before attempting manual recovery."
 msgstr ""
 
-#: includes/import-export.php:2094
+#: includes/import-export/report.php:316
 msgid "Recent migration reports"
 msgstr ""
 
-#: includes/import-export.php:2130
+#: includes/import-export/report.php:352
 msgid "Discovering SEO metadata"
 msgstr ""
 
-#: includes/import-export.php:2131
+#: includes/import-export/report.php:353
 msgid "Discovering redirects"
 msgstr ""
 
-#: includes/import-export.php:2132
+#: includes/import-export/report.php:354
 msgid "Applying validated records"
 msgstr ""
 
-#: includes/import-export.php:2133
+#: includes/import-export/report.php:355
 msgid "Finalizing the migration report"
 msgstr ""
 
-#: includes/import-export.php:2134
+#: includes/import-export/report.php:356
 msgid "Preparing the next batch"
 msgstr ""
 
-#: includes/import-export.php:2136
-#: includes/import-export.php:2138
+#: includes/import-export/report.php:358
+#: includes/import-export/report.php:360
 msgid "Cancellation requested"
 msgstr ""
 
-#: includes/import-export.php:2138
+#: includes/import-export/report.php:360
 msgid "Migration paused safely"
 msgstr ""
 
-#: includes/import-export.php:2138
+#: includes/import-export/report.php:360
 msgid "Preview in progress"
 msgstr ""
 
-#: includes/import-export.php:2138
+#: includes/import-export/report.php:360
 msgid "Import in progress"
 msgstr ""
 
-#: includes/import-export.php:2152
+#: includes/import-export/report.php:374
 msgid "The request is saved and will run as soon as the current batch releases its lock. No new batch will be applied."
 msgstr ""
 
-#: includes/import-export.php:2154
+#: includes/import-export/report.php:376
 msgid "The worker stopped at a safe checkpoint. Check the PHP or database log, then resume when ready."
 msgstr ""
 
-#: includes/import-export.php:2156
+#: includes/import-export/report.php:378
 msgid "You can leave this page. The migration continues in restart-safe background batches."
 msgstr ""
 
-#: includes/import-export.php:2159
+#: includes/import-export/report.php:381
 msgid "Current migration progress"
 msgstr ""
 
-#: includes/import-export.php:2160
+#: includes/import-export/report.php:382
 msgid "Objects found"
 msgstr ""
 
-#: includes/import-export.php:2162
+#: includes/import-export/report.php:384
 msgid "Redirects found"
 msgstr ""
 
-#: includes/import-export.php:2170
+#: includes/import-export/report.php:392
 msgid "Resume migration"
 msgstr ""
 
-#: includes/import-export.php:2176
+#: includes/import-export/report.php:398
 msgid "Progress details"
 msgstr ""
 
 #. translators: %d: number of completed batches.
-#: includes/import-export.php:2177
+#: includes/import-export/report.php:399
 #, php-format
 msgid "%d saved batches"
 msgstr ""
 
 #. translators: %s: localized checkpoint date.
-#: includes/import-export.php:2180
+#: includes/import-export/report.php:402
 #, php-format
 msgid "Latest safe checkpoint: %s"
 msgstr ""
 
 #. translators: 1: fields found, 2: fields ready, 3: redirects imported.
-#: includes/import-export.php:2181
+#: includes/import-export/report.php:403
 #, php-format
 msgid "SEO fields found: %1$d; ready: %2$d. Redirects imported so far: %3$d."
 msgstr ""
 
-#: includes/import-export.php:2187
+#: includes/import-export/report.php:409
 msgid "Process the next batch now"
 msgstr ""
 
-#: includes/import-export.php:2194
-#: includes/import-export.php:2201
+#: includes/import-export/report.php:416
+#: includes/import-export/report.php:423
 msgid "Cancel migration"
 msgstr ""
 
-#: includes/import-export.php:2196
+#: includes/import-export/report.php:418
 msgid "Already imported EasyRankly values will be kept and included in the final report."
 msgstr ""
 
-#: includes/import-export.php:2197
+#: includes/import-export/report.php:419
 msgid "Cancel this migration? Already imported EasyRankly values will be kept."
 msgstr ""
 

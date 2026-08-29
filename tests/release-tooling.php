@@ -20,6 +20,7 @@ $patterns = erankly_release_ignore_patterns( $root );
 $files    = erankly_release_collect_files( $root );
 
 erankly_release_test_assert( '2.0.0' === erankly_release_version( $root ), 'all shipping version surfaces must stay aligned to 2.0.0' );
+erankly_release_assert_pot_references( $root );
 erankly_release_test_assert( count( $files ) >= 100, 'the production inventory is unexpectedly small' );
 erankly_release_test_assert( isset( $files['easyrankly.php'], $files['readme.txt'], $files['uninstall.php'] ), 'required plugin entrypoints must ship' );
 erankly_release_test_assert( isset( $files['includes/migrations/class-erankly-migration-verification-job.php'] ), 'the background verifier must ship' );

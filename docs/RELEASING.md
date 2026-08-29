@@ -18,6 +18,18 @@ Install the exact development dependencies recorded in `composer.lock`:
 composer install --no-interaction
 ```
 
+## Translation template
+
+After changing or moving translatable source code, regenerate the POT from the
+WordPress Studio site root:
+
+```sh
+studio wp i18n make-pot wp-content/plugins/easyrankly wp-content/plugins/easyrankly/languages/easyrankly.pot --slug=easyrankly --domain=easyrankly --exclude=vendor,node_modules,tests,bin,dist,docs,.github --headers='{"Report-Msgid-Bugs-To":"https://wordpress.org/support/plugin/easyrankly"}'
+```
+
+The release tests reject POT references to files or line numbers that no longer
+exist.
+
 ## Candidate checks
 
 Run the source checks before creating a release commit:

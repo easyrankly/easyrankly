@@ -17,6 +17,7 @@ try {
 	$options = getopt( '', array( 'archive:', 'manifest:' ) );
 	$root    = erankly_release_root();
 	$version = erankly_release_version( $root );
+	erankly_release_assert_pot_references( $root );
 	erankly_release_assert_clean( $root );
 
 	$archive = isset( $options['archive'] ) ? (string) $options['archive'] : 'dist/easyrankly-' . $version . '.zip';
