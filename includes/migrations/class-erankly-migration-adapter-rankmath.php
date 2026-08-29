@@ -80,10 +80,13 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 
 	/** Returns certification state for detected Rank Math modules. */
 	public function module_support(): array {
-		$mapped  = array( 'pro', 'schema', 'redirections', 'advanced-robots', 'image-seo' );
+		$mapped  = array( 'pro', 'schema', 'rich-snippet', 'redirections', 'advanced-robots', 'image-seo' );
 		$support = array();
 		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'review_required';
+			// Modules outside the adapter contract are intentionally ignored. Their
+			// enabled state is still recorded in the source profile, but it must not
+			// create a blocking warning when no EasyRankly-owned value is imported.
+			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'ignored';
 		}
 		return $support;
 	}
@@ -188,7 +191,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		foreach ( array( 'post', 'term', 'user' ) as $object_type ) {
 			$prefixes = 'post' === $object_type ? array( 'rank_math_schema_', 'rank_math_primary_' ) : array( 'rank_math_schema_' );
 			foreach ( $this->meta_objects( $object_type, $this->keys(), $prefixes ) as $record ) {
-				$mapped = $this->map_meta( $record['meta'], $object_type, $record['id'] );
+				$mapped = $this->map_meta( $record['meta'], $object_type );
 				if ( empty( $mapped ) ) {
 					continue;
 				}
@@ -226,7 +229,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$records  = array();
 
 			foreach ( $page['records'] as $record ) {
-				$mapped = $this->map_meta( $record['meta'], $stage, $record['id'] );
+				$mapped = $this->map_meta( $record['meta'], $stage );
 				if ( $mapped ) {
 					$records[] = array(
 						'object_type'      => $stage,
@@ -457,10 +460,9 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	 *
 	 * @param array<string,mixed> $meta        Source metadata.
 	 * @param string              $object_type post|term|user.
-	 * @param int                 $object_id   Object ID.
 	 * @return array<string,mixed>
 	 */
-	private function map_meta( array $meta, string $object_type, int $object_id ): array {
+	private function map_meta( array $meta, string $object_type ): array {
 		$get                                  = fn( string $key ): string => $this->value( $meta, $key );
 		$mapped                               = array(
 			'_erankly_title'               => erankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' ),
@@ -578,19 +580,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$mapped['_erankly_schema_blocks'] = $blocks;
 		}
 
-		$legacy = array();
-		foreach ( array( 'rank_math_seo_score', 'rank_math_contentai_score', 'rank_math_rich_snippet' ) as $key ) {
-			if ( isset( $meta[ $key ] ) && '' !== (string) $meta[ $key ] ) {
-				$legacy[ $key ] = $meta[ $key ];
-			}
-		}
-		if ( ! empty( $legacy ) ) {
-			$mapped['_erankly_legacy_editorial'] = array( 'rankmath' => $legacy );
-			if ( isset( $legacy['rank_math_rich_snippet'] ) && empty( $blocks ) ) {
-				$this->add_warning( 'legacy_schema_review', 'A legacy Rank Math rich-snippet record was preserved for manual review.', $object_type . ':' . $object_id );
-			}
-		}
-
 		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
@@ -655,9 +644,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			'rank_math_advanced_robots',
 			'rank_math_focus_keyword',
 			'rank_math_pillar_content',
-			'rank_math_seo_score',
-			'rank_math_contentai_score',
-			'rank_math_rich_snippet',
 		);
 	}
 
