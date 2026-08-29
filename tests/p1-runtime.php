@@ -51,6 +51,9 @@ try {
 			$acquire = new ReflectionMethod( $class, $acquire_name );
 			$renew   = new ReflectionMethod( $class, $renew_name );
 			$release = new ReflectionMethod( $class, $release_name );
+			$acquire->setAccessible( true );
+			$renew->setAccessible( true );
+			$release->setAccessible( true );
 			$token   = (string) $acquire->invoke( $instance, $lock_id );
 			erankly_p1_assert( '' !== $token && 'stale-owner' !== $token, $class . ' must take over a stale lock atomically' );
 			$release->invoke( $instance, $lock_id, 'stale-owner' );
@@ -144,6 +147,7 @@ try {
 	chmod( $import_path, 0600 );
 	$managed_paths[] = $import_path;
 	$stage_spool     = new ReflectionMethod( ERankly_Import_Job_Runner::class, 'stage_spool' );
+	$stage_spool->setAccessible( true );
 	$spool           = $stage_spool->invoke(
 		null,
 		$import_path,
@@ -165,6 +169,7 @@ try {
 	erankly_p1_assert( ! isset( $header['payload']['redirects'] ), 'bulk streams must not be duplicated in the spool header' );
 
 	$origin_check = new ReflectionMethod( ERankly_Migration_Live_Verifier::class, 'is_same_origin' );
+	$origin_check->setAccessible( true );
 	$verifier     = new ERankly_Migration_Live_Verifier();
 	$home         = home_url( '/' );
 	$other_scheme = str_starts_with( $home, 'https://' ) ? preg_replace( '/^https:/', 'http:', $home ) : preg_replace( '/^http:/', 'https:', $home );

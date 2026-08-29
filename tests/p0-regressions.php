@@ -268,6 +268,7 @@ function erankly_p0_run_redirect_scenario(): void {
 	$reflection = new ReflectionClass( ERankly_Redirects_Runner::class );
 	$runner     = $reflection->newInstanceWithoutConstructor();
 	$guard      = $reflection->getMethod( 'should_skip_request' );
+	$guard->setAccessible( true );
 
 	$evaluate = static function ( string $uri, array $state = array() ) use ( $runner, $guard ): bool {
 		$GLOBALS['erankly_p0_is_admin'] = (bool) ( $state['admin'] ?? false );

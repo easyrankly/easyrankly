@@ -17,7 +17,7 @@ jobs:
       matrix:
         php: ['8.0', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -56,7 +56,7 @@ jobs:
           - php: '8.4'
             wordpress: 'latest'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [static, runtime]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: shivammathur/setup-php@v2
