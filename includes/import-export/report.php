@@ -96,6 +96,7 @@ function erankly_migration_render_report(): void {
 			</div>
 			<?php erankly_migration_render_steps( $ui ); ?>
 			<ul class="erankly-migration-metrics" aria-label="<?php esc_attr_e( 'Migration summary', 'easyrankly' ); ?>">
+				<li><strong><?php echo esc_html( number_format_i18n( absint( $ui['settings_count'] ?? 0 ) ) ); ?></strong><span><?php echo 'preview' === (string) ( $report['mode'] ?? '' ) ? esc_html__( 'Global settings ready', 'easyrankly' ) : esc_html__( 'Global settings imported', 'easyrankly' ); ?></span></li>
 				<li><strong><?php echo esc_html( number_format_i18n( absint( $ui['metadata_count'] ?? 0 ) ) ); ?></strong><span><?php echo 'preview' === (string) ( $report['mode'] ?? '' ) ? esc_html__( 'SEO fields ready', 'easyrankly' ) : esc_html__( 'SEO fields imported', 'easyrankly' ); ?></span></li>
 				<li><strong><?php echo esc_html( number_format_i18n( absint( $ui['redirect_count'] ?? 0 ) ) ); ?></strong><span><?php echo 'preview' === (string) ( $report['mode'] ?? '' ) ? esc_html__( 'Redirects ready', 'easyrankly' ) : esc_html__( 'Redirects imported', 'easyrankly' ); ?></span></li>
 				<li class="<?php echo absint( $ui['problem_count'] ?? 0 ) > 0 ? 'has-problems' : 'has-no-problems'; ?>"><strong><?php echo esc_html( number_format_i18n( absint( $ui['problem_count'] ?? 0 ) ) ); ?></strong><span><?php esc_html_e( 'Items needing attention', 'easyrankly' ); ?></span></li>
@@ -150,6 +151,13 @@ function erankly_migration_render_report(): void {
 				<thead><tr><th><?php esc_html_e( 'Area', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Found', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Ready / written', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Preserved / unchanged', 'easyrankly' ); ?></th><th><?php esc_html_e( 'Conflicts / invalid', 'easyrankly' ); ?></th></tr></thead>
 				<tbody>
 					<tr>
+						<td><?php esc_html_e( 'Global settings', 'easyrankly' ); ?></td>
+						<td><?php echo esc_html( (string) ( $counts['settings_found'] ?? 0 ) ); ?></td>
+						<td><?php echo esc_html( (string) ( 'preview' === (string) $report['mode'] ? ( $counts['settings_ready'] ?? 0 ) : ( $counts['settings_written'] ?? 0 ) ) ); ?></td>
+						<td><?php echo esc_html( (string) ( ( $counts['settings_skipped_existing'] ?? 0 ) + ( $counts['settings_identical'] ?? 0 ) ) ); ?></td>
+						<td><?php echo esc_html( (string) ( ( $counts['settings_conflicts'] ?? 0 ) + ( $counts['settings_invalid'] ?? 0 ) + ( $counts['settings_failed'] ?? 0 ) ) ); ?></td>
+					</tr>
+					<tr>
 						<td><?php esc_html_e( 'SEO metadata', 'easyrankly' ); ?></td>
 						<td><?php echo esc_html( (string) ( $counts['fields_found'] ?? 0 ) ); ?></td>
 						<td><?php echo esc_html( (string) ( 'preview' === (string) $report['mode'] ? ( $counts['fields_ready'] ?? 0 ) : ( $counts['fields_written'] ?? 0 ) ) ); ?></td>
@@ -186,6 +194,7 @@ function erankly_migration_render_report(): void {
 					<tbody>
 						<?php
 						foreach ( array(
+							'settings'  => __( 'Global settings', 'easyrankly' ),
 							'metadata'  => __( 'SEO metadata', 'easyrankly' ),
 							'redirects' => __( 'Redirects', 'easyrankly' ),
 						) as $area_key => $area_label ) :
@@ -253,7 +262,7 @@ function erankly_migration_render_report(): void {
 			<?php endif; ?>
 			<?php if ( ! empty( $report['warnings'] ) && is_array( $report['warnings'] ) ) : ?>
 				<details>
-					<summary><?php esc_html_e( 'Warnings requiring review', 'easyrankly' ); ?> (<?php echo esc_html( (string) count( $report['warnings'] ) ); ?>)</summary>
+					<summary><?php esc_html_e( 'Migration diagnostics', 'easyrankly' ); ?> (<?php echo esc_html( (string) count( $report['warnings'] ) ); ?>)</summary>
 					<ul>
 						<?php foreach ( array_slice( $report['warnings'], 0, 20 ) as $warning ) : ?>
 							<li><?php echo esc_html( (string) ( $warning['message'] ?? $warning['code'] ?? '' ) ); ?><?php echo ! empty( $warning['reference'] ) ? ': ' . esc_html( (string) $warning['reference'] ) : ''; ?></li>
@@ -379,6 +388,7 @@ function erankly_migration_render_active_job( array $job ): void {
 				<?php endif; ?>
 			</div>
 			<ul class="erankly-migration-metrics" aria-label="<?php esc_attr_e( 'Current migration progress', 'easyrankly' ); ?>">
+				<li><strong><?php echo esc_html( number_format_i18n( ! empty( $job['dry_run'] ) ? absint( $counts['settings_ready'] ?? 0 ) : absint( $counts['settings_written'] ?? 0 ) ) ); ?></strong><span><?php echo ! empty( $job['dry_run'] ) ? esc_html__( 'Global settings ready', 'easyrankly' ) : esc_html__( 'Global settings imported', 'easyrankly' ); ?></span></li>
 				<li><strong><?php echo esc_html( number_format_i18n( absint( $counts['objects_found'] ?? 0 ) ) ); ?></strong><span><?php esc_html_e( 'Objects found', 'easyrankly' ); ?></span></li>
 				<li><strong><?php echo esc_html( number_format_i18n( ! empty( $job['dry_run'] ) ? absint( $counts['fields_ready'] ?? 0 ) : absint( $counts['fields_written'] ?? 0 ) ) ); ?></strong><span><?php echo ! empty( $job['dry_run'] ) ? esc_html__( 'SEO fields ready', 'easyrankly' ) : esc_html__( 'SEO fields imported', 'easyrankly' ); ?></span></li>
 				<li><strong><?php echo esc_html( number_format_i18n( absint( $counts['redirects_found'] ?? 0 ) ) ); ?></strong><span><?php esc_html_e( 'Redirects found', 'easyrankly' ); ?></span></li>

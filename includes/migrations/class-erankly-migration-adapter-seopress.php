@@ -72,7 +72,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	public function module_support(): array {
 		$support = array();
 		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, array( 'titles', 'social', 'robots', 'schemas', 'redirects', 'pro' ), true ) ? 'supported' : 'review_required';
+			$support[ $module ] = in_array( $module, array( 'titles', 'social', 'robots', 'schemas', 'redirects', 'pro' ), true ) ? 'supported' : 'ignored';
 		}
 		return $support;
 	}
@@ -111,6 +111,26 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	/** Declares every SEOPress surface consumed by this adapter. */
 	protected function storage_definitions(): array {
 		return array(
+			'global_titles'       => array(
+				'type'   => 'option',
+				'option' => 'seopress_titles_option_name',
+				'shape'  => 'array',
+			),
+			'global_social'       => array(
+				'type'   => 'option',
+				'option' => 'seopress_social_option_name',
+				'shape'  => 'array',
+			),
+			'global_sitemap'      => array(
+				'type'   => 'option',
+				'option' => 'seopress_xml_sitemap_option_name',
+				'shape'  => 'array',
+			),
+			'global_toggles'      => array(
+				'type'   => 'option',
+				'option' => 'seopress_toggle',
+				'shape'  => 'array',
+			),
 			'post_content_meta'  => array(
 				'type'        => 'meta',
 				'object_type' => 'post',
@@ -145,7 +165,173 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex, query and login redirect conditions' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex, query and login redirect conditions' );
+	}
+
+	/** Returns normalized SEOPress global settings. */
+	public function global_settings(): array {
+		if ( $this->uses_export_file() ) {
+			return array();
+		}
+
+		$titles  = $this->option_array( 'seopress_titles_option_name' );
+		$social  = $this->option_array( 'seopress_social_option_name' );
+		$sitemap = $this->option_array( 'seopress_xml_sitemap_option_name' );
+		$toggles = $this->option_array( 'seopress_toggle' );
+		if ( ! $titles && ! $social && ! $sitemap && ! $toggles ) {
+			return array();
+		}
+
+		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'seopress' );
+		$settings = array();
+		$singles = $titles['seopress_titles_single_titles'] ?? array();
+		$singles = is_array( $singles ) ? $singles : array();
+		$post_map = array();
+		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
+			$config = isset( $singles[ $post_type ] ) && is_array( $singles[ $post_type ] ) ? $singles[ $post_type ] : array();
+			if ( ! $config ) {
+				continue;
+			}
+			$in_sitemap = null;
+			foreach ( array(
+				array( 'seopress_xml_sitemap_post_types_list', $post_type, 'include' ),
+				array( 'seopress_xml_sitemap_post_types_list', $post_type ),
+				array( 'post_types', $post_type, 'include' ),
+			) as $path ) {
+				if ( $this->has_nested_value( $sitemap, $path ) ) {
+					$in_sitemap = $this->enabled( $this->nested_value( $sitemap, $path ) );
+					break;
+				}
+			}
+			$post_map[ $post_type ] = $this->global_meta_row(
+				$convert( $config['title'] ?? '' ),
+				$convert( $config['description'] ?? $config['desc'] ?? '' ),
+				$config,
+				$in_sitemap,
+				'WebPage',
+				'post' === $post_type ? 'BlogPosting' : ''
+			);
+		}
+		if ( $post_map ) {
+			$settings['global_post_type_meta']        = $post_map;
+			$settings['global_post_type_meta_linked'] = 0;
+		}
+
+		$taxonomies = $titles['seopress_titles_tax_titles'] ?? array();
+		$taxonomies = is_array( $taxonomies ) ? $taxonomies : array();
+		$taxonomy_map = array();
+		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
+			$config = isset( $taxonomies[ $taxonomy ] ) && is_array( $taxonomies[ $taxonomy ] ) ? $taxonomies[ $taxonomy ] : array();
+			if ( ! $config ) {
+				continue;
+			}
+			$in_sitemap = null;
+			foreach ( array(
+				array( 'seopress_xml_sitemap_taxonomies_list', $taxonomy, 'include' ),
+				array( 'seopress_xml_sitemap_taxonomies_list', $taxonomy ),
+				array( 'taxonomies', $taxonomy, 'include' ),
+			) as $path ) {
+				if ( $this->has_nested_value( $sitemap, $path ) ) {
+					$in_sitemap = $this->enabled( $this->nested_value( $sitemap, $path ) );
+					break;
+				}
+			}
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $config['title'] ?? '' ), $convert( $config['description'] ?? $config['desc'] ?? '' ), $config, $in_sitemap );
+		}
+		if ( $taxonomy_map ) {
+			$settings['global_taxonomy_meta']        = $taxonomy_map;
+			$settings['global_taxonomy_meta_linked'] = 0;
+		}
+
+		$special = array();
+		$special_keys = array(
+			'homepage' => array( 'seopress_titles_home_site_title', 'seopress_titles_home_site_desc', 'seopress_titles_home_robots' ),
+			'author'   => array( 'seopress_titles_archives_author_title', 'seopress_titles_archives_author_desc', 'seopress_titles_archives_author_noindex' ),
+			'date'     => array( 'seopress_titles_archives_date_title', 'seopress_titles_archives_date_desc', 'seopress_titles_archives_date_noindex' ),
+			'search'   => array( 'seopress_titles_archives_search_title', 'seopress_titles_archives_search_desc', 'seopress_titles_archives_search_noindex' ),
+			'404'      => array( 'seopress_titles_archives_404_title', 'seopress_titles_archives_404_desc', 'seopress_titles_archives_404_noindex' ),
+		);
+		foreach ( $special_keys as $context => $keys ) {
+			if ( ! array_intersect( $keys, array_keys( $titles ) ) ) {
+				continue;
+			}
+			$has_noindex = array_key_exists( $keys[2], $titles );
+			$noindex     = $has_noindex && $this->enabled( $titles[ $keys[2] ] );
+			$special[ $context ] = $this->global_meta_row(
+				$this->special_template( $titles[ $keys[0] ] ?? '', 'seopress', $context ),
+				$this->special_template( $titles[ $keys[1] ] ?? '', 'seopress', $context ),
+				$has_noindex ? array( 'noindex' => $noindex ) : null,
+				$noindex ? false : null
+			);
+		}
+		if ( $special ) {
+			$settings['global_special_meta'] = $special;
+		}
+
+		$identity = strtolower( (string) ( $social['seopress_social_knowledge_type'] ?? '' ) );
+		if ( in_array( $identity, array( 'person', 'organization' ), true ) ) {
+			$settings['schema_identity'] = $identity;
+		}
+		$name = sanitize_text_field( (string) ( $social['seopress_social_knowledge_name'] ?? '' ) );
+		if ( 'person' === ( $settings['schema_identity'] ?? '' ) ) {
+			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $social['seopress_social_knowledge_user_id'] ?? 0, $name );
+		} elseif ( '' !== $name ) {
+			$settings['organization_name'] = $name;
+		}
+		if ( ! empty( $social['seopress_social_knowledge_img_attachment_id'] ) ) {
+			$settings['organization_logo'] = absint( $social['seopress_social_knowledge_img_attachment_id'] );
+		}
+		if ( ! empty( $social['seopress_social_knowledge_img'] ) ) {
+			$settings['organization_logo_url'] = esc_url_raw( (string) $social['seopress_social_knowledge_img'] );
+		}
+		foreach ( array(
+			'organization_description'    => 'seopress_social_knowledge_desc',
+			'organization_email'          => 'seopress_social_knowledge_email',
+			'organization_phone'          => 'seopress_social_knowledge_phone',
+			'organization_legal_name'     => 'seopress_social_knowledge_legal_name',
+			'organization_tax_id'         => 'seopress_social_knowledge_tax_id',
+			'organization_street_address' => 'seopress_social_knowledge_address_street',
+			'organization_locality'       => 'seopress_social_knowledge_address_locality',
+			'organization_region'         => 'seopress_social_knowledge_address_region',
+			'organization_postal_code'    => 'seopress_social_knowledge_address_pc',
+			'organization_country'        => 'seopress_social_knowledge_address_country',
+		) as $target => $source_key ) {
+			if ( isset( $social[ $source_key ] ) && is_scalar( $social[ $source_key ] ) && '' !== trim( (string) $social[ $source_key ] ) ) {
+				$settings[ $target ] = (string) $social[ $source_key ];
+			}
+		}
+
+		$profile_keys = array( 'seopress_social_accounts_facebook', 'seopress_social_accounts_twitter', 'seopress_social_accounts_pinterest', 'seopress_social_accounts_instagram', 'seopress_social_accounts_youtube', 'seopress_social_accounts_linkedin' );
+		$profile_values = array();
+		foreach ( $profile_keys as $key ) {
+			$profile_values[] = $social[ $key ] ?? '';
+		}
+		$profiles = $this->social_profile_list( $profile_values );
+		if ( '' !== $profiles ) {
+			$settings['social_profiles'] = $profiles;
+		}
+		if ( ! empty( $social['seopress_social_twitter_card_og'] ) ) {
+			$settings['twitter_site'] = (string) $social['seopress_social_twitter_card_og'];
+		}
+		if ( ! empty( $social['seopress_social_facebook_img'] ) ) {
+			$settings['default_social_image_url'] = esc_url_raw( (string) $social['seopress_social_facebook_img'] );
+		}
+
+		foreach ( array( 'xml-sitemap', 'xml_sitemap', 'sitemap' ) as $key ) {
+			if ( array_key_exists( $key, $toggles ) ) {
+				$settings['enable_sitemap'] = $this->enabled( $toggles[ $key ] ) ? 1 : 0;
+				break;
+			}
+		}
+		if ( array_key_exists( 'seopress_xml_sitemap_img_enable', $sitemap ) ) {
+			$settings['enable_image_sitemap'] = $this->enabled( $sitemap['seopress_xml_sitemap_img_enable'] ) ? 1 : 0;
+		}
+		if ( in_array( 'redirects', $this->modules(), true ) ) {
+			$settings['enable_redirects']        = 1;
+			$settings['redirect_exclude_admins'] = 0;
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -162,7 +348,11 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			|| $this->has_meta( 'term', $this->content_keys() )
 			|| $this->has_meta( 'post', $this->redirect_keys() )
 			|| $this->has_meta( 'term', $this->redirect_keys() )
-			|| $this->has_redirect_posts();
+			|| $this->has_redirect_posts()
+			|| $this->has_option_map( 'seopress_titles_option_name' )
+			|| $this->has_option_map( 'seopress_social_option_name' )
+			|| $this->has_option_map( 'seopress_xml_sitemap_option_name' )
+			|| $this->has_option_map( 'seopress_toggle' );
 	}
 
 	/**
@@ -484,19 +674,8 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			}
 		}
 
-		$legacy_payload = array();
-		foreach ( $meta as $key => $value ) {
-			if ( str_starts_with( (string) $key, '_seopress_pro_rich_snippets_' ) || in_array( $key, array( '_seopress_pro_schemas_manual', '_seopress_analysis_data' ), true ) ) {
-				if ( ! empty( $value ) ) {
-					$legacy_payload[ $key ] = $value;
-				}
-			}
-		}
-		if ( ! empty( $legacy_payload ) ) {
-			$mapped['_erankly_legacy_editorial'] = array( 'seopress' => $legacy_payload );
-			if ( empty( $mapped['_erankly_schema_blocks'] ) && ! empty( $meta['_seopress_pro_rich_snippets_type'] ) ) {
-				$this->add_warning( 'legacy_schema_review', 'A legacy SEOPress PRO schema was preserved for manual review.', $object_type . ':' . $object_id );
-			}
+		if ( empty( $mapped['_erankly_schema_blocks'] ) && ! empty( $meta['_seopress_pro_rich_snippets_type'] ) ) {
+			$this->add_warning( 'schema_configuration_not_migrated', 'A legacy SEOPress PRO schema could not be converted to rendered EasyRankly JSON-LD.', $object_type . ':' . $object_id );
 		}
 
 		return $this->with_extension_meta( $mapped, $editorial );
@@ -588,7 +767,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			'_seopress_robots_imageindex',
 			'_seopress_robots_primary_cat',
 			'_seopress_analysis_target_kw',
-			'_seopress_analysis_data',
 			'_seopress_pro_schemas_manual',
 			'_seopress_pro_rich_snippets_type',
 			'_seopress_pro_rich_snippets_disable_all',

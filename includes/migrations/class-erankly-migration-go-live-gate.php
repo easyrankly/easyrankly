@@ -48,15 +48,21 @@ final class ERankly_Migration_Go_Live_Gate {
 		$semantic   = is_array( $evidence['semantic_comparison'] ?? null ) ? $evidence['semantic_comparison'] : array();
 		$audit      = is_array( $evidence['redirect_audit'] ?? null ) ? $evidence['redirect_audit'] : array();
 		$warnings   = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
-		$profile    = is_array( $report['source_profile'] ?? null ) ? $report['source_profile'] : array();
+		$blocking_warnings = array_values(
+			array_filter(
+				$warnings,
+				static fn( mixed $warning ): bool => ! is_array( $warning ) || ! isset( $warning['blocking'] ) || (bool) $warning['blocking']
+			)
+		);
 		$baseline   = is_array( $report['html_baseline'] ?? null ) ? $report['html_baseline'] : array();
 		$live       = is_array( $report['live_verification'] ?? null ) ? $report['live_verification'] : array();
+		$redirect_contract = is_array( $baseline['redirect_contract'] ?? null ) ? $baseline['redirect_contract'] : array();
 
-		$failed      = (int) ( $counts['fields_failed'] ?? 0 ) + (int) ( $counts['redirects_failed'] ?? 0 );
-		$invalid     = (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 );
-		$conflicts   = (int) ( $counts['fields_conflicts'] ?? 0 ) + (int) ( $counts['redirects_conflicts'] ?? 0 );
-		$unsupported = (int) ( $counts['fields_unsupported'] ?? 0 ) + $this->terminal_total( $accounting, 'redirects', 'unsupported' );
-		$preserved   = $this->terminal_total( $accounting, 'metadata', 'preserved' ) + $this->terminal_total( $accounting, 'redirects', 'preserved' );
+		$failed      = (int) ( $counts['settings_failed'] ?? 0 ) + (int) ( $counts['fields_failed'] ?? 0 ) + (int) ( $counts['redirects_failed'] ?? 0 );
+		$invalid     = (int) ( $counts['settings_invalid'] ?? 0 ) + (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 );
+		$conflicts   = (int) ( $counts['settings_conflicts'] ?? 0 ) + (int) ( $counts['fields_conflicts'] ?? 0 ) + (int) ( $counts['redirects_conflicts'] ?? 0 );
+		$unsupported = (int) ( $counts['fields_unsupported'] ?? 0 ) + $this->terminal_total( $accounting, 'settings', 'unsupported' ) + $this->terminal_total( $accounting, 'redirects', 'unsupported' );
+		$preserved   = $this->terminal_total( $accounting, 'settings', 'preserved' ) + $this->terminal_total( $accounting, 'metadata', 'preserved' ) + $this->terminal_total( $accounting, 'redirects', 'preserved' );
 		$mismatches  = 0;
 		foreach ( $semantic as $comparison ) {
 			$mismatches += is_array( $comparison ) ? (int) ( $comparison['mismatch'] ?? 0 ) : 0;
@@ -66,8 +72,11 @@ final class ERankly_Migration_Go_Live_Gate {
 		$chains     = count( is_array( $audit['chains'] ?? null ) ? $audit['chains'] : array() );
 		$collisions = count( is_array( $audit['collisions'] ?? null ) ? $audit['collisions'] : array() );
 		$regex      = count( is_array( $audit['dangerous_regex'] ?? null ) ? $audit['dangerous_regex'] : array() );
-		$writes     = (int) ( $counts['fields_written'] ?? 0 ) + (int) ( $counts['redirects_created'] ?? 0 ) + (int) ( $counts['redirects_updated'] ?? 0 );
-		$redirects  = (int) ( $counts['redirects_created'] ?? 0 ) + (int) ( $counts['redirects_updated'] ?? 0 );
+		$writes     = (int) ( $counts['settings_written'] ?? 0 ) + (int) ( $counts['fields_written'] ?? 0 ) + (int) ( $counts['redirects_created'] ?? 0 ) + (int) ( $counts['redirects_updated'] ?? 0 );
+		$redirects  = (int) ( $counts['redirects_created'] ?? 0 )
+			+ (int) ( $counts['redirects_updated'] ?? 0 )
+			+ (int) ( $counts['redirects_unchanged'] ?? 0 )
+			+ (int) ( $counts['redirects_duplicate'] ?? 0 );
 
 		$checks   = array();
 		$checks[] = $this->check( 'terminal_status', 'complete' === (string) ( $report['status'] ?? '' ) ? 'pass' : 'fail', 'complete' === (string) ( $report['status'] ?? '' ) ? 0 : 1, true );
@@ -78,7 +87,7 @@ final class ERankly_Migration_Go_Live_Gate {
 		$checks[] = $this->check( 'conflicts', 0 === $conflicts ? 'pass' : 'fail', $conflicts, true );
 		$checks[] = $this->check( 'unsupported_records', 0 === $unsupported ? 'pass' : 'fail', $unsupported, true );
 		$checks[] = $this->check( 'preserved_values', 0 === $preserved ? 'pass' : 'fail', $preserved, true );
-		$checks[] = $this->check( 'diagnostics', empty( $warnings ) ? 'pass' : 'fail', count( $warnings ), true );
+		$checks[] = $this->check( 'diagnostics', empty( $blocking_warnings ) ? 'pass' : 'fail', count( $blocking_warnings ), true );
 		$checks[] = $this->check( 'semantic_match', 0 === $mismatches ? 'pass' : 'fail', $mismatches, true );
 		$checks[] = $this->check( 'unresolved_placeholders', 0 === $unresolved ? 'pass' : 'fail', $unresolved, true );
 
@@ -89,10 +98,16 @@ final class ERankly_Migration_Go_Live_Gate {
 				$storage['tested'] = count( $probes );
 				$storage['failed'] = count( array_filter( $probes, static fn( array $probe ): bool => 'pass' !== (string) ( $probe['storage_status'] ?? '' ) ) );
 			}
-			$storage_failed = (int) ( $storage['failed'] ?? 0 ) + max( 0, $redirects - (int) ( $storage['tested'] ?? 0 ) );
+			$expected       = max( $redirects, (int) ( $storage['expected'] ?? 0 ) );
+			$storage_failed = (int) ( $storage['failed'] ?? 0 ) + max( 0, $expected - (int) ( $storage['tested'] ?? 0 ) );
 			$checks[]       = $this->check( 'redirect_storage', 0 === $storage_failed ? 'pass' : 'fail', $storage_failed, true );
+			$contract_state = sanitize_key( (string) ( $redirect_contract['state'] ?? '' ) );
+			$contract_failed = (int) ( $redirect_contract['failed'] ?? 0 ) + (int) ( $redirect_contract['request_failed'] ?? 0 );
+			$contract_pass   = 'verified' === $contract_state && (int) ( $redirect_contract['tested'] ?? 0 ) > 0 && 0 === $contract_failed;
+			$checks[]        = $this->check( 'redirect_runtime', $contract_pass ? 'pass' : 'fail', $contract_pass ? 0 : max( 1, $contract_failed ), true );
 		} else {
 			$checks[] = $this->check( 'redirect_storage', 'not_applicable', 0, false );
+			$checks[] = $this->check( 'redirect_runtime', 'not_applicable', 0, false );
 		}
 		$checks[] = $this->check( 'redirect_loops', 0 === $loops ? 'pass' : 'fail', $loops, true );
 		$checks[] = $this->check( 'redirect_chains', 0 === $chains ? 'pass' : 'fail', $chains, true );
@@ -106,9 +121,8 @@ final class ERankly_Migration_Go_Live_Gate {
 			$checks[] = $this->check( 'rollback_window', 'not_applicable', 0, false );
 		}
 
-		$source_mode = sanitize_key( (string) ( $profile['mode'] ?? 'database' ) );
-		$scope       = 'full_cutover';
-		if ( 'official_export' === $source_mode && 'not_source_owned' === (string) ( $baseline['state'] ?? '' ) ) {
+		$scope = 'full_cutover';
+		if ( 'not_source_owned' === (string) ( $baseline['state'] ?? '' ) ) {
 			$scope    = 'contract_only';
 			$checks[] = $this->check( 'frontend_baseline', 'not_applicable', 0, false );
 			$checks[] = $this->check( 'live_verification', 'not_applicable', 0, false );

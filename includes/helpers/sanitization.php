@@ -182,6 +182,9 @@ function erankly_trim_text( string $value, int $limit = 160 ): string {
  */
 function erankly_normalize_seo_text( string $value ): string {
 	$value = preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( $value ) ) );
+	if ( is_string( $value ) ) {
+		$value = preg_replace( '/(?:\s*(?:-|\||–|—)\s*)+$/u', '', $value );
+	}
 
 	return is_string( $value ) ? trim( $value ) : '';
 }

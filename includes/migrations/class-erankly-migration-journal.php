@@ -107,6 +107,48 @@ final class ERankly_Migration_Journal {
 	}
 
 	/**
+	 * Creates an idempotent pending journal entry before a global setting write.
+	 *
+	 * @param string              $job_id  Migration UUID.
+	 * @param int                 $queue_id Queue row ID.
+	 * @param array<string,mixed> $payload Validated queue payload.
+	 * @return string Event key, or an empty string on failure.
+	 */
+	public function prepare_setting( string $job_id, int $queue_id, array $payload ): string {
+		$key     = sanitize_key( (string) ( $payload['key'] ?? '' ) );
+		$special = ! empty( $payload['special'] ) && 'global_special_meta' === $key;
+		erankly_load_default_helpers();
+		if ( '' === $key || ! array_key_exists( $key, erankly_default_settings() ) ) {
+			return '';
+		}
+
+		$stored = erankly_get_stored_settings();
+		$exists = $special && is_multisite()
+			? false !== get_option( ERANKLY_SPECIAL_META_OPTION, false )
+			: array_key_exists( $key, $stored );
+		$value  = $special
+			? erankly_get_global_entity_meta_map( $key )
+			: ( $exists ? $stored[ $key ] : erankly_default_settings()[ $key ] );
+
+		return $this->prepare(
+			$job_id,
+			$queue_id,
+			'setting',
+			$exists ? 'setting_update' : 'setting_create',
+			'',
+			0,
+			$key,
+			0,
+			array(
+				'exists'  => $exists,
+				'value'   => $value,
+				'special' => $special,
+			),
+			$payload['value'] ?? null
+		);
+	}
+
+	/**
 	 * Creates an idempotent pending journal entry before a redirect write.
 	 *
 	 * @param string                   $job_id Migration UUID.
@@ -321,9 +363,14 @@ final class ERankly_Migration_Journal {
 
 		try {
 			foreach ( $rows as $row ) {
-				$outcome = 'redirect' === (string) ( $row['item_kind'] ?? '' )
-					? $this->rollback_redirect( $row, $repository )
-					: $this->rollback_meta( $row );
+				$kind = (string) ( $row['item_kind'] ?? '' );
+				if ( 'redirect' === $kind ) {
+					$outcome = $this->rollback_redirect( $row, $repository );
+				} elseif ( 'setting' === $kind ) {
+					$outcome = $this->rollback_setting( $row );
+				} else {
+					$outcome = $this->rollback_meta( $row );
+				}
 				++$result[ $outcome ];
 				$this->set_rollback_state( absint( $row['id'] ?? 0 ), $outcome );
 				$result['cursor'] = absint( $row['id'] ?? 0 );
@@ -568,7 +615,7 @@ final class ERankly_Migration_Journal {
 	 *
 	 * @param string $job_id     Migration UUID.
 	 * @param int    $queue_id   Queue row ID.
-	 * @param string $kind       meta|redirect.
+	 * @param string $kind       setting|meta|redirect.
 	 * @param string $action     Reversible action name.
 	 * @param string $object_type post|term|user, or empty for redirects.
 	 * @param int    $object_id  Metadata object ID.
@@ -652,6 +699,48 @@ final class ERankly_Migration_Journal {
 		}
 
 		return delete_metadata( $type, $id, $key ) ? 'rolled_back' : 'failed';
+	}
+
+	/**
+	 * Conditionally restores one EasyRankly global setting.
+	 *
+	 * @param array<string,mixed> $row Journal row.
+	 * @return string rolled_back|preserved|failed.
+	 */
+	private function rollback_setting( array $row ): string {
+		$key     = sanitize_key( (string) ( $row['target_field'] ?? '' ) );
+		$written = json_decode( (string) ( $row['written_value'] ?? '' ), true );
+		$before  = json_decode( (string) ( $row['previous_value'] ?? '' ), true );
+		if ( '' === $key || ! is_array( $before ) ) {
+			return 'failed';
+		}
+		$special = ! empty( $before['special'] ) && 'global_special_meta' === $key;
+		$stored  = erankly_get_stored_settings();
+		$exists  = $special && is_multisite() ? false !== get_option( ERANKLY_SPECIAL_META_OPTION, false ) : array_key_exists( $key, $stored );
+		$current = $special ? erankly_get_global_entity_meta_map( $key ) : ( $exists ? $stored[ $key ] : null );
+		if ( ! $exists || $this->canonical_json( $current ) !== $this->canonical_json( $written ) ) {
+			return 'preserved';
+		}
+
+		if ( ! empty( $before['exists'] ) ) {
+			if ( $special ) {
+				return is_array( $before['value'] ?? null ) && erankly_update_special_meta_map( $before['value'] ) === $before['value'] ? 'rolled_back' : 'failed';
+			}
+			$result = erankly_update_plugin_settings( array( $key => $before['value'] ?? null ) );
+
+			return ! is_wp_error( $result ) && $result ? 'rolled_back' : 'failed';
+		}
+
+		if ( $special && is_multisite() ) {
+			$deleted = delete_option( ERANKLY_SPECIAL_META_OPTION );
+			erankly_clear_settings_cache();
+			return $deleted || false === get_option( ERANKLY_SPECIAL_META_OPTION, false ) ? 'rolled_back' : 'failed';
+		}
+
+		unset( $stored[ $key ] );
+		$result = erankly_update_plugin_settings( $stored, '', true );
+
+		return ! is_wp_error( $result ) && $result ? 'rolled_back' : 'failed';
 	}
 
 	/**

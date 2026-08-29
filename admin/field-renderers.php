@@ -51,12 +51,15 @@ function erankly_get_variable_groups(): array {
 				'seo_title'        => __( 'SEO title', 'easyrankly' ),
 				'meta_description' => __( 'Meta description', 'easyrankly' ),
 				'canonical_url'    => __( 'Canonical URL', 'easyrankly' ),
+				'author_name'      => __( 'Archive author name', 'easyrankly' ),
+				'archive_date'     => __( 'Archive date', 'easyrankly' ),
 				'search_query'     => __( 'Search query', 'easyrankly' ),
 			),
 		),
 		'pagination' => array(
 			'label'     => __( 'Pagination', 'easyrankly' ),
 			'variables' => array(
+				'pagination'  => __( 'Conditional pagination label', 'easyrankly' ),
 				'page_number' => __( 'Current page number', 'easyrankly' ),
 				'max_pages'   => __( 'Total pages', 'easyrankly' ),
 			),

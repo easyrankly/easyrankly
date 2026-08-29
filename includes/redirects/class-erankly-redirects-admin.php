@@ -107,6 +107,11 @@ final class ERankly_Redirects_Admin {
 
 		?>
 			<?php $this->render_notices(); ?>
+			<?php if ( erankly_get_setting( 'redirect_exclude_admins', 1 ) ) : ?>
+				<div class="notice notice-info inline">
+					<p><?php esc_html_e( 'Redirects are intentionally bypassed while you are signed in as an administrator. Test them in a signed-out browser, or turn off “Do not apply any redirect to administrators” under Settings.', 'easyrankly' ); ?></p>
+				</div>
+			<?php endif; ?>
 
 			<div class="erankly-settings-section">
 				<h3 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h3>

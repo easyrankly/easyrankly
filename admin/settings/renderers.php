@@ -284,6 +284,8 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 			$nofollow        = ! empty( $row['nofollow'] );
 			$noarchive       = ! empty( $row['noarchive'] );
 			$disable_sitemap = ! empty( $row['disable_sitemap'] );
+			$webpage_type    = isset( $row['webpage_type'] ) ? (string) $row['webpage_type'] : 'WebPage';
+			$article_type    = isset( $row['article_type'] ) ? (string) $row['article_type'] : ( 'post' === $key ? 'BlogPosting' : '' );
 			$label           = $object instanceof WP_Taxonomy ? erankly_get_taxonomy_admin_label( $object ) : $object->labels->singular_name;
 			$id_prefix       = 'erankly-' . sanitize_key( $setting_key ) . '-' . sanitize_key( $key );
 			$panel_key       = sanitize_key( $setting_key . '-' . $key );
@@ -312,6 +314,18 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 							<?php erankly_render_variable_picker( $examples ); ?>
 						</div>
 					</div>
+					<?php if ( ! $is_taxonomy ) : ?>
+						<div class="erankly-inline-fields erankly-inline-fields-two-columns">
+							<div class="erankly-field">
+								<label for="<?php echo esc_attr( $id_prefix ); ?>-webpage-type"><?php esc_html_e( 'Web page schema type', 'easyrankly' ); ?></label>
+								<input id="<?php echo esc_attr( $id_prefix ); ?>-webpage-type" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[<?php echo esc_attr( $setting_key ); ?>][<?php echo esc_attr( $key ); ?>][webpage_type]" value="<?php echo esc_attr( $webpage_type ); ?>" placeholder="WebPage">
+							</div>
+							<div class="erankly-field">
+								<label for="<?php echo esc_attr( $id_prefix ); ?>-article-type"><?php esc_html_e( 'Article schema type', 'easyrankly' ); ?></label>
+								<input id="<?php echo esc_attr( $id_prefix ); ?>-article-type" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[<?php echo esc_attr( $setting_key ); ?>][<?php echo esc_attr( $key ); ?>][article_type]" value="<?php echo esc_attr( $article_type ); ?>" placeholder="<?php echo esc_attr( 'post' === $key ? 'BlogPosting' : __( 'None', 'easyrankly' ) ); ?>">
+							</div>
+						</div>
+					<?php endif; ?>
 					<?php erankly_render_global_visibility_defaults( $setting_key, (string) $key, $noindex, $nofollow, $noarchive, $disable_sitemap ); ?>
 				</div>
 			</div>

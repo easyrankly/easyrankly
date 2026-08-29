@@ -76,7 +76,7 @@ final class ERankly_Migration_Job_Store {
 	 * Builds a globally unique retry key for one source occurrence.
 	 *
 	 * @param string $job_id           Migration UUID.
-	 * @param string $kind             object|meta|redirect.
+	 * @param string $kind             object|setting|meta|redirect.
 	 * @param string $source_reference Stable adapter reference.
 	 * @param string $target_field     Target field or redirect identity.
 	 * @return string
@@ -122,7 +122,7 @@ final class ERankly_Migration_Job_Store {
 		$identity         = (string) ( $event['identity'] ?? $source_reference );
 		$payload          = isset( $event['payload'] ) ? wp_json_encode( $event['payload'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) : '';
 
-		if ( '' === $job_id || ! in_array( $kind, array( 'object', 'meta', 'redirect' ), true ) || false === $payload ) {
+		if ( '' === $job_id || ! in_array( $kind, array( 'object', 'setting', 'meta', 'redirect' ), true ) || false === $payload ) {
 			throw new RuntimeException( 'Invalid migration queue event.' );
 		}
 
@@ -293,6 +293,30 @@ final class ERankly_Migration_Job_Store {
 					if ( isset( $counts[ $type . 's_found' ] ) ) {
 						$counts[ $type . 's_found' ] += $total;
 					}
+				}
+				continue;
+			}
+
+			if ( 'setting' === $kind ) {
+				$counts['settings_found'] += $total;
+				if ( 'ready' === $discovery ) {
+					$counts['settings_ready'] += $total;
+				} elseif ( 'existing' === $discovery ) {
+					$counts['settings_skipped_existing'] += $total;
+				} elseif ( 'identical' === $discovery ) {
+					$counts['settings_identical'] += $total;
+				} elseif ( 'conflict' === $discovery ) {
+					$counts['settings_conflicts'] += $total;
+				} elseif ( 'invalid' === $discovery ) {
+					$counts['settings_invalid'] += $total;
+				}
+
+				if ( 'written' === $apply ) {
+					$counts['settings_written'] += $total;
+				} elseif ( 'failed' === $apply ) {
+					$counts['settings_failed'] += $total;
+				} elseif ( 'preserved' === $apply ) {
+					$counts['settings_skipped_existing'] += $total;
 				}
 				continue;
 			}

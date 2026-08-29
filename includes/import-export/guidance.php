@@ -58,6 +58,7 @@ function erankly_migration_render_go_live_gate( array $gate ): void {
 		'semantic_match'          => __( 'Stored semantics match normalized source values', 'easyrankly' ),
 		'unresolved_placeholders' => __( 'No unresolved source placeholders', 'easyrankly' ),
 		'redirect_storage'        => __( 'Every imported redirect matches persistent storage', 'easyrankly' ),
+		'redirect_runtime'        => __( 'Sampled redirects respond correctly and same-site targets are healthy', 'easyrankly' ),
 		'redirect_loops'          => __( 'No redirect loops', 'easyrankly' ),
 		'redirect_chains'         => __( 'No redirect chains', 'easyrankly' ),
 		'redirect_collisions'     => __( 'No redirect collisions', 'easyrankly' ),
@@ -167,7 +168,7 @@ function erankly_migration_guided_copy( array $ui ): array {
 		'contract_verified'   => array(
 			'title'       => __( 'Data import complete', 'easyrankly' ),
 			'instruction' => __( 'The certified import contract was verified', 'easyrankly' ),
-			'body'        => __( 'A before-and-after frontend comparison was not available for this file import. Review representative pages before deleting the source backup.', 'easyrankly' ),
+			'body'        => __( 'A before-and-after frontend comparison was not available because the source plugin did not own the current SEO output. Review representative pages before deleting the source backup.', 'easyrankly' ),
 		),
 		'verification_failed' => array(
 			'title'       => __( 'The final verification needs attention', 'easyrankly' ),
@@ -304,7 +305,12 @@ function erankly_migration_render_guided_action( array $ui, array $report ): voi
  */
 function erankly_migration_render_attention( array $ui, array $report, array $gate ): void {
 	$checks   = is_array( $gate['checks'] ?? null ) ? $gate['checks'] : array();
-	$warnings = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
+	$warnings = is_array( $report['warnings'] ?? null ) ? array_values(
+		array_filter(
+			$report['warnings'],
+			static fn( mixed $warning ): bool => ! is_array( $warning ) || ! isset( $warning['blocking'] ) || (bool) $warning['blocking']
+		)
+	) : array();
 	$live     = is_array( $report['live_verification'] ?? null ) ? $report['live_verification'] : array();
 	$failed   = array_values( array_filter( $checks, static fn( array $check ): bool => 'fail' === (string) ( $check['status'] ?? '' ) ) );
 	$has_live = (int) ( $live['mismatch'] ?? 0 ) > 0 || (int) ( $live['request_failed'] ?? 0 ) > 0;
@@ -325,6 +331,7 @@ function erankly_migration_render_attention( array $ui, array $report, array $ga
 		'semantic_match'          => __( 'Some normalized values differ from the source meaning.', 'easyrankly' ),
 		'unresolved_placeholders' => __( 'Some source template variables could not be resolved.', 'easyrankly' ),
 		'redirect_storage'        => __( 'Some redirects do not match their stored values.', 'easyrankly' ),
+		'redirect_runtime'        => __( 'A redirect response or same-site destination is broken.', 'easyrankly' ),
 		'redirect_loops'          => __( 'A redirect loop was detected.', 'easyrankly' ),
 		'redirect_chains'         => __( 'A redirect chain was detected.', 'easyrankly' ),
 		'redirect_collisions'     => __( 'Two redirects use the same source path.', 'easyrankly' ),
@@ -352,6 +359,18 @@ function erankly_migration_render_attention( array $ui, array $report, array $ga
 			<?php foreach ( is_array( $live['redirects'] ?? null ) ? $live['redirects'] : array() as $redirect ) : ?>
 				<?php if ( in_array( (string) ( $redirect['status'] ?? '' ), array( 'mismatch', 'request_failed' ), true ) ) : ?>
 					<li><?php esc_html_e( 'Redirect response differs: ', 'easyrankly' ); ?><code><?php echo esc_html( (string) ( $redirect['source_path'] ?? '' ) ); ?></code></li>
+				<?php endif; ?>
+			<?php endforeach; ?>
+			<?php $redirect_contract = is_array( $report['html_baseline']['redirect_contract'] ?? null ) ? $report['html_baseline']['redirect_contract'] : array(); ?>
+			<?php foreach ( is_array( $redirect_contract['probes'] ?? null ) ? $redirect_contract['probes'] : array() as $redirect ) : ?>
+				<?php if ( in_array( (string) ( $redirect['status'] ?? '' ), array( 'mismatch', 'dead_target', 'request_failed' ), true ) ) : ?>
+					<li>
+						<?php if ( 'dead_target' === (string) ( $redirect['status'] ?? '' ) ) : ?>
+							<?php echo esc_html( sprintf( /* translators: 1: redirect source path, 2: target HTTP status. */ __( 'Redirect target is not healthy: %1$s returned HTTP %2$d.', 'easyrankly' ), (string) ( $redirect['source_path'] ?? '' ), absint( $redirect['target_status'] ?? 0 ) ) ); ?>
+						<?php else : ?>
+							<?php echo esc_html( sprintf( /* translators: %s: redirect source path. */ __( 'Redirect runtime verification failed: %s.', 'easyrankly' ), (string) ( $redirect['source_path'] ?? '' ) ) ); ?>
+						<?php endif; ?>
+					</li>
 				<?php endif; ?>
 			<?php endforeach; ?>
 			<?php foreach ( is_array( $live['surfaces'] ?? null ) ? $live['surfaces'] : array() as $surface => $result ) : ?>

@@ -448,6 +448,14 @@ final class ERankly_Migration_Manager {
 	 */
 	public function empty_counts(): array {
 		return array(
+			'settings_found'          => 0,
+			'settings_ready'          => 0,
+			'settings_written'        => 0,
+			'settings_skipped_existing' => 0,
+			'settings_identical'      => 0,
+			'settings_conflicts'      => 0,
+			'settings_invalid'        => 0,
+			'settings_failed'         => 0,
 			'objects_found'           => 0,
 			'posts_found'             => 0,
 			'terms_found'             => 0,
@@ -551,15 +559,19 @@ final class ERankly_Migration_Manager {
 		$counts          = is_array( $report['counts'] ?? null ) ? $report['counts'] : array();
 		$mode            = (string) ( $report['mode'] ?? '' );
 		$status          = (string) ( $report['status'] ?? 'failed' );
-		$failed          = (int) ( $counts['fields_failed'] ?? 0 ) + (int) ( $counts['redirects_failed'] ?? 0 );
-		$invalid         = (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 );
-		$conflicts       = (int) ( $counts['fields_conflicts'] ?? 0 ) + (int) ( $counts['redirects_conflicts'] ?? 0 );
+		$failed          = (int) ( $counts['settings_failed'] ?? 0 ) + (int) ( $counts['fields_failed'] ?? 0 ) + (int) ( $counts['redirects_failed'] ?? 0 );
+		$invalid         = (int) ( $counts['settings_invalid'] ?? 0 ) + (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 );
+		$conflicts       = (int) ( $counts['settings_conflicts'] ?? 0 ) + (int) ( $counts['fields_conflicts'] ?? 0 ) + (int) ( $counts['redirects_conflicts'] ?? 0 );
 		$warnings        = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
+		$blocking_warnings = array_filter(
+			$warnings,
+			static fn( mixed $warning ): bool => ! is_array( $warning ) || ! isset( $warning['blocking'] ) || (bool) $warning['blocking']
+		);
 		$source_verified = ! empty( $report['source_fingerprint_verified'] );
 		$evidence        = is_array( $report['evidence'] ?? null ) ? $report['evidence'] : array();
 		$invariant_pass  = empty( $evidence ) || 'pass' === (string) ( $evidence['invariant']['status'] ?? '' );
-		$blocked         = 'complete' !== $status || $failed > 0 || ! $source_verified || ! $invariant_pass;
-		$needs_review    = $invalid > 0 || $conflicts > 0 || ! empty( $warnings );
+		$blocked         = 'complete' !== $status || $failed > 0 || ! $source_verified || ! $invariant_pass || ! empty( $blocking_warnings );
+		$needs_review    = $invalid > 0 || $conflicts > 0;
 
 		if ( $blocked ) {
 			$state = 'blocked';
@@ -594,8 +606,8 @@ final class ERankly_Migration_Manager {
 			),
 			array(
 				'code'   => 'diagnostics',
-				'status' => $warnings ? 'warn' : 'pass',
-				'count'  => count( $warnings ),
+				'status' => $blocking_warnings ? 'warn' : 'pass',
+				'count'  => count( $blocking_warnings ),
 			),
 			array(
 				'code'   => 'accounting_invariant',

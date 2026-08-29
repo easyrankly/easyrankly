@@ -41,6 +41,7 @@ final class ERankly_Migration_Live_Verifier {
 		$source_owns_output = (bool) apply_filters( 'erankly_migration_source_owns_output', erankly_detect_external_seo_head_owner(), sanitize_key( $source ) );
 		$limit              = max( 1, min( 10, (int) apply_filters( 'erankly_migration_live_sample_limit', 3 ) ) );
 		if ( ! $source_owns_output ) {
+			$redirect_contract = $this->redirect_contract( $evidence, $limit );
 			return array(
 				'captured_at'         => gmdate( 'c' ),
 				'state'               => 'not_source_owned',
@@ -48,6 +49,7 @@ final class ERankly_Migration_Live_Verifier {
 				'pages'               => array(),
 				'redirects'           => array(),
 				'surfaces'            => array(),
+				'redirect_contract'    => $redirect_contract,
 				'policy'              => array(
 					'same_origin_only'     => true,
 					'follow_redirects'     => false,
@@ -77,6 +79,7 @@ final class ERankly_Migration_Live_Verifier {
 				$redirects[ $path ] = $this->response_probe( $url );
 			}
 		}
+		$redirect_contract = $this->redirect_contract( $evidence, $limit, $redirects );
 
 		$sitemap_path               = array(
 			'yoast'    => '/sitemap_index.xml',
@@ -101,6 +104,7 @@ final class ERankly_Migration_Live_Verifier {
 			'pages'               => $pages,
 			'redirects'           => $redirects,
 			'surfaces'            => $surfaces,
+			'redirect_contract'    => $redirect_contract,
 			'policy'              => array(
 				'same_origin_only'     => true,
 				'follow_redirects'     => false,
@@ -326,6 +330,97 @@ final class ERankly_Migration_Live_Verifier {
 			'status_code'   => absint( wp_remote_retrieve_response_code( $response ) ),
 			'location'      => esc_url_raw( (string) wp_remote_retrieve_header( $response, 'location' ) ),
 		);
+	}
+
+	/**
+	 * Verifies sampled redirect responses and the health of same-origin targets.
+	 *
+	 * External targets are not requested; their response code and Location header
+	 * are still checked at the source URL. Same-origin targets must resolve directly
+	 * to a successful response so a migrated rule cannot hide a redirect chain or 404.
+	 *
+	 * @param array<string,mixed>                     $evidence         Terminal migration evidence.
+	 * @param int                                     $limit            Maximum redirect rules to sample.
+	 * @param array<string,array<string,mixed>>        $source_responses Previously captured source responses keyed by path.
+	 * @return array<string,mixed> Redirect contract result.
+	 */
+	private function redirect_contract( array $evidence, int $limit, array $source_responses = array() ): array {
+		$audit  = is_array( $evidence['redirect_audit'] ?? null ) ? $evidence['redirect_audit'] : array();
+		$probes = array_slice( is_array( $audit['storage_probes'] ?? null ) ? $audit['storage_probes'] : array(), 0, max( 1, $limit ) );
+		$result = array(
+			'state'          => 'not_applicable',
+			'tested'         => 0,
+			'passed'         => 0,
+			'failed'         => 0,
+			'request_failed' => 0,
+			'probes'         => array(),
+		);
+
+		foreach ( $probes as $probe ) {
+			$path              = (string) ( $probe['source_path'] ?? '' );
+			$source_url        = $this->same_origin_url( $path );
+			$expected_status   = absint( $probe['expected_status'] ?? 0 );
+			$expected_location = esc_url_raw( (string) ( $probe['expected_location'] ?? '' ) );
+			$source_response   = is_array( $source_responses[ $path ] ?? null ) ? $source_responses[ $path ] : $this->response_probe( $source_url );
+			$status            = 'match';
+			$target_state      = 'not_applicable';
+			$target_status     = 0;
+
+			if ( 'ok' !== (string) ( $source_response['request_state'] ?? '' ) ) {
+				$status = 'request_failed';
+			} else {
+				$actual_status   = absint( $source_response['status_code'] ?? 0 );
+				$actual_location = esc_url_raw( (string) ( $source_response['location'] ?? '' ) );
+				$status_only     = in_array( $expected_status, array( 410, 451 ), true );
+				$location_match  = $status_only || $this->normalize_url( $expected_location ) === $this->normalize_url( $actual_location );
+				if ( $expected_status !== $actual_status || ! $location_match ) {
+					$status = 'mismatch';
+				} elseif ( ! $status_only && '' !== $expected_location ) {
+					$target_url = $expected_location;
+					if ( ! $this->is_same_origin( $target_url ) && str_starts_with( $target_url, '/' ) ) {
+						$target_url = $this->same_origin_url( $target_url );
+					}
+					if ( $this->is_same_origin( $target_url ) ) {
+						$target          = $this->response_probe( $target_url );
+						$target_state    = (string) ( $target['request_state'] ?? 'failed' );
+						$target_status   = absint( $target['status_code'] ?? 0 );
+						if ( 'ok' !== $target_state ) {
+							$status = 'request_failed';
+						} elseif ( $target_status < 200 || $target_status >= 300 ) {
+							$status       = 'dead_target';
+							$target_state = 'http_error';
+						}
+					} else {
+						$target_state = 'external_not_probed';
+					}
+				}
+			}
+
+			++$result['tested'];
+			if ( 'match' === $status ) {
+				++$result['passed'];
+			} elseif ( 'request_failed' === $status ) {
+				++$result['request_failed'];
+			} else {
+				++$result['failed'];
+			}
+			$result['probes'][] = array(
+				'source_path'       => sanitize_text_field( $path ),
+				'status'            => $status,
+				'expected_status'   => $expected_status,
+				'actual_status'     => absint( $source_response['status_code'] ?? 0 ),
+				'expected_location' => $expected_location,
+				'actual_location'   => esc_url_raw( (string) ( $source_response['location'] ?? '' ) ),
+				'target_state'      => sanitize_key( $target_state ),
+				'target_status'     => $target_status,
+			);
+		}
+
+		if ( $result['tested'] > 0 ) {
+			$result['state'] = $result['request_failed'] > 0 ? 'inconclusive' : ( $result['failed'] > 0 ? 'differences_found' : 'verified' );
+		}
+
+		return $result;
 	}
 
 	/**

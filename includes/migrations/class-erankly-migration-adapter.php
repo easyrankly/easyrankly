@@ -23,7 +23,7 @@ abstract class ERankly_Migration_Adapter {
 	/**
 	 * Collected non-fatal warnings.
 	 *
-	 * @var array<int,array<string,string>>
+	 * @var array<int,array<string,mixed>>
 	 */
 	protected array $warnings = array();
 
@@ -72,6 +72,18 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
+	 * Returns normalized EasyRankly global settings discovered in the source.
+	 *
+	 * Values use EasyRankly setting keys and are sanitized by the job runner as
+	 * one complete snapshot before individual conflict decisions are staged.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function global_settings(): array {
+		return array();
+	}
+
+	/**
 	 * Returns one resumable page of normalized content records.
 	 *
 	 * Concrete adapters override this with keyset cursors. The fallback keeps the
@@ -109,7 +121,7 @@ abstract class ERankly_Migration_Adapter {
 	/**
 	 * Returns non-fatal adapter warnings.
 	 *
-	 * @return array<int,array<string,string>>
+	 * @return array<int,array<string,mixed>>
 	 */
 	public function warnings(): array {
 		return $this->warnings;
@@ -364,9 +376,10 @@ abstract class ERankly_Migration_Adapter {
 	 * @param string $code      Machine-readable warning code.
 	 * @param string $message   Human-readable message.
 	 * @param string $reference Optional source record reference.
+	 * @param bool   $blocking  Whether this diagnostic must block go-live.
 	 * @return void
 	 */
-	protected function add_warning( string $code, string $message, string $reference = '' ): void {
+	protected function add_warning( string $code, string $message, string $reference = '', bool $blocking = true ): void {
 		if ( count( $this->warnings ) >= 100 ) {
 			return;
 		}
@@ -375,6 +388,7 @@ abstract class ERankly_Migration_Adapter {
 			'code'      => sanitize_key( $code ),
 			'message'   => sanitize_text_field( $message ),
 			'reference' => sanitize_text_field( $reference ),
+			'blocking'  => $blocking,
 		);
 	}
 
@@ -516,10 +530,16 @@ abstract class ERankly_Migration_Adapter {
 	protected function source_table_batch( string $suffix, int $after_id, int $limit ): array {
 		global $wpdb;
 
-		$allowed = array(
+		$required = array(
 			'aioseo_posts'           => array( 'id', 'post_id', 'title', 'description', 'canonical_url' ),
 			'aioseo_terms'           => array( 'id', 'term_id', 'title', 'description' ),
 			'aioseo_redirects'       => array( 'id', 'source_url', 'target_url', 'type', 'source_url_match', 'query_param', 'enabled' ),
+			'rank_math_redirections' => array( 'id', 'sources', 'url_to', 'header_code', 'status' ),
+		);
+		$allowed  = array(
+			'aioseo_posts'           => array( 'id', 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
+			'aioseo_terms'           => array( 'id', 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
+			'aioseo_redirects'       => array( 'id', 'source_url', 'target_url', 'type', 'source_url_match', 'query_param', 'enabled', 'ignore_case' ),
 			'rank_math_redirections' => array( 'id', 'sources', 'url_to', 'header_code', 'status' ),
 		);
 		$limit   = max( 1, min( 500, $limit ) );
@@ -542,12 +562,17 @@ abstract class ERankly_Migration_Adapter {
 				'done'     => true,
 			);
 		}
-		if ( array_diff( $allowed[ $suffix ], $this->table_columns( $table ) ) ) {
+		$available_columns = $this->table_columns( $table );
+		if ( array_diff( $required[ $suffix ], $available_columns ) ) {
 			throw new RuntimeException( 'Source plugin table has an unsupported storage signature.' );
 		}
+		$columns      = array_values( array_intersect( $allowed[ $suffix ], $available_columns ) );
+		$placeholders = implode( ', ', array_fill( 0, count( $columns ), '%i' ) );
+		$sql          = 'SELECT ' . $placeholders . ' FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d';
+		$params       = array_merge( $columns, array( $table, $after_id, $limit ) );
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded third-party source scan.
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d', $table, $after_id, $limit ),
+			$wpdb->prepare( $sql, $params ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Every selected identifier and value has a matching placeholder.
 			ARRAY_A
 		);
 		if ( '' !== (string) $wpdb->last_error ) {
@@ -682,6 +707,288 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
+	 * Reads a source option as an array, accepting native arrays and JSON.
+	 *
+	 * @param string $name Option name.
+	 * @return array<string|int,mixed>
+	 */
+	protected function option_array( string $name ): array {
+		$value = get_option( $name, array() );
+		$value = maybe_unserialize( $value );
+		if ( is_string( $value ) ) {
+			$decoded = json_decode( $value, true );
+			if ( JSON_ERROR_NONE === json_last_error() ) {
+				$value = $decoded;
+			}
+		}
+
+		return is_array( $value ) ? $value : array();
+	}
+
+	/**
+	 * Returns whether an option contains a non-empty source settings map.
+	 *
+	 * @param string $name Option name.
+	 * @return bool
+	 */
+	protected function has_option_map( string $name ): bool {
+		return ! empty( $this->option_array( $name ) );
+	}
+
+	/**
+	 * Reads a dotted path from a nested source settings map.
+	 *
+	 * @param array<string|int,mixed> $source  Source map.
+	 * @param string|array<int,string> $path   Dotted or segmented path.
+	 * @param mixed                    $default Fallback value.
+	 * @return mixed
+	 */
+	protected function nested_value( array $source, string|array $path, mixed $default = '' ): mixed {
+		$segments = is_array( $path ) ? $path : explode( '.', $path );
+		$value    = $source;
+		foreach ( $segments as $segment ) {
+			if ( ! is_array( $value ) || ! array_key_exists( $segment, $value ) ) {
+				return $default;
+			}
+			$value = $value[ $segment ];
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Checks whether a dotted path exists, including explicit false/zero values.
+	 *
+	 * @param array<string|int,mixed> $source Source map.
+	 * @param string|array<int,string> $path Dotted or segmented path.
+	 * @return bool
+	 */
+	protected function has_nested_value( array $source, string|array $path ): bool {
+		$sentinel = new stdClass();
+
+		return $sentinel !== $this->nested_value( $source, $path, $sentinel );
+	}
+
+	/**
+	 * Returns the first existing value from alternative source paths.
+	 *
+	 * @param array<string|int,mixed> $source Source map.
+	 * @param array<int,string|array<int,string>> $paths Candidate paths.
+	 * @param mixed $default Fallback value.
+	 * @return mixed
+	 */
+	protected function first_nested_value( array $source, array $paths, mixed $default = '' ): mixed {
+		foreach ( $paths as $path ) {
+			if ( $this->has_nested_value( $source, $path ) ) {
+				return $this->nested_value( $source, $path, $default );
+			}
+		}
+
+		return $default;
+	}
+
+	/**
+	 * Normalizes source robots values to EasyRankly global directives.
+	 *
+	 * @param mixed $value Source robots value or map.
+	 * @return array{noindex:int,nofollow:int,noarchive:int}
+	 */
+	protected function global_robots( mixed $value ): array {
+		$tokens = array();
+		$walk   = static function ( mixed $item, string $key = '' ) use ( &$walk, &$tokens ): void {
+			if ( is_array( $item ) ) {
+				foreach ( $item as $child_key => $child ) {
+					$walk( $child, is_string( $child_key ) ? $child_key : '' );
+				}
+				return;
+			}
+			if ( '' !== $key && in_array( strtolower( $key ), array( 'noindex', 'nofollow', 'noarchive' ), true ) && in_array( strtolower( trim( (string) $item ) ), array( '1', 'on', 'yes', 'true', 'enabled' ), true ) ) {
+				$tokens[] = strtolower( $key );
+			}
+			if ( is_scalar( $item ) ) {
+				$parts  = preg_split( '/[^a-z]+/', strtolower( (string) $item ) );
+				$tokens = array_merge( $tokens, is_array( $parts ) ? $parts : array() );
+			}
+		};
+		$walk( $value );
+
+		return array(
+			'noindex'   => in_array( 'noindex', $tokens, true ) ? 1 : 0,
+			'nofollow'  => in_array( 'nofollow', $tokens, true ) ? 1 : 0,
+			'noarchive' => in_array( 'noarchive', $tokens, true ) ? 1 : 0,
+		);
+	}
+
+	/**
+	 * Returns whether the source explicitly supplied a robots policy.
+	 *
+	 * Empty/missing source values must not turn EasyRankly's safe defaults into
+	 * index/follow. Explicit false values on named directives still count as a
+	 * policy because they intentionally opt out of that directive.
+	 *
+	 * @param mixed $value Source robots configuration.
+	 * @return bool
+	 */
+	protected function has_robot_configuration( mixed $value ): bool {
+		if ( is_array( $value ) ) {
+			foreach ( $value as $key => $child ) {
+				$normalized_key = is_string( $key ) ? strtolower( preg_replace( '/[^a-z]+/', '', $key ) ) : '';
+				if ( in_array( $normalized_key, array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'robots', 'robotsmeta' ), true ) ) {
+					return true;
+				}
+				if ( $this->has_robot_configuration( $child ) ) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		if ( ! is_scalar( $value ) || '' === trim( (string) $value ) ) {
+			return false;
+		}
+
+		$tokens = preg_split( '/[^a-z]+/', strtolower( (string) $value ) );
+
+		return (bool) array_intersect( is_array( $tokens ) ? $tokens : array(), array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive' ) );
+	}
+
+	/**
+	 * Builds a complete post-type/taxonomy/special-page default row.
+	 *
+	 * @param string              $title       Converted title template.
+	 * @param string              $description Converted description template.
+	 * @param mixed               $robots      Source robots configuration.
+	 * @param bool|null           $in_sitemap  Explicit source sitemap inclusion.
+	 * @param string              $webpage_type Optional Schema.org WebPage subtype.
+	 * @param string              $article_type Optional Schema.org Article subtype.
+	 * @return array<string,string|int>
+	 */
+	protected function global_meta_row( string $title, string $description, mixed $robots = null, ?bool $in_sitemap = null, string $webpage_type = '', string $article_type = '' ): array {
+		erankly_load_default_helpers();
+		$row = array(
+			'title'       => $title,
+			'description' => $description,
+		);
+		if ( $this->has_robot_configuration( $robots ) ) {
+			$row += $this->global_robots( $robots );
+		}
+		if ( null !== $in_sitemap ) {
+			$row['disable_sitemap'] = false === $in_sitemap ? 1 : 0;
+		}
+
+		if ( '' !== $webpage_type || '' !== $article_type ) {
+			$row['webpage_type'] = erankly_sanitize_schema_type_name( $webpage_type );
+			$row['article_type'] = erankly_sanitize_schema_type_name( $article_type );
+		}
+
+		return $row;
+	}
+
+	/**
+	 * Converts a template for a non-singular page context.
+	 *
+	 * Third-party plugins reuse author/date variables whose closest generic
+	 * EasyRankly equivalents are post-scoped. Archive defaults need dedicated
+	 * context tokens so they do not resolve to an empty string on the frontend.
+	 *
+	 * @param mixed  $value   Source template.
+	 * @param string $source  Source plugin slug.
+	 * @param string $context Special-page context.
+	 * @return string
+	 */
+	protected function special_template( mixed $value, string $source, string $context ): string {
+		$converted = erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', $source );
+		if ( 'author' === $context ) {
+			$converted = str_replace( '{{post_author}}', '{{author_name}}', $converted );
+		} elseif ( 'date' === $context ) {
+			$converted = str_replace( '{{post_date}}', '{{archive_date}}', $converted );
+		}
+
+		return $converted;
+	}
+
+	/**
+	 * Joins valid social profile URLs for EasyRankly's newline storage.
+	 *
+	 * @param array<int,mixed> $values Candidate URLs.
+	 * @return string
+	 */
+	protected function social_profile_list( array $values ): string {
+		$urls = array();
+		foreach ( $values as $value ) {
+			if ( is_array( $value ) ) {
+				$urls = array_merge( $urls, preg_split( '/[\r\n,]+/', implode( "\n", array_filter( $value, 'is_scalar' ) ) ) ?: array() );
+			} elseif ( is_scalar( $value ) ) {
+				$urls = array_merge( $urls, preg_split( '/[\r\n,]+/', (string) $value ) ?: array() );
+			}
+		}
+		$urls = array_values( array_unique( array_filter( array_map( 'esc_url_raw', $urls ) ) ) );
+
+		return implode( "\n", $urls );
+	}
+
+	/**
+	 * Resolves a source Person identity to a local WordPress user when possible.
+	 *
+	 * @param mixed  $candidate_id Source user ID.
+	 * @param string $name         Source display name.
+	 * @return int
+	 */
+	protected function person_user_id( mixed $candidate_id, string $name = '' ): int {
+		$user_id = absint( $candidate_id );
+		if ( $user_id > 0 && get_userdata( $user_id ) ) {
+			return $user_id;
+		}
+		if ( '' !== trim( $name ) ) {
+			$users = get_users(
+				array(
+					'search'         => trim( $name ),
+					'search_columns' => array( 'display_name', 'user_login' ),
+					'number'         => 2,
+					'fields'         => 'ids',
+				)
+			);
+			if ( 1 === count( $users ) ) {
+				return absint( $users[0] );
+			}
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Resolves a Person identity and records a blocking diagnostic when unsafe.
+	 *
+	 * @param mixed  $candidate_id Source user ID.
+	 * @param string $name         Source display name.
+	 * @return int
+	 */
+	protected function person_user_id_or_warning( mixed $candidate_id, string $name = '' ): int {
+		$user_id = $this->person_user_id( $candidate_id, $name );
+		if ( $user_id < 1 ) {
+			$current_user_id = 'person' === (string) erankly_get_setting( 'schema_identity', '' ) ? absint( erankly_get_setting( 'schema_person_user_id', 0 ) ) : 0;
+			if ( $current_user_id > 0 && get_userdata( $current_user_id ) ) {
+				$this->add_warning(
+					'schema_person_identity_preserved',
+					__( 'The source Person name could not be matched automatically. The existing EasyRankly Person user was preserved; verify it in Schema settings before go-live.', 'easyrankly' ),
+					'settings:schema_person_user_id',
+					false
+				);
+
+				return $current_user_id;
+			}
+			$this->add_warning(
+				'schema_person_identity_unmatched',
+				__( 'The source identifies the site as a person, but no unique local WordPress user could be matched. Select the person in EasyRankly before go-live.', 'easyrankly' ),
+				'settings:schema_person_user_id'
+			);
+		}
+
+		return $user_id;
+	}
+
+	/**
 	 * Returns the current WordPress alternative text for an attachment.
 	 *
 	 * Source plugins normally resolve attachment alt text at render time instead
@@ -700,11 +1007,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Lets add-ons attach destination keys they own to a mapped record.
+	 * Maps shared editorial fields and lets add-ons attach destination keys.
 	 *
-	 * Core adapters pass generic editorial fields from the source plugin
-	 * (focus keyphrases, cornerstone/pillar flags) without writing add-on
-	 * meta keys themselves.
+	 * Focus keyphrases and cornerstone/pillar flags are core-owned migration
+	 * destinations. Add-ons can still extend the final mapped metadata.
 	 *
 	 * @param array<string,mixed> $mapped    Core-owned mapped meta.
 	 * @param array<string,mixed> $editorial Editorial payload. Recognised keys:
@@ -713,6 +1019,13 @@ abstract class ERankly_Migration_Adapter {
 	 * @return array<string,mixed>
 	 */
 	protected function with_extension_meta( array $mapped, array $editorial = array() ): array {
+		if ( ! empty( $editorial['focus_keywords'] ) ) {
+			$mapped['_erankly_focus_keywords'] = erankly_sanitize_focus_keywords( $editorial['focus_keywords'] );
+		}
+		if ( ! empty( $editorial['cornerstone'] ) ) {
+			$mapped['_erankly_cornerstone'] = true;
+		}
+
 		/**
 		 * Filters mapped EasyRankly metadata before it is queued for import.
 		 *
@@ -750,9 +1063,12 @@ abstract class ERankly_Migration_Adapter {
 		$keywords = array();
 		$walk     = static function ( mixed $item ) use ( &$walk, &$keywords ): void {
 			if ( is_string( $item ) ) {
-				$item = trim( $item );
-				if ( '' !== $item ) {
-					$keywords[] = $item;
+				$parts = preg_split( '/[\r\n,]+/', $item );
+				foreach ( is_array( $parts ) ? $parts : array( $item ) as $part ) {
+					$part = trim( $part );
+					if ( '' !== $part ) {
+						$keywords[] = $part;
+					}
 				}
 				return;
 			}
@@ -1012,6 +1328,15 @@ abstract class ERankly_Migration_Adapter {
 			if ( ! $query ) {
 				return array();
 			}
+			if ( $this->uses_portable_fingerprint() ) {
+				return $this->portable_row_fingerprint(
+					$query['table'],
+					array( $query['row_id_column'], $query['id_column'], 'meta_key', 'meta_value' ),
+					$query['row_id_column'],
+					$query['where'],
+					$query['params']
+				);
+			}
 			$sql    = "SELECT COUNT(*) AS row_count, COALESCE(MAX(%i),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',%i,%i,meta_key,meta_value))),0) AS checksum FROM %i WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the internal placeholder predicate is assembled here; identifiers use %i below.
 			$params = array_merge( array( $query['row_id_column'], $query['row_id_column'], $query['id_column'], $query['table'] ), $query['params'] );
 			$row    = $wpdb->get_row( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared value-sensitive fingerprint over an internal metadata predicate.
@@ -1027,6 +1352,9 @@ abstract class ERankly_Migration_Adapter {
 			}
 			$columns             = array_values( array_unique( array_merge( array( 'id' ), $required, is_array( $definition['fingerprint_columns'] ?? null ) ? array_map( 'sanitize_key', $definition['fingerprint_columns'] ) : array() ) ) );
 			$columns             = array_values( array_intersect( $columns, $this->table_columns( $table ) ) );
+			if ( $this->uses_portable_fingerprint() ) {
+				return $this->portable_row_fingerprint( $table, $columns, 'id' );
+			}
 			$column_placeholders = implode( ',', array_fill( 0, count( $columns ), '%i' ) );
 			$sql                 = "SELECT COUNT(*) AS row_count, COALESCE(MAX(id),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',{$column_placeholders}))),0) AS checksum FROM %i"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholder count matches the certified column list below.
 			$row                 = $wpdb->get_row( $wpdb->prepare( $sql, array_merge( $columns, array( $table ) ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Every certified column and table identifier is escaped through %i.
@@ -1044,11 +1372,97 @@ abstract class ERankly_Migration_Adapter {
 			if ( '' === $post_type ) {
 				return array();
 			}
+			if ( $this->uses_portable_fingerprint() ) {
+				return $this->portable_row_fingerprint(
+					$wpdb->posts,
+					array( 'ID', 'post_title', 'post_name', 'post_status', 'post_modified_gmt' ),
+					'ID',
+					'post_type = %s',
+					array( $post_type )
+				);
+			}
 			$row = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) AS row_count, COALESCE(MAX(ID),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',ID,post_title,post_name,post_status,post_modified_gmt))),0) AS checksum FROM {$wpdb->posts} WHERE post_type = %s", $post_type ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table read for source fingerprint.
 			return is_array( $row ) ? $row : array();
 		}
 
 		return array();
+	}
+
+	/**
+	 * Detects database layers that do not provide MySQL checksum functions.
+	 *
+	 * @return bool
+	 */
+	private function uses_portable_fingerprint(): bool {
+		global $wpdb;
+
+		return false !== stripos( get_class( $wpdb ), 'sqlite' ) || defined( 'SQLITE_DB_DROPIN_VERSION' ) || defined( 'SQLITE_DB_VERSION' );
+	}
+
+	/**
+	 * Builds a deterministic SHA-256 fingerprint in bounded database pages.
+	 *
+	 * This path keeps WordPress Studio/SQLite compatible without loading a whole
+	 * source surface into memory. Length-prefixing every scalar prevents row and
+	 * column boundary collisions in the incremental hash.
+	 *
+	 * @param string              $table     Certified table name.
+	 * @param array<int,string>   $columns   Certified columns to hash.
+	 * @param string              $id_column Integer keyset-pagination column.
+	 * @param string              $where     Optional prepared predicate.
+	 * @param array<int,mixed>    $params    Predicate values.
+	 * @return array{row_count:int,max_id:int,checksum:string}
+	 */
+	private function portable_row_fingerprint( string $table, array $columns, string $id_column, string $where = '', array $params = array() ): array {
+		global $wpdb;
+
+		$columns = array_values( array_unique( array_filter( array_map( 'sanitize_key', $columns ) ) ) );
+		$id_column = sanitize_key( $id_column );
+		if ( '' === $table || '' === $id_column || ! in_array( $id_column, array_map( 'strtolower', $columns ), true ) ) {
+			return array(
+				'row_count' => 0,
+				'max_id'    => 0,
+				'checksum'  => hash( 'sha256', '' ),
+			);
+		}
+
+		$batch_size         = 500;
+		$after_id           = 0;
+		$row_count          = 0;
+		$context            = hash_init( 'sha256' );
+		$column_placeholders = implode( ',', array_fill( 0, count( $columns ), '%i' ) );
+
+		do {
+			$sql        = "SELECT {$column_placeholders} FROM %i WHERE %i > %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only a trusted identifier placeholder list is assembled.
+			$sql_params = array_merge( $columns, array( $table, $id_column, $after_id ) );
+			if ( '' !== $where ) {
+				$sql         .= " AND ({$where})"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Predicate is built internally by meta_surface_query or a fixed core-table condition.
+				$sql_params = array_merge( $sql_params, $params );
+			}
+			$sql        .= ' ORDER BY %i ASC LIMIT %d';
+			$sql_params  = array_merge( $sql_params, array( $id_column, $batch_size ) );
+			$rows        = $wpdb->get_results( $wpdb->prepare( $sql, $sql_params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- All identifiers and values use matching placeholders.
+			if ( '' !== (string) $wpdb->last_error ) {
+				throw new RuntimeException( 'Source fingerprint page could not be read.' );
+			}
+			$rows = is_array( $rows ) ? array_values( array_filter( $rows, 'is_array' ) ) : array();
+
+			foreach ( $rows as $row ) {
+				$row = array_change_key_case( $row, CASE_LOWER );
+				foreach ( $columns as $column ) {
+					$value = isset( $row[ $column ] ) && is_scalar( $row[ $column ] ) ? (string) $row[ $column ] : '';
+					hash_update( $context, pack( 'N', strlen( $value ) ) . $value );
+				}
+				$after_id = max( $after_id, absint( $row[ $id_column ] ?? 0 ) );
+				++$row_count;
+			}
+		} while ( count( $rows ) === $batch_size );
+
+		return array(
+			'row_count' => $row_count,
+			'max_id'    => $after_id,
+			'checksum'  => hash_final( $context ),
+		);
 	}
 
 	/**

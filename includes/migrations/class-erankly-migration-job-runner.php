@@ -155,6 +155,7 @@ final class ERankly_Migration_Job_Runner {
 					'code'      => 'source_module_review_required',
 					'message'   => sprintf( 'The detected %s module has global or add-on data that requires manual review after migration.', sanitize_key( (string) $module ) ),
 					'reference' => sanitize_key( (string) $module ),
+					'blocking'  => false,
 				);
 			}
 		}
@@ -163,7 +164,7 @@ final class ERankly_Migration_Job_Runner {
 			'source'              => $adapter->slug(),
 			'dry_run'             => $dry_run,
 			'status'              => 'queued',
-			'stream'              => 'content',
+			'stream'              => 'settings',
 			'cursor'              => array(),
 			'batches'             => 0,
 			'cancel_requested'    => false,
@@ -325,8 +326,8 @@ final class ERankly_Migration_Job_Runner {
 				erankly_import_variable_diagnostics( null, true );
 			}
 
-			$stream = (string) ( $job['stream'] ?? 'content' );
-			if ( in_array( $stream, array( 'content', 'redirect' ), true ) ) {
+			$stream = (string) ( $job['stream'] ?? 'settings' );
+			if ( in_array( $stream, array( 'settings', 'content', 'redirect' ), true ) ) {
 				$job['status'] = 'discovering';
 				$this->process_discovery_page( $job, $adapter, $stream );
 			} else {
@@ -373,11 +374,18 @@ final class ERankly_Migration_Job_Runner {
 	 *
 	 * @param array<string,mixed>       $job     Active job.
 	 * @param ERankly_Migration_Adapter $adapter Source adapter.
-	 * @param string                    $stream  content|redirect.
+	 * @param string                    $stream  settings|content|redirect.
 	 * @return void
 	 * @throws ERankly_Migration_Source_Changed_Exception When the immutable source fingerprint changes.
 	 */
 	private function process_discovery_page( array &$job, ERankly_Migration_Adapter $adapter, string $stream ): void {
+		if ( 'settings' === $stream ) {
+			$this->stage_global_settings( $job, $adapter->global_settings() );
+			$job['stream'] = 'content';
+			$job['cursor'] = array();
+			return;
+		}
+
 		$limit = max( 10, min( 500, (int) apply_filters( 'erankly_migration_batch_size', ERANKLY_MIGRATION_BATCH_SIZE ) ) );
 		$page  = 'content' === $stream
 			? $adapter->content_batch( is_array( $job['cursor'] ) ? $job['cursor'] : array(), $limit )
@@ -417,6 +425,169 @@ final class ERankly_Migration_Job_Runner {
 
 		$job['stream'] = ! empty( $job['dry_run'] ) ? 'finish' : 'apply';
 		$job['cursor'] = array();
+	}
+
+	/**
+	 * Stages sanitized global settings without overwriting customized targets.
+	 *
+	 * @param array<string,mixed> $job      Active job.
+	 * @param array<string,mixed> $settings Adapter-normalized settings.
+	 * @return void
+	 */
+	private function stage_global_settings( array &$job, array $settings ): void {
+		if ( ! $settings ) {
+			return;
+		}
+
+		erankly_load_default_helpers();
+		if ( ! function_exists( 'erankly_sanitize_settings' ) ) {
+			require_once ERANKLY_PATH . 'admin/settings-page.php';
+		}
+		$defaults = erankly_default_settings();
+		$settings = array_intersect_key( $settings, $defaults );
+		if ( ! $settings ) {
+			return;
+		}
+
+		$current_effective = erankly_get_settings();
+		foreach ( array( 'global_post_type_meta', 'global_taxonomy_meta', 'global_special_meta' ) as $map_key ) {
+			if ( isset( $settings[ $map_key ] ) && is_array( $settings[ $map_key ] ) ) {
+				$current_map = 'global_special_meta' === $map_key ? erankly_get_global_entity_meta_map( $map_key ) : ( is_array( $current_effective[ $map_key ] ?? null ) ? $current_effective[ $map_key ] : array() );
+				foreach ( $settings[ $map_key ] as $entity => $row ) {
+					if ( is_array( $row ) && isset( $current_map[ $entity ] ) && is_array( $current_map[ $entity ] ) ) {
+						$current_map[ $entity ] = array_replace( $current_map[ $entity ], $row );
+					} else {
+						$current_map[ $entity ] = $row;
+					}
+				}
+				$settings[ $map_key ] = $current_map;
+			}
+		}
+		$proposed  = array_replace( $current_effective, $settings );
+		$sanitized = erankly_sanitize_settings( $proposed );
+		$stored    = erankly_get_stored_settings();
+
+		foreach ( array_keys( $settings ) as $key ) {
+			if ( ! array_key_exists( $key, $sanitized ) ) {
+				continue;
+			}
+			$value      = $sanitized[ $key ];
+			$is_special = 'global_special_meta' === $key;
+			$exists     = $is_special && is_multisite()
+				? false !== get_option( ERANKLY_SPECIAL_META_OPTION, false )
+				: array_key_exists( $key, $stored );
+			$current    = $is_special ? erankly_get_global_entity_meta_map( $key ) : ( $exists ? $stored[ $key ] : $defaults[ $key ] );
+			$stored_value = $is_special && is_multisite()
+				? get_option( ERANKLY_SPECIAL_META_OPTION, array() )
+				: ( $exists ? $stored[ $key ] : null );
+			$preserved_paths = array();
+			$value = $this->reconcile_setting_value( $current, $value, $defaults[ $key ], $stored_value, $exists, $key, $preserved_paths );
+			$reference = 'settings:' . $key;
+			$occurrence = $this->store->occurrence_key( (string) $job['id'], 'setting', $reference, $key );
+			if ( $this->store->occurrence_exists( $occurrence ) ) {
+				continue;
+			}
+			foreach ( $preserved_paths as $path ) {
+				$this->add_warning(
+					$job,
+					'existing_setting_value_preserved',
+					sprintf(
+						/* translators: %s: EasyRankly settings path. */
+						__( 'An existing EasyRankly value differs from the source and will be preserved: %s. Review it before importing.', 'easyrankly' ),
+						$path
+					),
+					'settings:' . $path
+				);
+				$this->add_detail( $job, 'existing_setting_value_preserved', 'settings:' . $path, $key );
+			}
+
+			$status = 'ready';
+			$apply  = ! empty( $job['dry_run'] ) ? 'preview' : 'pending';
+			if ( $this->canonical_json( $current ) === $this->canonical_json( $value ) ) {
+				$status = $preserved_paths ? 'existing' : 'identical';
+				$apply  = 'none';
+			}
+
+			$encoded    = wp_json_encode( $value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			$value_hash = hash( 'sha256', false === $encoded ? '' : $encoded );
+			$inserted   = $this->store->add_event(
+				array(
+					'job_id'           => (string) $job['id'],
+					'item_kind'        => 'setting',
+					'source_reference' => $reference,
+					'target_field'     => $key,
+					'identity'         => 'setting:' . $key,
+					'value_hash'       => $value_hash,
+					'discovery_status' => $status,
+					'apply_status'     => $apply,
+					'payload'          => array(
+						'key'             => $key,
+						'value'           => $value,
+						'expected_exists' => $exists,
+						'expected_current'=> $current,
+						'special'         => $is_special,
+						'transformed'     => $this->canonical_json( $settings[ $key ] ) !== $this->canonical_json( $value ),
+					),
+				)
+			);
+			if ( $inserted && 'existing' === $status ) {
+				$this->add_detail( $job, 'existing_setting_preserved', $reference, $key );
+			}
+		}
+	}
+
+	/**
+	 * Merges one proposed source setting into the target at leaf granularity.
+	 *
+	 * Missing and default-valued leaves are safe migration targets. A genuinely
+	 * customized EasyRankly leaf is retained and reported without preventing
+	 * unrelated source leaves in the same settings map from being imported.
+	 *
+	 * @param mixed             $current         Current effective value.
+	 * @param mixed             $proposed        Sanitized source proposal.
+	 * @param mixed             $default         EasyRankly default value.
+	 * @param mixed             $stored          Explicitly stored value.
+	 * @param bool              $stored_exists   Whether this path is explicitly stored.
+	 * @param string            $path            Dot-delimited settings path.
+	 * @param array<int,string> $preserved_paths Customized leaves retained by reference.
+	 * @return mixed
+	 */
+	private function reconcile_setting_value( mixed $current, mixed $proposed, mixed $default, mixed $stored, bool $stored_exists, string $path, array &$preserved_paths ): mixed {
+		if ( is_array( $current ) && is_array( $proposed ) ) {
+			$result = $current;
+			foreach ( $proposed as $child_key => $child_proposed ) {
+				$child_name           = (string) $child_key;
+				$child_path           = '' === $path ? $child_name : $path . '.' . $child_name;
+				$child_current_exists = array_key_exists( $child_key, $current );
+				$child_default_exists = is_array( $default ) && array_key_exists( $child_key, $default );
+				$child_stored_exists  = $stored_exists && is_array( $stored ) && array_key_exists( $child_key, $stored );
+				$result[ $child_key ] = $this->reconcile_setting_value(
+					$child_current_exists ? $current[ $child_key ] : null,
+					$child_proposed,
+					$child_default_exists ? $default[ $child_key ] : null,
+					$child_stored_exists ? $stored[ $child_key ] : null,
+					$child_stored_exists,
+					$child_path,
+					$preserved_paths
+				);
+			}
+
+			return $result;
+		}
+
+		if ( $this->canonical_json( $current ) === $this->canonical_json( $proposed ) ) {
+			return $proposed;
+		}
+		if ( is_string( $current ) && is_string( $proposed ) && str_replace( '{{pagination}}', '{{page_number}}', $proposed ) === $current ) {
+			return $proposed;
+		}
+		if ( ! $stored_exists || $this->canonical_json( $current ) === $this->canonical_json( $default ) ) {
+			return $proposed;
+		}
+
+		$preserved_paths[] = $path;
+
+		return $current;
 	}
 
 	/**
@@ -670,7 +841,9 @@ final class ERankly_Migration_Job_Runner {
 				$payload = is_array( $payload ) ? $payload : array();
 				$outcome = 'failed';
 
-				if ( 'meta' === (string) ( $row['item_kind'] ?? '' ) ) {
+				if ( 'setting' === (string) ( $row['item_kind'] ?? '' ) ) {
+					$outcome = $this->apply_setting_item( $job, $row, $payload );
+				} elseif ( 'meta' === (string) ( $row['item_kind'] ?? '' ) ) {
 					$outcome = $this->apply_meta_item( $job, $row, $payload );
 				} elseif ( 'redirect' === (string) ( $row['item_kind'] ?? '' ) ) {
 					$outcome = $this->apply_redirect_item( $job, $row, $payload, $repository );
@@ -689,6 +862,52 @@ final class ERankly_Migration_Job_Runner {
 				$repository->end_bulk();
 			}
 		}
+	}
+
+	/**
+	 * Applies one idempotent global setting under the shared settings mutex.
+	 *
+	 * @param array<string,mixed> $job Active job.
+	 * @param array<string,mixed> $row Queue row.
+	 * @param array<string,mixed> $payload Queue payload.
+	 * @return string written|preserved|failed.
+	 */
+	private function apply_setting_item( array $job, array $row, array $payload ): string {
+		$key     = sanitize_key( (string) ( $payload['key'] ?? '' ) );
+		$value   = $payload['value'] ?? null;
+		$special = ! empty( $payload['special'] ) && 'global_special_meta' === $key;
+		erankly_load_default_helpers();
+		if ( '' === $key || ! array_key_exists( $key, erankly_default_settings() ) ) {
+			return 'failed';
+		}
+
+		$stored  = erankly_get_stored_settings();
+		$exists  = $special && is_multisite() ? false !== get_option( ERANKLY_SPECIAL_META_OPTION, false ) : array_key_exists( $key, $stored );
+		$current = $special ? erankly_get_global_entity_meta_map( $key ) : ( $exists ? $stored[ $key ] : erankly_default_settings()[ $key ] );
+		if ( $this->canonical_json( $current ) === $this->canonical_json( $value ) ) {
+			$event_key = $this->journal->prepare_setting( (string) $job['id'], absint( $row['id'] ?? 0 ), $payload );
+			return '' !== $event_key && $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
+		}
+		if ( $exists !== (bool) ( $payload['expected_exists'] ?? false ) || $this->canonical_json( $current ) !== $this->canonical_json( $payload['expected_current'] ?? null ) ) {
+			return 'preserved';
+		}
+
+		$event_key = $this->journal->prepare_setting( (string) $job['id'], absint( $row['id'] ?? 0 ), $payload );
+		if ( '' === $event_key ) {
+			return 'failed';
+		}
+		if ( $special ) {
+			if ( ! is_array( $value ) || erankly_update_special_meta_map( $value ) !== $value ) {
+				return 'failed';
+			}
+		} else {
+			$updated = erankly_update_plugin_settings( array( $key => $value ) );
+			if ( is_wp_error( $updated ) || ! $updated ) {
+				return 'failed';
+			}
+		}
+
+		return $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
 	}
 
 	/**
@@ -800,8 +1019,8 @@ final class ERankly_Migration_Job_Runner {
 				'batches'   => absint( $job['batches'] ?? 0 ),
 				'worker'    => 'wp-cron',
 			);
-			$failed                  = (int) $report['counts']['fields_failed'] + (int) $report['counts']['redirects_failed'];
-			$successful              = (int) $report['counts']['fields_written'] + (int) $report['counts']['redirects_created'] + (int) $report['counts']['redirects_updated'];
+			$failed                  = (int) $report['counts']['settings_failed'] + (int) $report['counts']['fields_failed'] + (int) $report['counts']['redirects_failed'];
+			$successful              = (int) $report['counts']['settings_written'] + (int) $report['counts']['fields_written'] + (int) $report['counts']['redirects_created'] + (int) $report['counts']['redirects_updated'];
 			$report['status']        = $failed > 0 ? ( $successful > 0 ? 'partial' : 'failed' ) : 'complete';
 			$auditor                 = new ERankly_Migration_Auditor();
 			$report['evidence']      = $auditor->build( (string) $job['id'], $report, $this->store, $this->journal, $this->evidence_store );
@@ -951,7 +1170,8 @@ final class ERankly_Migration_Job_Runner {
 					$job,
 					(string) ( $warning['code'] ?? 'migration_warning' ),
 					(string) ( $warning['message'] ?? '' ),
-					(string) ( $warning['reference'] ?? '' )
+					(string) ( $warning['reference'] ?? '' ),
+					! isset( $warning['blocking'] ) || (bool) $warning['blocking']
 				);
 			}
 		}
@@ -964,9 +1184,10 @@ final class ERankly_Migration_Job_Runner {
 	 * @param string              $code      Warning code.
 	 * @param string              $message   Human-readable warning.
 	 * @param string              $reference Source reference.
+	 * @param bool                $blocking  Whether the warning blocks go-live.
 	 * @return void
 	 */
-	private function add_warning( array &$job, string $code, string $message, string $reference ): void {
+	private function add_warning( array &$job, string $code, string $message, string $reference, bool $blocking = true ): void {
 		$report   = is_array( $job['report'] ?? null ) ? $job['report'] : array();
 		$warnings = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
 		$key      = sanitize_key( $code ) . '|' . sanitize_text_field( $reference );
@@ -983,6 +1204,7 @@ final class ERankly_Migration_Job_Runner {
 			'code'      => sanitize_key( $code ),
 			'message'   => sanitize_text_field( $message ),
 			'reference' => sanitize_text_field( $reference ),
+			'blocking'  => $blocking,
 		);
 		$report['warnings'] = $warnings;
 		$job['report']      = $report;
@@ -1065,6 +1287,25 @@ final class ERankly_Migration_Job_Runner {
 		}
 
 		return $job;
+	}
+
+	/** Returns a stable JSON representation for migration value comparisons. */
+	private function canonical_json( mixed $value ): string {
+		$normalize = static function ( mixed $item ) use ( &$normalize ): mixed {
+			if ( ! is_array( $item ) ) {
+				return $item;
+			}
+			if ( array_keys( $item ) !== range( 0, count( $item ) - 1 ) ) {
+				ksort( $item );
+			}
+			foreach ( $item as $key => $child ) {
+				$item[ $key ] = $normalize( $child );
+			}
+			return $item;
+		};
+		$encoded = wp_json_encode( $normalize( $value ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		return false === $encoded ? '' : $encoded;
 	}
 
 	/**

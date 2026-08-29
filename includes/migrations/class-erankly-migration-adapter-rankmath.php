@@ -131,6 +131,26 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	/** Declares every Rank Math surface consumed by this adapter. */
 	protected function storage_definitions(): array {
 		return array(
+			'global_titles' => array(
+				'type'   => 'option',
+				'option' => 'rank-math-options-titles',
+				'shape'  => 'array',
+			),
+			'global_general' => array(
+				'type'   => 'option',
+				'option' => 'rank-math-options-general',
+				'shape'  => 'array',
+			),
+			'global_sitemap' => array(
+				'type'   => 'option',
+				'option' => 'rank-math-options-sitemap',
+				'shape'  => 'array',
+			),
+			'modules_option' => array(
+				'type'   => 'option',
+				'option' => 'rank_math_modules',
+				'shape'  => 'array',
+			),
 			'post_meta'    => array(
 				'type'        => 'meta',
 				'object_type' => 'post',
@@ -163,7 +183,188 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'posts', 'terms', 'authors', 'social', 'advanced robots', 'schema', 'primary terms', 'focus keyphrases', 'pillar content', 'redirections', 'multi-source and regex redirects' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'advanced robots', 'schema', 'primary terms', 'focus keyphrases', 'pillar content', 'redirections', 'multi-source and regex redirects' );
+	}
+
+	/** Returns normalized Rank Math global settings. */
+	public function global_settings(): array {
+		if ( $this->uses_export_file() ) {
+			return array();
+		}
+
+		$titles  = $this->option_array( 'rank-math-options-titles' );
+		$general = $this->option_array( 'rank-math-options-general' );
+		$sitemap = $this->option_array( 'rank-math-options-sitemap' );
+		if ( ! $titles && ! $general && ! $sitemap ) {
+			return array();
+		}
+
+		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'rankmath' );
+		$settings = array();
+		$post_map = array();
+		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
+			$prefix = 'pt_' . $post_type . '_';
+			$keys   = array( $prefix . 'title', $prefix . 'description', $prefix . 'robots', $prefix . 'custom_robots', $prefix . 'default_rich_snippet', $prefix . 'default_article_type' );
+			$found  = (bool) array_intersect( $keys, array_keys( $titles ) ) || array_key_exists( $prefix . 'sitemap', $sitemap );
+			if ( ! $found ) {
+				continue;
+			}
+
+			$schema_type = strtolower( trim( (string) ( $titles[ $prefix . 'default_rich_snippet' ] ?? '' ) ) );
+			$article_type = '';
+			if ( in_array( $schema_type, array( 'article', 'blogposting', 'newsarticle' ), true ) ) {
+				$article_type = (string) ( $titles[ $prefix . 'default_article_type' ] ?? ( 'blogposting' === $schema_type ? 'BlogPosting' : 'Article' ) );
+			}
+			$in_sitemap = array_key_exists( $prefix . 'sitemap', $sitemap ) ? $this->enabled( $sitemap[ $prefix . 'sitemap' ] ) : null;
+			$post_map[ $post_type ] = $this->global_meta_row(
+				$convert( $titles[ $prefix . 'title' ] ?? '' ),
+				$convert( $titles[ $prefix . 'description' ] ?? '' ),
+				array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'custom_robots' ] ?? array() ),
+				$in_sitemap,
+				'WebPage',
+				$article_type
+			);
+		}
+		if ( $post_map ) {
+			$settings['global_post_type_meta']        = $post_map;
+			$settings['global_post_type_meta_linked'] = 0;
+		}
+
+		$taxonomy_map = array();
+		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
+			$prefix = 'tax_' . $taxonomy . '_';
+			$keys   = array( $prefix . 'title', $prefix . 'description', $prefix . 'robots', $prefix . 'custom_robots' );
+			$found  = (bool) array_intersect( $keys, array_keys( $titles ) ) || array_key_exists( $prefix . 'sitemap', $sitemap );
+			if ( ! $found ) {
+				continue;
+			}
+			$in_sitemap = array_key_exists( $prefix . 'sitemap', $sitemap ) ? $this->enabled( $sitemap[ $prefix . 'sitemap' ] ) : null;
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row(
+				$convert( $titles[ $prefix . 'title' ] ?? '' ),
+				$convert( $titles[ $prefix . 'description' ] ?? '' ),
+				array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'custom_robots' ] ?? array() ),
+				$in_sitemap
+			);
+		}
+		if ( $taxonomy_map ) {
+			$settings['global_taxonomy_meta']        = $taxonomy_map;
+			$settings['global_taxonomy_meta_linked'] = 0;
+		}
+
+		$special = array();
+		$special_sources = array(
+			'homepage' => array( 'homepage_title', 'homepage_description', 'homepage_robots', 'homepage_custom_robots' ),
+			'author'   => array( 'author_archive_title', 'author_archive_description', 'author_robots', 'author_custom_robots' ),
+			'date'     => array( 'date_archive_title', 'date_archive_description', 'date_archive_robots', 'date_archive_custom_robots' ),
+			'search'   => array( 'search_title', 'search_description', 'search_robots', 'search_custom_robots' ),
+			'404'      => array( '404_title', '404_description', '404_robots', '404_custom_robots' ),
+		);
+		foreach ( $special_sources as $context => $keys ) {
+			if ( ! array_intersect( $keys, array_keys( $titles ) ) ) {
+				continue;
+			}
+			$special[ $context ] = $this->global_meta_row(
+				$this->special_template( $titles[ $keys[0] ] ?? '', 'rankmath', $context ),
+				$this->special_template( $titles[ $keys[1] ] ?? '', 'rankmath', $context ),
+				array( $titles[ $keys[2] ] ?? array(), $titles[ $keys[3] ] ?? array() )
+			);
+		}
+		if ( isset( $special['author'] ) && $this->enabled( $titles['disable_author_archives'] ?? false ) ) {
+			$special['author']['noindex']         = 1;
+			$special['author']['disable_sitemap'] = 1;
+		}
+		if ( isset( $special['date'] ) && $this->enabled( $titles['disable_date_archives'] ?? false ) ) {
+			$special['date']['noindex']         = 1;
+			$special['date']['disable_sitemap'] = 1;
+		}
+		if ( isset( $special['search'] ) && array_key_exists( 'noindex_search', $titles ) ) {
+			$hidden                                = $this->enabled( $titles['noindex_search'] );
+			$special['search']['noindex']         = $hidden ? 1 : 0;
+			$special['search']['disable_sitemap'] = $hidden ? 1 : 0;
+		}
+		if ( isset( $special['homepage'] ) ) {
+			$special['homepage']['og_title']            = $convert( $titles['homepage_facebook_title'] ?? '' );
+			$special['homepage']['og_description']      = $convert( $titles['homepage_facebook_description'] ?? '' );
+			$special['homepage']['twitter_title']       = $convert( $titles['homepage_twitter_title'] ?? '' );
+			$special['homepage']['twitter_description'] = $convert( $titles['homepage_twitter_description'] ?? '' );
+			$special['homepage']['social_image_url']    = esc_url_raw( (string) ( $titles['homepage_facebook_image'] ?? '' ) );
+		}
+		if ( $special ) {
+			$settings['global_special_meta'] = $special;
+		}
+
+		$identity = strtolower( (string) ( $titles['knowledgegraph_type'] ?? '' ) );
+		if ( in_array( $identity, array( 'person', 'company', 'organization' ), true ) ) {
+			$settings['schema_identity'] = 'person' === $identity ? 'person' : 'organization';
+		}
+		$name = sanitize_text_field( (string) ( $titles['knowledgegraph_name'] ?? '' ) );
+		if ( 'person' === ( $settings['schema_identity'] ?? '' ) ) {
+			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $titles['knowledgegraph_id'] ?? 0, $name );
+		} elseif ( '' !== $name ) {
+			$settings['organization_name'] = $name;
+		}
+		if ( ! empty( $titles['website_name'] ) ) {
+			$settings['website_name'] = sanitize_text_field( (string) $titles['website_name'] );
+		}
+		if ( ! empty( $titles['knowledgegraph_logo_id'] ) ) {
+			$settings['organization_logo'] = absint( $titles['knowledgegraph_logo_id'] );
+		}
+		if ( ! empty( $titles['knowledgegraph_logo'] ) ) {
+			$settings['organization_logo_url'] = esc_url_raw( (string) $titles['knowledgegraph_logo'] );
+		}
+
+		$profiles = $this->social_profile_list(
+			array(
+				$titles['social_url_facebook'] ?? '',
+				$titles['social_url_twitter'] ?? '',
+				$titles['social_url_instagram'] ?? '',
+				$titles['social_url_linkedin'] ?? '',
+				$titles['social_url_youtube'] ?? '',
+				$titles['social_url_pinterest'] ?? '',
+				$titles['social_url_tiktok'] ?? '',
+			)
+		);
+		if ( '' !== $profiles ) {
+			$settings['social_profiles'] = $profiles;
+		}
+
+		if ( array_key_exists( 'breadcrumbs', $general ) ) {
+			$settings['enable_breadcrumbs'] = $this->enabled( $general['breadcrumbs'] ) ? 1 : 0;
+		}
+		if ( $this->enabled( $general['attachment_redirect_urls'] ?? false ) ) {
+			$settings['attachment_redirect'] = 'parent';
+		}
+		if ( array_key_exists( 'noindex_archive_subpages', $titles ) ) {
+			$settings['noindex_paginated'] = $this->enabled( $titles['noindex_archive_subpages'] ) ? 1 : 0;
+		}
+		if ( in_array( 'sitemap', $this->modules(), true ) || $sitemap ) {
+			$settings['enable_sitemap'] = 1;
+		}
+		if ( array_key_exists( 'include_images', $sitemap ) ) {
+			$settings['enable_image_sitemap'] = $this->enabled( $sitemap['include_images'] ) ? 1 : 0;
+		}
+		if ( in_array( 'redirections', $this->modules(), true ) ) {
+			$settings['enable_redirects']        = 1;
+			$settings['redirect_exclude_admins'] = $this->enabled( $general['redirections_debug'] ?? false ) ? 1 : 0;
+
+			$fallback = sanitize_key( (string) ( $general['redirections_fallback'] ?? 'default' ) );
+			if ( ! in_array( $fallback, array( '', 'default' ), true ) ) {
+				$this->add_warning(
+					'redirect_fallback_not_supported',
+					'Rank Math applies a site-wide redirect fallback that EasyRankly cannot reproduce. Disable the fallback or recreate the intended routes as explicit rules before switching providers.',
+					'rank-math-options-general:redirections_fallback'
+				);
+			}
+			if ( $this->enabled( $general['redirections_post_redirect'] ?? false ) ) {
+				$this->add_warning(
+					'automatic_slug_redirects_not_supported',
+					'Rank Math automatically creates redirect rules after URL slug changes. EasyRankly does not provide an equivalent automatic rule generator.',
+					'rank-math-options-general:redirections_post_redirect'
+				);
+			}
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -179,7 +380,10 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return $this->has_meta( 'post', $this->keys(), array( 'rank_math_schema_', 'rank_math_primary_' ) )
 			|| $this->has_meta( 'term', $this->keys(), array( 'rank_math_schema_' ) )
 			|| $this->has_meta( 'user', $this->keys() )
-			|| $this->redirect_table_has_rows();
+			|| $this->redirect_table_has_rows()
+			|| $this->has_option_map( 'rank-math-options-titles' )
+			|| $this->has_option_map( 'rank-math-options-general' )
+			|| $this->has_option_map( 'rank-math-options-sitemap' );
 	}
 
 	/**
@@ -286,15 +490,11 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 
 		$cursor = 0;
 		do {
-			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the source plugin's redirect table in bounded batches.
-				$wpdb->prepare( 'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200', $table, $cursor ),
-				ARRAY_A
-			);
-
-			if ( ! is_array( $rows ) || empty( $rows ) ) {
+			$page = $this->source_table_batch( 'rank_math_redirections', $cursor, 200 );
+			$rows = $page['records'];
+			if ( empty( $rows ) ) {
 				break;
 			}
-			$batch_count = count( $rows );
 
 			foreach ( $rows as $row ) {
 				$cursor  = max( $cursor, absint( $row['id'] ?? 0 ) );
@@ -334,7 +534,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 					);
 				}
 			}
-		} while ( 200 === $batch_count );
+		} while ( empty( $page['done'] ) );
 	}
 
 	/**
@@ -368,8 +568,8 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		$source_start = absint( $cursor['source_offset'] ?? 0 );
 		$operator     = $resume_id > 0 ? '>=' : '>';
 		$boundary     = $resume_id > 0 ? $resume_id : $after_id;
-		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset scan of third-party redirects.
-			$wpdb->prepare( "SELECT * FROM %i WHERE id {$operator} %d ORDER BY id ASC LIMIT %d", $table, $boundary, $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The comparison operator is selected from the two internal literals above.
+		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset scan of certified third-party redirect columns.
+			$wpdb->prepare( "SELECT id, sources, url_to, header_code, status FROM %i WHERE id {$operator} %d ORDER BY id ASC LIMIT %d", $table, $boundary, $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The comparison operator is selected from the two internal literals above.
 			ARRAY_A
 		);
 		if ( '' !== (string) $wpdb->last_error ) {

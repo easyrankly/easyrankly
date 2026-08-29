@@ -28,6 +28,7 @@ final class ERankly_Migration_Auditor {
 		$mode         = sanitize_key( (string) ( $report['mode'] ?? '' ) );
 		$accounting   = array(
 			'objects'   => $this->empty_accounting(),
+			'settings'  => $this->empty_accounting(),
 			'metadata'  => $this->empty_accounting(),
 			'redirects' => $this->empty_accounting(),
 		);
@@ -69,6 +70,23 @@ final class ERankly_Migration_Auditor {
 						++$transformed;
 					}
 					$this->add_semantic_result( $semantic, $row, $payload, $terminal, $mode );
+					if ( $this->is_exception( $terminal ) ) {
+						$exception = $this->exception( $row, $payload, $terminal );
+						$evidence_store->add( $job_id, absint( $row['id'] ?? 0 ), $exception );
+						if ( count( $exceptions ) < self::EXCEPTION_SAMPLE_LIMIT ) {
+							$exceptions[] = $exception;
+						}
+					}
+					continue;
+				}
+
+				if ( 'setting' === $kind ) {
+					$terminal = $this->meta_terminal( $row, $mode );
+					++$accounting['settings']['discovered'];
+					++$accounting['settings']['terminal'][ $terminal ];
+					if ( ! empty( $payload['transformed'] ) ) {
+						++$transformed;
+					}
 					if ( $this->is_exception( $terminal ) ) {
 						$exception = $this->exception( $row, $payload, $terminal );
 						$evidence_store->add( $job_id, absint( $row['id'] ?? 0 ), $exception );
@@ -318,7 +336,9 @@ final class ERankly_Migration_Auditor {
 		$collisions = array();
 		$probes     = array();
 		$storage    = array(
+			'expected' => 0,
 			'imported' => 0,
+			'identical' => 0,
 			'tested'   => 0,
 			'passed'   => 0,
 			'failed'   => 0,
@@ -349,18 +369,22 @@ final class ERankly_Migration_Auditor {
 				'source_path'       => $source,
 				'expected_status'   => absint( $rule['status_code'] ?? 0 ),
 				'expected_location' => esc_url_raw( (string) ( $rule['target_url'] ?? '' ) ),
-				'storage_status'    => 'preview' === $mode ? 'not_applicable' : 'not_imported',
+				'storage_status'    => 'preview' === $mode ? 'not_applicable' : 'not_verified',
 			);
-			if ( 'preview' !== $mode && 'imported' === (string) $item['terminal'] && $repository ) {
-				++$storage['imported'];
+			$terminal = (string) $item['terminal'];
+			$expected = 'preview' !== $mode && in_array( $terminal, array( 'imported', 'identical' ), true );
+			if ( $expected ) {
+				++$storage['expected'];
+				++$storage[ 'imported' === $terminal ? 'imported' : 'identical' ];
+			}
+			if ( $expected && $repository ) {
 				$stored                  = $repository->find_by_hash( (string) $item['rule_hash'] );
 				$probe['storage_status'] = $stored
 					&& absint( $stored['status_code'] ?? 0 ) === $probe['expected_status']
 					&& (string) ( $stored['target_url'] ?? '' ) === (string) ( $rule['target_url'] ?? '' ) ? 'pass' : 'fail';
 				++$storage['tested'];
 				++$storage[ 'pass' === $probe['storage_status'] ? 'passed' : 'failed' ];
-			} elseif ( 'preview' !== $mode && 'imported' === (string) $item['terminal'] ) {
-				++$storage['imported'];
+			} elseif ( $expected ) {
 				++$storage['tested'];
 				++$storage['failed'];
 			}

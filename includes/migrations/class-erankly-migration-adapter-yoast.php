@@ -95,7 +95,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	public function module_support(): array {
 		$support = array();
 		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, array( 'premium', 'redirects' ), true ) ? 'supported' : 'review_required';
+			$support[ $module ] = in_array( $module, array( 'premium', 'redirects' ), true ) ? 'supported' : 'ignored';
 		}
 		return $support;
 	}
@@ -132,6 +132,21 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	/** Declares every Yoast storage surface consumed by this adapter. */
 	protected function storage_definitions(): array {
 		return array(
+			'global_main'            => array(
+				'type'   => 'option',
+				'option' => 'wpseo',
+				'shape'  => 'array',
+			),
+			'global_titles'          => array(
+				'type'   => 'option',
+				'option' => 'wpseo_titles',
+				'shape'  => 'array',
+			),
+			'global_social'          => array(
+				'type'   => 'option',
+				'option' => 'wpseo_social',
+				'shape'  => 'array',
+			),
 			'post_meta'              => array(
 				'type'        => 'meta',
 				'object_type' => 'post',
@@ -178,7 +193,160 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'posts', 'terms', 'authors', 'social', 'robots', 'schema', 'primary terms', 'focus keyphrases', 'cornerstone content', 'Premium redirects' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'robots', 'schema', 'primary terms', 'focus keyphrases', 'cornerstone content', 'Premium redirects' );
+	}
+
+	/** Returns normalized Yoast global settings. */
+	public function global_settings(): array {
+		if ( $this->uses_export_file() ) {
+			return array();
+		}
+
+		$main   = $this->option_array( 'wpseo' );
+		$titles = $this->option_array( 'wpseo_titles' );
+		$social = $this->option_array( 'wpseo_social' );
+		if ( ! $main && ! $titles && ! $social ) {
+			return array();
+		}
+
+		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'yoast' );
+		$settings = array();
+		$post_map = array();
+		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
+			$title_key       = 'title-' . $post_type;
+			$description_key = 'metadesc-' . $post_type;
+			$noindex_key     = 'noindex-' . $post_type;
+			$page_schema_key = 'schema-page-type-' . $post_type;
+			$article_key     = 'schema-article-type-' . $post_type;
+			if ( ! array_intersect( array( $title_key, $description_key, $noindex_key, $page_schema_key, $article_key ), array_keys( $titles ) ) ) {
+				continue;
+			}
+			$has_noindex = array_key_exists( $noindex_key, $titles );
+			$noindex     = $has_noindex && $this->enabled( $titles[ $noindex_key ] );
+			$page_type   = trim( (string) ( $titles[ $page_schema_key ] ?? 'WebPage' ) );
+			$article_type = trim( (string) ( $titles[ $article_key ] ?? ( 'post' === $post_type ? 'BlogPosting' : '' ) ) );
+			$page_type    = 'none' === strtolower( $page_type ) ? 'none' : $page_type;
+			$article_type = 'none' === strtolower( $article_type ) ? 'none' : $article_type;
+			$post_map[ $post_type ] = $this->global_meta_row(
+				$convert( $titles[ $title_key ] ?? '' ),
+				$convert( $titles[ $description_key ] ?? '' ),
+				$has_noindex ? array( 'noindex' => $noindex ) : null,
+				$noindex ? false : null,
+				$page_type,
+				$article_type
+			);
+		}
+		if ( $post_map ) {
+			$settings['global_post_type_meta']        = $post_map;
+			$settings['global_post_type_meta_linked'] = 0;
+		}
+
+		$taxonomy_map = array();
+		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
+			$title_key       = 'title-tax-' . $taxonomy;
+			$description_key = 'metadesc-tax-' . $taxonomy;
+			$noindex_key     = 'noindex-tax-' . $taxonomy;
+			if ( ! array_intersect( array( $title_key, $description_key, $noindex_key ), array_keys( $titles ) ) ) {
+				continue;
+			}
+			$has_noindex = array_key_exists( $noindex_key, $titles );
+			$noindex     = $has_noindex && $this->enabled( $titles[ $noindex_key ] );
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $titles[ $title_key ] ?? '' ), $convert( $titles[ $description_key ] ?? '' ), $has_noindex ? array( 'noindex' => $noindex ) : null, $noindex ? false : null );
+		}
+		if ( $taxonomy_map ) {
+			$settings['global_taxonomy_meta']        = $taxonomy_map;
+			$settings['global_taxonomy_meta_linked'] = 0;
+		}
+
+		$special = array();
+		$sources = array(
+			'homepage' => array( array( 'title-home-wpseo', 'title-home' ), array( 'metadesc-home-wpseo', 'metadesc-home' ), array() ),
+			'author'   => array( array( 'title-author-wpseo' ), array( 'metadesc-author-wpseo' ), array( 'noindex-author-wpseo' ) ),
+			'date'     => array( array( 'title-archive-wpseo' ), array( 'metadesc-archive-wpseo' ), array( 'noindex-archive-wpseo' ) ),
+			'search'   => array( array( 'title-search-wpseo' ), array( 'metadesc-search-wpseo' ), array( 'noindex-search-wpseo' ) ),
+			'404'      => array( array( 'title-404-wpseo' ), array( 'metadesc-404-wpseo' ), array() ),
+		);
+		foreach ( $sources as $context => $paths ) {
+			$known_keys = array_merge( $paths[0], $paths[1], $paths[2] );
+			if ( ! array_intersect( $known_keys, array_keys( $titles ) ) ) {
+				continue;
+			}
+			$title       = $this->first_nested_value( $titles, $paths[0] );
+			$description = $this->first_nested_value( $titles, $paths[1] );
+			$has_noindex = ! empty( $paths[2] ) && (bool) array_intersect( $paths[2], array_keys( $titles ) );
+			$noindex     = $has_noindex && $this->enabled( $this->first_nested_value( $titles, $paths[2], false ) );
+			$special[ $context ] = $this->global_meta_row(
+				$this->special_template( $title, 'yoast', $context ),
+				$this->special_template( $description, 'yoast', $context ),
+				$has_noindex ? array( 'noindex' => $noindex ) : null,
+				$noindex ? false : null
+			);
+		}
+		if ( $special ) {
+			$settings['global_special_meta'] = $special;
+		}
+
+		$identity = strtolower( (string) ( $titles['company_or_person'] ?? '' ) );
+		if ( in_array( $identity, array( 'person', 'company', 'organization' ), true ) ) {
+			$settings['schema_identity'] = 'person' === $identity ? 'person' : 'organization';
+		}
+		$person_name = sanitize_text_field( (string) ( $titles['person_name'] ?? '' ) );
+		if ( 'person' === ( $settings['schema_identity'] ?? '' ) ) {
+			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $titles['company_or_person_user_id'] ?? 0, $person_name );
+		} elseif ( ! empty( $titles['company_name'] ) ) {
+			$settings['organization_name'] = sanitize_text_field( (string) $titles['company_name'] );
+		}
+		if ( ! empty( $titles['website_name'] ) ) {
+			$settings['website_name'] = sanitize_text_field( (string) $titles['website_name'] );
+		}
+		$logo_id = absint( $titles['company_logo_id'] ?? 0 );
+		if ( $logo_id > 0 ) {
+			$settings['organization_logo'] = $logo_id;
+		}
+		if ( ! empty( $titles['company_logo'] ) ) {
+			$settings['organization_logo_url'] = esc_url_raw( (string) $titles['company_logo'] );
+		}
+
+		$profiles = $this->social_profile_list(
+			array(
+				$social['facebook_site'] ?? '',
+				$social['instagram_url'] ?? '',
+				$social['linkedin_url'] ?? '',
+				$social['myspace_url'] ?? '',
+				$social['pinterest_url'] ?? '',
+				$social['youtube_url'] ?? '',
+				$social['wikipedia_url'] ?? '',
+				$social['other_social_urls'] ?? array(),
+			)
+		);
+		if ( '' !== $profiles ) {
+			$settings['social_profiles'] = $profiles;
+		}
+		if ( ! empty( $social['twitter_site'] ) ) {
+			$settings['twitter_site'] = (string) $social['twitter_site'];
+		}
+		if ( ! empty( $social['og_default_image'] ) ) {
+			$settings['default_social_image_url'] = esc_url_raw( (string) $social['og_default_image'] );
+		}
+
+		if ( array_key_exists( 'breadcrumbs-enable', $titles ) ) {
+			$settings['enable_breadcrumbs'] = $this->enabled( $titles['breadcrumbs-enable'] ) ? 1 : 0;
+		}
+		if ( array_key_exists( 'enable_xml_sitemap', $main ) ) {
+			$settings['enable_sitemap'] = $this->enabled( $main['enable_xml_sitemap'] ) ? 1 : 0;
+		}
+		if ( $this->enabled( $titles['disable-attachment'] ?? false ) ) {
+			$settings['attachment_redirect'] = 'parent';
+		}
+		if ( array_key_exists( 'noindex-subpages-wpseo', $titles ) ) {
+			$settings['noindex_paginated'] = $this->enabled( $titles['noindex-subpages-wpseo'] ) ? 1 : 0;
+		}
+		if ( in_array( 'redirects', $this->modules(), true ) ) {
+			$settings['enable_redirects']        = 1;
+			$settings['redirect_exclude_admins'] = 0;
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -197,7 +365,10 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			|| $this->has_meta( 'user', $this->user_keys() )
 			|| is_array( get_option( 'wpseo-premium-redirects-base' ) )
 			|| is_array( get_option( 'wpseo-premium-redirects-export-plain' ) )
-			|| is_array( get_option( 'wpseo-premium-redirects-export-regex' ) );
+			|| is_array( get_option( 'wpseo-premium-redirects-export-regex' ) )
+			|| $this->has_option_map( 'wpseo' )
+			|| $this->has_option_map( 'wpseo_titles' )
+			|| $this->has_option_map( 'wpseo_social' );
 	}
 
 	/**
@@ -710,16 +881,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$legacy = array();
-		foreach ( array( 'linkdex', 'content_score', 'inclusive_language_score', 'focuskeywords' ) as $key ) {
-			if ( isset( $meta[ $prefix . $key ] ) && '' !== (string) $meta[ $prefix . $key ] ) {
-				$legacy[ $key ] = $meta[ $prefix . $key ];
-			}
-		}
-		if ( ! empty( $legacy ) ) {
-			$mapped['_erankly_legacy_editorial'] = array( 'yoast' => $legacy );
-		}
-
 		return $this->with_extension_meta( $mapped, $editorial );
 	}
 
@@ -774,9 +935,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			'_yoast_wpseo_is_cornerstone',
 			'_yoast_wpseo_schema_page_type',
 			'_yoast_wpseo_schema_article_type',
-			'_yoast_wpseo_linkdex',
-			'_yoast_wpseo_content_score',
-			'_yoast_wpseo_inclusive_language_score',
 			'_yoast_wpseo_redirect',
 		);
 	}

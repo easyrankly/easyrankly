@@ -162,6 +162,21 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 		}
 	}
 
+	$focus_keywords = erankly_sanitize_registered_meta(
+		isset( $_POST['erankly_focus_keywords'] ) ? wp_unslash( $_POST['erankly_focus_keywords'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by the registered-meta sanitizer.
+		'_erankly_focus_keywords'
+	);
+	if ( empty( $focus_keywords ) ) {
+		delete_post_meta( $post_id, '_erankly_focus_keywords' );
+	} else {
+		update_post_meta( $post_id, '_erankly_focus_keywords', $focus_keywords );
+	}
+	if ( isset( $_POST['erankly_cornerstone'] ) ) {
+		update_post_meta( $post_id, '_erankly_cornerstone', '1' );
+	} else {
+		delete_post_meta( $post_id, '_erankly_cornerstone' );
+	}
+
 	if ( ! $simplified_mode ) {
 		$complex_fields = array(
 			'_erankly_primary_terms'         => isset( $_POST['erankly_primary_terms'] ) ? wp_unslash( $_POST['erankly_primary_terms'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.

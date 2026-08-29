@@ -138,4 +138,14 @@ function erankly_save_term_fields( int $term_id ): void {
 			delete_term_meta( $term_id, $key );
 		}
 	}
+
+	$focus_keywords = erankly_sanitize_registered_meta(
+		isset( $_POST['erankly_focus_keywords'] ) ? wp_unslash( $_POST['erankly_focus_keywords'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by the registered-meta sanitizer.
+		'_erankly_focus_keywords'
+	);
+	if ( empty( $focus_keywords ) ) {
+		delete_term_meta( $term_id, '_erankly_focus_keywords' );
+	} else {
+		update_term_meta( $term_id, '_erankly_focus_keywords', $focus_keywords );
+	}
 }

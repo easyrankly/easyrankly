@@ -27,6 +27,8 @@
 		description: '_erankly_description',
 		canonical: '_erankly_canonical',
 		breadcrumb_name: '_erankly_breadcrumb_name',
+		focus_keywords: '_erankly_focus_keywords',
+		cornerstone: '_erankly_cornerstone',
 		og_title: '_erankly_og_title',
 		og_description: '_erankly_og_description',
 		twitter_title: '_erankly_twitter_title',
@@ -68,6 +70,7 @@
 		newsSitemap: config.newsSitemapEnabled,
 		splitSocialImages: true,
 		triStateRobots: true,
+		editorial: true,
 	};
 
 	// Post-meta data adapter shared builders read and write through.

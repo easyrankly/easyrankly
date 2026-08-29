@@ -396,9 +396,6 @@ final class ERankly_Migration_Export_Reader {
 				$meta['_erankly_schema_mode']   = 'merge';
 				$meta['_erankly_schema_blocks'] = $schema;
 			}
-			if ( '' !== trim( (string) ( $row['primary_term'] ?? '' ) ) ) {
-				$meta['_erankly_legacy_editorial'] = array( 'rankmath_primary_term_slug' => sanitize_title( (string) $row['primary_term'] ) );
-			}
 		} elseif ( 'seopress' === $source ) {
 			$object_type = '' !== trim( (string) ( $row['taxonomy'] ?? '' ) ) ? 'term' : 'post';
 			$meta        = array(
@@ -443,6 +440,13 @@ final class ERankly_Migration_Export_Reader {
 		 * @param array<string,mixed> $editorial Source editorial fields.
 		 * @param string              $source    Adapter slug.
 		 */
+		if ( ! empty( $editorial['focus_keywords'] ) ) {
+			$meta['_erankly_focus_keywords'] = erankly_sanitize_focus_keywords( $editorial['focus_keywords'] );
+		}
+		if ( ! empty( $editorial['cornerstone'] ) ) {
+			$meta['_erankly_cornerstone'] = true;
+		}
+
 		$filtered = apply_filters( 'erankly_migration_mapped_meta', $meta, $editorial, $source );
 		$meta     = is_array( $filtered ) ? $filtered : $meta;
 

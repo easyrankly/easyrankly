@@ -72,9 +72,10 @@ function erankly_get_schema_graph(): array {
 
 		$graph[] = erankly_schema_webpage( $post_id, $breadcrumb_id );
 
+		$article_type = erankly_get_global_post_type_meta( (string) get_post_type( $post_id ), 'article_type' );
 		if ( ! empty( $product ) ) {
 			$graph[] = $product;
-		} elseif ( 'post' === get_post_type( $post_id ) ) {
+		} elseif ( '' !== $article_type && 'none' !== strtolower( $article_type ) ) {
 			$graph[] = erankly_schema_article( $post_id );
 		}
 
@@ -487,6 +488,15 @@ function erankly_schema_website_search_action(): array {
 function erankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ): array {
 	$canonical = erankly_get_canonical();
 	$type      = ( 0 === $post_id && ( is_archive() || is_search() ) ) ? 'CollectionPage' : 'WebPage';
+	if ( $post_id > 0 ) {
+		$configured_type = erankly_get_global_post_type_meta( (string) get_post_type( $post_id ), 'webpage_type' );
+		if ( 'none' === strtolower( $configured_type ) ) {
+			return array();
+		}
+		if ( '' !== $configured_type ) {
+			$type = $configured_type;
+		}
+	}
 	$schema    = array(
 		'@type'       => $type,
 		'@id'         => $canonical . '#webpage',
@@ -535,8 +545,10 @@ function erankly_schema_article( int $post_id = 0 ): array {
 	$url       = '' !== $url ? $url : (string) get_permalink( $post_id );
 	$image     = erankly_get_og_image();
 	$author_id = (int) get_post_field( 'post_author', $post_id );
-	$schema    = array(
-		'@type'            => is_singular( 'post' ) ? 'BlogPosting' : 'Article',
+	$article_type = erankly_get_global_post_type_meta( (string) get_post_type( $post_id ), 'article_type' );
+	$article_type = '' !== $article_type ? $article_type : ( is_singular( 'post' ) ? 'BlogPosting' : 'Article' );
+	$schema       = array(
+		'@type'            => $article_type,
 		'@id'              => $url . '#article',
 		'headline'         => erankly_get_title(),
 		'description'      => erankly_get_description(),

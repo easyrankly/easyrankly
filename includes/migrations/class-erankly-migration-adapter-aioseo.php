@@ -87,7 +87,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		$mapped  = array( 'search-appearance', 'social', 'schema', 'robots', 'term-seo', 'redirects', 'pro' );
 		$support = array();
 		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'review_required';
+			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'ignored';
 		}
 		return $support;
 	}
@@ -124,6 +124,22 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	/** Declares every AIOSEO surface and required table signature. */
 	protected function storage_definitions(): array {
 		return array(
+			'global_options' => array(
+				'type'   => 'option',
+				'option' => 'aioseo_options',
+			),
+			'global_dynamic' => array(
+				'type'   => 'option',
+				'option' => 'aioseo_options_dynamic',
+			),
+			'global_localized' => array(
+				'type'   => 'option',
+				'option' => 'aioseo_options_localized',
+			),
+			'global_dynamic_localized' => array(
+				'type'   => 'option',
+				'option' => 'aioseo_options_dynamic_localized',
+			),
 			'v4_posts'      => array(
 				'type'                => 'table',
 				'suffix'              => 'aioseo_posts',
@@ -156,7 +172,176 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'v3 and v4 posts', 'PRO terms', 'social', 'advanced robots', 'schema configuration', 'primary terms', 'keyphrases', 'pillar content', 'PRO redirects' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'v3 and v4 posts', 'PRO terms', 'social', 'advanced robots', 'schema configuration', 'primary terms', 'keyphrases', 'pillar content', 'PRO redirects' );
+	}
+
+	/** Returns normalized AIOSEO global settings. */
+	public function global_settings(): array {
+		if ( $this->uses_export_file() ) {
+			return array();
+		}
+
+		$options = array_replace_recursive( $this->option_array( 'aioseo_options' ), $this->option_array( 'aioseo_options_localized' ) );
+		$dynamic = array_replace_recursive( $this->option_array( 'aioseo_options_dynamic' ), $this->option_array( 'aioseo_options_dynamic_localized' ) );
+		if ( ! $options && ! $dynamic ) {
+			return array();
+		}
+
+		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'aioseo' );
+		$settings = array();
+		$global   = $this->nested_value( $options, 'searchAppearance.global', array() );
+		$global   = is_array( $global ) ? $global : array();
+		$site_title = $this->first_nested_value( $global, array( 'siteTitle', 'title' ) );
+		$site_desc  = $this->first_nested_value( $global, array( 'metaDescription', 'description' ) );
+		if ( is_scalar( $site_title ) && '' !== trim( (string) $site_title ) ) {
+			$settings['website_name'] = $convert( $site_title );
+		}
+		if ( is_scalar( $site_desc ) && '' !== trim( (string) $site_desc ) ) {
+			$settings['website_description'] = $convert( $site_desc );
+		}
+
+		$post_types = $this->nested_value( $dynamic, 'searchAppearance.postTypes', array() );
+		if ( ! is_array( $post_types ) ) {
+			$post_types = $this->nested_value( $options, 'searchAppearance.postTypes', array() );
+		}
+		$post_map = array();
+		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
+			$config = isset( $post_types[ $post_type ] ) && is_array( $post_types[ $post_type ] ) ? $post_types[ $post_type ] : array();
+			if ( ! $config ) {
+				continue;
+			}
+			$robots       = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
+			$page_type    = (string) $this->first_nested_value( $config, array( 'webPageType', 'schema.webPageType' ), 'WebPage' );
+			$schema_type  = strtolower( (string) $this->first_nested_value( $config, array( 'schemaType', 'schema.type' ), '' ) );
+			$article_type = in_array( $schema_type, array( 'article', 'blogposting', 'newsarticle' ), true )
+				? (string) $this->first_nested_value( $config, array( 'articleType', 'schema.articleType' ), 'Article' )
+				: '';
+			if ( 'none' === strtolower( $page_type ) ) {
+				$page_type = 'none';
+			}
+			$map_path    = 'sitemap.general.postTypes.' . $post_type;
+			$in_sitemap  = $this->has_nested_value( $options, $map_path ) ? $this->enabled( $this->nested_value( $options, $map_path ) ) : null;
+			$post_map[ $post_type ] = $this->global_meta_row(
+				$convert( $config['title'] ?? '' ),
+				$convert( $config['metaDescription'] ?? $config['description'] ?? '' ),
+				$robots,
+				$in_sitemap,
+				$page_type,
+				$article_type
+			);
+		}
+		if ( $post_map ) {
+			$settings['global_post_type_meta']        = $post_map;
+			$settings['global_post_type_meta_linked'] = 0;
+		}
+
+		$taxonomies = $this->nested_value( $dynamic, 'searchAppearance.taxonomies', array() );
+		if ( ! is_array( $taxonomies ) ) {
+			$taxonomies = $this->nested_value( $options, 'searchAppearance.taxonomies', array() );
+		}
+		$taxonomy_map = array();
+		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
+			$config = isset( $taxonomies[ $taxonomy ] ) && is_array( $taxonomies[ $taxonomy ] ) ? $taxonomies[ $taxonomy ] : array();
+			if ( ! $config ) {
+				continue;
+			}
+			$robots      = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
+			$map_path    = 'sitemap.general.taxonomies.' . $taxonomy;
+			$in_sitemap  = $this->has_nested_value( $options, $map_path ) ? $this->enabled( $this->nested_value( $options, $map_path ) ) : null;
+			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $config['title'] ?? '' ), $convert( $config['metaDescription'] ?? $config['description'] ?? '' ), $robots, $in_sitemap );
+		}
+		if ( $taxonomy_map ) {
+			$settings['global_taxonomy_meta']        = $taxonomy_map;
+			$settings['global_taxonomy_meta_linked'] = 0;
+		}
+
+		$special = array();
+		$special_paths = array(
+			'homepage' => array( 'searchAppearance.global', 'searchAppearance.homePage' ),
+			'author'   => array( 'searchAppearance.archives.author', 'searchAppearance.authorArchives' ),
+			'date'     => array( 'searchAppearance.archives.date', 'searchAppearance.dateArchives' ),
+			'search'   => array( 'searchAppearance.advanced.searchPage', 'searchAppearance.searchPage' ),
+			'404'      => array( 'searchAppearance.advanced.404Page', 'searchAppearance.404Page' ),
+		);
+		foreach ( $special_paths as $context => $paths ) {
+			$config = $this->first_nested_value( $options, $paths, array() );
+			if ( ! is_array( $config ) || ! $config ) {
+				continue;
+			}
+			$robots = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
+			$special[ $context ] = $this->global_meta_row(
+				$this->special_template( $config['title'] ?? $config['siteTitle'] ?? '', 'aioseo', $context ),
+				$this->special_template( $config['metaDescription'] ?? $config['description'] ?? '', 'aioseo', $context ),
+				$robots
+			);
+		}
+		if ( $special ) {
+			$settings['global_special_meta'] = $special;
+		}
+
+		$schema   = $this->nested_value( $global, 'schema', array() );
+		$schema   = is_array( $schema ) ? $schema : array();
+		$identity = strtolower( (string) $this->first_nested_value( $schema, array( 'siteRepresents', 'siteRepresentsType' ), '' ) );
+		if ( in_array( $identity, array( 'person', 'organization' ), true ) ) {
+			$settings['schema_identity'] = $identity;
+		}
+		$organization = $this->nested_value( $schema, 'organization', array() );
+		$organization = is_array( $organization ) ? $organization : array();
+		if ( ! empty( $organization['name'] ) ) {
+			$settings['organization_name'] = sanitize_text_field( (string) $organization['name'] );
+		}
+		if ( ! empty( $organization['description'] ) ) {
+			$settings['organization_description'] = sanitize_textarea_field( (string) $organization['description'] );
+		}
+		$logo_id = absint( $this->first_nested_value( $organization, array( 'logo.id', 'logo.attachmentId', 'logoId' ), 0 ) );
+		$logo_url = (string) $this->first_nested_value( $organization, array( 'logo.url', 'logoUrl' ), '' );
+		if ( $logo_id > 0 ) {
+			$settings['organization_logo'] = $logo_id;
+		}
+		if ( '' !== $logo_url ) {
+			$settings['organization_logo_url'] = esc_url_raw( $logo_url );
+		}
+		if ( 'person' === ( $settings['schema_identity'] ?? '' ) ) {
+			$person = $this->nested_value( $schema, 'person', array() );
+			$person = is_array( $person ) ? $person : array();
+			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $person['userId'] ?? $person['id'] ?? 0, (string) ( $person['name'] ?? '' ) );
+		}
+
+		$profiles = $this->social_profile_list(
+			array(
+				$this->nested_value( $options, 'social.profiles.urls', array() ),
+				$this->nested_value( $options, 'social.profiles.additionalUrls', array() ),
+			)
+		);
+		if ( '' !== $profiles ) {
+			$settings['social_profiles'] = $profiles;
+		}
+		$twitter_site = $this->first_nested_value( $options, array( 'social.twitter.username', 'social.twitter.site' ), '' );
+		if ( is_scalar( $twitter_site ) && '' !== trim( (string) $twitter_site ) ) {
+			$settings['twitter_site'] = (string) $twitter_site;
+		}
+		$default_image = $this->first_nested_value( $options, array( 'social.facebook.general.defaultImage', 'social.facebook.defaultImage' ), '' );
+		if ( is_scalar( $default_image ) && '' !== trim( (string) $default_image ) ) {
+			$settings['default_social_image_url'] = esc_url_raw( (string) $default_image );
+		}
+
+		foreach ( array(
+			'enable_sitemap'     => array( 'sitemap.general.enable', 'sitemap.general.enabled' ),
+			'enable_breadcrumbs' => array( 'breadcrumbs.enable', 'breadcrumbs.enabled' ),
+		) as $target => $paths ) {
+			foreach ( $paths as $path ) {
+				if ( $this->has_nested_value( $options, $path ) ) {
+					$settings[ $target ] = $this->enabled( $this->nested_value( $options, $path ) ) ? 1 : 0;
+					break;
+				}
+			}
+		}
+		if ( $this->table_has_rows( 'aioseo_redirects' ) ) {
+			$settings['enable_redirects']        = 1;
+			$settings['redirect_exclude_admins'] = 0;
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -172,7 +357,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $this->table_has_rows( 'aioseo_posts' )
 			|| $this->table_has_rows( 'aioseo_terms' )
 			|| $this->table_has_rows( 'aioseo_redirects' )
-			|| $this->has_meta( 'post', array(), array( '_aioseop_' ) );
+			|| $this->has_meta( 'post', array(), array( '_aioseop_' ) )
+			|| $this->has_option_map( 'aioseo_options' )
+			|| $this->has_option_map( 'aioseo_options_dynamic' )
+			|| $this->has_option_map( 'aioseo_options_localized' )
+			|| $this->has_option_map( 'aioseo_options_dynamic_localized' );
 	}
 
 	/**
@@ -483,22 +672,8 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			$mapped['_erankly_schema_mode'] = 'disabled';
 		}
 
-		$legacy = array_filter(
-			array(
-				'page_analysis'       => $row['page_analysis'] ?? '',
-				'schema_type'         => $row['schema_type'] ?? '',
-				'schema_type_options' => $row['schema_type_options'] ?? '',
-				'schema'              => $row['schema'] ?? '',
-				'local_seo'           => $row['local_seo'] ?? '',
-				'ai'                  => $row['ai'] ?? '',
-			),
-			static fn( mixed $value ): bool => ! empty( $value )
-		);
-		if ( ! empty( $legacy ) ) {
-			$mapped['_erankly_legacy_editorial'] = array( 'aioseo' => $legacy );
-			if ( ! empty( $row['schema'] ) && empty( $blocks ) ) {
-				$this->add_warning( 'schema_configuration_preserved', 'An AIOSEO schema configuration was preserved but needs review because it is not rendered JSON-LD.', $object_type . ':' . $object_id );
-			}
+		if ( ! empty( $row['schema'] ) && empty( $blocks ) ) {
+			$this->add_warning( 'schema_configuration_not_migrated', 'An AIOSEO schema configuration could not be converted to rendered EasyRankly JSON-LD.', $object_type . ':' . $object_id );
 		}
 
 		return $this->with_extension_meta( $mapped, $editorial );
@@ -553,31 +728,21 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	 * @return iterable<int,array<string,mixed>>
 	 */
 	private function table_rows( string $suffix ): iterable {
-		global $wpdb;
-
 		if ( ! in_array( $suffix, self::TABLE_SUFFIXES, true ) ) {
-			return;
-		}
-		$table = $wpdb->prefix . $suffix;
-		if ( ! erankly_table_exists( $table ) ) {
 			return;
 		}
 
 		$cursor = 0;
 		do {
-			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded third-party source scan.
-				$wpdb->prepare( 'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200', $table, $cursor ),
-				ARRAY_A
-			);
-			if ( ! is_array( $rows ) || empty( $rows ) ) {
+			$page = $this->source_table_batch( $suffix, $cursor, 200 );
+			if ( empty( $page['records'] ) ) {
 				break;
 			}
-			$batch_count = count( $rows );
-			foreach ( $rows as $row ) {
-				$cursor = max( $cursor, absint( $row['id'] ?? 0 ) );
+			foreach ( $page['records'] as $row ) {
 				yield $row;
 			}
-		} while ( 200 === $batch_count );
+			$cursor = (int) $page['after_id'];
+		} while ( empty( $page['done'] ) );
 	}
 
 	/**

@@ -118,6 +118,8 @@ function erankly_get_term_global_meta_placeholder( string $taxonomy, string $fie
 function erankly_render_post_general_fields( WP_Post $post ): void {
 	$title                   = erankly_get_post_meta_string( $post->ID, 'title' );
 	$description             = erankly_get_post_meta_string( $post->ID, 'description' );
+	$focus_keywords          = erankly_sanitize_focus_keywords( get_post_meta( $post->ID, '_erankly_focus_keywords', true ) );
+	$cornerstone             = (bool) get_post_meta( $post->ID, '_erankly_cornerstone', true );
 	$canonical               = erankly_get_post_meta_string( $post->ID, 'canonical' );
 	$breadcrumb_name         = erankly_get_post_meta_string( $post->ID, 'breadcrumb_name' );
 	$breadcrumbs_enabled     = (bool) erankly_get_setting( 'enable_breadcrumbs', 1 );
@@ -152,6 +154,13 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 			<?php erankly_render_variable_picker( $examples ); ?>
 		</div>
 		<span id="erankly-description-counter" class="erankly-character-counter" aria-live="polite"></span>
+	</div>
+	<div class="erankly-field">
+		<label for="erankly-focus-keywords"><?php esc_html_e( 'Focus keyphrases', 'easyrankly' ); ?></label>
+		<input id="erankly-focus-keywords" class="widefat" type="text" name="erankly_focus_keywords" value="<?php echo esc_attr( implode( ', ', $focus_keywords ) ); ?>" placeholder="<?php esc_attr_e( 'Separate keyphrases with commas', 'easyrankly' ); ?>">
+	</div>
+	<div class="erankly-field">
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_cornerstone" value="1" <?php checked( $cornerstone ); ?>> <?php esc_html_e( 'Cornerstone content', 'easyrankly' ); ?></label>
 	</div>
 	<?php if ( ! $simplified_mode ) : ?>
 	<div class="erankly-field">
@@ -543,6 +552,7 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	$social_image_alt         = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'og_image_alt' ) : '';
 	$twitter_image_url        = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_image_url' ) : '';
 	$twitter_image_alt        = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'twitter_image_alt' ) : '';
+	$focus_keywords           = $term_id > 0 ? erankly_sanitize_focus_keywords( get_term_meta( $term_id, '_erankly_focus_keywords', true ) ) : array();
 	$id_suffix                = $term_id > 0 ? (string) $term_id : sanitize_key( $taxonomy );
 	$title_placeholder        = erankly_get_term_global_meta_placeholder( $taxonomy, 'title' );
 	$description_placeholder  = erankly_get_term_global_meta_placeholder( $taxonomy, 'description' );
@@ -581,6 +591,10 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 					<?php erankly_render_variable_picker( $examples ); ?>
 				</div>
 				<span id="erankly-term-description-counter-<?php echo esc_attr( $id_suffix ); ?>" class="erankly-character-counter" aria-live="polite"></span>
+			</div>
+			<div class="erankly-field">
+				<label for="erankly-term-focus-keywords-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Focus keyphrases', 'easyrankly' ); ?></label>
+				<input id="erankly-term-focus-keywords-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_focus_keywords" value="<?php echo esc_attr( implode( ', ', $focus_keywords ) ); ?>" placeholder="<?php esc_attr_e( 'Separate keyphrases with commas', 'easyrankly' ); ?>">
 			</div>
 			<?php if ( ! $simplified_mode ) : ?>
 			<div class="erankly-field">

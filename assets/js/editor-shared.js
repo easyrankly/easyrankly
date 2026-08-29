@@ -693,6 +693,23 @@
 			} ),
 		];
 
+		if ( features.editorial ) {
+			fields.push( el( FormTokenField, {
+				__next40pxDefaultSize: true,
+				key: 'focus_keywords',
+				label: __( 'Focus keyphrases', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'focus_keywords', value ),
+				value: Array.isArray( data.get( 'focus_keywords' ) ) ? data.get( 'focus_keywords' ) : [],
+			} ) );
+			fields.push( el( ToggleControl, {
+				__nextHasNoMarginBottom: true,
+				checked: Boolean( data.get( 'cornerstone' ) ),
+				key: 'cornerstone',
+				label: __( 'Cornerstone content', 'easyrankly' ),
+				onChange: ( value ) => data.set( 'cornerstone', value ),
+			} ) );
+		}
+
 		if ( features.canonical ) {
 			fields.push( el( VariableControl, {
 				key: 'canonical',

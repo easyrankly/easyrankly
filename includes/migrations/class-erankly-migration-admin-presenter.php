@@ -88,6 +88,9 @@ final class ERankly_Migration_Admin_Presenter {
 		$redirects = 'preview' === $mode
 			? absint( $counts['redirects_ready_create'] ?? 0 ) + absint( $counts['redirects_ready_update'] ?? 0 )
 			: absint( $counts['redirects_created'] ?? 0 ) + absint( $counts['redirects_updated'] ?? 0 );
+		$settings_count = 'preview' === $mode
+			? absint( $counts['settings_ready'] ?? 0 )
+			: absint( $counts['settings_written'] ?? 0 );
 
 		return array(
 			'state'                 => $state,
@@ -101,6 +104,7 @@ final class ERankly_Migration_Admin_Presenter {
 			'source_owns_output'    => $source_owns_output,
 			'proof_scope'           => $proof_scope,
 			'metadata_count'        => $metadata,
+			'settings_count'        => $settings_count,
 			'redirect_count'        => $redirects,
 			'problem_count'         => $problems,
 			'check_totals'          => $check_totals,
@@ -152,7 +156,10 @@ final class ERankly_Migration_Admin_Presenter {
 		}
 
 		if ( 0 === $problem_count ) {
-			$problem_count = absint( $counts['fields_failed'] ?? 0 )
+			$problem_count = absint( $counts['settings_failed'] ?? 0 )
+				+ absint( $counts['settings_invalid'] ?? 0 )
+				+ absint( $counts['settings_conflicts'] ?? 0 )
+				+ absint( $counts['fields_failed'] ?? 0 )
 				+ absint( $counts['fields_invalid'] ?? 0 )
 				+ absint( $counts['fields_conflicts'] ?? 0 )
 				+ absint( $counts['fields_unsupported'] ?? 0 )
@@ -162,7 +169,12 @@ final class ERankly_Migration_Admin_Presenter {
 		}
 
 		if ( 0 === $problem_count && ! empty( $report['warnings'] ) && is_array( $report['warnings'] ) ) {
-			$problem_count = count( $report['warnings'] );
+			$problem_count = count(
+				array_filter(
+					$report['warnings'],
+					static fn( mixed $warning ): bool => ! is_array( $warning ) || ! isset( $warning['blocking'] ) || (bool) $warning['blocking']
+				)
+			);
 		}
 
 		return $problem_count;

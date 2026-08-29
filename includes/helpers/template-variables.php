@@ -138,6 +138,32 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 				$value = get_the_author_meta( 'display_name', (int) $post->post_author );
 			}
 			break;
+		case 'author_name':
+			if ( $queried instanceof WP_User ) {
+				$value = $queried->display_name;
+			} elseif ( is_author() ) {
+				$author_id = absint( get_queried_object_id() );
+				if ( $author_id < 1 ) {
+					$author    = get_user_by( 'slug', (string) get_query_var( 'author_name' ) );
+					$author_id = $author instanceof WP_User ? (int) $author->ID : 0;
+				}
+				$value = $author_id > 0 ? get_the_author_meta( 'display_name', $author_id ) : '';
+			}
+			break;
+		case 'archive_date':
+			if ( is_year() || is_month() || is_day() ) {
+				$year  = absint( get_query_var( 'year' ) );
+				$month = max( 1, absint( get_query_var( 'monthnum' ) ) );
+				$day   = max( 1, absint( get_query_var( 'day' ) ) );
+				if ( $year > 0 ) {
+					$date = date_create_immutable( sprintf( '%04d-%02d-%02d 12:00:00', $year, $month, $day ), wp_timezone() );
+					if ( $date instanceof DateTimeImmutable ) {
+						$format = is_day() ? (string) get_option( 'date_format' ) : ( is_month() ? 'F Y' : 'Y' );
+						$value  = wp_date( $format, $date->getTimestamp(), wp_timezone() );
+					}
+				}
+			}
+			break;
 		case 'post_categories':
 			$value = erankly_get_post_category_names( $post_id );
 			break;
@@ -192,6 +218,19 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 		case 'page_number':
 			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
 			$value = (string) max( 1, $paged );
+			break;
+		case 'pagination':
+			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
+			if ( $paged > 1 ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Core WP global, read-only.
+				$total = isset( $GLOBALS['wp_query'] ) ? max( $paged, (int) $GLOBALS['wp_query']->max_num_pages ) : $paged;
+				$value = sprintf(
+					/* translators: 1: current page number, 2: total pages. */
+					__( 'Page %1$d of %2$d', 'easyrankly' ),
+					$paged,
+					$total
+				);
+			}
 			break;
 		case 'max_pages':
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Core WP global, read-only.
@@ -340,6 +379,17 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 		case 'post_author':
 			$value = $post ? get_the_author_meta( 'display_name', (int) $post->post_author ) : '';
 			break;
+		case 'author_name':
+			if ( $post ) {
+				$value = get_the_author_meta( 'display_name', (int) $post->post_author );
+			} else {
+				$user  = wp_get_current_user();
+				$value = $user->exists() ? $user->display_name : '';
+			}
+			break;
+		case 'archive_date':
+			$value = wp_date( (string) get_option( 'date_format' ) );
+			break;
 		case 'post_categories':
 			$value = $post ? erankly_get_post_category_names( $post->ID ) : '';
 			break;
@@ -446,6 +496,14 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 			// still preview on settings fields.
 			$value = '1';
 			break;
+		case 'pagination':
+			$value = sprintf(
+				/* translators: 1: current page number, 2: total pages. */
+				__( 'Page %1$d of %2$d', 'easyrankly' ),
+				2,
+				5
+			);
+			break;
 	}
 
 	return trim( wp_strip_all_tags( (string) $value ) );
@@ -478,6 +536,8 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'post_day',
 		'post_modified_date',
 		'post_author',
+		'author_name',
+		'archive_date',
 		'post_categories',
 		'post_tags',
 		'post_type_name',
@@ -491,6 +551,7 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'meta_description',
 		'canonical_url',
 		'search_query',
+		'pagination',
 		'page_number',
 		'max_pages',
 		'site_name',

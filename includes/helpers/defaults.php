@@ -84,7 +84,15 @@ function erankly_build_global_entity_meta_defaults( array $keys, array $template
  * @return array<string,array<string,string>>
  */
 function erankly_default_global_post_type_meta(): array {
-	return erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_post_types() ), erankly_default_post_type_meta_template() );
+	$defaults = erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_post_types() ), erankly_default_post_type_meta_template() );
+
+	foreach ( $defaults as $post_type => &$row ) {
+		$row['webpage_type'] = 'WebPage';
+		$row['article_type'] = 'post' === $post_type ? 'BlogPosting' : '';
+	}
+	unset( $row );
+
+	return $defaults;
 }
 
 /**
@@ -157,10 +165,19 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 		$description = '';
 		$directives  = array_fill_keys( $directive_keys, 0 );
 
+		$schema_by_key = array();
 		foreach ( $keys as $key ) {
 			if ( ! isset( $input[ $key ] ) || ! is_array( $input[ $key ] ) ) {
 				continue;
 			}
+			$schema = array();
+			if ( array_key_exists( 'webpage_type', $input[ $key ] ) ) {
+				$schema['webpage_type'] = erankly_sanitize_schema_type_name( $input[ $key ]['webpage_type'] );
+			}
+			if ( array_key_exists( 'article_type', $input[ $key ] ) ) {
+				$schema['article_type'] = erankly_sanitize_schema_type_name( $input[ $key ]['article_type'] );
+			}
+			$schema_by_key[ $key ] = $schema;
 
 			$current_title       = isset( $input[ $key ]['title'] ) ? erankly_sanitize_text( $input[ $key ]['title'] ) : '';
 			$current_description = isset( $input[ $key ]['description'] ) ? erankly_sanitize_textarea( $input[ $key ]['description'] ) : '';
@@ -174,7 +191,11 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			}
 		}
 
-		if ( '' === $title && '' === $description && 0 === array_sum( $directives ) ) {
+		$has_schema = (bool) array_filter(
+			$schema_by_key,
+			static fn( array $schema ): bool => (bool) array_filter( $schema, 'strlen' )
+		);
+		if ( '' === $title && '' === $description && 0 === array_sum( $directives ) && ! $has_schema ) {
 			return array();
 		}
 
@@ -182,7 +203,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			$clean[ $key ] = array(
 				'title'       => $title,
 				'description' => $description,
-			) + $directives;
+			) + $directives + ( $schema_by_key[ $key ] ?? array() );
 		}
 
 		return $clean;
@@ -199,19 +220,39 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 		$description = isset( $fields['description'] ) ? erankly_sanitize_textarea( $fields['description'] ) : '';
 		$directives  = erankly_sanitize_global_entity_directives( $fields );
 		$social      = $with_social ? erankly_sanitize_global_entity_social( $fields ) : array();
+		$schema      = array();
+		if ( array_key_exists( 'webpage_type', $fields ) ) {
+			$schema['webpage_type'] = erankly_sanitize_schema_type_name( $fields['webpage_type'] );
+		}
+		if ( array_key_exists( 'article_type', $fields ) ) {
+			$schema['article_type'] = erankly_sanitize_schema_type_name( $fields['article_type'] );
+		}
 		$no_social   = ! $with_social || erankly_global_entity_social_is_empty( $social );
+		$no_schema   = ! array_filter( $schema, 'strlen' );
 
-		if ( '' === $title && '' === $description && 0 === array_sum( $directives ) && $no_social ) {
+		if ( '' === $title && '' === $description && 0 === array_sum( $directives ) && $no_social && $no_schema ) {
 			continue;
 		}
 
 		$clean[ $entity ] = array(
 			'title'       => $title,
 			'description' => $description,
-		) + $directives + $social;
+		) + $directives + $social + $schema;
 	}
 
 	return $clean;
+}
+
+/**
+ * Sanitizes a Schema.org type name used by post-type defaults.
+ *
+ * @param mixed $value Raw type name.
+ * @return string
+ */
+function erankly_sanitize_schema_type_name( mixed $value ): string {
+	$value = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $value );
+
+	return is_string( $value ) ? substr( $value, 0, 100 ) : '';
 }
 
 /**
