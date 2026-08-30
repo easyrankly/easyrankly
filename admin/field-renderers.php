@@ -52,6 +52,8 @@ function erankly_get_variable_groups(): array {
 				'meta_description' => __( 'Meta description', 'easyrankly' ),
 				'canonical_url'    => __( 'Canonical URL', 'easyrankly' ),
 				'author_name'      => __( 'Archive author name', 'easyrankly' ),
+				'author_bio'       => __( 'Archive author biography', 'easyrankly' ),
+				'author_url'       => __( 'Archive author URL', 'easyrankly' ),
 				'archive_date'     => __( 'Archive date', 'easyrankly' ),
 				'search_query'     => __( 'Search query', 'easyrankly' ),
 			),

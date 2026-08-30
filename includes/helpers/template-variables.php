@@ -150,6 +150,24 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 				$value = $author_id > 0 ? get_the_author_meta( 'display_name', $author_id ) : '';
 			}
 			break;
+		case 'author_bio':
+		case 'author_url':
+			$author_id = $post instanceof WP_Post ? (int) $post->post_author : 0;
+			if ( $queried instanceof WP_User ) {
+				$author_id = (int) $queried->ID;
+			} elseif ( $author_id < 1 && is_author() ) {
+				$author_id = absint( get_queried_object_id() );
+				if ( $author_id < 1 ) {
+					$author    = get_user_by( 'slug', (string) get_query_var( 'author_name' ) );
+					$author_id = $author instanceof WP_User ? (int) $author->ID : 0;
+				}
+			}
+			if ( $author_id > 0 ) {
+				$value = 'author_bio' === $key
+					? (string) get_the_author_meta( 'description', $author_id )
+					: (string) get_author_posts_url( $author_id );
+			}
+			break;
 		case 'archive_date':
 			if ( is_year() || is_month() || is_day() ) {
 				$year  = absint( get_query_var( 'year' ) );
@@ -387,6 +405,15 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 				$value = $user->exists() ? $user->display_name : '';
 			}
 			break;
+		case 'author_bio':
+		case 'author_url':
+			$user_id = $post ? (int) $post->post_author : (int) get_current_user_id();
+			if ( $user_id > 0 ) {
+				$value = 'author_bio' === $key
+					? (string) get_the_author_meta( 'description', $user_id )
+					: (string) get_author_posts_url( $user_id );
+			}
+			break;
 		case 'archive_date':
 			$value = wp_date( (string) get_option( 'date_format' ) );
 			break;
@@ -537,6 +564,8 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'post_modified_date',
 		'post_author',
 		'author_name',
+		'author_bio',
+		'author_url',
 		'archive_date',
 		'post_categories',
 		'post_tags',

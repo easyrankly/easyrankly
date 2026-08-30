@@ -537,8 +537,8 @@ abstract class ERankly_Migration_Adapter {
 			'rank_math_redirections' => array( 'id', 'sources', 'url_to', 'header_code', 'status' ),
 		);
 		$allowed  = array(
-			'aioseo_posts'           => array( 'id', 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
-			'aioseo_terms'           => array( 'id', 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
+			'aioseo_posts'           => array( 'id', 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'focus_keyword', 'additional_keywords', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
+			'aioseo_terms'           => array( 'id', 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'focus_keyword', 'additional_keywords', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
 			'aioseo_redirects'       => array( 'id', 'source_url', 'target_url', 'type', 'source_url_match', 'query_param', 'enabled', 'ignore_case' ),
 			'rank_math_redirections' => array( 'id', 'sources', 'url_to', 'header_code', 'status' ),
 		);
@@ -832,7 +832,7 @@ abstract class ERankly_Migration_Adapter {
 	protected function has_robot_configuration( mixed $value ): bool {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $key => $child ) {
-				$normalized_key = is_string( $key ) ? strtolower( preg_replace( '/[^a-z]+/', '', $key ) ) : '';
+				$normalized_key = is_string( $key ) ? preg_replace( '/[^a-z]+/', '', strtolower( $key ) ) : '';
 				if ( in_array( $normalized_key, array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'robots', 'robotsmeta' ), true ) ) {
 					return true;
 				}
@@ -926,6 +926,20 @@ abstract class ERankly_Migration_Adapter {
 		$urls = array_values( array_unique( array_filter( array_map( 'esc_url_raw', $urls ) ) ) );
 
 		return implode( "\n", $urls );
+	}
+
+	/**
+	 * Normalizes a source X/Twitter username or profile URL.
+	 *
+	 * @param mixed $value Source handle or URL.
+	 * @return string
+	 */
+	protected function social_handle( mixed $value ): string {
+		erankly_load_default_helpers();
+
+		return function_exists( 'erankly_sanitize_twitter_handle' )
+			? erankly_sanitize_twitter_handle( $value )
+			: '';
 	}
 
 	/**

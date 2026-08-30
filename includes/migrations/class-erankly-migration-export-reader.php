@@ -191,7 +191,7 @@ final class ERankly_Migration_Export_Reader {
 				'done'    => $page['done'],
 			);
 		}
-		if ( ! in_array( $format, array( 'yoast-redirects-csv', 'rankmath-redirects-csv', 'aioseo-redirects-csv' ), true ) ) {
+		if ( ! in_array( $format, array( 'yoast-redirects-csv', 'rankmath-redirects-csv', 'aioseo-redirects-csv', 'seopress-metadata-csv' ), true ) ) {
 			return array(
 				'records' => array(),
 				'cursor'  => array( 'row' => 0 ),
@@ -473,7 +473,7 @@ final class ERankly_Migration_Export_Reader {
 		$match        = 'exact';
 		$active       = 1;
 		$case         = 0;
-		$query_mode   = 'preserve';
+		$query_mode   = 'ignore';
 		$source_query = '';
 		$visibility   = 'all';
 
@@ -496,7 +496,8 @@ final class ERankly_Migration_Export_Reader {
 					'regex'    => 'regex',
 				)[ $comparison ] ?? 'exact';
 				$active     = in_array( strtolower( trim( (string) ( $row['status'] ?? 'active' ) ) ), array( 'active', '1', 'yes' ), true ) ? 1 : 0;
-				$case       = self::truthy( $row['ignore'] ?? '' ) ? 0 : 1;
+				$ignore     = strtolower( trim( (string) ( $row['ignore'] ?? '' ) ) );
+				$case       = 'case' === $ignore || self::truthy( $ignore ) ? 0 : 1;
 			} else {
 				$origin = (string) ( $row['url'] ?? $row['permalink'] ?? '' );
 				$target = (string) ( $row['redirect_to'] ?? '' );
@@ -507,6 +508,9 @@ final class ERankly_Migration_Export_Reader {
 			$target     = (string) ( $row['redirect_url'] ?? '' );
 			$type       = absint( $row['redirect_type'] ?? 301 );
 			$active     = self::truthy( $row['redirect_active'] ?? '' ) ? 1 : 0;
+			$match      = self::truthy( $row['redirect_enabled_regex'] ?? $row['redirect_regex'] ?? '' ) ? 'regex' : 'exact';
+			$param_mode = strtolower( trim( (string) ( $row['redirect_param'] ?? '' ) ) );
+			$query_mode = 'with_ignored_param' === $param_mode ? 'preserve' : ( 'exact_match' === $param_mode ? 'exact' : 'ignore' );
 			$visibility = array(
 				'only_logged_in'     => 'logged_in',
 				'only_not_logged_in' => 'logged_out',
@@ -517,7 +521,16 @@ final class ERankly_Migration_Export_Reader {
 			$type_value = self::first_value( $row, array( 'type', 'status_code', 'http_code' ) );
 			$type       = absint( '' === $type_value ? 301 : $type_value );
 			$match      = self::truthy( self::first_value( $row, array( 'regex', 'is_regex' ) ) ) || 'regex' === strtolower( self::first_value( $row, array( 'match_type', 'source_url_match' ) ) ) ? 'regex' : 'exact';
-			$active     = in_array( strtolower( self::first_value( $row, array( 'status', 'is_active' ) ) ), array( '', 'active', '1', 'yes', 'true' ), true ) ? 1 : 0;
+			$active     = in_array( strtolower( self::first_value( $row, array( 'enabled', 'status', 'is_active' ) ) ), array( '', 'active', '1', 'yes', 'true', 'enabled' ), true ) ? 1 : 0;
+			if ( array_key_exists( 'ignore_case', $row ) ) {
+				$case = self::truthy( $row['ignore_case'] ) ? 0 : 1;
+			}
+			$query_option = strtolower( self::first_value( $row, array( 'query_param', 'query_mode' ) ) );
+			if ( str_contains( $query_option, 'pass' ) || str_contains( $query_option, 'preserve' ) ) {
+				$query_mode = 'preserve';
+			} elseif ( str_contains( $query_option, 'exact' ) ) {
+				$query_mode = 'exact';
+			}
 		}
 
 		$origin = trim( $origin );
@@ -527,10 +540,12 @@ final class ERankly_Migration_Export_Reader {
 		}
 		if ( 'regex' !== $match ) {
 			$query = (string) wp_parse_url( $origin, PHP_URL_QUERY );
-			if ( '' !== $query ) {
+			if ( '' !== $query && 'preserve' !== $query_mode ) {
 				$source_query = $query;
 				$query_mode   = 'exact';
 			}
+		} else {
+			$query_mode = 'ignore';
 		}
 
 		return array(

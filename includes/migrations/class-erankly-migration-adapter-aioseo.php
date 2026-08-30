@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** AIOSEO v3/v4 Free/Pro adapter. */
+/** AIOSEO v3/v4/v5 Free/Pro adapter. */
 final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	private const TABLE_SUFFIXES = array( 'aioseo_posts', 'aioseo_terms', 'aioseo_redirects' );
 
@@ -92,11 +92,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $support;
 	}
 
-	/** Covers AIOSEO 3 postmeta and the versioned v4 table family. */
+	/** Covers AIOSEO 3 postmeta and the compatible v4/v5 table family. */
 	protected function supported_versions(): array {
 		return array(
 			'min' => '3.0.0',
-			'max' => '4.999.999',
+			'max' => '5.999.999',
 		);
 	}
 
@@ -144,13 +144,13 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 				'type'                => 'table',
 				'suffix'              => 'aioseo_posts',
 				'columns'             => array( 'id', 'post_id', 'title', 'description', 'canonical_url' ),
-				'fingerprint_columns' => array( 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'keyphrases', 'primary_term' ),
+				'fingerprint_columns' => array( 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'focus_keyword', 'additional_keywords', 'keyphrases', 'primary_term' ),
 			),
 			'pro_terms'     => array(
 				'type'                => 'table',
 				'suffix'              => 'aioseo_terms',
 				'columns'             => array( 'id', 'term_id', 'title', 'description' ),
-				'fingerprint_columns' => array( 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'keyphrases', 'primary_term' ),
+				'fingerprint_columns' => array( 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'focus_keyword', 'additional_keywords', 'keyphrases', 'primary_term' ),
 			),
 			'pro_redirects' => array(
 				'type'                => 'table',
@@ -188,17 +188,27 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		}
 
 		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'aioseo' );
+		$first_scalar = static function ( array $values, string $default = '' ): string {
+			foreach ( $values as $value ) {
+				if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+					return (string) $value;
+				}
+			}
+
+			return $default;
+		};
 		$settings = array();
 		$global   = $this->nested_value( $options, 'searchAppearance.global', array() );
 		$global   = is_array( $global ) ? $global : array();
-		$site_title = $this->first_nested_value( $global, array( 'siteTitle', 'title' ) );
-		$site_desc  = $this->first_nested_value( $global, array( 'metaDescription', 'description' ) );
-		if ( is_scalar( $site_title ) && '' !== trim( (string) $site_title ) ) {
-			$settings['website_name'] = $convert( $site_title );
+		$schema   = $this->nested_value( $global, 'schema', array() );
+		$schema   = is_array( $schema ) ? $schema : array();
+		$website_name = $this->first_nested_value( $schema, array( 'websiteName', 'website.name' ) );
+		if ( is_scalar( $website_name ) && '' !== trim( (string) $website_name ) ) {
+			$settings['website_name'] = $convert( $website_name );
 		}
-		if ( is_scalar( $site_desc ) && '' !== trim( (string) $site_desc ) ) {
-			$settings['website_description'] = $convert( $site_desc );
-		}
+
+		$global_robots = $this->nested_value( $options, 'searchAppearance.advanced.globalRobotsMeta', array() );
+		$global_robots = is_array( $global_robots ) ? $global_robots : array();
 
 		$post_types = $this->nested_value( $dynamic, 'searchAppearance.postTypes', array() );
 		if ( ! is_array( $post_types ) ) {
@@ -210,7 +220,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			if ( ! $config ) {
 				continue;
 			}
-			$robots       = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
+			$robots       = $this->effective_robots( $config, $global_robots );
 			$page_type    = (string) $this->first_nested_value( $config, array( 'webPageType', 'schema.webPageType' ), 'WebPage' );
 			$schema_type  = strtolower( (string) $this->first_nested_value( $config, array( 'schemaType', 'schema.type' ), '' ) );
 			$article_type = in_array( $schema_type, array( 'article', 'blogposting', 'newsarticle' ), true )
@@ -219,8 +229,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			if ( 'none' === strtolower( $page_type ) ) {
 				$page_type = 'none';
 			}
-			$map_path    = 'sitemap.general.postTypes.' . $post_type;
-			$in_sitemap  = $this->has_nested_value( $options, $map_path ) ? $this->enabled( $this->nested_value( $options, $map_path ) ) : null;
+			$in_sitemap  = $this->sitemap_membership( $options, 'postTypes', $post_type );
+			if ( $this->has_nested_value( $config, 'show' ) && ! $this->enabled( $config['show'] ) ) {
+				$robots['noindex'] = true;
+				$in_sitemap        = false;
+			}
 			$post_map[ $post_type ] = $this->global_meta_row(
 				$convert( $config['title'] ?? '' ),
 				$convert( $config['metaDescription'] ?? $config['description'] ?? '' ),
@@ -245,9 +258,12 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			if ( ! $config ) {
 				continue;
 			}
-			$robots      = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
-			$map_path    = 'sitemap.general.taxonomies.' . $taxonomy;
-			$in_sitemap  = $this->has_nested_value( $options, $map_path ) ? $this->enabled( $this->nested_value( $options, $map_path ) ) : null;
+			$robots      = $this->effective_robots( $config, $global_robots );
+			$in_sitemap  = $this->sitemap_membership( $options, 'taxonomies', $taxonomy );
+			if ( $this->has_nested_value( $config, 'show' ) && ! $this->enabled( $config['show'] ) ) {
+				$robots['noindex'] = true;
+				$in_sitemap        = false;
+			}
 			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $config['title'] ?? '' ), $convert( $config['metaDescription'] ?? $config['description'] ?? '' ), $robots, $in_sitemap );
 		}
 		if ( $taxonomy_map ) {
@@ -260,7 +276,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			'homepage' => array( 'searchAppearance.global', 'searchAppearance.homePage' ),
 			'author'   => array( 'searchAppearance.archives.author', 'searchAppearance.authorArchives' ),
 			'date'     => array( 'searchAppearance.archives.date', 'searchAppearance.dateArchives' ),
-			'search'   => array( 'searchAppearance.advanced.searchPage', 'searchAppearance.searchPage' ),
+			'search'   => array( 'searchAppearance.archives.search', 'searchAppearance.advanced.searchPage', 'searchAppearance.searchPage' ),
 			'404'      => array( 'searchAppearance.advanced.404Page', 'searchAppearance.404Page' ),
 		);
 		foreach ( $special_paths as $context => $paths ) {
@@ -268,61 +284,128 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			if ( ! is_array( $config ) || ! $config ) {
 				continue;
 			}
-			$robots = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
+			$robots     = $this->effective_robots( $config, $global_robots );
+			$in_sitemap = null;
+			if ( in_array( $context, array( 'author', 'date' ), true ) ) {
+				$path       = 'sitemap.general.' . $context;
+				$in_sitemap = $this->has_nested_value( $options, $path ) ? $this->enabled( $this->nested_value( $options, $path ) ) : null;
+			}
+			if ( $this->has_nested_value( $config, 'show' ) && ! $this->enabled( $config['show'] ) ) {
+				$robots['noindex'] = true;
+				$in_sitemap        = false;
+			}
 			$special[ $context ] = $this->global_meta_row(
 				$this->special_template( $config['title'] ?? $config['siteTitle'] ?? '', 'aioseo', $context ),
 				$this->special_template( $config['metaDescription'] ?? $config['description'] ?? '', 'aioseo', $context ),
-				$robots
+				$robots,
+				$in_sitemap
 			);
+		}
+		if ( isset( $special['homepage'] ) ) {
+			$facebook_home = $this->nested_value( $options, 'social.facebook.homePage', array() );
+			$twitter_home  = $this->nested_value( $options, 'social.twitter.homePage', array() );
+			$facebook_home = is_array( $facebook_home ) ? $facebook_home : array();
+			$twitter_home  = is_array( $twitter_home ) ? $twitter_home : array();
+			$special['homepage']['og_title']            = $convert( $facebook_home['title'] ?? '' );
+			$special['homepage']['og_description']      = $convert( $facebook_home['description'] ?? '' );
+			$special['homepage']['twitter_title']       = $convert( $twitter_home['title'] ?? '' );
+			$special['homepage']['twitter_description'] = $convert( $twitter_home['description'] ?? '' );
+			$special['homepage']['social_image_url']    = esc_url_raw( $first_scalar( array( $facebook_home['image'] ?? '', $twitter_home['image'] ?? '' ) ) );
+
+			if ( $this->enabled( $this->nested_value( $options, 'social.twitter.general.useOgData', false ) ) ) {
+				if ( '' === $special['homepage']['twitter_title'] ) {
+					$special['homepage']['twitter_title'] = $special['homepage']['og_title'];
+				}
+				if ( '' === $special['homepage']['twitter_description'] ) {
+					$special['homepage']['twitter_description'] = $special['homepage']['og_description'];
+				}
+			}
 		}
 		if ( $special ) {
 			$settings['global_special_meta'] = $special;
 		}
 
-		$schema   = $this->nested_value( $global, 'schema', array() );
-		$schema   = is_array( $schema ) ? $schema : array();
 		$identity = strtolower( (string) $this->first_nested_value( $schema, array( 'siteRepresents', 'siteRepresentsType' ), '' ) );
 		if ( in_array( $identity, array( 'person', 'organization' ), true ) ) {
 			$settings['schema_identity'] = $identity;
 		}
 		$organization = $this->nested_value( $schema, 'organization', array() );
 		$organization = is_array( $organization ) ? $organization : array();
-		if ( ! empty( $organization['name'] ) ) {
-			$settings['organization_name'] = sanitize_text_field( (string) $organization['name'] );
+		$organization_name = $first_scalar( array( $schema['organizationName'] ?? '', $organization['name'] ?? '' ) );
+		$organization_desc = $first_scalar( array( $schema['organizationDescription'] ?? '', $organization['description'] ?? '' ) );
+		if ( '' !== $organization_name ) {
+			$settings['organization_name'] = $convert( $organization_name );
 		}
-		if ( ! empty( $organization['description'] ) ) {
-			$settings['organization_description'] = sanitize_textarea_field( (string) $organization['description'] );
+		if ( '' !== $organization_desc ) {
+			$settings['organization_description'] = $convert( $organization_desc );
 		}
 		$logo_id = absint( $this->first_nested_value( $organization, array( 'logo.id', 'logo.attachmentId', 'logoId' ), 0 ) );
-		$logo_url = (string) $this->first_nested_value( $organization, array( 'logo.url', 'logoUrl' ), '' );
+		$logo_url = $first_scalar(
+			array(
+				$schema['organizationLogo'] ?? '',
+				$this->first_nested_value( $organization, array( 'logo.url', 'logoUrl' ), '' ),
+			)
+		);
 		if ( $logo_id > 0 ) {
 			$settings['organization_logo'] = $logo_id;
 		}
 		if ( '' !== $logo_url ) {
 			$settings['organization_logo_url'] = esc_url_raw( $logo_url );
 		}
+		foreach ( array(
+			'organization_email' => 'email',
+			'organization_phone' => 'phone',
+		) as $target => $source_key ) {
+			if ( isset( $schema[ $source_key ] ) && is_scalar( $schema[ $source_key ] ) && '' !== trim( (string) $schema[ $source_key ] ) ) {
+				$settings[ $target ] = (string) $schema[ $source_key ];
+			}
+		}
 		if ( 'person' === ( $settings['schema_identity'] ?? '' ) ) {
-			$person = $this->nested_value( $schema, 'person', array() );
-			$person = is_array( $person ) ? $person : array();
-			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $person['userId'] ?? $person['id'] ?? 0, (string) ( $person['name'] ?? '' ) );
+			$person          = $schema['person'] ?? array();
+			$person_id       = is_array( $person ) ? ( $person['userId'] ?? $person['id'] ?? 0 ) : $person;
+			$person_name     = $first_scalar( array( $schema['personName'] ?? '', is_array( $person ) ? ( $person['name'] ?? '' ) : '' ) );
+			$settings['schema_person_user_id'] = $this->person_user_id_or_warning( $person_id, $person_name );
 		}
 
+		$same_username_urls = $this->same_username_profiles( $options );
 		$profiles = $this->social_profile_list(
 			array(
 				$this->nested_value( $options, 'social.profiles.urls', array() ),
 				$this->nested_value( $options, 'social.profiles.additionalUrls', array() ),
+				$same_username_urls,
 			)
 		);
 		if ( '' !== $profiles ) {
 			$settings['social_profiles'] = $profiles;
 		}
-		$twitter_site = $this->first_nested_value( $options, array( 'social.twitter.username', 'social.twitter.site' ), '' );
-		if ( is_scalar( $twitter_site ) && '' !== trim( (string) $twitter_site ) ) {
-			$settings['twitter_site'] = (string) $twitter_site;
+		$same_username = $this->nested_value( $options, 'social.profiles.sameUsername', array() );
+		$same_username = is_array( $same_username ) ? $same_username : array();
+		$same_included = is_array( $same_username['included'] ?? null ) ? $same_username['included'] : array();
+		$same_twitter  = $this->enabled( $same_username['enable'] ?? false ) && in_array( 'twitterUrl', $same_included, true )
+			? (string) ( $same_username['username'] ?? '' )
+			: '';
+		$twitter_site = $first_scalar(
+			array(
+				$this->nested_value( $options, 'social.twitter.username', '' ),
+				$this->nested_value( $options, 'social.twitter.site', '' ),
+				$this->nested_value( $options, 'social.profiles.urls.twitterUrl', '' ),
+				$same_twitter,
+			)
+		);
+		$twitter_site = $this->social_handle( $twitter_site );
+		if ( '' !== $twitter_site ) {
+			$settings['twitter_site'] = $twitter_site;
 		}
-		$default_image = $this->first_nested_value( $options, array( 'social.facebook.general.defaultImage', 'social.facebook.defaultImage' ), '' );
-		if ( is_scalar( $default_image ) && '' !== trim( (string) $default_image ) ) {
-			$settings['default_social_image_url'] = esc_url_raw( (string) $default_image );
+		$default_image = $first_scalar(
+			array(
+				$this->nested_value( $options, 'social.facebook.general.defaultImagePosts', '' ),
+				$this->nested_value( $options, 'social.twitter.general.defaultImagePosts', '' ),
+				$this->nested_value( $options, 'social.facebook.general.defaultImage', '' ),
+				$this->nested_value( $options, 'social.facebook.defaultImage', '' ),
+			)
+		);
+		if ( '' !== $default_image ) {
+			$settings['default_social_image_url'] = esc_url_raw( $default_image );
 		}
 
 		foreach ( array(
@@ -335,6 +418,36 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 					break;
 				}
 			}
+		}
+		if ( isset( $settings['enable_sitemap'] ) ) {
+			$advanced_sitemap = $this->nested_value( $options, 'sitemap.general.advancedSettings', array() );
+			$advanced_sitemap = is_array( $advanced_sitemap ) ? $advanced_sitemap : array();
+			$exclude_images   = $this->enabled( $advanced_sitemap['enable'] ?? false ) && $this->enabled( $advanced_sitemap['excludeImages'] ?? false );
+			$settings['enable_image_sitemap'] = $settings['enable_sitemap'] && ! $exclude_images ? 1 : 0;
+		}
+		if ( array_key_exists( 'noindexPaginated', $global_robots ) ) {
+			$settings['noindex_paginated'] = $this->enabled( $global_robots['noindexPaginated'] ) ? 1 : 0;
+		}
+		if ( array_key_exists( 'nosnippet', $global_robots ) ) {
+			$settings['robots_nosnippet'] = $this->enabled( $global_robots['nosnippet'] ) ? 1 : 0;
+		}
+		foreach ( array(
+			'maxSnippet'      => 'robots_max_snippet',
+			'maxVideoPreview' => 'robots_max_video_preview',
+		) as $source_key => $target ) {
+			if ( isset( $global_robots[ $source_key ] ) && is_numeric( $global_robots[ $source_key ] ) && (int) $global_robots[ $source_key ] >= 0 ) {
+				$settings[ $target ] = (string) (int) $global_robots[ $source_key ];
+			}
+		}
+		if ( isset( $global_robots['maxImagePreview'] ) ) {
+			$settings['robots_max_image_preview_large'] = 'large' === strtolower( (string) $global_robots['maxImagePreview'] ) ? 1 : 0;
+		}
+		$attachment_redirect = (string) $this->nested_value( $dynamic, 'searchAppearance.postTypes.attachment.redirectAttachmentUrls', '' );
+		if ( '' !== $attachment_redirect ) {
+			$settings['attachment_redirect'] = array(
+				'attachment'        => 'file',
+				'attachment_parent' => 'parent',
+			)[ $attachment_redirect ] ?? 'none';
 		}
 		if ( $this->table_has_rows( 'aioseo_redirects' ) ) {
 			$settings['enable_redirects']        = 1;
@@ -629,7 +742,14 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		}
 
 		$editorial = array();
-		$keywords  = $this->keywords( $row['keyphrases'] ?? $row['keywords'] ?? '' );
+		$keywords  = $this->keywords(
+			array(
+				$row['focus_keyword'] ?? '',
+				$row['additional_keywords'] ?? '',
+				$row['keyphrases'] ?? '',
+				$row['keywords'] ?? '',
+			)
+		);
 		if ( ! empty( $keywords ) ) {
 			$editorial['focus_keywords'] = $keywords;
 		}
@@ -792,6 +912,88 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		}
 
 		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE %i IS NOT NULL AND %i <> %s LIMIT 1', $table, $column, $column, '' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table and column are selected from the internal whitelist above and escaped as identifiers.
+	}
+
+	/**
+	 * Resolves an AIOSEO entity's inherited robots policy.
+	 *
+	 * @param array<string|int,mixed> $config        Entity configuration.
+	 * @param array<string|int,mixed> $global_robots Site-wide robots configuration.
+	 * @return array<string|int,mixed>
+	 */
+	private function effective_robots( array $config, array $global_robots ): array {
+		$robots = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
+		$robots = is_array( $robots ) ? $robots : array();
+
+		return $this->enabled( $robots['default'] ?? false ) && $global_robots ? $global_robots : $robots;
+	}
+
+	/**
+	 * Reads AIOSEO's current all/included sitemap list and legacy keyed maps.
+	 *
+	 * @param array<string|int,mixed> $options Source options.
+	 * @param string                  $group   postTypes|taxonomies.
+	 * @param string                  $name    Post type or taxonomy.
+	 * @return bool|null
+	 */
+	private function sitemap_membership( array $options, string $group, string $name ): ?bool {
+		$config = $this->nested_value( $options, array( 'sitemap', 'general', $group ), null );
+		if ( is_array( $config ) && ( array_key_exists( 'all', $config ) || array_key_exists( 'included', $config ) ) ) {
+			if ( $this->enabled( $config['all'] ?? false ) ) {
+				return true;
+			}
+
+			$included = is_array( $config['included'] ?? null ) ? array_map( 'sanitize_key', $config['included'] ) : array();
+
+			return in_array( sanitize_key( $name ), $included, true );
+		}
+		if ( is_array( $config ) && array_key_exists( $name, $config ) ) {
+			$value = $config[ $name ];
+			if ( is_array( $value ) && array_key_exists( 'include', $value ) ) {
+				$value = $value['include'];
+			}
+
+			return $this->enabled( $value );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Expands AIOSEO's "same username" profile shorthand to canonical URLs.
+	 *
+	 * @param array<string|int,mixed> $options Source options.
+	 * @return array<int,string>
+	 */
+	private function same_username_profiles( array $options ): array {
+		$config = $this->nested_value( $options, 'social.profiles.sameUsername', array() );
+		$config = is_array( $config ) ? $config : array();
+		if ( ! $this->enabled( $config['enable'] ?? false ) || empty( $config['username'] ) ) {
+			return array();
+		}
+
+		$username = trim( (string) $config['username'], " @\t\n\r\0\x0B/" );
+		if ( '' === $username ) {
+			return array();
+		}
+		$included = is_array( $config['included'] ?? null ) ? $config['included'] : array();
+		$bases    = array(
+			'facebookPageUrl' => 'https://www.facebook.com/',
+			'twitterUrl'      => 'https://x.com/',
+			'tiktokUrl'       => 'https://www.tiktok.com/@',
+			'pinterestUrl'    => 'https://www.pinterest.com/',
+			'instagramUrl'    => 'https://www.instagram.com/',
+			'youtubeUrl'      => 'https://www.youtube.com/@',
+			'linkedinUrl'     => 'https://www.linkedin.com/in/',
+		);
+		$urls = array();
+		foreach ( $included as $profile ) {
+			if ( isset( $bases[ $profile ] ) ) {
+				$urls[] = $bases[ $profile ] . rawurlencode( $username );
+			}
+		}
+
+		return $urls;
 	}
 
 	/**

@@ -294,13 +294,13 @@ final class ERankly_Migration_Job_Runner {
 				return null;
 			}
 
-			if ( 'paused' === (string) ( $job['status'] ?? '' ) ) {
-				return $job;
-			}
-
 			if ( ! empty( $job['cancel_requested'] ) ) {
 				$this->finish_cancelled( $job );
 				return null;
+			}
+
+			if ( 'paused' === (string) ( $job['status'] ?? '' ) ) {
+				return $job;
 			}
 
 			$adapter = $this->manager->adapter( (string) $job['source'] );
@@ -440,6 +440,10 @@ final class ERankly_Migration_Job_Runner {
 		}
 
 		erankly_load_default_helpers();
+		// Global metadata maps live in the content helper bundle. Background
+		// workers do not render a frontend/admin surface first, so they must load
+		// the bundle explicitly before reconciling special and entity defaults.
+		erankly_load_content_helpers();
 		if ( ! function_exists( 'erankly_sanitize_settings' ) ) {
 			require_once ERANKLY_PATH . 'admin/settings-page.php';
 		}

@@ -269,15 +269,25 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 				array( $titles[ $keys[2] ] ?? array(), $titles[ $keys[3] ] ?? array() )
 			);
 		}
-		if ( isset( $special['author'] ) && $this->enabled( $titles['disable_author_archives'] ?? false ) ) {
-			$special['author']['noindex']         = 1;
-			$special['author']['disable_sitemap'] = 1;
+		foreach ( array(
+			'author' => 'disable_author_archives',
+			'date'   => 'disable_date_archives',
+		) as $context => $disable_key ) {
+			if ( ! array_key_exists( $disable_key, $titles ) ) {
+				continue;
+			}
+			if ( ! isset( $special[ $context ] ) ) {
+				$special[ $context ] = $this->global_meta_row( '', '' );
+			}
+			if ( $this->enabled( $titles[ $disable_key ] ) ) {
+				$special[ $context ]['noindex']         = 1;
+				$special[ $context ]['disable_sitemap'] = 1;
+			}
 		}
-		if ( isset( $special['date'] ) && $this->enabled( $titles['disable_date_archives'] ?? false ) ) {
-			$special['date']['noindex']         = 1;
-			$special['date']['disable_sitemap'] = 1;
-		}
-		if ( isset( $special['search'] ) && array_key_exists( 'noindex_search', $titles ) ) {
+		if ( array_key_exists( 'noindex_search', $titles ) ) {
+			if ( ! isset( $special['search'] ) ) {
+				$special['search'] = $this->global_meta_row( '', '' );
+			}
 			$hidden                                = $this->enabled( $titles['noindex_search'] );
 			$special['search']['noindex']         = $hidden ? 1 : 0;
 			$special['search']['disable_sitemap'] = $hidden ? 1 : 0;
@@ -288,6 +298,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$special['homepage']['twitter_title']       = $convert( $titles['homepage_twitter_title'] ?? '' );
 			$special['homepage']['twitter_description'] = $convert( $titles['homepage_twitter_description'] ?? '' );
 			$special['homepage']['social_image_url']    = esc_url_raw( (string) ( $titles['homepage_facebook_image'] ?? '' ) );
+			$special['homepage']['og_image_id']         = absint( $titles['homepage_facebook_image_id'] ?? 0 );
 		}
 		if ( $special ) {
 			$settings['global_special_meta'] = $special;
@@ -326,6 +337,10 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 		if ( '' !== $profiles ) {
 			$settings['social_profiles'] = $profiles;
+		}
+		$twitter_site = $this->social_handle( $titles['social_url_twitter'] ?? '' );
+		if ( '' !== $twitter_site ) {
+			$settings['twitter_site'] = $twitter_site;
 		}
 
 		if ( array_key_exists( 'breadcrumbs', $general ) ) {
@@ -664,9 +679,15 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	 */
 	private function map_meta( array $meta, string $object_type ): array {
 		$get                                  = fn( string $key ): string => $this->value( $meta, $key );
+		$title                                = erankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' );
+		$description                          = erankly_import_convert_variables( $get( 'rank_math_description' ), 'rankmath' );
+		if ( 'user' === $object_type ) {
+			$title       = str_replace( '{{post_author}}', '{{author_name}}', $title );
+			$description = str_replace( '{{post_author}}', '{{author_name}}', $description );
+		}
 		$mapped                               = array(
-			'_erankly_title'               => erankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' ),
-			'_erankly_description'         => erankly_import_convert_variables( $get( 'rank_math_description' ), 'rankmath' ),
+			'_erankly_title'               => $title,
+			'_erankly_description'         => $description,
 			'_erankly_canonical'           => $get( 'rank_math_canonical_url' ),
 			'_erankly_breadcrumb_name'     => $get( 'rank_math_breadcrumb_title' ),
 			'_erankly_og_title'            => erankly_import_convert_variables( $get( 'rank_math_facebook_title' ), 'rankmath' ),

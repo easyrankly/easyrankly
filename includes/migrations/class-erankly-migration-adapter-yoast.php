@@ -210,6 +210,15 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		}
 
 		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'yoast' );
+		$first_scalar = static function ( array $values, string $default = '' ): string {
+			foreach ( $values as $value ) {
+				if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+					return (string) $value;
+				}
+			}
+
+			return $default;
+		};
 		$settings = array();
 		$post_map = array();
 		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
@@ -282,6 +291,51 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 				$noindex ? false : null
 			);
 		}
+		foreach ( array(
+			'author' => 'disable-author',
+			'date'   => 'disable-date',
+		) as $context => $disable_key ) {
+			if ( ! array_key_exists( $disable_key, $titles ) ) {
+				continue;
+			}
+			if ( ! isset( $special[ $context ] ) ) {
+				$special[ $context ] = $this->global_meta_row( '', '' );
+			}
+			if ( $this->enabled( $titles[ $disable_key ] ) ) {
+				$special[ $context ]['noindex']         = 1;
+				$special[ $context ]['disable_sitemap'] = 1;
+			}
+		}
+
+		if ( ! isset( $special['homepage'] ) && ( array_intersect( array( 'og_frontpage_title', 'og_frontpage_desc', 'og_frontpage_image', 'og_frontpage_image_id' ), array_keys( $social ) ) || array_intersect( array( 'open_graph_frontpage_title', 'open_graph_frontpage_desc', 'open_graph_frontpage_image', 'open_graph_frontpage_image_id' ), array_keys( $titles ) ) ) ) {
+			$special['homepage'] = $this->global_meta_row( '', '' );
+		}
+		if ( isset( $special['homepage'] ) ) {
+			$special['homepage']['og_title'] = $convert(
+				$first_scalar( array( $social['og_frontpage_title'] ?? '', $titles['open_graph_frontpage_title'] ?? '' ) )
+			);
+			$special['homepage']['og_description'] = $convert(
+				$first_scalar( array( $social['og_frontpage_desc'] ?? '', $titles['open_graph_frontpage_desc'] ?? '' ) )
+			);
+			$special['homepage']['social_image_url'] = esc_url_raw(
+				$first_scalar( array( $social['og_frontpage_image'] ?? '', $titles['open_graph_frontpage_image'] ?? '' ) )
+			);
+			$special['homepage']['og_image_id'] = absint( $social['og_frontpage_image_id'] ?? $titles['open_graph_frontpage_image_id'] ?? 0 );
+		}
+		foreach ( array( 'author', 'date' ) as $context ) {
+			$suffix = 'author' === $context ? 'author-wpseo' : 'archive-wpseo';
+			$social_keys = array( 'social-title-' . $suffix, 'social-description-' . $suffix, 'social-image-url-' . $suffix, 'social-image-id-' . $suffix );
+			if ( ! array_intersect( $social_keys, array_keys( $titles ) ) ) {
+				continue;
+			}
+			if ( ! isset( $special[ $context ] ) ) {
+				$special[ $context ] = $this->global_meta_row( '', '' );
+			}
+			$special[ $context ]['og_title']         = $this->special_template( $titles[ $social_keys[0] ] ?? '', 'yoast', $context );
+			$special[ $context ]['og_description']   = $this->special_template( $titles[ $social_keys[1] ] ?? '', 'yoast', $context );
+			$special[ $context ]['social_image_url'] = esc_url_raw( (string) ( $titles[ $social_keys[2] ] ?? '' ) );
+			$special[ $context ]['og_image_id']      = absint( $titles[ $social_keys[3] ] ?? 0 );
+		}
 		if ( $special ) {
 			$settings['global_special_meta'] = $special;
 		}
@@ -306,6 +360,18 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		if ( ! empty( $titles['company_logo'] ) ) {
 			$settings['organization_logo_url'] = esc_url_raw( (string) $titles['company_logo'] );
 		}
+		foreach ( array(
+			'organization_description' => 'org-description',
+			'organization_email'       => 'org-email',
+			'organization_phone'       => 'org-phone',
+			'organization_legal_name'  => 'org-legal-name',
+			'organization_vat_id'      => 'org-vat-id',
+			'organization_tax_id'      => 'org-tax-id',
+		) as $target => $source_key ) {
+			if ( isset( $titles[ $source_key ] ) && is_scalar( $titles[ $source_key ] ) && '' !== trim( (string) $titles[ $source_key ] ) ) {
+				$settings[ $target ] = (string) $titles[ $source_key ];
+			}
+		}
 
 		$profiles = $this->social_profile_list(
 			array(
@@ -316,17 +382,22 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 				$social['pinterest_url'] ?? '',
 				$social['youtube_url'] ?? '',
 				$social['wikipedia_url'] ?? '',
+				$social['mastodon_url'] ?? '',
 				$social['other_social_urls'] ?? array(),
 			)
 		);
 		if ( '' !== $profiles ) {
 			$settings['social_profiles'] = $profiles;
 		}
-		if ( ! empty( $social['twitter_site'] ) ) {
-			$settings['twitter_site'] = (string) $social['twitter_site'];
+		$twitter_site = $this->social_handle( $social['twitter_site'] ?? '' );
+		if ( '' !== $twitter_site ) {
+			$settings['twitter_site'] = $twitter_site;
 		}
 		if ( ! empty( $social['og_default_image'] ) ) {
 			$settings['default_social_image_url'] = esc_url_raw( (string) $social['og_default_image'] );
+		}
+		if ( ! empty( $social['og_default_image_id'] ) ) {
+			$settings['default_og_image'] = absint( $social['og_default_image_id'] );
 		}
 
 		if ( array_key_exists( 'breadcrumbs-enable', $titles ) ) {
@@ -334,9 +405,12 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		}
 		if ( array_key_exists( 'enable_xml_sitemap', $main ) ) {
 			$settings['enable_sitemap'] = $this->enabled( $main['enable_xml_sitemap'] ) ? 1 : 0;
+			$settings['enable_image_sitemap'] = $settings['enable_sitemap'];
 		}
 		if ( $this->enabled( $titles['disable-attachment'] ?? false ) ) {
-			$settings['attachment_redirect'] = 'parent';
+			$settings['attachment_redirect'] = 'file';
+		} elseif ( array_key_exists( 'disable-attachment', $titles ) ) {
+			$settings['attachment_redirect'] = 'none';
 		}
 		if ( array_key_exists( 'noindex-subpages-wpseo', $titles ) ) {
 			$settings['noindex_paginated'] = $this->enabled( $titles['noindex-subpages-wpseo'] ) ? 1 : 0;
@@ -894,8 +968,8 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		$description = $this->value( $meta, 'wpseo_metadesc' );
 		$description = '' !== $description ? $description : $this->value( $meta, 'wpseo_desc' );
 		$mapped      = array(
-			'_erankly_title'       => erankly_import_convert_variables( $this->value( $meta, 'wpseo_title' ), 'yoast' ),
-			'_erankly_description' => erankly_import_convert_variables( $description, 'yoast' ),
+			'_erankly_title'       => $this->special_template( $this->value( $meta, 'wpseo_title' ), 'yoast', 'author' ),
+			'_erankly_description' => $this->special_template( $description, 'yoast', 'author' ),
 		);
 
 		if ( $this->enabled( $meta['wpseo_noindex_author'] ?? '' ) ) {

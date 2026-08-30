@@ -131,6 +131,11 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 				'option' => 'seopress_toggle',
 				'shape'  => 'array',
 			),
+			'global_advanced'     => array(
+				'type'   => 'option',
+				'option' => 'seopress_advanced_option_name',
+				'shape'  => 'array',
+			),
 			'post_content_meta'  => array(
 				'type'        => 'meta',
 				'object_type' => 'post',
@@ -165,7 +170,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex, query and login redirect conditions' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'attachment redirects', 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex, query and login redirect conditions' );
 	}
 
 	/** Returns normalized SEOPress global settings. */
@@ -178,7 +183,8 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		$social  = $this->option_array( 'seopress_social_option_name' );
 		$sitemap = $this->option_array( 'seopress_xml_sitemap_option_name' );
 		$toggles = $this->option_array( 'seopress_toggle' );
-		if ( ! $titles && ! $social && ! $sitemap && ! $toggles ) {
+		$advanced = $this->option_array( 'seopress_advanced_option_name' );
+		if ( ! $titles && ! $social && ! $sitemap && ! $toggles && ! $advanced ) {
 			return array();
 		}
 
@@ -193,15 +199,13 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 				continue;
 			}
 			$in_sitemap = null;
-			foreach ( array(
-				array( 'seopress_xml_sitemap_post_types_list', $post_type, 'include' ),
-				array( 'seopress_xml_sitemap_post_types_list', $post_type ),
-				array( 'post_types', $post_type, 'include' ),
-			) as $path ) {
-				if ( $this->has_nested_value( $sitemap, $path ) ) {
-					$in_sitemap = $this->enabled( $this->nested_value( $sitemap, $path ) );
-					break;
-				}
+			$current_list = $sitemap['seopress_xml_sitemap_post_types_list'] ?? null;
+			if ( is_array( $current_list ) ) {
+				$value      = $current_list[ $post_type ] ?? false;
+				$value      = is_array( $value ) ? ( $value['include'] ?? false ) : $value;
+				$in_sitemap = $this->enabled( $value );
+			} elseif ( $this->has_nested_value( $sitemap, array( 'post_types', $post_type, 'include' ) ) ) {
+				$in_sitemap = $this->enabled( $this->nested_value( $sitemap, array( 'post_types', $post_type, 'include' ) ) );
 			}
 			$post_map[ $post_type ] = $this->global_meta_row(
 				$convert( $config['title'] ?? '' ),
@@ -226,15 +230,13 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 				continue;
 			}
 			$in_sitemap = null;
-			foreach ( array(
-				array( 'seopress_xml_sitemap_taxonomies_list', $taxonomy, 'include' ),
-				array( 'seopress_xml_sitemap_taxonomies_list', $taxonomy ),
-				array( 'taxonomies', $taxonomy, 'include' ),
-			) as $path ) {
-				if ( $this->has_nested_value( $sitemap, $path ) ) {
-					$in_sitemap = $this->enabled( $this->nested_value( $sitemap, $path ) );
-					break;
-				}
+			$current_list = $sitemap['seopress_xml_sitemap_taxonomies_list'] ?? null;
+			if ( is_array( $current_list ) ) {
+				$value      = $current_list[ $taxonomy ] ?? false;
+				$value      = is_array( $value ) ? ( $value['include'] ?? false ) : $value;
+				$in_sitemap = $this->enabled( $value );
+			} elseif ( $this->has_nested_value( $sitemap, array( 'taxonomies', $taxonomy, 'include' ) ) ) {
+				$in_sitemap = $this->enabled( $this->nested_value( $sitemap, array( 'taxonomies', $taxonomy, 'include' ) ) );
 			}
 			$taxonomy_map[ $taxonomy ] = $this->global_meta_row( $convert( $config['title'] ?? '' ), $convert( $config['description'] ?? $config['desc'] ?? '' ), $config, $in_sitemap );
 		}
@@ -245,22 +247,49 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 
 		$special = array();
 		$special_keys = array(
-			'homepage' => array( 'seopress_titles_home_site_title', 'seopress_titles_home_site_desc', 'seopress_titles_home_robots' ),
-			'author'   => array( 'seopress_titles_archives_author_title', 'seopress_titles_archives_author_desc', 'seopress_titles_archives_author_noindex' ),
-			'date'     => array( 'seopress_titles_archives_date_title', 'seopress_titles_archives_date_desc', 'seopress_titles_archives_date_noindex' ),
-			'search'   => array( 'seopress_titles_archives_search_title', 'seopress_titles_archives_search_desc', 'seopress_titles_archives_search_noindex' ),
-			'404'      => array( 'seopress_titles_archives_404_title', 'seopress_titles_archives_404_desc', 'seopress_titles_archives_404_noindex' ),
+			'homepage' => array(
+				'title'   => array( 'seopress_titles_home_site_title' ),
+				'desc'    => array( 'seopress_titles_home_site_desc' ),
+				'noindex' => array( 'seopress_titles_home_robots' ),
+				'disable' => array(),
+			),
+			'author'   => array(
+				'title'   => array( 'seopress_titles_archives_author_title' ),
+				'desc'    => array( 'seopress_titles_archives_author_desc' ),
+				'noindex' => array( 'seopress_titles_archives_author_noindex' ),
+				'disable' => array( 'seopress_titles_archives_author_disable' ),
+			),
+			'date'     => array(
+				'title'   => array( 'seopress_titles_archives_date_title' ),
+				'desc'    => array( 'seopress_titles_archives_date_desc' ),
+				'noindex' => array( 'seopress_titles_archives_date_noindex' ),
+				'disable' => array( 'seopress_titles_archives_date_disable' ),
+			),
+			'search'   => array(
+				'title'   => array( 'seopress_titles_archives_search_title' ),
+				'desc'    => array( 'seopress_titles_archives_search_desc' ),
+				'noindex' => array( 'seopress_titles_archives_search_title_noindex', 'seopress_titles_archives_search_noindex' ),
+				'disable' => array(),
+			),
+			'404'      => array(
+				'title'   => array( 'seopress_titles_archives_404_title' ),
+				'desc'    => array( 'seopress_titles_archives_404_desc' ),
+				'noindex' => array( 'seopress_titles_archives_404_noindex' ),
+				'disable' => array(),
+			),
 		);
 		foreach ( $special_keys as $context => $keys ) {
-			if ( ! array_intersect( $keys, array_keys( $titles ) ) ) {
+			$known_keys = array_merge( $keys['title'], $keys['desc'], $keys['noindex'], $keys['disable'] );
+			if ( ! array_intersect( $known_keys, array_keys( $titles ) ) ) {
 				continue;
 			}
-			$has_noindex = array_key_exists( $keys[2], $titles );
-			$noindex     = $has_noindex && $this->enabled( $titles[ $keys[2] ] );
+			$has_noindex = (bool) array_intersect( $keys['noindex'], array_keys( $titles ) );
+			$disabled    = (bool) array_filter( $keys['disable'], fn( string $key ): bool => $this->enabled( $titles[ $key ] ?? false ) );
+			$noindex     = $disabled || ( $has_noindex && $this->enabled( $this->first_nested_value( $titles, $keys['noindex'], false ) ) );
 			$special[ $context ] = $this->global_meta_row(
-				$this->special_template( $titles[ $keys[0] ] ?? '', 'seopress', $context ),
-				$this->special_template( $titles[ $keys[1] ] ?? '', 'seopress', $context ),
-				$has_noindex ? array( 'noindex' => $noindex ) : null,
+				$this->special_template( $this->first_nested_value( $titles, $keys['title'], '' ), 'seopress', $context ),
+				$this->special_template( $this->first_nested_value( $titles, $keys['desc'], '' ), 'seopress', $context ),
+				( $has_noindex || $disabled ) ? array( 'noindex' => $noindex ) : null,
 				$noindex ? false : null
 			);
 		}
@@ -285,23 +314,24 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			$settings['organization_logo_url'] = esc_url_raw( (string) $social['seopress_social_knowledge_img'] );
 		}
 		foreach ( array(
-			'organization_description'    => 'seopress_social_knowledge_desc',
-			'organization_email'          => 'seopress_social_knowledge_email',
-			'organization_phone'          => 'seopress_social_knowledge_phone',
-			'organization_legal_name'     => 'seopress_social_knowledge_legal_name',
-			'organization_tax_id'         => 'seopress_social_knowledge_tax_id',
-			'organization_street_address' => 'seopress_social_knowledge_address_street',
-			'organization_locality'       => 'seopress_social_knowledge_address_locality',
-			'organization_region'         => 'seopress_social_knowledge_address_region',
-			'organization_postal_code'    => 'seopress_social_knowledge_address_pc',
-			'organization_country'        => 'seopress_social_knowledge_address_country',
-		) as $target => $source_key ) {
-			if ( isset( $social[ $source_key ] ) && is_scalar( $social[ $source_key ] ) && '' !== trim( (string) $social[ $source_key ] ) ) {
-				$settings[ $target ] = (string) $social[ $source_key ];
+			'organization_description'    => array( 'seopress_social_knowledge_desc' ),
+			'organization_email'          => array( 'seopress_social_knowledge_email' ),
+			'organization_phone'          => array( 'seopress_social_knowledge_phone' ),
+			'organization_legal_name'     => array( 'seopress_social_knowledge_legal_name' ),
+			'organization_tax_id'         => array( 'seopress_social_knowledge_tax_id' ),
+			'organization_street_address' => array( 'seopress_social_knowledge_street', 'seopress_social_knowledge_address_street' ),
+			'organization_locality'       => array( 'seopress_social_knowledge_locality', 'seopress_social_knowledge_address_locality' ),
+			'organization_region'         => array( 'seopress_social_knowledge_region', 'seopress_social_knowledge_address_region' ),
+			'organization_postal_code'    => array( 'seopress_social_knowledge_postal_code', 'seopress_social_knowledge_address_pc' ),
+			'organization_country'        => array( 'seopress_social_knowledge_country', 'seopress_social_knowledge_address_country' ),
+		) as $target => $source_keys ) {
+			$value = $this->first_nested_value( $social, $source_keys, '' );
+			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+				$settings[ $target ] = (string) $value;
 			}
 		}
 
-		$profile_keys = array( 'seopress_social_accounts_facebook', 'seopress_social_accounts_twitter', 'seopress_social_accounts_pinterest', 'seopress_social_accounts_instagram', 'seopress_social_accounts_youtube', 'seopress_social_accounts_linkedin' );
+		$profile_keys = array( 'seopress_social_accounts_facebook', 'seopress_social_accounts_twitter', 'seopress_social_accounts_pinterest', 'seopress_social_accounts_instagram', 'seopress_social_accounts_youtube', 'seopress_social_accounts_linkedin', 'seopress_social_accounts_extra' );
 		$profile_values = array();
 		foreach ( $profile_keys as $key ) {
 			$profile_values[] = $social[ $key ] ?? '';
@@ -310,21 +340,36 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		if ( '' !== $profiles ) {
 			$settings['social_profiles'] = $profiles;
 		}
-		if ( ! empty( $social['seopress_social_twitter_card_og'] ) ) {
-			$settings['twitter_site'] = (string) $social['seopress_social_twitter_card_og'];
+		$twitter_site = $this->social_handle( $social['seopress_social_accounts_twitter'] ?? '' );
+		if ( '' !== $twitter_site ) {
+			$settings['twitter_site'] = $twitter_site;
 		}
 		if ( ! empty( $social['seopress_social_facebook_img'] ) ) {
 			$settings['default_social_image_url'] = esc_url_raw( (string) $social['seopress_social_facebook_img'] );
 		}
 
-		foreach ( array( 'xml-sitemap', 'xml_sitemap', 'sitemap' ) as $key ) {
-			if ( array_key_exists( $key, $toggles ) ) {
-				$settings['enable_sitemap'] = $this->enabled( $toggles[ $key ] ) ? 1 : 0;
-				break;
+		if ( array_key_exists( 'seopress_xml_sitemap_general_enable', $sitemap ) ) {
+			$settings['enable_sitemap'] = $this->enabled( $sitemap['seopress_xml_sitemap_general_enable'] ) ? 1 : 0;
+		} else {
+			foreach ( array( 'toggle-xml-sitemap', 'xml-sitemap', 'xml_sitemap', 'sitemap' ) as $key ) {
+				if ( array_key_exists( $key, $toggles ) ) {
+					$settings['enable_sitemap'] = $this->enabled( $toggles[ $key ] ) ? 1 : 0;
+					break;
+				}
 			}
 		}
 		if ( array_key_exists( 'seopress_xml_sitemap_img_enable', $sitemap ) ) {
 			$settings['enable_image_sitemap'] = $this->enabled( $sitemap['seopress_xml_sitemap_img_enable'] ) ? 1 : 0;
+		}
+		if ( array_key_exists( 'toggle-breadcrumbs', $toggles ) ) {
+			$settings['enable_breadcrumbs'] = $this->enabled( $toggles['toggle-breadcrumbs'] ) ? 1 : 0;
+		}
+		if ( $this->enabled( $advanced['seopress_advanced_advanced_attachments_file'] ?? false ) ) {
+			$settings['attachment_redirect'] = 'file';
+		} elseif ( $this->enabled( $advanced['seopress_advanced_advanced_attachments'] ?? false ) ) {
+			$settings['attachment_redirect'] = 'parent';
+		} elseif ( array_key_exists( 'seopress_advanced_advanced_attachments', $advanced ) || array_key_exists( 'seopress_advanced_advanced_attachments_file', $advanced ) ) {
+			$settings['attachment_redirect'] = 'none';
 		}
 		if ( in_array( 'redirects', $this->modules(), true ) ) {
 			$settings['enable_redirects']        = 1;
@@ -352,7 +397,8 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			|| $this->has_option_map( 'seopress_titles_option_name' )
 			|| $this->has_option_map( 'seopress_social_option_name' )
 			|| $this->has_option_map( 'seopress_xml_sitemap_option_name' )
-			|| $this->has_option_map( 'seopress_toggle' );
+			|| $this->has_option_map( 'seopress_toggle' )
+			|| $this->has_option_map( 'seopress_advanced_option_name' );
 	}
 
 	/**
