@@ -52,8 +52,12 @@ function erankly_get_variable_groups(): array {
 				'meta_description' => __( 'Meta description', 'easyrankly' ),
 				'canonical_url'    => __( 'Canonical URL', 'easyrankly' ),
 				'author_name'      => __( 'Archive author name', 'easyrankly' ),
+				'author_first_name' => __( 'Author first name', 'easyrankly' ),
+				'author_last_name' => __( 'Author last name', 'easyrankly' ),
 				'author_bio'       => __( 'Archive author biography', 'easyrankly' ),
 				'author_url'       => __( 'Archive author URL', 'easyrankly' ),
+				'author_website'   => __( 'Author website', 'easyrankly' ),
+				'author_profile_url' => __( 'Author website with archive fallback', 'easyrankly' ),
 				'archive_date'     => __( 'Archive date', 'easyrankly' ),
 				'search_query'     => __( 'Search query', 'easyrankly' ),
 			),
@@ -61,9 +65,10 @@ function erankly_get_variable_groups(): array {
 		'pagination' => array(
 			'label'     => __( 'Pagination', 'easyrankly' ),
 			'variables' => array(
-				'pagination'  => __( 'Conditional pagination label', 'easyrankly' ),
-				'page_number' => __( 'Current page number', 'easyrankly' ),
-				'max_pages'   => __( 'Total pages', 'easyrankly' ),
+				'pagination'         => __( 'Conditional pagination label', 'easyrankly' ),
+				'current_pagination' => __( 'Current page number after page one', 'easyrankly' ),
+				'page_number'        => __( 'Current page number', 'easyrankly' ),
+				'max_pages'          => __( 'Total pages', 'easyrankly' ),
 			),
 		),
 		'site'       => array(

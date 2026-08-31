@@ -314,6 +314,7 @@ function erankly_bootstrap(): void {
 	add_action( 'rest_api_init', 'erankly_register_special_meta_setting', 5 );
 	add_filter( 'robots_txt', 'erankly_filter_robots_txt', 20, 2 );
 	add_action( 'parse_request', 'erankly_force_robots_txt_request' );
+	add_action( 'template_redirect', 'erankly_send_feed_robots_header', 1 );
 	add_action( 'pre_get_posts', 'erankly_filter_visibility_queries' );
 	add_action( 'added_post_meta', 'erankly_invalidate_visibility_exclusion_cache', 10, 3 );
 	add_action( 'updated_post_meta', 'erankly_invalidate_visibility_exclusion_cache', 10, 3 );

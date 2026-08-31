@@ -10,6 +10,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Returns whether singular content or comments are on a paginated request.
+ *
+ * This is intentionally separate from is_paged(), which represents archive
+ * pagination. AIOSEO applies its global pagination policy to both scopes.
+ *
+ * @return bool
+ */
+function erankly_is_paginated_content_request(): bool {
+	$page  = (int) get_query_var( 'page', 0 );
+	$cpage = (int) get_query_var( 'cpage', 0 );
+
+	// Block themes can build comment query vars directly on the main query.
+	if ( isset( $GLOBALS['wp_query'] ) && $GLOBALS['wp_query'] instanceof WP_Query && isset( $GLOBALS['wp_query']->query['cpage'] ) ) {
+		$cpage = max( $cpage, (int) $GLOBALS['wp_query']->query['cpage'] );
+	}
+
+	return $page > 1 || $cpage > 0;
+}
+
+/**
  * Filters native WordPress robots meta output.
  *
  * @param array<string,bool|string> $robots Robots directives.
@@ -92,10 +112,21 @@ function erankly_filter_wp_robots( array $robots ): array {
 		}
 	}
 
-	// Noindex for paginated archive pages (page 2, 3, …) when the option is active.
-	if ( is_paged() && (bool) erankly_get_setting( 'noindex_paginated', 0 ) ) {
+	$is_archive_paged = is_paged();
+	$is_content_paged = erankly_is_paginated_content_request();
+
+	// Providers expose archive and content/comment pagination as distinct scopes.
+	if ( $is_archive_paged && (bool) erankly_get_setting( 'noindex_paginated', 0 ) ) {
 		$robots['noindex'] = true;
 		unset( $robots['index'] );
+	}
+	if ( $is_content_paged && (bool) erankly_get_setting( 'noindex_paginated_content', 0 ) ) {
+		$robots['noindex'] = true;
+		unset( $robots['index'] );
+	}
+	if ( ( $is_archive_paged || $is_content_paged ) && (bool) erankly_get_setting( 'nofollow_paginated', 0 ) ) {
+		$robots['nofollow'] = true;
+		unset( $robots['follow'] );
 	}
 
 	if ( empty( $robots['noindex'] ) ) {
@@ -106,8 +137,12 @@ function erankly_filter_wp_robots( array $robots ): array {
 		$robots['follow'] = true;
 	}
 
-	if ( (bool) erankly_get_setting( 'robots_max_image_preview_large', 1 ) ) {
-		$robots['max-image-preview'] = 'large';
+	$max_image_preview = sanitize_key( (string) erankly_get_setting( 'robots_max_image_preview', '' ) );
+	if ( ! in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
+		$max_image_preview = (bool) erankly_get_setting( 'robots_max_image_preview_large', 1 ) ? 'large' : '';
+	}
+	if ( '' !== $max_image_preview ) {
+		$robots['max-image-preview'] = $max_image_preview;
 	}
 
 	$max_snippet = trim( (string) erankly_get_setting( 'robots_max_snippet', '' ) );
@@ -125,12 +160,39 @@ function erankly_filter_wp_robots( array $robots ): array {
 	if ( (bool) erankly_get_setting( 'robots_nosnippet', 0 ) ) {
 		$robots['nosnippet'] = true;
 	}
+	if ( (bool) erankly_get_setting( 'robots_noimageindex', 0 ) ) {
+		$robots['noimageindex'] = true;
+	}
+	if ( (bool) erankly_get_setting( 'robots_notranslate', 0 ) ) {
+		$robots['notranslate'] = true;
+	}
+	if ( (bool) erankly_get_setting( 'robots_noodp', 0 ) ) {
+		$robots['noodp'] = true;
+	}
 
 	if ( ! empty( $robots['noindex'] ) && (bool) erankly_get_setting( 'robots_indexifembedded', 0 ) ) {
 		$robots['indexifembedded'] = true;
 	}
 
+	$robots = erankly_apply_current_global_entity_robots( $robots );
 	$robots = erankly_apply_current_object_robots_overrides( $robots );
+
+	if ( ! empty( $robots['nosnippet'] ) ) {
+		unset( $robots['max-snippet'] );
+	}
+	if ( ! empty( $robots['noimageindex'] ) ) {
+		unset( $robots['max-image-preview'] );
+	}
+	if ( empty( $robots['noindex'] ) ) {
+		unset( $robots['indexifembedded'] );
+	}
+
+	// Imported positive overrides must never bypass WordPress site visibility.
+	if ( ! (bool) get_option( 'blog_public' ) ) {
+		$robots['noindex']  = true;
+		$robots['nofollow'] = true;
+		unset( $robots['index'], $robots['follow'], $robots['indexifembedded'] );
+	}
 
 	if ( empty( $robots['noindex'] ) ) {
 		$robots['index'] = true;
@@ -146,6 +208,133 @@ function erankly_filter_wp_robots( array $robots ): array {
 	 * @param array<string,bool|string> $robots Robots directives.
 	 */
 	return apply_filters( 'erankly_robots', $robots );
+}
+
+/**
+ * Sends the feed-level robots policy through the HTTP header used by AIOSEO.
+ *
+ * @return void
+ */
+function erankly_send_feed_robots_header(): void {
+	if ( ! is_feed() || ! (bool) erankly_get_setting( 'noindex_feeds', 0 ) || headers_sent() ) {
+		return;
+	}
+
+	header( 'X-Robots-Tag: noindex, follow', true );
+}
+
+/**
+ * Applies imported post-type, taxonomy and special-page advanced robot rows.
+ *
+ * @param array<string,bool|string> $robots Current directives.
+ * @return array<string,bool|string>
+ */
+function erankly_apply_current_global_entity_robots( array $robots ): array {
+	$contexts = array();
+
+	if ( is_singular() ) {
+		$post_type = get_post_type( get_queried_object_id() );
+		if ( is_string( $post_type ) && '' !== $post_type ) {
+			$contexts[] = array( 'global_post_type_meta', $post_type );
+		}
+	} elseif ( is_category() || is_tag() || is_tax() ) {
+		$term = get_queried_object();
+		if ( $term instanceof WP_Term ) {
+			$contexts[] = array( 'global_taxonomy_meta', $term->taxonomy );
+		}
+	} elseif ( is_post_type_archive() ) {
+		$post_type = get_query_var( 'post_type' );
+		$post_type = is_array( $post_type ) ? reset( $post_type ) : $post_type;
+		if ( is_string( $post_type ) && '' !== $post_type ) {
+			$contexts[] = array( 'global_post_type_meta', $post_type );
+		}
+	}
+
+	$special_key = erankly_current_special_page_key();
+	if ( '' !== $special_key ) {
+		$contexts[] = array( 'global_special_meta', $special_key );
+	}
+
+	foreach ( $contexts as $context ) {
+		$row    = erankly_get_global_entity_meta_row( $context[0], $context[1] );
+		$robots = erankly_apply_global_entity_robot_row( $robots, $row );
+	}
+
+	return $robots;
+}
+
+/**
+ * Applies one sanitized global entity robot row.
+ *
+ * @param array<string,bool|string> $robots Current directives.
+ * @param array<string,mixed>       $row    Global entity row.
+ * @return array<string,bool|string>
+ */
+function erankly_apply_global_entity_robot_row( array $robots, array $row ): array {
+	$pairs = array(
+		'index_directive'   => array( 'index', 'noindex' ),
+		'follow_directive'  => array( 'follow', 'nofollow' ),
+		'archive_directive' => array( 'archive', 'noarchive' ),
+		'snippet_directive' => array( 'snippet', 'nosnippet' ),
+		'image_directive'   => array( 'imageindex', 'noimageindex' ),
+	);
+
+	foreach ( $pairs as $key => $values ) {
+		if ( ! isset( $row[ $key ] ) || ! is_string( $row[ $key ] ) ) {
+			continue;
+		}
+		list( $allow, $deny ) = $values;
+		if ( $deny === $row[ $key ] ) {
+			$robots[ $deny ] = true;
+			unset( $robots[ $allow ] );
+		} elseif ( $allow === $row[ $key ] ) {
+			unset( $robots[ $deny ] );
+			if ( in_array( $allow, array( 'index', 'follow' ), true ) ) {
+				$robots[ $allow ] = true;
+			}
+		}
+	}
+
+	foreach ( array( 'notranslate', 'noodp' ) as $directive ) {
+		if ( ! array_key_exists( $directive, $row ) ) {
+			continue;
+		}
+		if ( ! empty( $row[ $directive ] ) ) {
+			$robots[ $directive ] = true;
+		} else {
+			unset( $robots[ $directive ] );
+		}
+	}
+
+	foreach ( array(
+		'max_snippet'       => 'max-snippet',
+		'max_video_preview' => 'max-video-preview',
+		'max_image_preview' => 'max-image-preview',
+	) as $key => $directive ) {
+		if ( isset( $row[ $key ] ) && is_scalar( $row[ $key ] ) && '' !== trim( (string) $row[ $key ] ) ) {
+			$robots[ $directive ] = trim( (string) $row[ $key ] );
+		}
+	}
+
+	if ( array_key_exists( 'indexifembedded', $row ) ) {
+		if ( ! empty( $row['indexifembedded'] ) && ! empty( $robots['noindex'] ) ) {
+			$robots['indexifembedded'] = true;
+		} else {
+			unset( $robots['indexifembedded'] );
+		}
+	}
+
+	if ( ! empty( $robots['nosnippet'] ) ) {
+		unset( $robots['max-snippet'] );
+	}
+	if ( ! empty( $robots['noimageindex'] ) ) {
+		unset( $robots['max-image-preview'] );
+	}
+	if ( empty( $robots['noindex'] ) ) {
+		unset( $robots['indexifembedded'] );
+	}
+
+	return $robots;
 }
 
 /**

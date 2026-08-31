@@ -462,6 +462,10 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 	// (a per-site admin on Multisite never gets this tab), so that's the
 	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
+	$max_image_preview = isset( $settings['robots_max_image_preview'] ) ? sanitize_key( (string) $settings['robots_max_image_preview'] ) : '';
+	if ( '' === $max_image_preview && ! empty( $settings['robots_max_image_preview_large'] ) ) {
+		$max_image_preview = 'large';
+	}
 	?>
 			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-advanced" role="tabpanel" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
 				<div class="erankly-settings-section">
@@ -474,8 +478,14 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 							<?php else : ?>
 							<p class="description"><?php esc_html_e( 'Noindex for search results, the 404 page, and WordPress author/date archive contexts is now configured per page under General → Special pages and archives.', 'easyrankly' ); ?></p>
 					<?php endif; ?>
-					<div class="erankly-field erankly-checkboxes">
-						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_max_image_preview_large]" value="1" <?php checked( $settings['robots_max_image_preview_large'], 1 ); ?>> <?php esc_html_e( 'Allow max-image-preview:large', 'easyrankly' ); ?></label>
+					<div class="erankly-field">
+						<label for="erankly-robots-max-image-preview"><?php esc_html_e( 'max-image-preview', 'easyrankly' ); ?></label>
+						<select id="erankly-robots-max-image-preview" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_max_image_preview]">
+							<option value="" <?php selected( $max_image_preview, '' ); ?>><?php esc_html_e( 'No explicit directive', 'easyrankly' ); ?></option>
+							<option value="none" <?php selected( $max_image_preview, 'none' ); ?>>none</option>
+							<option value="standard" <?php selected( $max_image_preview, 'standard' ); ?>>standard</option>
+							<option value="large" <?php selected( $max_image_preview, 'large' ); ?>>large</option>
+						</select>
 					</div>
 					<div class="erankly-inline-fields erankly-inline-fields-two-columns">
 							<div class="erankly-field">
@@ -489,6 +499,9 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 					</div>
 					<div class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_nosnippet]" value="1" <?php checked( $settings['robots_nosnippet'], 1 ); ?>> <?php esc_html_e( 'Add nosnippet', 'easyrankly' ); ?></label>
+						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_noimageindex]" value="1" <?php checked( $settings['robots_noimageindex'], 1 ); ?>> <?php esc_html_e( 'Add noimageindex', 'easyrankly' ); ?></label>
+						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_notranslate]" value="1" <?php checked( $settings['robots_notranslate'], 1 ); ?>> <?php esc_html_e( 'Add notranslate', 'easyrankly' ); ?></label>
+						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_noodp]" value="1" <?php checked( $settings['robots_noodp'], 1 ); ?>> <?php esc_html_e( 'Preserve legacy noodp', 'easyrankly' ); ?></label>
 					</div>
 					<div class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[robots_indexifembedded]" value="1" <?php checked( $settings['robots_indexifembedded'], 1 ); ?>> <?php esc_html_e( 'Add indexifembedded when noindex is active', 'easyrankly' ); ?></label>
@@ -519,6 +532,9 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 					<div class="erankly-card">
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[noindex_paginated]" value="1" <?php checked( $settings['noindex_paginated'], 1 ); ?>> <?php esc_html_e( 'Noindex page 2, 3, … of archives', 'easyrankly' ); ?></label>
+							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[noindex_paginated_content]" value="1" <?php checked( $settings['noindex_paginated_content'], 1 ); ?>> <?php esc_html_e( 'Noindex paginated posts, pages, and comments', 'easyrankly' ); ?></label>
+							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[nofollow_paginated]" value="1" <?php checked( $settings['nofollow_paginated'], 1 ); ?>> <?php esc_html_e( 'Nofollow all paginated content', 'easyrankly' ); ?></label>
+							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[noindex_feeds]" value="1" <?php checked( $settings['noindex_feeds'], 1 ); ?>> <?php esc_html_e( 'Send noindex for RSS feeds', 'easyrankly' ); ?></label>
 						</div>
 						<div class="erankly-field">
 						<label for="erankly-paginated-title-format"><?php esc_html_e( 'Paginated title suffix', 'easyrankly' ); ?></label>

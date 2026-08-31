@@ -582,8 +582,15 @@ final class ERankly_Migration_Job_Runner {
 		if ( $this->canonical_json( $current ) === $this->canonical_json( $proposed ) ) {
 			return $proposed;
 		}
-		if ( is_string( $current ) && is_string( $proposed ) && str_replace( '{{pagination}}', '{{page_number}}', $proposed ) === $current ) {
-			return $proposed;
+		if ( is_string( $current ) && is_string( $proposed ) ) {
+			$legacy_variants = array(
+				str_replace( '{{pagination}}', '{{page_number}}', $proposed ),
+				str_replace( '{{page_number}}', '{{pagination}}', $proposed ),
+				str_replace( '{{current_pagination}}', '{{pagination}}', $proposed ),
+			);
+			if ( in_array( $current, $legacy_variants, true ) ) {
+				return $proposed;
+			}
 		}
 		if ( ! $stored_exists || $this->canonical_json( $current ) === $this->canonical_json( $default ) ) {
 			return $proposed;

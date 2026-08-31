@@ -276,6 +276,36 @@ function erankly_get_global_entity_meta_map( string $setting_key ): array {
 }
 
 /**
+ * Returns the complete metadata row for one global entity.
+ *
+ * Linked groups fall back to the first available row, matching the title and
+ * visibility lookup behavior while preserving optional advanced robot fields.
+ *
+ * @param string $setting_key Settings array key.
+ * @param string $entity      Entity name.
+ * @return array<string,mixed>
+ */
+function erankly_get_global_entity_meta_row( string $setting_key, string $entity ): array {
+	$templates = erankly_get_global_entity_meta_map( $setting_key );
+
+	if ( isset( $templates[ $entity ] ) && is_array( $templates[ $entity ] ) ) {
+		return $templates[ $entity ];
+	}
+
+	if ( ! erankly_global_entity_meta_is_linked( $setting_key ) ) {
+		return array();
+	}
+
+	foreach ( $templates as $template ) {
+		if ( is_array( $template ) ) {
+			return $template;
+		}
+	}
+
+	return array();
+}
+
+/**
  * Determines whether a global entity group shares one template across all entities.
  *
  * Special pages are always configured individually, so they are never "linked".

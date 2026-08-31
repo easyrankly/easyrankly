@@ -208,7 +208,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		}
 
 		$global_robots = $this->nested_value( $options, 'searchAppearance.advanced.globalRobotsMeta', array() );
-		$global_robots = is_array( $global_robots ) ? $global_robots : array();
+		$global_robots = $this->resolved_global_robots( is_array( $global_robots ) ? $global_robots : array() );
 
 		$post_types = $this->nested_value( $dynamic, 'searchAppearance.postTypes', array() );
 		if ( ! is_array( $post_types ) ) {
@@ -426,21 +426,42 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			$settings['enable_image_sitemap'] = $settings['enable_sitemap'] && ! $exclude_images ? 1 : 0;
 		}
 		if ( array_key_exists( 'noindexPaginated', $global_robots ) ) {
-			$settings['noindex_paginated'] = $this->enabled( $global_robots['noindexPaginated'] ) ? 1 : 0;
+			$noindex_paginated                     = $this->enabled( $global_robots['noindexPaginated'] ) ? 1 : 0;
+			$settings['noindex_paginated']         = $noindex_paginated;
+			$settings['noindex_paginated_content'] = $noindex_paginated;
+		}
+		if ( array_key_exists( 'nofollowPaginated', $global_robots ) ) {
+			$settings['nofollow_paginated'] = $this->enabled( $global_robots['nofollowPaginated'] ) ? 1 : 0;
+		}
+		if ( array_key_exists( 'noindexFeed', $global_robots ) ) {
+			$settings['noindex_feeds'] = $this->enabled( $global_robots['noindexFeed'] ) ? 1 : 0;
 		}
 		if ( array_key_exists( 'nosnippet', $global_robots ) ) {
 			$settings['robots_nosnippet'] = $this->enabled( $global_robots['nosnippet'] ) ? 1 : 0;
 		}
 		foreach ( array(
+			'noimageindex' => 'robots_noimageindex',
+			'notranslate'  => 'robots_notranslate',
+			'noodp'        => 'robots_noodp',
+		) as $source_key => $target ) {
+			if ( array_key_exists( $source_key, $global_robots ) ) {
+				$settings[ $target ] = $this->enabled( $global_robots[ $source_key ] ) ? 1 : 0;
+			}
+		}
+		foreach ( array(
 			'maxSnippet'      => 'robots_max_snippet',
 			'maxVideoPreview' => 'robots_max_video_preview',
 		) as $source_key => $target ) {
-			if ( isset( $global_robots[ $source_key ] ) && is_numeric( $global_robots[ $source_key ] ) && (int) $global_robots[ $source_key ] >= 0 ) {
+			if ( isset( $global_robots[ $source_key ] ) && is_numeric( $global_robots[ $source_key ] ) && (int) $global_robots[ $source_key ] >= -1 ) {
 				$settings[ $target ] = (string) (int) $global_robots[ $source_key ];
 			}
 		}
 		if ( isset( $global_robots['maxImagePreview'] ) ) {
-			$settings['robots_max_image_preview_large'] = 'large' === strtolower( (string) $global_robots['maxImagePreview'] ) ? 1 : 0;
+			$max_image_preview = sanitize_key( (string) $global_robots['maxImagePreview'] );
+			if ( in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
+				$settings['robots_max_image_preview']       = $max_image_preview;
+				$settings['robots_max_image_preview_large'] = 'large' === $max_image_preview ? 1 : 0;
+			}
 		}
 		$attachment_redirect = (string) $this->nested_value( $dynamic, 'searchAppearance.postTypes.attachment.redirectAttachmentUrls', '' );
 		if ( '' !== $attachment_redirect ) {
@@ -926,6 +947,37 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		$robots = is_array( $robots ) ? $robots : array();
 
 		return $this->enabled( $robots['default'] ?? false ) && $global_robots ? $global_robots : $robots;
+	}
+
+	/**
+	 * Expands AIOSEO's built-in global robots mode into its rendered policy.
+	 *
+	 * When `default` is enabled AIOSEO ignores the stored custom flags, emits a
+	 * large image preview, and applies noindex/nofollow to pagination plus a
+	 * noindex HTTP header to feeds.
+	 *
+	 * @param array<string,mixed> $robots Stored AIOSEO global robots map.
+	 * @return array<string,mixed>
+	 */
+	private function resolved_global_robots( array $robots ): array {
+		if ( ! $this->enabled( $robots['default'] ?? false ) ) {
+			return $robots;
+		}
+
+		return array(
+			'default'           => false,
+			'noindex'           => false,
+			'nofollow'          => false,
+			'noarchive'         => false,
+			'nosnippet'         => false,
+			'noimageindex'      => false,
+			'notranslate'       => false,
+			'noodp'             => false,
+			'noindexPaginated'  => true,
+			'nofollowPaginated' => true,
+			'noindexFeed'       => true,
+			'maxImagePreview'   => 'large',
+		);
 	}
 
 	/**

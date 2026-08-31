@@ -201,10 +201,11 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 
 		$convert  = static fn( mixed $value ): string => erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', 'rankmath' );
 		$settings = array();
+		$global_robots = array( $titles['robots_global'] ?? array(), $titles['advanced_robots_global'] ?? array() );
 		$post_map = array();
 		foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
 			$prefix = 'pt_' . $post_type . '_';
-			$keys   = array( $prefix . 'title', $prefix . 'description', $prefix . 'robots', $prefix . 'custom_robots', $prefix . 'default_rich_snippet', $prefix . 'default_article_type' );
+			$keys   = array( $prefix . 'title', $prefix . 'description', $prefix . 'robots', $prefix . 'custom_robots', $prefix . 'advanced_robots', $prefix . 'default_rich_snippet', $prefix . 'default_article_type' );
 			$found  = (bool) array_intersect( $keys, array_keys( $titles ) ) || array_key_exists( $prefix . 'sitemap', $sitemap );
 			if ( ! $found ) {
 				continue;
@@ -216,10 +217,16 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 				$article_type = (string) ( $titles[ $prefix . 'default_article_type' ] ?? ( 'blogposting' === $schema_type ? 'BlogPosting' : 'Article' ) );
 			}
 			$in_sitemap = array_key_exists( $prefix . 'sitemap', $sitemap ) ? $this->enabled( $sitemap[ $prefix . 'sitemap' ] ) : null;
+			$has_custom_robots = array_key_exists( $prefix . 'custom_robots', $titles )
+				? $this->enabled( $titles[ $prefix . 'custom_robots' ] )
+				: array_key_exists( $prefix . 'robots', $titles );
+			$robots = $has_custom_robots
+				? array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'advanced_robots' ] ?? array() )
+				: $global_robots;
 			$post_map[ $post_type ] = $this->global_meta_row(
 				$convert( $titles[ $prefix . 'title' ] ?? '' ),
 				$convert( $titles[ $prefix . 'description' ] ?? '' ),
-				array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'custom_robots' ] ?? array() ),
+				$robots,
 				$in_sitemap,
 				'WebPage',
 				$article_type
@@ -233,16 +240,22 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		$taxonomy_map = array();
 		foreach ( array_keys( erankly_get_public_taxonomies() ) as $taxonomy ) {
 			$prefix = 'tax_' . $taxonomy . '_';
-			$keys   = array( $prefix . 'title', $prefix . 'description', $prefix . 'robots', $prefix . 'custom_robots' );
+			$keys   = array( $prefix . 'title', $prefix . 'description', $prefix . 'robots', $prefix . 'custom_robots', $prefix . 'advanced_robots' );
 			$found  = (bool) array_intersect( $keys, array_keys( $titles ) ) || array_key_exists( $prefix . 'sitemap', $sitemap );
 			if ( ! $found ) {
 				continue;
 			}
 			$in_sitemap = array_key_exists( $prefix . 'sitemap', $sitemap ) ? $this->enabled( $sitemap[ $prefix . 'sitemap' ] ) : null;
+			$has_custom_robots = array_key_exists( $prefix . 'custom_robots', $titles )
+				? $this->enabled( $titles[ $prefix . 'custom_robots' ] )
+				: array_key_exists( $prefix . 'robots', $titles );
+			$robots = $has_custom_robots
+				? array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'advanced_robots' ] ?? array() )
+				: $global_robots;
 			$taxonomy_map[ $taxonomy ] = $this->global_meta_row(
 				$convert( $titles[ $prefix . 'title' ] ?? '' ),
 				$convert( $titles[ $prefix . 'description' ] ?? '' ),
-				array( $titles[ $prefix . 'robots' ] ?? array(), $titles[ $prefix . 'custom_robots' ] ?? array() ),
+				$robots,
 				$in_sitemap
 			);
 		}
@@ -253,20 +266,26 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 
 		$special = array();
 		$special_sources = array(
-			'homepage' => array( 'homepage_title', 'homepage_description', 'homepage_robots', 'homepage_custom_robots' ),
-			'author'   => array( 'author_archive_title', 'author_archive_description', 'author_robots', 'author_custom_robots' ),
-			'date'     => array( 'date_archive_title', 'date_archive_description', 'date_archive_robots', 'date_archive_custom_robots' ),
-			'search'   => array( 'search_title', 'search_description', 'search_robots', 'search_custom_robots' ),
-			'404'      => array( '404_title', '404_description', '404_robots', '404_custom_robots' ),
+			'homepage' => array( 'homepage_title', 'homepage_description', 'homepage_robots', 'homepage_custom_robots', 'homepage_advanced_robots' ),
+			'author'   => array( 'author_archive_title', 'author_archive_description', 'author_robots', 'author_custom_robots', 'author_advanced_robots' ),
+			'date'     => array( 'date_archive_title', 'date_archive_description', 'date_archive_robots', 'date_archive_custom_robots', 'date_archive_advanced_robots' ),
+			'search'   => array( 'search_title', 'search_description', 'search_robots', 'search_custom_robots', 'search_advanced_robots' ),
+			'404'      => array( '404_title', '404_description', '404_robots', '404_custom_robots', '404_advanced_robots' ),
 		);
 		foreach ( $special_sources as $context => $keys ) {
 			if ( ! array_intersect( $keys, array_keys( $titles ) ) ) {
 				continue;
 			}
+			$has_custom_robots = array_key_exists( $keys[3], $titles )
+				? $this->enabled( $titles[ $keys[3] ] )
+				: array_key_exists( $keys[2], $titles );
+			$robots = $has_custom_robots
+				? array( $titles[ $keys[2] ] ?? array(), $titles[ $keys[4] ] ?? array() )
+				: $global_robots;
 			$special[ $context ] = $this->global_meta_row(
 				$this->special_template( $titles[ $keys[0] ] ?? '', 'rankmath', $context ),
 				$this->special_template( $titles[ $keys[1] ] ?? '', 'rankmath', $context ),
-				array( $titles[ $keys[2] ] ?? array(), $titles[ $keys[3] ] ?? array() )
+				$robots
 			);
 		}
 		foreach ( array(

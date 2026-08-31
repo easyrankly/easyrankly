@@ -791,32 +791,118 @@ abstract class ERankly_Migration_Adapter {
 	 * Normalizes source robots values to EasyRankly global directives.
 	 *
 	 * @param mixed $value Source robots value or map.
-	 * @return array{noindex:int,nofollow:int,noarchive:int}
+	 * @return array<string,int|string>
 	 */
 	protected function global_robots( mixed $value ): array {
-		$tokens = array();
-		$walk   = static function ( mixed $item, string $key = '' ) use ( &$walk, &$tokens ): void {
+		$tokens       = array();
+		$named_values = array();
+		$canonical_key = static function ( string $key ): string {
+			$normalized = preg_replace( '/[^a-z0-9]+/', '', strtolower( $key ) );
+			$normalized = is_string( $normalized ) ? $normalized : '';
+			$known      = array(
+				'maxvideopreview',
+				'maximagepreview',
+				'maxsnippet',
+				'indexifembedded',
+				'noimageindex',
+				'notranslate',
+				'nosnippet',
+				'noarchive',
+				'nofollow',
+				'noindex',
+				'imageindex',
+				'snippet',
+				'archive',
+				'follow',
+				'index',
+				'noodp',
+			);
+			foreach ( $known as $candidate ) {
+				if ( $candidate === $normalized || str_ends_with( $normalized, $candidate ) ) {
+					return $candidate;
+				}
+			}
+
+			return '';
+		};
+		$walk = static function ( mixed $item, string $key = '' ) use ( &$walk, &$tokens, &$named_values, $canonical_key ): void {
 			if ( is_array( $item ) ) {
 				foreach ( $item as $child_key => $child ) {
 					$walk( $child, is_string( $child_key ) ? $child_key : '' );
 				}
 				return;
 			}
-			if ( '' !== $key && in_array( strtolower( $key ), array( 'noindex', 'nofollow', 'noarchive' ), true ) && in_array( strtolower( trim( (string) $item ) ), array( '1', 'on', 'yes', 'true', 'enabled' ), true ) ) {
-				$tokens[] = strtolower( $key );
+			$canonical = '' !== $key ? $canonical_key( $key ) : '';
+			if ( '' !== $canonical && is_scalar( $item ) ) {
+				$named_values[ $canonical ] = trim( (string) $item );
 			}
 			if ( is_scalar( $item ) ) {
-				$parts  = preg_split( '/[^a-z]+/', strtolower( (string) $item ) );
+				$parts  = preg_split( '/[^a-z0-9_-]+/', strtolower( (string) $item ) );
 				$tokens = array_merge( $tokens, is_array( $parts ) ? $parts : array() );
 			}
 		};
 		$walk( $value );
+		$tokens = array_values( array_unique( array_filter( $tokens, 'strlen' ) ) );
+		$truthy = static fn( mixed $item ): bool => in_array( strtolower( trim( (string) $item ) ), array( '1', 'on', 'yes', 'true', 'enabled' ), true );
+		$state  = static function ( string $deny, string $allow = '' ) use ( $tokens, $named_values, $truthy ): bool {
+			if ( in_array( $deny, $tokens, true ) || ( array_key_exists( $deny, $named_values ) && $truthy( $named_values[ $deny ] ) ) ) {
+				return true;
+			}
+			if ( '' !== $allow && ( in_array( $allow, $tokens, true ) || ( array_key_exists( $allow, $named_values ) && $truthy( $named_values[ $allow ] ) ) ) ) {
+				return false;
+			}
 
-		return array(
-			'noindex'   => in_array( 'noindex', $tokens, true ) ? 1 : 0,
-			'nofollow'  => in_array( 'nofollow', $tokens, true ) ? 1 : 0,
-			'noarchive' => in_array( 'noarchive', $tokens, true ) ? 1 : 0,
+			return false;
+		};
+
+		$result = array(
+			'noindex'   => $state( 'noindex', 'index' ) ? 1 : 0,
+			'nofollow'  => $state( 'nofollow', 'follow' ) ? 1 : 0,
+			'noarchive' => $state( 'noarchive', 'archive' ) ? 1 : 0,
 		);
+
+		foreach ( array(
+			'index'   => array( 'index_directive', 'index', 'noindex' ),
+			'follow'  => array( 'follow_directive', 'follow', 'nofollow' ),
+			'archive' => array( 'archive_directive', 'archive', 'noarchive' ),
+			'snippet' => array( 'snippet_directive', 'snippet', 'nosnippet' ),
+			'imageindex' => array( 'image_directive', 'imageindex', 'noimageindex' ),
+		) as $allow_key => $definition ) {
+			list( $target, $allow, $deny ) = $definition;
+			$present = in_array( $allow, $tokens, true ) || in_array( $deny, $tokens, true ) || array_key_exists( $allow, $named_values ) || array_key_exists( $deny, $named_values );
+			if ( $present ) {
+				$result[ $target ] = $state( $deny, $allow ) ? $deny : $allow_key;
+			}
+		}
+
+		foreach ( array( 'notranslate', 'noodp', 'indexifembedded' ) as $directive ) {
+			$present = in_array( $directive, $tokens, true ) || array_key_exists( $directive, $named_values );
+			if ( $present ) {
+				$result[ $directive ] = ( in_array( $directive, $tokens, true ) || $truthy( $named_values[ $directive ] ?? '' ) ) ? 1 : 0;
+			}
+		}
+
+		foreach ( array(
+			'maxsnippet'      => 'max_snippet',
+			'maxvideopreview' => 'max_video_preview',
+		) as $source_key => $target ) {
+			if ( ! array_key_exists( $source_key, $named_values ) ) {
+				continue;
+			}
+			$preview = trim( (string) $named_values[ $source_key ] );
+			if ( preg_match( '/^-?\d+$/', $preview ) && (int) $preview >= -1 ) {
+				$result[ $target ] = (string) (int) $preview;
+			}
+		}
+
+		if ( array_key_exists( 'maximagepreview', $named_values ) ) {
+			$preview = sanitize_key( (string) $named_values['maximagepreview'] );
+			if ( in_array( $preview, array( 'none', 'standard', 'large' ), true ) ) {
+				$result['max_image_preview'] = $preview;
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -832,8 +918,9 @@ abstract class ERankly_Migration_Adapter {
 	protected function has_robot_configuration( mixed $value ): bool {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $key => $child ) {
-				$normalized_key = is_string( $key ) ? preg_replace( '/[^a-z]+/', '', strtolower( $key ) ) : '';
-				if ( in_array( $normalized_key, array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'robots', 'robotsmeta' ), true ) ) {
+				$normalized_key = is_string( $key ) ? preg_replace( '/[^a-z0-9]+/', '', strtolower( $key ) ) : '';
+				$known_keys     = array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'snippet', 'nosnippet', 'imageindex', 'noimageindex', 'notranslate', 'noodp', 'indexifembedded', 'maxsnippet', 'maxvideopreview', 'maximagepreview', 'robots', 'robotsmeta', 'customrobots', 'advancedrobots' );
+				if ( in_array( $normalized_key, $known_keys, true ) || ( '' !== $normalized_key && array_filter( $known_keys, static fn( string $candidate ): bool => str_ends_with( $normalized_key, $candidate ) ) ) ) {
 					return true;
 				}
 				if ( $this->has_robot_configuration( $child ) ) {
@@ -848,9 +935,9 @@ abstract class ERankly_Migration_Adapter {
 			return false;
 		}
 
-		$tokens = preg_split( '/[^a-z]+/', strtolower( (string) $value ) );
+		$tokens = preg_split( '/[^a-z0-9_-]+/', strtolower( (string) $value ) );
 
-		return (bool) array_intersect( is_array( $tokens ) ? $tokens : array(), array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive' ) );
+		return (bool) array_intersect( is_array( $tokens ) ? $tokens : array(), array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'snippet', 'nosnippet', 'imageindex', 'noimageindex', 'notranslate', 'noodp', 'indexifembedded' ) );
 	}
 
 	/**

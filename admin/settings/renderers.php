@@ -327,6 +327,7 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 						</div>
 					<?php endif; ?>
 					<?php erankly_render_global_visibility_defaults( $setting_key, (string) $key, $noindex, $nofollow, $noarchive, $disable_sitemap ); ?>
+					<?php erankly_render_global_advanced_robot_preservation( $setting_key, (string) $key, $row ); ?>
 				</div>
 			</div>
 			<?php
@@ -543,6 +544,7 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 					// Among special pages only the author archive ever appears in the
 					// XML sitemap, so the "Disable sitemap" toggle is shown only there.
 					erankly_render_global_visibility_defaults( $setting_key, (string) $key, $noindex, $nofollow, $noarchive, $disable_sitemap, 'author' === (string) $key );
+					erankly_render_global_advanced_robot_preservation( $setting_key, (string) $key, $row );
 
 					// Social sharing is an advanced-only panel; in simplified mode the
 					// values are carried through as hidden inputs so saving never wipes them.
@@ -683,4 +685,43 @@ function erankly_render_global_visibility_defaults( string $setting_key, string 
 		</div>
 	</fieldset>
 	<?php
+}
+
+/**
+ * Carries imported advanced robot defaults through settings saves.
+ *
+ * These fields are intentionally hidden from the compact global-default UI;
+ * per-object editors still expose the same controls. Keeping explicit positive
+ * and negative values prevents a later settings save from erasing an inherited
+ * third-party robots policy.
+ *
+ * @param string              $setting_key Settings array key.
+ * @param string              $entity_key  Entity key.
+ * @param array<string,mixed> $row         Stored global metadata row.
+ * @return void
+ */
+function erankly_render_global_advanced_robot_preservation( string $setting_key, string $entity_key, array $row ): void {
+	$name_prefix = ERANKLY_OPTION . '[' . $setting_key . '][' . $entity_key . ']';
+	$keys        = array(
+		'index_directive',
+		'follow_directive',
+		'archive_directive',
+		'snippet_directive',
+		'image_directive',
+		'notranslate',
+		'noodp',
+		'indexifembedded',
+		'max_snippet',
+		'max_video_preview',
+		'max_image_preview',
+	);
+
+	foreach ( $keys as $key ) {
+		if ( ! array_key_exists( $key, $row ) || ! is_scalar( $row[ $key ] ) ) {
+			continue;
+		}
+		?>
+		<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( (string) $row[ $key ] ); ?>">
+		<?php
+	}
 }

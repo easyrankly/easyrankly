@@ -151,7 +151,11 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 			}
 			break;
 		case 'author_bio':
+		case 'author_first_name':
+		case 'author_last_name':
 		case 'author_url':
+		case 'author_website':
+		case 'author_profile_url':
 			$author_id = $post instanceof WP_Post ? (int) $post->post_author : 0;
 			if ( $queried instanceof WP_User ) {
 				$author_id = (int) $queried->ID;
@@ -163,9 +167,27 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 				}
 			}
 			if ( $author_id > 0 ) {
-				$value = 'author_bio' === $key
-					? (string) get_the_author_meta( 'description', $author_id )
-					: (string) get_author_posts_url( $author_id );
+				switch ( $key ) {
+					case 'author_bio':
+						$value = (string) get_the_author_meta( 'description', $author_id );
+						break;
+					case 'author_first_name':
+						$value = (string) get_the_author_meta( 'first_name', $author_id );
+						break;
+					case 'author_last_name':
+						$value = (string) get_the_author_meta( 'last_name', $author_id );
+						break;
+					case 'author_website':
+						$value = (string) get_the_author_meta( 'user_url', $author_id );
+						break;
+					case 'author_profile_url':
+						$value = (string) get_the_author_meta( 'user_url', $author_id );
+						$value = '' !== trim( $value ) ? $value : (string) get_author_posts_url( $author_id );
+						break;
+					default:
+						$value = (string) get_author_posts_url( $author_id );
+						break;
+				}
 			}
 			break;
 		case 'archive_date':
@@ -236,6 +258,10 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 		case 'page_number':
 			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
 			$value = (string) max( 1, $paged );
+			break;
+		case 'current_pagination':
+			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
+			$value = $paged > 1 ? (string) $paged : '';
 			break;
 		case 'pagination':
 			$paged = max( (int) get_query_var( 'paged', 0 ), (int) get_query_var( 'page', 0 ) );
@@ -406,12 +432,34 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 			}
 			break;
 		case 'author_bio':
+		case 'author_first_name':
+		case 'author_last_name':
 		case 'author_url':
+		case 'author_website':
+		case 'author_profile_url':
 			$user_id = $post ? (int) $post->post_author : (int) get_current_user_id();
 			if ( $user_id > 0 ) {
-				$value = 'author_bio' === $key
-					? (string) get_the_author_meta( 'description', $user_id )
-					: (string) get_author_posts_url( $user_id );
+				switch ( $key ) {
+					case 'author_bio':
+						$value = (string) get_the_author_meta( 'description', $user_id );
+						break;
+					case 'author_first_name':
+						$value = (string) get_the_author_meta( 'first_name', $user_id );
+						break;
+					case 'author_last_name':
+						$value = (string) get_the_author_meta( 'last_name', $user_id );
+						break;
+					case 'author_website':
+						$value = (string) get_the_author_meta( 'user_url', $user_id );
+						break;
+					case 'author_profile_url':
+						$value = (string) get_the_author_meta( 'user_url', $user_id );
+						$value = '' !== trim( $value ) ? $value : (string) get_author_posts_url( $user_id );
+						break;
+					default:
+						$value = (string) get_author_posts_url( $user_id );
+						break;
+				}
 			}
 			break;
 		case 'archive_date':
@@ -523,6 +571,9 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 			// still preview on settings fields.
 			$value = '1';
 			break;
+		case 'current_pagination':
+			$value = '2';
+			break;
 		case 'pagination':
 			$value = sprintf(
 				/* translators: 1: current page number, 2: total pages. */
@@ -564,8 +615,12 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'post_modified_date',
 		'post_author',
 		'author_name',
+		'author_first_name',
+		'author_last_name',
 		'author_bio',
 		'author_url',
+		'author_website',
+		'author_profile_url',
 		'archive_date',
 		'post_categories',
 		'post_tags',
@@ -581,6 +636,7 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 		'canonical_url',
 		'search_query',
 		'pagination',
+		'current_pagination',
 		'page_number',
 		'max_pages',
 		'site_name',

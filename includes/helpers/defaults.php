@@ -159,6 +159,22 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 	$allowed        = array_fill_keys( $keys, true );
 	$clean          = array();
 	$directive_keys = array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' );
+	$has_directives = static function ( array $directives ): bool {
+		foreach ( $directives as $key => $value ) {
+			if ( in_array( $key, array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' ), true ) ) {
+				if ( ! empty( $value ) ) {
+					return true;
+				}
+				continue;
+			}
+
+			// Optional advanced fields are meaningful even when explicitly off:
+			// they can override a restrictive site-wide migration default.
+			return true;
+		}
+
+		return false;
+	};
 
 	if ( $linked && ! empty( $keys ) ) {
 		$title       = '';
@@ -183,7 +199,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			$current_description = isset( $input[ $key ]['description'] ) ? erankly_sanitize_textarea( $input[ $key ]['description'] ) : '';
 			$current_directives  = erankly_sanitize_global_entity_directives( $input[ $key ] );
 
-			if ( '' !== $current_title || '' !== $current_description || array_sum( $current_directives ) > 0 ) {
+			if ( '' !== $current_title || '' !== $current_description || $has_directives( $current_directives ) ) {
 				$title       = $current_title;
 				$description = $current_description;
 				$directives  = $current_directives;
@@ -195,7 +211,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			$schema_by_key,
 			static fn( array $schema ): bool => (bool) array_filter( $schema, 'strlen' )
 		);
-		if ( '' === $title && '' === $description && 0 === array_sum( $directives ) && ! $has_schema ) {
+		if ( '' === $title && '' === $description && ! $has_directives( $directives ) && ! $has_schema ) {
 			return array();
 		}
 
@@ -230,7 +246,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 		$no_social   = ! $with_social || erankly_global_entity_social_is_empty( $social );
 		$no_schema   = ! array_filter( $schema, 'strlen' );
 
-		if ( '' === $title && '' === $description && 0 === array_sum( $directives ) && $no_social && $no_schema ) {
+		if ( '' === $title && '' === $description && ! $has_directives( $directives ) && $no_social && $no_schema ) {
 			continue;
 		}
 
@@ -259,17 +275,58 @@ function erankly_sanitize_schema_type_name( mixed $value ): string {
  * Sanitizes global robots and sitemap directives.
  *
  * @param array<string,mixed> $fields Raw fields.
- * @return array<string,int>
+ * @return array<string,int|string>
  */
 function erankly_sanitize_global_entity_directives( array $fields ): array {
 	$hide = ! empty( $fields['hide_from_search_results'] );
 
-	return array(
+	$directives = array(
 		'noindex'         => ( $hide || ! empty( $fields['noindex'] ) ) ? 1 : 0,
 		'nofollow'        => ! empty( $fields['nofollow'] ) ? 1 : 0,
 		'noarchive'       => ! empty( $fields['noarchive'] ) ? 1 : 0,
 		'disable_sitemap' => ( $hide || ! empty( $fields['disable_sitemap'] ) ) ? 1 : 0,
 	);
+
+	foreach ( array( 'notranslate', 'noodp', 'indexifembedded' ) as $key ) {
+		if ( array_key_exists( $key, $fields ) ) {
+			$directives[ $key ] = ! empty( $fields[ $key ] ) ? 1 : 0;
+		}
+	}
+
+	foreach ( array(
+		'index_directive'   => array( 'index', 'noindex' ),
+		'follow_directive'  => array( 'follow', 'nofollow' ),
+		'archive_directive' => array( 'archive', 'noarchive' ),
+		'snippet_directive' => array( 'snippet', 'nosnippet' ),
+		'image_directive'   => array( 'imageindex', 'noimageindex' ),
+	) as $key => $allowed ) {
+		if ( ! array_key_exists( $key, $fields ) ) {
+			continue;
+		}
+		$value = sanitize_key( (string) $fields[ $key ] );
+		if ( in_array( $value, $allowed, true ) ) {
+			$directives[ $key ] = $value;
+		}
+	}
+
+	foreach ( array( 'max_snippet', 'max_video_preview' ) as $key ) {
+		if ( ! array_key_exists( $key, $fields ) ) {
+			continue;
+		}
+		$value = trim( (string) $fields[ $key ] );
+		if ( preg_match( '/^-?\d+$/', $value ) && (int) $value >= -1 ) {
+			$directives[ $key ] = (string) (int) $value;
+		}
+	}
+
+	if ( array_key_exists( 'max_image_preview', $fields ) ) {
+		$value = sanitize_key( (string) $fields['max_image_preview'] );
+		if ( in_array( $value, array( 'none', 'standard', 'large' ), true ) ) {
+			$directives['max_image_preview'] = $value;
+		}
+	}
+
+	return $directives;
 }
 
 /**
@@ -366,12 +423,19 @@ function erankly_default_settings(): array {
 		'enable_breadcrumbs'             => 1,
 		'robots_txt_extra'               => '',
 		'noindex_paginated'              => 0,
+		'noindex_paginated_content'      => 0,
+		'nofollow_paginated'             => 0,
+		'noindex_feeds'                  => 0,
 		'paginated_title_format'         => '',
 		'attachment_redirect'            => 'none',
 		'robots_max_image_preview_large' => 1,
+		'robots_max_image_preview'       => '',
 		'robots_max_snippet'             => '',
 		'robots_max_video_preview'       => '',
 		'robots_nosnippet'               => 0,
+		'robots_noimageindex'            => 0,
+		'robots_notranslate'             => 0,
+		'robots_noodp'                   => 0,
 		'robots_indexifembedded'         => 0,
 		'enable_redirects'               => 0,
 		'redirect_exclude_admins'        => 1,
