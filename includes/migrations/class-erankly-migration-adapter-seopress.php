@@ -684,12 +684,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			$mapped['_erankly_image_directive'] = 'noimageindex';
 		}
 
-		$editorial = array();
-		$keywords  = $this->keywords( $meta['_seopress_analysis_target_kw'] ?? '' );
-		if ( ! empty( $keywords ) ) {
-			$editorial['focus_keywords'] = $keywords;
-		}
-
 		if ( 'post' === $object_type && absint( $meta['_seopress_robots_primary_cat'] ?? 0 ) > 0 ) {
 			$term = get_term( absint( $meta['_seopress_robots_primary_cat'] ) );
 			if ( $term instanceof WP_Term ) {
@@ -724,7 +718,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			$this->add_warning( 'schema_configuration_not_migrated', 'A legacy SEOPress PRO schema could not be converted to rendered EasyRankly JSON-LD.', $object_type . ':' . $object_id );
 		}
 
-		return $this->with_extension_meta( $mapped, $editorial );
+		return $this->with_extension_meta( $mapped );
 	}
 
 	/**
@@ -812,7 +806,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			'_seopress_robots_snippet',
 			'_seopress_robots_imageindex',
 			'_seopress_robots_primary_cat',
-			'_seopress_analysis_target_kw',
 			'_seopress_pro_schemas_manual',
 			'_seopress_pro_rich_snippets_type',
 			'_seopress_pro_rich_snippets_disable_all',

@@ -75,26 +75,22 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 	wp_localize_script(
 		'erankly-editor',
 		'eranklyEditor',
-		array_merge(
-			array(
-				'breadcrumbsEnabled'            => (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ),
-				'newsSitemapEnabled'            => (bool) erankly_get_setting( 'enable_news_sitemap', 0 ),
-				'resolvePlaceholders'           => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
-				'simplifiedMode'                => (bool) erankly_get_setting( 'simplified_mode', 1 ),
-				'siteIconUrl'                   => get_site_icon_url( 48 ),
-				'siteDescription'               => get_bloginfo( 'description' ),
-				'siteName'                      => get_bloginfo( 'name' ),
-				'titlePlaceholder'              => erankly_get_post_global_meta_placeholder( $post, 'title', 70 ),
-				'descriptionPlaceholder'        => erankly_get_post_global_meta_placeholder( $post, 'description', 160 ),
-				'ogTitlePlaceholder'            => erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 ),
-				'ogDescriptionPlaceholder'      => erankly_get_post_global_social_placeholder( $post->ID, 'default_og_description', 200 ),
-				'twitterTitlePlaceholder'       => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_title', 70 ),
-				'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
-				'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
-				'variableExamples'              => erankly_get_admin_variable_examples( $post ),
-				'variables'                     => erankly_get_variable_groups(),
-			),
-			erankly_get_seo_checklist_editor_config( $post )
+		array(
+			'breadcrumbsEnabled'            => (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ),
+			'newsSitemapEnabled'            => (bool) erankly_get_setting( 'enable_news_sitemap', 0 ),
+			'resolvePlaceholders'           => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
+			'simplifiedMode'                => (bool) erankly_get_setting( 'simplified_mode', 1 ),
+			'siteDescription'               => get_bloginfo( 'description' ),
+			'siteName'                      => get_bloginfo( 'name' ),
+			'titlePlaceholder'              => erankly_get_post_global_meta_placeholder( $post, 'title', 70 ),
+			'descriptionPlaceholder'        => erankly_get_post_global_meta_placeholder( $post, 'description', 160 ),
+			'ogTitlePlaceholder'            => erankly_get_post_global_social_placeholder( $post->ID, 'default_og_title', 60 ),
+			'ogDescriptionPlaceholder'      => erankly_get_post_global_social_placeholder( $post->ID, 'default_og_description', 200 ),
+			'twitterTitlePlaceholder'       => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_title', 70 ),
+			'twitterDescriptionPlaceholder' => erankly_get_post_global_social_placeholder( $post->ID, 'default_twitter_description', 200 ),
+			'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
+			'variableExamples'              => erankly_get_admin_variable_examples( $post ),
+			'variables'                     => erankly_get_variable_groups(),
 		)
 	);
 
@@ -163,7 +159,6 @@ function erankly_enqueue_editor_shared_assets(): void {
 							'erankly-panel--social',
 							'erankly-panel--schema',
 							'erankly-panel--visibility',
-							'erankly-panel--checklist',
 							'erankly-panel--translations',
 						)
 					),
@@ -226,19 +221,14 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 		array(
 			'contextLabels'                  => erankly_special_page_keys(),
 			'descriptionPlaceholder'         => '',
-			'homeUrl'                        => home_url( '/' ),
 			'ogDescriptionPlaceholder'       => (string) erankly_get_setting( 'default_og_description', '' ),
 			'ogTitlePlaceholder'             => (string) erankly_get_setting( 'default_og_title', '' ),
 			'resolvePlaceholders'            => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
 			'simplifiedMode'                 => (bool) erankly_get_setting( 'simplified_mode', 1 ),
-			'siteIconUrl'                    => get_site_icon_url( 48 ),
 			'siteDescription'                => get_bloginfo( 'description' ),
 			'siteName'                       => get_bloginfo( 'name' ),
 			'socialImagePlaceholder'         => (string) erankly_get_setting( 'default_social_image_url', '' ),
-			'specialDescriptionPlaceholders' => erankly_admin_get_site_editor_special_description_placeholders(),
 			'specialMetaSetting'             => ERANKLY_SPECIAL_META_OPTION,
-			'specialPreviewUrls'             => erankly_admin_get_site_editor_special_preview_urls(),
-			'specialTitlePlaceholders'       => erankly_admin_get_site_editor_special_title_placeholders(),
 			'titlePlaceholder'               => '',
 			'twitterDescriptionPlaceholder'  => (string) erankly_get_setting( 'default_twitter_description', '' ),
 			'twitterTitlePlaceholder'        => (string) erankly_get_setting( 'default_twitter_title', '' ),
@@ -259,64 +249,5 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 			'is_site_editor'  => true,
 			'settings_tab'    => '',
 		)
-	);
-}
-
-/**
- * Returns example frontend URLs for Site Editor SERP previews.
- *
- * @return array<string,string>
- */
-function erankly_admin_get_site_editor_special_preview_urls(): array {
-	$posts_page_id = (int) get_option( 'page_for_posts' );
-	$posts_page    = $posts_page_id > 0 ? get_permalink( $posts_page_id ) : '';
-	$author_id     = get_current_user_id();
-
-	return array(
-		'homepage' => home_url( '/' ),
-		'blog'     => is_string( $posts_page ) && '' !== $posts_page ? $posts_page : home_url( '/' ),
-		'author'   => $author_id > 0 ? get_author_posts_url( $author_id ) : home_url( '/author/example/' ),
-		'date'     => get_month_link( (int) gmdate( 'Y' ), (int) gmdate( 'm' ) ),
-		'search'   => add_query_arg( 's', __( 'example', 'easyrankly' ), home_url( '/' ) ),
-		'404'      => home_url( '/404-preview/' ),
-	);
-}
-
-/**
- * Returns title fallbacks matching special-page frontend behavior closely enough
- * for a generic template preview.
- *
- * @return array<string,string>
- */
-function erankly_admin_get_site_editor_special_title_placeholders(): array {
-	return array(
-		'homepage' => get_bloginfo( 'name' ),
-		'blog'     => get_bloginfo( 'name' ),
-		'author'   => __( 'Author archive', 'easyrankly' ),
-		'date'     => __( 'Date archive', 'easyrankly' ),
-		'search'   => sprintf(
-			/* translators: %s: Search query. */
-			__( 'Search results for %s', 'easyrankly' ),
-			__( 'example', 'easyrankly' )
-		),
-		'404'      => __( 'Page not found', 'easyrankly' ),
-	);
-}
-
-/**
- * Returns description fallbacks for Site Editor SERP previews.
- *
- * @return array<string,string>
- */
-function erankly_admin_get_site_editor_special_description_placeholders(): array {
-	$tagline = get_bloginfo( 'description' );
-
-	return array(
-		'homepage' => $tagline,
-		'blog'     => $tagline,
-		'author'   => '',
-		'date'     => '',
-		'search'   => '',
-		'404'      => '',
 	);
 }

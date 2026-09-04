@@ -144,13 +144,13 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 				'type'                => 'table',
 				'suffix'              => 'aioseo_posts',
 				'columns'             => array( 'id', 'post_id', 'title', 'description', 'canonical_url' ),
-				'fingerprint_columns' => array( 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'focus_keyword', 'additional_keywords', 'keyphrases', 'primary_term' ),
+				'fingerprint_columns' => array( 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'primary_term' ),
 			),
 			'pro_terms'     => array(
 				'type'                => 'table',
 				'suffix'              => 'aioseo_terms',
 				'columns'             => array( 'id', 'term_id', 'title', 'description' ),
-				'fingerprint_columns' => array( 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'focus_keyword', 'additional_keywords', 'keyphrases', 'primary_term' ),
+				'fingerprint_columns' => array( 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'twitter_title', 'robots_default', 'schema', 'primary_term' ),
 			),
 			'pro_redirects' => array(
 				'type'                => 'table',
@@ -172,7 +172,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'v3 and v4 posts', 'PRO terms', 'social', 'advanced robots', 'schema configuration', 'primary terms', 'keyphrases', 'pillar content', 'PRO redirects' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'v3 and v4 posts', 'PRO terms', 'social', 'advanced robots', 'schema configuration', 'primary terms', 'PRO redirects' );
 	}
 
 	/** Returns normalized AIOSEO global settings. */
@@ -762,22 +762,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$editorial = array();
-		$keywords  = $this->keywords(
-			array(
-				$row['focus_keyword'] ?? '',
-				$row['additional_keywords'] ?? '',
-				$row['keyphrases'] ?? '',
-				$row['keywords'] ?? '',
-			)
-		);
-		if ( ! empty( $keywords ) ) {
-			$editorial['focus_keywords'] = $keywords;
-		}
-		if ( $this->enabled( $row['pillar_content'] ?? false ) ) {
-			$editorial['cornerstone'] = true;
-		}
-
 		if ( 'post' === $object_type ) {
 			$primary = $this->primary_terms( $row['primary_term'] ?? '' );
 			if ( ! empty( $primary ) ) {
@@ -817,7 +801,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			$this->add_warning( 'schema_configuration_not_migrated', 'An AIOSEO schema configuration could not be converted to rendered EasyRankly JSON-LD.', $object_type . ':' . $object_id );
 		}
 
-		return $this->with_extension_meta( $mapped, $editorial );
+		return $this->with_extension_meta( $mapped );
 	}
 
 	/**
@@ -850,16 +834,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$editorial = array();
-		$keywords  = $this->keywords( $meta['_aioseop_keywords'] ?? '' );
-		if ( ! empty( $keywords ) ) {
-			$editorial['focus_keywords'] = $keywords;
-		}
 		if ( $this->enabled( $meta['_aioseop_sitemap_exclude'] ?? false ) || $this->enabled( $meta['_aioseop_disable'] ?? false ) ) {
 			$mapped['_erankly_disable_sitemap'] = true;
 		}
 
-		return $this->with_extension_meta( $mapped, $editorial );
+		return $this->with_extension_meta( $mapped );
 	}
 
 	/**

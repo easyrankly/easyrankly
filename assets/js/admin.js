@@ -17,7 +17,6 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     bindEach(".erankly-meta-box", "bindTabs");
-    bindEach(".erankly-meta-box", "bindSeoChecklist");
     bindEach("[data-erankly-expandable]", "bindExpandablePanel");
     bindRoot("bindTabs");
     bindRoot("bindSettingsTabs");

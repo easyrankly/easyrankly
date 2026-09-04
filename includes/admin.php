@@ -463,7 +463,6 @@ function erankly_enqueue_shared_styles(): void {
 function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 	$registry = array(
 		'media'     => array( 'erankly-admin-media', 'admin-media.js' ),
-		'checklist' => array( 'erankly-admin-checklist', 'admin-checklist.js' ),
 		'tabs'      => array( 'erankly-admin-tabs', 'admin-tabs.js' ),
 		'fields'    => array( 'erankly-admin-fields', 'admin-fields.js' ),
 		'variables' => array( 'erankly-admin-variables', 'admin-variables.js' ),
@@ -543,7 +542,7 @@ function erankly_admin_asset_modules( string $surface ): array {
 	} else {
 		$surfaces = array(
 			'setup'          => array( 'widgets' ),
-			'classic-editor' => array( 'media', 'checklist', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
+			'classic-editor' => array( 'media', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
 			'taxonomy'       => array( 'media', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
 		);
 

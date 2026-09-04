@@ -193,7 +193,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'robots', 'schema', 'primary terms', 'focus keyphrases', 'cornerstone content', 'Premium redirects' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'robots', 'schema', 'primary terms', 'Premium redirects' );
 	}
 
 	/** Returns normalized Yoast global settings. */
@@ -924,16 +924,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 		}
 
-		$editorial = array();
-		$keywords  = $this->keywords( array( $get( 'focuskw' ), $meta[ $prefix . 'focuskeywords' ] ?? array() ) );
-		if ( ! empty( $keywords ) ) {
-			$editorial['focus_keywords'] = $keywords;
-		}
-
-		if ( $this->enabled( $get( 'is_cornerstone' ) ) ) {
-			$editorial['cornerstone'] = true;
-		}
-
 		if ( ! $is_term ) {
 			$primary = array();
 			foreach ( $meta as $key => $value ) {
@@ -955,7 +945,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			}
 		}
 
-		return $this->with_extension_meta( $mapped, $editorial );
+		return $this->with_extension_meta( $mapped );
 	}
 
 	/**
@@ -1004,9 +994,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			'_yoast_wpseo_meta-robots-max-snippet',
 			'_yoast_wpseo_meta-robots-max-video-preview',
 			'_yoast_wpseo_meta-robots-max-image-preview',
-			'_yoast_wpseo_focuskw',
-			'_yoast_wpseo_focuskeywords',
-			'_yoast_wpseo_is_cornerstone',
 			'_yoast_wpseo_schema_page_type',
 			'_yoast_wpseo_schema_article_type',
 			'_yoast_wpseo_redirect',

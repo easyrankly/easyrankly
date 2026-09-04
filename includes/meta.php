@@ -53,8 +53,6 @@ function erankly_get_meta_keys(): array {
 		'_erankly_og_image_id'           => 'integer',
 		'_erankly_twitter_image_id'      => 'integer',
 		'_erankly_primary_terms'         => 'object',
-		'_erankly_focus_keywords'        => 'array',
-		'_erankly_cornerstone'           => 'boolean',
 		// Kept readable for backwards compatibility. New migrations use the
 		// native editorial keys above instead of writing opaque source payloads.
 		'_erankly_legacy_editorial'      => 'object',
@@ -184,7 +182,7 @@ function erankly_get_registered_meta_rest_schema( string $key, string $type ): b
 
 		if ( '_erankly_schema_blocks' === $key ) {
 			$schema['items'] = array( 'type' => 'object' );
-		} elseif ( in_array( $key, array( '_erankly_schema_disabled_types', '_erankly_focus_keywords' ), true ) ) {
+		} elseif ( '_erankly_schema_disabled_types' === $key ) {
 			$schema['items'] = array( 'type' => 'string' );
 		} elseif ( '_erankly_primary_terms' === $key ) {
 			$schema['additionalProperties'] = array( 'type' => 'integer' );
@@ -259,8 +257,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 			return $value >= -1 ? (string) $value : '';
 		case '_erankly_primary_terms':
 			return erankly_sanitize_primary_terms( $value );
-		case '_erankly_focus_keywords':
-			return erankly_sanitize_focus_keywords( $value );
 		case '_erankly_legacy_editorial':
 			return erankly_sanitize_legacy_editorial_data( $value );
 		case '_erankly_schema_mode':
@@ -280,7 +276,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 		case '_erankly_exclude_search':
 		case '_erankly_exclude_archive':
 		case '_erankly_exclude_from_news':
-		case '_erankly_cornerstone':
 			return (bool) $value;
 		default:
 			return apply_filters( 'erankly_sanitize_extension_meta', $value, $meta_key );
@@ -319,38 +314,6 @@ function erankly_sanitize_primary_terms( mixed $value ): array {
 	}
 
 	return $clean;
-}
-
-/**
- * Sanitizes an ordered list of focus keyphrases.
- *
- * Strings are accepted for classic forms and import compatibility; REST
- * writers normally submit an array. Empty and duplicate phrases are removed.
- *
- * @param mixed $value Raw keyphrase list.
- * @return array<int,string>
- */
-function erankly_sanitize_focus_keywords( mixed $value ): array {
-	if ( is_string( $value ) ) {
-		$value = preg_split( '/[\r\n,]+/', $value );
-	}
-
-	$clean = array();
-	foreach ( is_array( $value ) ? $value : array() as $keyword ) {
-		if ( is_array( $keyword ) && isset( $keyword['value'] ) ) {
-			$keyword = $keyword['value'];
-		}
-		if ( ! is_scalar( $keyword ) ) {
-			continue;
-		}
-
-		$keyword = erankly_trim_text( sanitize_text_field( (string) $keyword ), 191 );
-		if ( '' !== $keyword && ! in_array( $keyword, $clean, true ) ) {
-			$clean[] = $keyword;
-		}
-	}
-
-	return array_slice( $clean, 0, 20 );
 }
 
 /**

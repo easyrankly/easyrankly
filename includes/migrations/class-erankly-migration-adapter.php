@@ -537,8 +537,8 @@ abstract class ERankly_Migration_Adapter {
 			'rank_math_redirections' => array( 'id', 'sources', 'url_to', 'header_code', 'status' ),
 		);
 		$allowed  = array(
-			'aioseo_posts'           => array( 'id', 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'focus_keyword', 'additional_keywords', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
-			'aioseo_terms'           => array( 'id', 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'focus_keyword', 'additional_keywords', 'keyphrases', 'keywords', 'pillar_content', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
+			'aioseo_posts'           => array( 'id', 'post_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
+			'aioseo_terms'           => array( 'id', 'term_id', 'title', 'description', 'canonical_url', 'og_title', 'og_description', 'og_image_url', 'og_image_custom_url', 'twitter_title', 'twitter_description', 'twitter_image_url', 'twitter_image_custom_url', 'twitter_card', 'twitter_use_og', 'robots_default', 'robots_noindex', 'robots_nofollow', 'robots_noarchive', 'robots_nosnippet', 'robots_noimageindex', 'robots_max_snippet', 'robots_max_videopreview', 'robots_max_imagepreview', 'primary_term', 'schema', 'schema_type', 'schema_type_options' ),
 			'aioseo_redirects'       => array( 'id', 'source_url', 'target_url', 'type', 'source_url_match', 'query_param', 'enabled', 'ignore_case' ),
 			'rank_math_redirections' => array( 'id', 'sources', 'url_to', 'header_code', 'status' ),
 		);
@@ -1108,33 +1108,16 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Maps shared editorial fields and lets add-ons attach destination keys.
+	 * Filters mapped EasyRankly metadata before it is queued for import.
 	 *
-	 * Focus keyphrases and cornerstone/pillar flags are core-owned migration
-	 * destinations. Add-ons can still extend the final mapped metadata.
+	 * Add-ons can extend or adjust the final mapped metadata.
 	 *
-	 * @param array<string,mixed> $mapped    Core-owned mapped meta.
-	 * @param array<string,mixed> $editorial Editorial payload. Recognised keys:
-	 *                                       focus_keywords (list of strings) and
-	 *                                       cornerstone (bool).
+	 * @param array<string,mixed> $mapped Core-owned mapped meta.
+	 * @param string              $source Adapter slug.
 	 * @return array<string,mixed>
 	 */
-	protected function with_extension_meta( array $mapped, array $editorial = array() ): array {
-		if ( ! empty( $editorial['focus_keywords'] ) ) {
-			$mapped['_erankly_focus_keywords'] = erankly_sanitize_focus_keywords( $editorial['focus_keywords'] );
-		}
-		if ( ! empty( $editorial['cornerstone'] ) ) {
-			$mapped['_erankly_cornerstone'] = true;
-		}
-
-		/**
-		 * Filters mapped EasyRankly metadata before it is queued for import.
-		 *
-		 * @param array<string,mixed> $mapped    Core-owned mapped meta.
-		 * @param array<string,mixed> $editorial Source editorial fields.
-		 * @param string              $source    Adapter slug.
-		 */
-		$filtered = apply_filters( 'erankly_migration_mapped_meta', $mapped, $editorial, $this->slug() );
+	protected function with_extension_meta( array $mapped ): array {
+		$filtered = apply_filters( 'erankly_migration_mapped_meta', $mapped, $this->slug() );
 
 		return is_array( $filtered ) ? $filtered : $mapped;
 	}
@@ -1147,54 +1130,6 @@ abstract class ERankly_Migration_Adapter {
 	 */
 	protected function enabled( mixed $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'yes', 'true', 'active', 'enabled' ), true );
-	}
-
-	/**
-	 * Extracts focus keyphrases from strings and common JSON structures.
-	 *
-	 * @param mixed $value Source value.
-	 * @return array<int,string>
-	 */
-	protected function keywords( mixed $value ): array {
-		if ( is_string( $value ) ) {
-			$decoded = json_decode( $value, true );
-			$value   = JSON_ERROR_NONE === json_last_error() ? $decoded : preg_split( '/[\r\n,]+/', $value );
-		}
-
-		$keywords = array();
-		$walk     = static function ( mixed $item ) use ( &$walk, &$keywords ): void {
-			if ( is_string( $item ) ) {
-				$parts = preg_split( '/[\r\n,]+/', $item );
-				foreach ( is_array( $parts ) ? $parts : array( $item ) as $part ) {
-					$part = trim( $part );
-					if ( '' !== $part ) {
-						$keywords[] = $part;
-					}
-				}
-				return;
-			}
-
-			if ( ! is_array( $item ) ) {
-				return;
-			}
-
-			foreach ( array( 'keyword', 'keyphrase', 'phrase' ) as $key ) {
-				if ( isset( $item[ $key ] ) && is_scalar( $item[ $key ] ) ) {
-					$keywords[] = trim( (string) $item[ $key ] );
-				}
-			}
-
-			foreach ( $item as $key => $child ) {
-				if ( ! in_array( $key, array( 'keyword', 'keyphrase', 'phrase' ), true ) ) {
-					$walk( $child );
-				}
-			}
-		};
-
-		$walk( $value );
-		$keywords = array_map( 'sanitize_text_field', $keywords );
-
-		return array_values( array_unique( array_filter( $keywords, 'strlen' ) ) );
 	}
 
 	/**

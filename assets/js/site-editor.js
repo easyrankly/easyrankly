@@ -147,30 +147,6 @@
 		};
 	}
 
-	function SerpPreview( { context, data } ) {
-		const labels = config.contextLabels || {};
-		const descriptionPlaceholders = config.specialDescriptionPlaceholders || {};
-		const titlePlaceholders = config.specialTitlePlaceholders || {};
-		const previewUrls = config.specialPreviewUrls || {};
-		const siteName = config.siteName || '';
-		const siteDescription = config.siteDescription || '';
-		const contextLabel = labels[ context ] || context;
-		const titleFallback = titlePlaceholders[ context ] || contextLabel || siteName;
-		const title = shared.serpResolveVariables( data.get( 'title' ), titleFallback, siteName, siteDescription, config.variableExamples )
-			|| titleFallback;
-		const description = shared.serpResolveVariables( data.get( 'description' ), titleFallback, siteName, siteDescription, config.variableExamples )
-			|| descriptionPlaceholders[ context ]
-			|| __( 'Add a meta description to control this text in search results.', 'easyrankly' );
-
-		return el( shared.SerpPreviewView, {
-			description,
-			permalink: previewUrls[ context ] || config.homeUrl || '',
-			siteIconUrl: config.siteIconUrl || '',
-			siteName,
-			title,
-		} );
-	}
-
 	// Panels for a single special-page context.
 	function ContextPanels( { context, contexts, onSelectContext } ) {
 		const data = useSpecialMeta( context );
@@ -214,7 +190,6 @@
 				PluginDocumentSettingPanel,
 				{ className: 'erankly-panel erankly-panel--appearance', name: 'erankly-special-appearance', title: __( 'Search appearance', 'easyrankly' ) },
 				selector,
-				config.simplifiedMode && el( SerpPreview, { context, data } ),
 				...shared.searchAppearanceFields( { config, data, features } ),
 				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.searchAppearanceExtras', [], { context, data, config } ) : [] )
 			),

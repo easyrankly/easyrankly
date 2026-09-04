@@ -183,7 +183,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	 * @return array<int,string>
 	 */
 	public function capabilities(): array {
-		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'advanced robots', 'schema', 'primary terms', 'focus keyphrases', 'pillar content', 'redirections', 'multi-source and regex redirects' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'advanced robots', 'schema', 'primary terms', 'redirections', 'multi-source and regex redirects' );
 	}
 
 	/** Returns normalized Rank Math global settings. */
@@ -778,15 +778,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			}
 		}
 
-		$editorial = array();
-		$keywords  = $this->keywords( $meta['rank_math_focus_keyword'] ?? '' );
-		if ( ! empty( $keywords ) ) {
-			$editorial['focus_keywords'] = $keywords;
-		}
-		if ( $this->enabled( $meta['rank_math_pillar_content'] ?? '' ) ) {
-			$editorial['cornerstone'] = true;
-		}
-
 		if ( 'post' === $object_type ) {
 			$primary = array();
 			foreach ( $meta as $key => $value ) {
@@ -820,7 +811,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			$mapped['_erankly_schema_blocks'] = $blocks;
 		}
 
-		return $this->with_extension_meta( $mapped, $editorial );
+		return $this->with_extension_meta( $mapped );
 	}
 
 	/**
@@ -882,8 +873,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			'rank_math_twitter_use_facebook',
 			'rank_math_robots',
 			'rank_math_advanced_robots',
-			'rank_math_focus_keyword',
-			'rank_math_pillar_content',
 		);
 	}
 

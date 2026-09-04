@@ -145,30 +145,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		);
 	}
 
-	if ( $is_editor && ! $is_block_editor ) {
-		$post = get_post();
-
-		if ( $post instanceof WP_Post ) {
-			require_once ERANKLY_PATH . 'admin/meta-box.php';
-
-			wp_localize_script(
-				'erankly-admin',
-				'eranklyChecklist',
-				array_merge(
-					array(
-						'descriptionPlaceholder' => erankly_get_post_global_meta_placeholder( $post, 'description', ERANKLY_SEO_CHECKLIST_DESCRIPTION_LIMIT ),
-						'simplifiedMode'         => (bool) erankly_get_setting( 'simplified_mode', 1 ),
-						'siteDescription'        => get_bloginfo( 'description' ),
-						'siteName'               => get_bloginfo( 'name' ),
-						'titlePlaceholder'       => erankly_get_post_global_meta_placeholder( $post, 'title', ERANKLY_SEO_CHECKLIST_TITLE_LIMIT ),
-						'variableExamples'       => erankly_get_admin_variable_examples( $post ),
-					),
-					erankly_get_seo_checklist_editor_config( $post )
-				)
-			);
-		}
-	}
-
 	// Strings for the shared expandable table panel (bindExpandablePanel).
 	if ( in_array( 'panels', $asset_modules, true ) ) {
 		wp_localize_script(

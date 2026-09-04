@@ -27,8 +27,6 @@
 		description: '_erankly_description',
 		canonical: '_erankly_canonical',
 		breadcrumb_name: '_erankly_breadcrumb_name',
-		focus_keywords: '_erankly_focus_keywords',
-		cornerstone: '_erankly_cornerstone',
 		og_title: '_erankly_og_title',
 		og_description: '_erankly_og_description',
 		twitter_title: '_erankly_twitter_title',
@@ -70,7 +68,6 @@
 		newsSitemap: config.newsSitemapEnabled,
 		splitSocialImages: true,
 		triStateRobots: true,
-		editorial: true,
 	};
 
 	// Post-meta data adapter shared builders read and write through.
@@ -89,41 +86,6 @@
 			},
 			set: ( field, value ) => editPost( { meta: { [ META_MAP[ field ] ]: value } } ),
 		};
-	}
-
-	function SerpPreview( { data } ) {
-		const { contentImageUrl, permalink, postTitle, thumbnailUrl } = useSelect( ( select ) => {
-			const editor = select( 'core/editor' );
-			const mediaId = editor.getEditedPostAttribute( 'featured_media' );
-			const media = mediaId ? select( 'core' ).getMedia( mediaId ) : null;
-			const sizes = ( media && media.media_details && media.media_details.sizes ) || {};
-			const content = editor.getEditedPostAttribute( 'content' ) || '';
-
-			return {
-				contentImageUrl: shared.serpFirstContentImage( content ),
-				permalink: editor.getPermalink() || '',
-				postTitle: editor.getEditedPostAttribute( 'title' ) || '',
-				thumbnailUrl: ( sizes.thumbnail && sizes.thumbnail.source_url )
-					|| ( media && media.source_url )
-					|| '',
-			};
-		}, [] );
-		const title = shared.serpResolveVariables( data.get( 'title' ), postTitle, config.siteName, config.siteDescription, config.variableExamples )
-			|| config.titlePlaceholder
-			|| postTitle
-			|| config.siteName;
-		const description = shared.serpResolveVariables( data.get( 'description' ), postTitle, config.siteName, config.siteDescription, config.variableExamples )
-			|| config.descriptionPlaceholder
-			|| __( 'Add a meta description for search results.', 'easyrankly' );
-
-		return el( shared.SerpPreviewView, {
-			description,
-			imageUrl: thumbnailUrl || contentImageUrl,
-			permalink,
-			siteIconUrl: config.siteIconUrl,
-			siteName: config.siteName,
-			title,
-		} );
 	}
 
 	function useConfigWithPostContext() {
@@ -153,7 +115,6 @@
 				name: 'erankly-general',
 				title: __( 'Search appearance', 'easyrankly' ),
 			},
-			config.simplifiedMode && el( SerpPreview, { data } ),
 			...shared.searchAppearanceFields( { config: panelConfig, data, features: FEATURES } ),
 			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.searchAppearanceExtras', [], { data, config } ) : [] )
 		);
@@ -246,18 +207,6 @@
 		);
 	}
 
-	function SeoChecklistPanel() {
-		return el(
-			PluginDocumentSettingPanel,
-			{
-				className: 'erankly-panel erankly-panel--checklist',
-				name: 'erankly-checklist',
-				title: __( 'SEO checklist', 'easyrankly' ),
-			},
-			...shared.seoChecklistFields()
-		);
-	}
-
 	function ERanklyDocumentSettings() {
 		shared.usePanelsAfterDefaults();
 
@@ -267,8 +216,7 @@
 			el( GeneralPanel ),
 			! config.simplifiedMode && el( SocialPanel ),
 			! config.simplifiedMode && el( SchemaPanel ),
-			el( VisibilityPanel ),
-			el( SeoChecklistPanel )
+			el( VisibilityPanel )
 		);
 	}
 

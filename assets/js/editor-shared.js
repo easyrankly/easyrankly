@@ -23,7 +23,6 @@
 		ToggleControl,
 	} = wp.components;
 	const { createElement: el, useEffect, useRef, useState } = wp.element;
-	const { useSelect } = wp.data;
 	const { __, sprintf } = wp.i18n;
 	const PANEL_ORDER = (
 		window.eranklyEditorShared &&
@@ -36,7 +35,6 @@
 				'erankly-panel--social',
 				'erankly-panel--schema',
 				'erankly-panel--visibility',
-				'erankly-panel--checklist',
 				'erankly-panel--translations',
 		  ];
 
@@ -152,8 +150,7 @@
 
 	// Resolves variables whose preview value is known in this editor
 	// (site-level keys, dates, and the currently edited post or sample).
-	// Unrecognized tokens are left as-is (unlike serpResolveVariables, which
-	// blanks them for a clean preview) so the field never silently drops data.
+	// Unrecognized tokens are left as-is so the field never silently drops data.
 	function resolveDisplayVariables( text, { postTitle = '', siteName = '', siteDescription = '', examples = null } = {} ) {
 		const resolved = examples ? { ...examples } : {};
 
@@ -543,126 +540,6 @@
 		);
 	}
 
-	// Resolves the variables a preview can know about in the editor; the rest
-	// are stripped so raw {{tokens}} never show up in the SERP preview.
-	function serpResolveVariables( text, postTitle, siteName, siteDescription = '', examples = null ) {
-		const resolved = examples ? { ...examples } : {};
-
-		if ( siteName && ! Object.prototype.hasOwnProperty.call( resolved, 'site_name' ) ) {
-			resolved.site_name = siteName;
-		}
-
-		if ( siteDescription && ! Object.prototype.hasOwnProperty.call( resolved, 'site_description' ) ) {
-			resolved.site_description = siteDescription;
-		}
-
-		if ( postTitle ) {
-			if ( ! resolved.post_title ) {
-				resolved.post_title = postTitle;
-			}
-
-			if ( ! resolved.seo_title ) {
-				resolved.seo_title = postTitle;
-			}
-		}
-
-		return text
-			.replace( /{{\s*([a-z0-9_]+)\s*}}/gi, ( match, key ) => {
-				const normalizedKey = key.toLowerCase();
-
-				if ( Object.prototype.hasOwnProperty.call( resolved, normalizedKey ) ) {
-					return resolved[ normalizedKey ] || '';
-				}
-
-				return '';
-			} )
-			.replace( /\s+/g, ' ' )
-			.trim();
-	}
-
-	function serpBreadcrumb( permalink ) {
-		try {
-			const url = new URL( permalink );
-			const segments = url.pathname.split( '/' ).filter( Boolean ).map( ( segment ) => {
-				try {
-					return decodeURIComponent( segment );
-				} catch ( error ) {
-					return segment;
-				}
-			} );
-
-			return [ url.host ].concat( segments ).join( ' › ' );
-		} catch ( error ) {
-			return permalink;
-		}
-	}
-
-	function serpFirstContentImage( content ) {
-		if ( ! content ) {
-			return '';
-		}
-
-		const document = new window.DOMParser().parseFromString( content, 'text/html' );
-		const images = document.querySelectorAll( 'img[src]' );
-
-		for ( const image of images ) {
-			if ( image.closest( 'pre, code' ) ) {
-				continue;
-			}
-
-			const src = image.getAttribute( 'src' ) || '';
-
-			try {
-				const url = new URL( src );
-
-				if ( 'http:' === url.protocol || 'https:' === url.protocol ) {
-					return url.href;
-				}
-			} catch ( error ) {
-				// Ignore relative or malformed URLs, matching the frontend resolver.
-			}
-		}
-
-		return '';
-	}
-
-	// Presentational SERP preview: callers compute the resolved title, description
-	// and image and pass them in, so the same markup serves any context.
-	function SerpPreviewView( { description, imageUrl = '', permalink = '', siteIconUrl = '', siteName = '', title } ) {
-		return el(
-			'div',
-			{ 'aria-hidden': 'true', className: 'erankly-serp-preview' },
-			el(
-				'div',
-				{ className: 'erankly-serp-preview__source' },
-				siteIconUrl
-					? el( 'img', { alt: '', className: 'erankly-serp-preview__favicon', src: siteIconUrl } )
-					: el( 'span', { className: 'erankly-serp-preview__favicon' } ),
-				el(
-					'div',
-					{ className: 'erankly-serp-preview__origin' },
-					el( 'div', { className: 'erankly-serp-preview__site' }, siteName ),
-					el( 'div', { className: 'erankly-serp-preview__breadcrumb' }, serpBreadcrumb( permalink ) )
-				)
-			),
-			el(
-				'div',
-				{ className: 'erankly-serp-preview__body' },
-				el(
-					'div',
-					{ className: 'erankly-serp-preview__text' },
-					el( 'div', { className: 'erankly-serp-preview__title' }, title ),
-					el( 'div', { className: 'erankly-serp-preview__description' }, description )
-				),
-				imageUrl && el( 'img', {
-					alt: '',
-					className: 'erankly-serp-preview__thumbnail',
-					src: imageUrl,
-				} )
-			)
-		);
-	}
-
 	// Builds the "Search appearance" controls. `data` is a { get, set } adapter
 	// keyed by short field names; `features` toggles the optional controls.
 	function searchAppearanceFields( { config, data, features = {} } ) {
@@ -692,23 +569,6 @@
 				variables: config.variables,
 			} ),
 		];
-
-		if ( features.editorial ) {
-			fields.push( el( FormTokenField, {
-				__next40pxDefaultSize: true,
-				key: 'focus_keywords',
-				label: __( 'Focus keyphrases', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'focus_keywords', value ),
-				value: Array.isArray( data.get( 'focus_keywords' ) ) ? data.get( 'focus_keywords' ) : [],
-			} ) );
-			fields.push( el( ToggleControl, {
-				__nextHasNoMarginBottom: true,
-				checked: Boolean( data.get( 'cornerstone' ) ),
-				key: 'cornerstone',
-				label: __( 'Cornerstone content', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'cornerstone', value ),
-			} ) );
-		}
 
 		if ( features.canonical ) {
 			fields.push( el( VariableControl, {
@@ -1198,252 +1058,16 @@
 		return fields;
 	}
 
-	const SEO_CHECKLIST_TITLE_LIMIT = 65;
-	const SEO_CHECKLIST_DESCRIPTION_LIMIT = 160;
-	const SEO_CHECKLIST_MIN_CONTENT_LENGTH = 300;
-
-	const SEO_CHECKLIST_GROUP_LABELS = {
-		appearance: __( 'Search appearance', 'easyrankly' ),
-		indexing: __( 'Indexing', 'easyrankly' ),
-	};
-
-	function getSeoChecklistItemDefinitions( simplifiedMode ) {
-		const items = [
-			{
-				group: 'appearance',
-				key: 'title',
-				label: __( 'SEO title length', 'easyrankly' ),
-			},
-			{
-				group: 'appearance',
-				key: 'description',
-				label: __( 'Meta description length', 'easyrankly' ),
-			},
-			{
-				group: 'appearance',
-				key: 'preview_image',
-				label: __( 'Preview image', 'easyrankly' ),
-			},
-			{
-				group: 'indexing',
-				key: 'indexable',
-				label: __( 'Search engine indexing', 'easyrankly' ),
-			},
-			{
-				group: 'indexing',
-				key: 'content',
-				label: __( 'Content length', 'easyrankly' ),
-			},
-		];
-
-		if ( ! simplifiedMode ) {
-			items.push(
-				{
-					group: 'appearance',
-					key: 'social_image',
-					label: __( 'Social image', 'easyrankly' ),
-				},
-				{
-					group: 'appearance',
-					key: 'canonical',
-					label: __( 'Canonical URL', 'easyrankly' ),
-				}
-			);
-		}
-
-		return items;
-	}
-
-	function checklistTextWithinLimit( text, limit ) {
-		const normalized = String( text || '' ).replace( /\s+/g, ' ' ).trim();
-
-		if ( '' === normalized ) {
-			return false;
-		}
-
-		return normalized.length <= limit;
-	}
-
-	function checklistStripContent( content ) {
-		const document = new window.DOMParser().parseFromString( String( content || '' ), 'text/html' );
-
-		return ( document.body.textContent || '' ).replace( /\s+/g, ' ' ).trim();
-	}
-
-	function checklistEffectiveTitle( customTitle, postTitle, config ) {
-		const resolved = serpResolveVariables( customTitle, postTitle, config.siteName || '', config.siteDescription || '', config.variableExamples || null );
-
-		return resolved
-			|| config.titlePlaceholder
-			|| postTitle
-			|| config.siteName
-			|| '';
-	}
-
-	function checklistEffectiveDescription( customDescription, postTitle, config, content, excerpt ) {
-		const resolved = serpResolveVariables( customDescription, postTitle, config.siteName || '', config.siteDescription || '', config.variableExamples || null );
-
-		if ( resolved ) {
-			return resolved;
-		}
-
-		if ( config.descriptionPlaceholder ) {
-			return config.descriptionPlaceholder;
-		}
-
-		const source = String( excerpt || '' ).trim() || checklistStripContent( content );
-
-		return source.slice( 0, config.descriptionLimit || SEO_CHECKLIST_DESCRIPTION_LIMIT );
-	}
-
-	function evaluateSeoChecklistState( state, config ) {
-		const titleLimit = config.titleLimit || SEO_CHECKLIST_TITLE_LIMIT;
-		const descriptionLimit = config.descriptionLimit || SEO_CHECKLIST_DESCRIPTION_LIMIT;
-		const minContentLength = config.minContentLength || SEO_CHECKLIST_MIN_CONTENT_LENGTH;
-		const title = checklistEffectiveTitle( state.customTitle, state.postTitle, config );
-		const description = checklistEffectiveDescription(
-			state.customDescription,
-			state.postTitle,
-			config,
-			state.content,
-			state.excerpt
-		);
-		const contentText = String( state.excerpt || '' ).trim() || checklistStripContent( state.content );
-
-		return {
-			title: checklistTextWithinLimit( title, titleLimit ),
-			description: checklistTextWithinLimit( description, descriptionLimit ),
-			preview_image: state.featuredMedia > 0
-				|| '' !== serpFirstContentImage( state.content )
-				|| Boolean( config.hasDefaultPreviewImage ),
-			indexable: ! state.noindex,
-			content: contentText.length >= minContentLength,
-			social_image: state.ogImageId > 0 || '' !== String( state.socialImageUrl || '' ).trim(),
-			canonical: '' !== String( state.canonical || '' ).trim(),
-		};
-	}
-
-	function buildSeoChecklistItems( definitions, doneState ) {
-		return definitions.map( ( item ) => ( {
-			...item,
-			done: Boolean( doneState[ item.key ] ),
-		} ) );
-	}
-
-	function groupSeoChecklistItems( items ) {
-		const groups = [];
-
-		items.forEach( ( item ) => {
-			let group = groups.find( ( entry ) => entry.key === item.group );
-
-			if ( ! group ) {
-				group = {
-					items: [],
-					key: item.group,
-					label: SEO_CHECKLIST_GROUP_LABELS[ item.group ] || item.group,
-				};
-				groups.push( group );
-			}
-
-			group.items.push( item );
-		} );
-
-		return groups;
-	}
-
-	function SeoChecklistView( { items } ) {
-		const groups = groupSeoChecklistItems( items );
-
-		return el(
-			'div',
-			{ className: 'erankly-seo-checklist' },
-			groups.map( ( group ) => el(
-				'div',
-				{ className: 'erankly-seo-checklist-group', key: group.key },
-				el( 'p', { className: 'erankly-seo-checklist-group-label' }, group.label ),
-				el(
-					'ul',
-					{ className: 'erankly-seo-checklist-items' },
-					group.items.map( ( item ) => el(
-						'li',
-						{
-							className: 'erankly-seo-checklist-item' + ( item.done ? ' is-done' : '' ),
-							key: item.key,
-						},
-						el(
-							'svg',
-							{
-								'aria-hidden': true,
-								className: 'erankly-seo-checklist-icon',
-								fill: 'none',
-								focusable: false,
-								stroke: 'currentColor',
-								strokeLinecap: 'round',
-								strokeLinejoin: 'round',
-								strokeWidth: 1.75,
-								viewBox: '0 0 16 16',
-							},
-							el( 'path', { className: 'erankly-seo-checklist-icon-cross', d: 'M4 4l8 8m0-8-8 8' } ),
-							el( 'path', { className: 'erankly-seo-checklist-icon-check', d: 'M3.25 8.25 6.5 11.5 12.75 4.75' } )
-						),
-						el( 'span', { className: 'erankly-seo-checklist-label' }, item.label )
-					) )
-				)
-			) )
-		);
-	}
-
-	function usePostSeoChecklistItems( config = window.eranklyEditor || {} ) {
-		const state = useSelect( ( select ) => {
-			const editor = select( 'core/editor' );
-			const meta = editor.getEditedPostAttribute( 'meta' ) || {};
-
-			return {
-				canonical: String( meta._erankly_canonical || '' ),
-				content: editor.getEditedPostAttribute( 'content' ) || '',
-				customDescription: String( meta._erankly_description || '' ),
-				customTitle: String( meta._erankly_title || '' ),
-				excerpt: editor.getEditedPostAttribute( 'excerpt' ) || '',
-				featuredMedia: editor.getEditedPostAttribute( 'featured_media' ) || 0,
-				noindex: Boolean( meta._erankly_noindex ),
-				ogImageId: parseInt( meta._erankly_og_image_id, 10 ) || 0,
-				postTitle: editor.getEditedPostAttribute( 'title' ) || '',
-				socialImageUrl: String( meta._erankly_social_image_url || '' ),
-			};
-		}, [] );
-
-		const definitions = getSeoChecklistItemDefinitions( Boolean( config.simplifiedMode ) );
-		const doneState = evaluateSeoChecklistState( state, config );
-
-		return buildSeoChecklistItems( definitions, doneState );
-	}
-
-	function seoChecklistFields() {
-		const items = usePostSeoChecklistItems( window.eranklyEditor || {} );
-
-		return [ el( SeoChecklistView, { items, key: 'checklist' } ) ];
-	}
-
 	window.eranklyShared = {
-		SeoChecklistView,
-		SerpPreviewView,
 		SocialImageControl,
 		VariableControl,
-		buildSeoChecklistItems,
-		evaluateSeoChecklistState,
-		getSeoChecklistItemDefinitions,
 		getRobotsDirectiveInconsistencies,
 		normalizeRobotsDirectiveToken,
 		resolveRobotsDirectiveTokens,
 		searchAppearanceFields,
 		selectRobotsDirectiveToken,
-		seoChecklistFields,
-		serpBreadcrumb,
-		serpFirstContentImage,
-		serpResolveVariables,
 		socialFields,
 		usePanelsAfterDefaults,
-		usePostSeoChecklistItems,
 		visibilityFields,
 	};
 }() );

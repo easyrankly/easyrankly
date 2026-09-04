@@ -44,11 +44,6 @@ msgstr ""
 msgid "https://easyrankly.com/"
 msgstr ""
 
-#: admin/assets/editor.php:280
-#: admin/assets/editor.php:300
-msgid "example"
-msgstr ""
-
 #: admin/assets/editor.php:295
 #: includes/helpers/content-defaults.php:200
 msgid "Author archive"
@@ -266,7 +261,6 @@ msgstr ""
 #: admin/field-renderers.php:53
 #: admin/meta-box.php:167
 #: admin/meta-box.php:601
-#: includes/seo-checklist.php:247
 #: assets/js/editor-shared.js:716
 #: assets/js/editor-shared.js:1249
 msgid "Canonical URL"
@@ -457,22 +451,6 @@ msgstr ""
 msgid "recommended max"
 msgstr ""
 
-#: admin/meta-box.php:159
-#: admin/meta-box.php:596
-#: assets/js/editor-shared.js:700
-msgid "Focus keyphrases"
-msgstr ""
-
-#: admin/meta-box.php:160
-#: admin/meta-box.php:597
-msgid "Separate keyphrases with commas"
-msgstr ""
-
-#: admin/meta-box.php:163
-#: assets/js/editor-shared.js:708
-msgid "Cornerstone content"
-msgstr ""
-
 #: admin/meta-box.php:176
 #: assets/js/editor-shared.js:728
 msgid "Breadcrumb name"
@@ -571,7 +549,6 @@ msgstr ""
 
 #: admin/meta-box.php:339
 #: admin/meta-box.php:694
-#: includes/seo-checklist.php:24
 #: assets/js/editor-shared.js:1207
 msgid "Indexing"
 msgstr ""
@@ -747,7 +724,6 @@ msgstr ""
 
 #: admin/meta-box.php:454
 #: admin/meta-box.php:571
-#: includes/seo-checklist.php:23
 #: assets/js/editor-shared.js:1206
 #: assets/js/editor.js:154
 #: assets/js/site-editor.js:191
@@ -775,11 +751,6 @@ msgstr ""
 #: assets/js/editor.js:186
 #: assets/js/site-editor.js:229
 msgid "Search visibility"
-msgstr ""
-
-#: admin/meta-box.php:460
-#: assets/js/editor.js:255
-msgid "SEO checklist"
 msgstr ""
 
 #: admin/meta-box.php:692
@@ -1449,7 +1420,6 @@ msgid "X (Twitter) description"
 msgstr ""
 
 #: admin/settings/renderers.php:627
-#: includes/seo-checklist.php:242
 #: assets/js/editor-shared.js:1244
 msgid "Social image"
 msgstr ""
@@ -2401,7 +2371,7 @@ msgid "Import from other plugins"
 msgstr ""
 
 #: includes/import-export/panel.php:199
-msgid "Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, keyphrases, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts."
+msgid "Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts."
 msgstr ""
 
 #: includes/import-export/panel.php:201
@@ -3422,31 +3392,6 @@ msgstr ""
 msgid "EasyRankly could not start the network reset, so no plugin data was changed. Resolve the database or Cron scheduling issue, then run the reset again."
 msgstr ""
 
-#: includes/seo-checklist.php:214
-#: assets/js/editor-shared.js:1215
-msgid "SEO title length"
-msgstr ""
-
-#: includes/seo-checklist.php:219
-#: assets/js/editor-shared.js:1220
-msgid "Meta description length"
-msgstr ""
-
-#: includes/seo-checklist.php:224
-#: assets/js/editor-shared.js:1225
-msgid "Preview image"
-msgstr ""
-
-#: includes/seo-checklist.php:229
-#: assets/js/editor-shared.js:1230
-msgid "Search engine indexing"
-msgstr ""
-
-#: includes/seo-checklist.php:234
-#: assets/js/editor-shared.js:1235
-msgid "Content length"
-msgstr ""
-
 #: includes/settings-lock.php:153
 msgid "EasyRankly settings are being updated by another request."
 msgstr ""
@@ -3641,10 +3586,6 @@ msgstr ""
 msgid "Exclude from Google News sitemap"
 msgstr ""
 
-#: assets/js/editor.js:117
-msgid "Add a meta description for search results."
-msgstr ""
-
 #: assets/js/editor.js:212
 msgid "Disable schema"
 msgstr ""
@@ -3659,10 +3600,6 @@ msgstr ""
 
 #: assets/js/editor.js:240
 msgid "Remove schema block"
-msgstr ""
-
-#: assets/js/site-editor.js:163
-msgid "Add a meta description to control this text in search results."
 msgstr ""
 
 #: assets/js/site-editor.js:182

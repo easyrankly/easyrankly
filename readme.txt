@@ -81,7 +81,7 @@ EasyRankly 2.0.0 marks the transition from the initial foundation introduced wit
 
 The entire experience has been redesigned around a new setup wizard, clearer URL-addressable settings, native controls for the block editor, improved classic-editor and taxonomy panels, and contextual Site Editor integration for block themes. Accessibility has also been strengthened throughout, with more explicit labels, better semantic relationships, and keyboard-safe navigation and dialogs.
 
-Metadata and structured data now offer substantially greater control. Primary taxonomy terms, ordered focus keyphrases, cornerstone content, advanced robots directives, dedicated Open Graph and X images, richer schema modes, FAQ and HowTo extraction, Event and VideoObject markup, and expanded WooCommerce support make it possible to describe and optimize content with far greater precision.
+Metadata and structured data now offer substantially greater control. Primary taxonomy terms, advanced robots directives, dedicated Open Graph and X images, richer schema modes, FAQ and HowTo extraction, Event and VideoObject markup, and expanded WooCommerce support make it possible to describe and optimize content with far greater precision.
 
 Redirect management and migration tools have evolved with the same attention to reliability. Redirects now support additional matching strategies, response codes, scheduling, audience targeting, and fine-grained URL controls, backed by a compiled runtime with per-pattern safety limits. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, live-output verification, and a seven-day conditional rollback journal.
 

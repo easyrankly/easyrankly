@@ -2,7 +2,7 @@
  * EasyRankly: shared design tokens and cross-surface components.
  *
  * Loaded before the surface-specific admin and editor styles so every context
- * shares the same palette, suggestion menus, and SEO checklist styling.
+ * shares the same palette and suggestion menus.
  */
 
 :root {
@@ -48,7 +48,6 @@
 	--erankly-color-error-surface: #fcf0f1;
 	--erankly-color-error-border: #e7b7bd;
 	--erankly-color-danger: #d63638;
-	--erankly-color-checklist-partial: #f59e0b;
 	--erankly-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12);
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
@@ -104,70 +103,6 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-/* SEO checklist: classic meta box and block editor sidebar. */
-
-.erankly-panel--checklist .erankly-seo-checklist {
-	margin-top: 0;
-}
-
-.erankly-seo-checklist-items {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-}
-
-.erankly-seo-checklist-group + .erankly-seo-checklist-group {
-	margin-top: var(--erankly-space-4);
-}
-
-.erankly-seo-checklist-group-label {
-	color: var(--erankly-color-muted);
-	font-size: 12px;
-	font-weight: 600;
-	letter-spacing: 0.04em;
-	margin: 0 0 var(--erankly-space-label);
-	text-transform: uppercase;
-}
-
-.erankly-seo-checklist-item {
-	align-items: flex-start;
-	display: flex;
-	gap: var(--erankly-space-2);
-	margin: 0;
-	padding: var(--erankly-space-2) 0;
-}
-
-.erankly-seo-checklist-icon {
-	color: var(--erankly-color-error);
-	display: block;
-	flex: 0 0 auto;
-	height: 14px;
-	margin-top: 2px;
-	width: 14px;
-}
-
-.erankly-seo-checklist-icon-check {
-	display: none;
-}
-
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-icon {
-	color: var(--erankly-color-success);
-}
-
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-icon-cross {
-	display: none;
-}
-
-.erankly-seo-checklist-item.is-done .erankly-seo-checklist-icon-check {
-	display: inline;
-}
-
-.erankly-seo-checklist-label {
-	color: var(--erankly-color-text);
-	font-size: 13px;
-	line-height: 1.4;
 }
 
 /* Hide native number steppers; values are typed, not clicked. */

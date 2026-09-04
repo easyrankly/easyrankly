@@ -196,7 +196,7 @@ function erankly_import_export_render_panel(): void {
 		<div class="erankly-settings-section">
 			<h3 class="erankly-section-title"><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h3>
 			<section class="erankly-card">
-				<p class="description"><?php esc_html_e( 'Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, keyphrases, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts.', 'easyrankly' ); ?></p>
+				<p class="description"><?php esc_html_e( 'Migrate Free and PRO data: titles, descriptions, canonicals, separate social images, robots directives, primary terms, schemas and redirects. Existing EasyRankly values and unrelated redirects are preserved and reported as conflicts.', 'easyrankly' ); ?></p>
 				<?php if ( $has_unsupported_source ) : ?>
 					<p class="notice notice-warning inline"><span><?php esc_html_e( 'SEO source data was detected with an unrecognized version or storage signature. EasyRankly will not guess: use a certified official export or update the adapter before migrating.', 'easyrankly' ); ?></span></p>
 				<?php endif; ?>
