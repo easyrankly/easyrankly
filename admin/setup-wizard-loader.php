@@ -1,29 +1,15 @@
 <?php
-/**
- * Lightweight first-run setup wizard loader.
- *
- * @package EasyRankly
- */
+/** Lightweight first-run setup wizard loader. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns the capability required to manage the wizard.
- *
- * @return string
- */
+/** Returns the capability required to manage the wizard. */
 function erankly_setup_wizard_capability(): string {
 	return is_multisite() ? 'manage_network_options' : 'manage_options';
 }
 
-/**
- * Returns a setup wizard URL.
- *
- * @param string $step Optional wizard step.
- * @return string
- */
 function erankly_setup_wizard_url( string $step = '' ): string {
 	$url = is_multisite()
 		? network_admin_url( 'settings.php?page=erankly-setup' )
@@ -36,11 +22,6 @@ function erankly_setup_wizard_url( string $step = '' ): string {
 	return $url;
 }
 
-/**
- * Returns the settings URL for the current installation type.
- *
- * @return string
- */
 function erankly_setup_wizard_settings_url(): string {
 	return is_multisite()
 		? network_admin_url( 'settings.php?page=erankly' )
@@ -48,13 +29,9 @@ function erankly_setup_wizard_settings_url(): string {
 }
 
 /**
- * Registers the hidden setup page.
- *
- * The page is kept registered but removed from the visible submenu. Without a
- * submenu entry WordPress cannot resolve the screen title, so the load hook
- * below restores `$title` before admin-header.php calls strip_tags().
- *
- * @return void
+ * Registers the hidden setup page. The page is kept registered but removed from the visible submenu. Without a
+ * submenu entry WordPress cannot resolve the screen title, so the load hook below restores `$title` before
+ * admin-header.php calls strip_tags().
  */
 function erankly_setup_wizard_register_page(): void {
 	$parent_slug = is_network_admin() ? 'settings.php' : 'options-general.php';
@@ -75,22 +52,13 @@ function erankly_setup_wizard_register_page(): void {
 	}
 }
 
-/**
- * Sets the admin screen title for the hidden setup wizard page.
- *
- * @return void
- */
 function erankly_setup_wizard_set_admin_title(): void {
 	global $title;
 
 	$title = __( 'EasyRankly setup', 'easyrankly' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Core reads this global when rendering the hidden admin screen title.
 }
 
-/**
- * Redirects administrators to the wizard after a fresh installation.
- *
- * @return void
- */
+/** Redirects administrators to the wizard after a fresh installation. */
 function erankly_setup_wizard_maybe_redirect(): void {
 	global $pagenow;
 
@@ -128,40 +96,24 @@ function erankly_setup_wizard_maybe_redirect(): void {
 	exit;
 }
 
-/**
- * Loads the wizard form processor and renderer only when requested.
- *
- * @return void
- */
+/** Loads the wizard form processor and renderer only when requested. */
 function erankly_setup_wizard_load_screen(): void {
 	require_once ERANKLY_PATH . 'admin/setup-wizard.php';
 }
 
-/**
- * Saves the setup choices through the deferred implementation.
- *
- * @return void
- */
+/** Saves the setup choices through the deferred implementation. */
 function erankly_setup_wizard_save(): void {
 	erankly_setup_wizard_load_screen();
 	erankly_setup_wizard_handle_save();
 }
 
-/**
- * Dismisses the setup wizard through the deferred implementation.
- *
- * @return void
- */
+/** Dismisses the setup wizard through the deferred implementation. */
 function erankly_setup_wizard_skip(): void {
 	erankly_setup_wizard_load_screen();
 	erankly_setup_wizard_handle_skip();
 }
 
-/**
- * Renders the setup wizard through the deferred implementation.
- *
- * @return void
- */
+/** Renders the setup wizard through the deferred implementation. */
 function erankly_setup_wizard_render(): void {
 	erankly_setup_wizard_load_screen();
 	erankly_setup_wizard_render_screen();

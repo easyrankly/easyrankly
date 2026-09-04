@@ -1,20 +1,10 @@
 <?php
-/**
- * Taxonomy meta persistence.
- *
- * @package EasyRankly
- */
+/** Taxonomy meta persistence. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Saves taxonomy SEO fields.
- *
- * @param int $term_id Term ID.
- * @return void
- */
 function erankly_save_term_fields( int $term_id ): void {
 	if ( ! isset( $_POST['erankly_term_fields_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['erankly_term_fields_nonce'] ) ), 'erankly_save_term_fields' ) ) {
 		return;

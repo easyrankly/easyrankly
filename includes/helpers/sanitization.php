@@ -1,11 +1,7 @@
 <?php
 /**
- * Shared helpers: input sanitization.
- *
- * Common text and URL primitives loaded early on every request. LocalBusiness
- * and schema-specific sanitizers live in sanitization-schema.php.
- *
- * @package EasyRankly
+ * Shared helpers: input sanitization. Common text and URL primitives loaded early on every request.
+ * LocalBusiness and schema-specific sanitizers live in sanitization-schema.php.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,36 +9,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Sanitizes a plain text field.
- *
- * Expects an already-unslashed value: callers reading from $_POST must
+ * Sanitizes a plain text field. Expects an already-unslashed value: callers reading from $_POST must
  * wp_unslash() first. Unslashing here too would corrupt literal backslashes.
- *
- * @param mixed $value Raw (unslashed) value.
- * @return string
  */
 function erankly_sanitize_text( mixed $value ): string {
 	return sanitize_text_field( (string) $value );
 }
 
-/**
- * Sanitizes textarea text without markup.
- *
- * Expects an already-unslashed value (see erankly_sanitize_text()).
- *
- * @param mixed $value Raw (unslashed) value.
- * @return string
- */
+/** Sanitizes textarea text without markup. Expects an already-unslashed value (see erankly_sanitize_text()). */
 function erankly_sanitize_textarea( mixed $value ): string {
 	return sanitize_textarea_field( (string) $value );
 }
 
-/**
- * Normalizes an X/Twitter handle.
- *
- * @param mixed $value Raw handle or profile URL.
- * @return string
- */
+/** @param mixed $value Raw handle or profile URL. */
 function erankly_sanitize_twitter_handle( mixed $value ): string {
 	$value = trim( erankly_sanitize_text( $value ) );
 
@@ -63,24 +42,14 @@ function erankly_sanitize_twitter_handle( mixed $value ): string {
 	return '' === $handle ? '' : '@' . $handle;
 }
 
-/**
- * Sanitizes a URL field.
- *
- * @param mixed $value Raw value.
- * @return string
- */
+/** Sanitizes a URL field. */
 function erankly_sanitize_url( mixed $value ): string {
 	$value = trim( (string) $value );
 
 	return '' === $value ? '' : esc_url_raw( $value );
 }
 
-/**
- * Sanitizes an absolute HTTP(S) URL.
- *
- * @param mixed $value Raw value.
- * @return string
- */
+/** Sanitizes an absolute HTTP(S) URL. */
 function erankly_sanitize_absolute_url( mixed $value ): string {
 	$url = erankly_sanitize_url( $value );
 
@@ -95,14 +64,9 @@ function erankly_sanitize_absolute_url( mixed $value ): string {
 }
 
 /**
- * Sanitizes a URL field that may contain EasyRankly {{variables}}.
- *
- * Literal URLs go through esc_url_raw(). Templated URLs are finalized only after
- * variable replacement, so preserve placeholders while still removing invalid
- * text input and disallowed protocols at save time.
- *
- * @param mixed $value Raw value.
- * @return string
+ * Sanitizes a URL field that may contain EasyRankly {{variables}}. Literal URLs go through esc_url_raw().
+ * Templated URLs are finalized only after variable replacement, so preserve placeholders while still removing
+ * invalid text input and disallowed protocols at save time.
  */
 function erankly_sanitize_url_template( mixed $value ): string {
 	$value = trim( erankly_sanitize_text( $value ) );
@@ -126,12 +90,7 @@ function erankly_sanitize_url_template( mixed $value ): string {
 	return trim( wp_kses_bad_protocol( $value, wp_allowed_protocols() ) );
 }
 
-/**
- * Sanitizes a newline-separated list of absolute HTTP(S) URLs.
- *
- * @param mixed $value Raw value.
- * @return string
- */
+/** Sanitizes a newline-separated list of absolute HTTP(S) URLs. */
 function erankly_sanitize_url_list( mixed $value ): string {
 	$value = erankly_sanitize_textarea( $value );
 	$lines = preg_split( '/\R/', $value );
@@ -153,13 +112,7 @@ function erankly_sanitize_url_list( mixed $value ): string {
 	return implode( "\n", array_values( array_unique( $urls ) ) );
 }
 
-/**
- * Produces a compact SEO string.
- *
- * @param string $value Raw string.
- * @param int    $limit Character limit.
- * @return string
- */
+/** Produces a compact SEO string. */
 function erankly_trim_text( string $value, int $limit = 160 ): string {
 	$value = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $value ) ) );
 
@@ -174,12 +127,7 @@ function erankly_trim_text( string $value, int $limit = 160 ): string {
 	return rtrim( $excerpt, " \t\n\r\0\x0B.,;:-" );
 }
 
-/**
- * Produces a compact SEO string without applying a character limit.
- *
- * @param string $value Raw string.
- * @return string
- */
+/** Produces a compact SEO string without applying a character limit. */
 function erankly_normalize_seo_text( string $value ): string {
 	$value = preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( $value ) ) );
 	if ( is_string( $value ) ) {

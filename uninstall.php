@@ -1,9 +1,5 @@
 <?php
-/**
- * Plugin uninstall cleanup.
- *
- * @package EasyRankly
- */
+/** Plugin uninstall cleanup. */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
@@ -17,12 +13,10 @@ require_once __DIR__ . '/includes/class-erankly-import-job-runner.php';
 global $wpdb;
 
 /**
- * Removes per-site options, the redirect table, post meta and transients for one site.
+ * Removes per-site options, the redirect table, post meta and transients for one site. Global settings
+ * (erankly_settings, erankly_version) are handled separately because on Multisite they are stored as network
+ * options and must be deleted once.
  *
- * Global settings (erankly_settings, erankly_version) are handled separately
- * because on Multisite they are stored as network options and must be deleted once.
- *
- * @return void
  * @throws RuntimeException When a database cleanup operation fails.
  */
 function erankly_uninstall_site(): void {

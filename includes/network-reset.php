@@ -1,24 +1,14 @@
 <?php
-/**
- * Resumable network reset job.
- *
- * Loaded only for Network Admin and WP-Cron requests.
- *
- * @package EasyRankly
- */
+/** Resumable network reset job. Loaded only for Network Admin and WP-Cron requests. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Schedules one reset batch on the current network's main site.
+ * Schedules one reset batch on the current network's main site. A reset token is included in the Cron arguments
+ * so events left by a replaced job cannot process or advance the new job.
  *
- * A reset token is included in the Cron arguments so events left by a replaced
- * job cannot process or advance the new job.
- *
- * @param string $token Reset job token.
- * @param int    $delay Delay in seconds.
  * @return bool|WP_Error
  */
 function erankly_schedule_network_reset_batch( string $token, int $delay = 5 ): bool|WP_Error {
@@ -78,11 +68,9 @@ function erankly_schedule_network_reset_batch( string $token, int $delay = 5 ): 
 }
 
 /**
- * Reads an exact reset-state snapshot for an atomic progress commit.
- *
- * The direct read is intentionally confined to Network Admin and Cron. Public
- * requests never load this module, while the raw serialized value lets a worker
- * prove that no other worker has advanced or replaced the job in the meantime.
+ * Reads an exact reset-state snapshot for an atomic progress commit. The direct read is intentionally confined
+ * to Network Admin and Cron. Public requests never load this module, while the raw serialized value lets a
+ * worker prove that no other worker has advanced or replaced the job in the meantime.
  *
  * @return array{raw:string|false,state:mixed}
  * @throws RuntimeException When the reset state cannot be read.
@@ -113,7 +101,6 @@ function erankly_get_network_reset_snapshot(): array {
 /**
  * Saves reset progress only if the observed state has not changed.
  *
- * @param array<string,mixed> $state        Replacement state.
  * @param string              $expected_raw Exact serialized snapshot being replaced.
  * @return bool Whether the compare-and-swap succeeded.
  * @throws RuntimeException When the reset state cannot be updated.
@@ -187,13 +174,7 @@ function erankly_delete_network_reset_state( string $expected_raw ): bool {
 	return $deleted > 0;
 }
 
-/**
- * Marks the current reset as failed without reviving a cancelled job.
- *
- * @param string $token   Reset job token.
- * @param string $message Failure message.
- * @return void
- */
+/** Marks the current reset as failed without reviving a cancelled job. */
 function erankly_fail_network_reset( string $token, string $message ): void {
 	for ( $attempt = 0; $attempt < 3; $attempt++ ) {
 		$snapshot = erankly_get_network_reset_snapshot();
@@ -220,10 +201,8 @@ function erankly_fail_network_reset( string $token, string $message ): void {
 /**
  * Commits reset progress and schedules the next batch.
  *
- * @param array<string,mixed> $state        Reset state.
  * @param string              $expected_raw Exact serialized snapshot being replaced.
  * @param int                 $delay        Delay before the next batch.
- * @return void
  */
 function erankly_continue_network_reset( array $state, string $expected_raw, int $delay = 5 ): void {
 	if ( ! erankly_save_network_reset_state( $state, $expected_raw ) ) {
@@ -283,7 +262,6 @@ function erankly_queue_network_reset(): bool {
  * Processes one bounded network reset batch.
  *
  * @param string $token Reset job token supplied by WP-Cron.
- * @return void
  */
 function erankly_process_network_reset_batch( string $token = '' ): void {
 	if ( ! is_multisite() || '' === $token ) {
@@ -406,12 +384,9 @@ function erankly_process_network_reset_batch( string $token = '' ): void {
 }
 
 /**
- * Displays network reset progress and makes an active job self-healing.
- *
- * This runs only in Network Admin, keeping reset-state checks out of public
- * requests. Visiting Network Admin recreates a missing Cron event when possible.
- *
- * @return void
+ * Displays network reset progress and makes an active job self-healing. This runs only in Network Admin, keeping
+ * reset-state checks out of public requests. Visiting Network Admin recreates a missing Cron event when
+ * possible.
  */
 function erankly_render_network_reset_status_notice(): void {
 	if (

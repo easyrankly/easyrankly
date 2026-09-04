@@ -1,9 +1,5 @@
 <?php
-/**
- * Post editor meta box.
- *
- * @package EasyRankly
- */
+/** Post editor meta box. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -11,11 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once ERANKLY_PATH . 'admin/field-renderers.php';
 
-/**
- * Registers meta boxes.
- *
- * @return void
- */
 function erankly_register_meta_box(): void {
 	$screen = get_current_screen();
 
@@ -40,11 +31,6 @@ function erankly_register_meta_box(): void {
 	}
 }
 
-/**
- * Registers taxonomy SEO fields.
- *
- * @return void
- */
 function erankly_register_taxonomy_fields(): void {
 	foreach ( erankly_get_public_taxonomies() as $taxonomy => $object ) {
 		if ( ! $object->show_ui ) {
@@ -58,14 +44,6 @@ function erankly_register_taxonomy_fields(): void {
 	}
 }
 
-/**
- * Returns a preview value for a post type global metadata template.
- *
- * @param WP_Post $post  Post object.
- * @param string  $field Metadata field.
- * @param int     $limit Character limit.
- * @return string
- */
 function erankly_get_post_global_meta_placeholder( WP_Post $post, string $field, int $limit ): string {
 	$template = erankly_get_global_post_type_meta( $post->post_type, $field );
 
@@ -79,14 +57,6 @@ function erankly_get_post_global_meta_placeholder( WP_Post $post, string $field,
 	return erankly_trim_text( $value, $limit );
 }
 
-/**
- * Returns a preview value for a site-wide social metadata template.
- *
- * @param int    $post_id Post ID.
- * @param string $setting Setting key.
- * @param int    $limit   Character limit.
- * @return string
- */
 function erankly_get_post_global_social_placeholder( int $post_id, string $setting, int $limit ): string {
 	$template = (string) erankly_get_setting( $setting, '' );
 
@@ -97,23 +67,11 @@ function erankly_get_post_global_social_placeholder( int $post_id, string $setti
 	return erankly_trim_text( erankly_replace_variables( $template, $post_id ), $limit );
 }
 
-/**
- * Returns a taxonomy global metadata template placeholder.
- *
- * @param string $taxonomy Taxonomy name.
- * @param string $field    Metadata field.
- * @return string
- */
 function erankly_get_term_global_meta_placeholder( string $taxonomy, string $field ): string {
 	return erankly_get_global_taxonomy_meta( $taxonomy, $field );
 }
 
-/**
- * Renders the General fields shared by the tabbed box and the sidebar box.
- *
- * @param WP_Post $post Post object.
- * @return void
- */
+/** Renders the General fields shared by the tabbed box and the sidebar box. */
 function erankly_render_post_general_fields( WP_Post $post ): void {
 	$title                   = erankly_get_post_meta_string( $post->ID, 'title' );
 	$description             = erankly_get_post_meta_string( $post->ID, 'description' );
@@ -200,12 +158,7 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	<?php
 }
 
-/**
- * Renders the Social fields shared by the tabbed box and the sidebar box.
- *
- * @param WP_Post $post Post object.
- * @return void
- */
+/** Renders the Social fields shared by the tabbed box and the sidebar box. */
 function erankly_render_post_social_fields( WP_Post $post ): void {
 	$og_title                   = erankly_get_post_meta_string( $post->ID, 'og_title' );
 	$og_description             = erankly_get_post_meta_string( $post->ID, 'og_description' );
@@ -297,12 +250,7 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 	<?php
 }
 
-/**
- * Renders the Visibility fields shared by the tabbed box and the sidebar box.
- *
- * @param WP_Post $post Post object.
- * @return void
- */
+/** Renders the Visibility fields shared by the tabbed box and the sidebar box. */
 function erankly_render_post_visibility_fields( WP_Post $post ): void {
 	$noindex                  = erankly_get_post_meta_bool( $post->ID, 'noindex' );
 	$nofollow                 = erankly_get_post_meta_bool( $post->ID, 'nofollow' );
@@ -355,16 +303,6 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 	<?php
 }
 
-/**
- * Renders a tri-state robots directive control.
- *
- * @param string $name        Input name.
- * @param string $value       Current value.
- * @param string $label       Field label.
- * @param string $allow_label Explicit allow label.
- * @param string $deny_label  Explicit deny label.
- * @return void
- */
 function erankly_render_robots_directive_select( string $name, string $value, string $label, string $allow_label, string $deny_label ): void {
 	$axis  = str_replace( array( 'erankly_', '_directive' ), '', $name );
 	$allow = array(
@@ -392,12 +330,6 @@ function erankly_render_robots_directive_select( string $name, string $value, st
 	<?php
 }
 
-/**
- * Renders per-content schema controls.
- *
- * @param WP_Post $post Post object.
- * @return void
- */
 function erankly_render_post_schema_fields( WP_Post $post ): void {
 	$mode           = erankly_get_post_meta_string( $post->ID, 'schema_mode' );
 	$blocks         = get_post_meta( $post->ID, '_erankly_schema_blocks', true );
@@ -429,12 +361,7 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
 	<?php
 }
 
-/**
- * Renders the single tabbed meta box (classic editor fallback).
- *
- * @param WP_Post $post Post object.
- * @return void
- */
+/** Renders the single tabbed meta box (classic editor fallback). */
 function erankly_render_meta_box( WP_Post $post ): void {
 	wp_nonce_field( 'erankly_save_meta_box', 'erankly_meta_box_nonce' );
 	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
@@ -473,12 +400,6 @@ function erankly_render_meta_box( WP_Post $post ): void {
 	<?php
 }
 
-/**
- * Renders SEO fields on add term screens.
- *
- * @param string $taxonomy Taxonomy name.
- * @return void
- */
 function erankly_render_add_term_fields( string $taxonomy ): void {
 	?>
 	<div class="form-field term-erankly-wrap">
@@ -488,12 +409,6 @@ function erankly_render_add_term_fields( string $taxonomy ): void {
 	<?php
 }
 
-/**
- * Renders SEO fields on edit term screens.
- *
- * @param WP_Term $term Term object.
- * @return void
- */
 function erankly_render_edit_term_fields( WP_Term $term ): void {
 	?>
 	<tr class="form-field term-erankly-wrap">
@@ -503,13 +418,7 @@ function erankly_render_edit_term_fields( WP_Term $term ): void {
 	<?php
 }
 
-/**
- * Renders shared taxonomy SEO controls.
- *
- * @param int    $term_id  Term ID.
- * @param string $taxonomy Taxonomy name.
- * @return void
- */
+/** Renders shared taxonomy SEO controls. */
 function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void {
 	wp_nonce_field( 'erankly_save_term_fields', 'erankly_term_fields_nonce' );
 
@@ -691,7 +600,6 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	</div>
 	<?php
 }
-
 
 require_once ERANKLY_PATH . 'admin/meta-box/post-saver.php';
 require_once ERANKLY_PATH . 'admin/meta-box/term-saver.php';

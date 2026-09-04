@@ -1,22 +1,10 @@
 <?php
-/**
- * Shared helpers: miscellaneous utilities.
- *
- * Loaded on SEO-rendering and rich admin surfaces.
- *
- * @package EasyRankly
- */
+/** Shared helpers: miscellaneous utilities. Loaded on SEO-rendering and rich admin surfaces. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns a contextual taxonomy label for admin screens.
- *
- * @param WP_Taxonomy $taxonomy Taxonomy object.
- * @return string
- */
 function erankly_get_taxonomy_admin_label( WP_Taxonomy $taxonomy ): string {
 	$label = $taxonomy->labels->singular_name;
 	$owner = erankly_get_taxonomy_owner_label( $taxonomy );
@@ -33,12 +21,6 @@ function erankly_get_taxonomy_admin_label( WP_Taxonomy $taxonomy ): string {
 	);
 }
 
-/**
- * Returns the primary post type label for a taxonomy.
- *
- * @param WP_Taxonomy $taxonomy Taxonomy object.
- * @return string
- */
 function erankly_get_taxonomy_owner_label( WP_Taxonomy $taxonomy ): string {
 	$object_types = array_values( array_filter( array_map( 'sanitize_key', (array) $taxonomy->object_type ) ) );
 
@@ -56,11 +38,6 @@ function erankly_get_taxonomy_owner_label( WP_Taxonomy $taxonomy ): string {
 	return $object->labels->name;
 }
 
-/**
- * Returns the current canonical request URL without query strings.
- *
- * @return string
- */
 function erankly_current_url(): string {
 	global $wp;
 
@@ -70,13 +47,6 @@ function erankly_current_url(): string {
 	return user_trailingslashit( $url );
 }
 
-/**
- * Returns attachment image URL by ID.
- *
- * @param int    $attachment_id Attachment ID.
- * @param string $size          Image size.
- * @return string
- */
 function erankly_get_image_url( int $attachment_id, string $size = 'full' ): string {
 	if ( $attachment_id <= 0 ) {
 		return '';
@@ -87,11 +57,7 @@ function erankly_get_image_url( int $attachment_id, string $size = 'full' ): str
 	return is_string( $image ) ? $image : '';
 }
 
-/**
- * Returns sameAs URLs from settings.
- *
- * @return array<int,string>
- */
+/** @return array<int,string> */
 function erankly_get_social_profiles(): array {
 	$profiles = (string) erankly_get_setting( 'social_profiles', '' );
 	$lines    = preg_split( '/\R/', $profiles );
@@ -116,7 +82,6 @@ function erankly_get_social_profiles(): array {
 /**
  * Emits a validated XML response and exits.
  *
- * @param string $body         XML response body.
  * @param string $content_type Expected XML content type.
  * @return never
  */
@@ -155,13 +120,7 @@ function erankly_send_response( string $body, string $content_type ) {
 	exit;
 }
 
-/**
- * Renders a compact inline success/error status badge with a dashicon.
- *
- * @param string $message Status label.
- * @param bool   $success Whether the requirement is met.
- * @return void
- */
+/** @param bool   $success Whether the requirement is met. */
 function erankly_render_inline_status_badge( string $message, bool $success ): void {
 	$class = $success ? 'is-success' : 'is-error';
 
@@ -173,14 +132,10 @@ function erankly_render_inline_status_badge( string $message, bool $success ): v
 }
 
 /**
- * Renders an inline "WordPress Multisite: Detected / Not detected" status badge.
- *
- * Features that require a WordPress network (e.g. the multilingual module) use this
- * so the admin can immediately see whether the current install qualifies. When the
- * network is not detected the related controls must be rendered disabled so the
+ * Renders an inline "WordPress Multisite: Detected / Not detected" status badge. Features that require a
+ * WordPress network (e.g. the multilingual module) use this so the admin can immediately see whether the current
+ * install qualifies. When the network is not detected the related controls must be rendered disabled so the
  * feature cannot be switched on, avoiding confusion and runtime errors.
- *
- * @return void
  */
 function erankly_render_multisite_status(): void {
 	erankly_render_inline_status_badge(

@@ -1,20 +1,11 @@
 <?php
-/**
- * Frontend search and archive visibility filters.
- *
- * @package EasyRankly
- */
+/** Frontend search and archive visibility filters. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Excludes content from frontend search and archive queries when configured.
- *
- * @param WP_Query $query Query object.
- * @return void
- */
+/** Excludes content from frontend search and archive queries when configured. */
 function erankly_filter_visibility_queries( WP_Query $query ): void {
 	if ( is_admin() || wp_doing_ajax() || ! $query->is_main_query() ) {
 		return;
@@ -29,12 +20,7 @@ function erankly_filter_visibility_queries( WP_Query $query ): void {
 	}
 }
 
-/**
- * Returns whether a visibility meta key is used by at least one post.
- *
- * @param string $meta_key Visibility meta key.
- * @return bool
- */
+/** Returns whether a visibility meta key is used by at least one post. */
 function erankly_has_visibility_exclusions( string $meta_key ): bool {
 	global $wpdb;
 
@@ -68,9 +54,6 @@ function erankly_has_visibility_exclusions( string $meta_key ): bool {
  * Invalidates visibility caches after relevant post meta changes.
  *
  * @param int|array $meta_id  Meta row ID, or array of IDs on deletion.
- * @param int       $post_id  Post ID.
- * @param string    $meta_key Meta key.
- * @return void
  */
 function erankly_invalidate_visibility_exclusion_cache( int|array $meta_id, int $post_id, string $meta_key ): void {
 	unset( $meta_id, $post_id );
@@ -80,13 +63,7 @@ function erankly_invalidate_visibility_exclusion_cache( int|array $meta_id, int 
 	}
 }
 
-/**
- * Adds a meta query clause that excludes posts with a truthy visibility flag.
- *
- * @param WP_Query $query    Query object.
- * @param string   $meta_key Protected meta key.
- * @return void
- */
+/** Adds a meta query clause that excludes posts with a truthy visibility flag. */
 function erankly_add_query_exclusion_meta_clause( WP_Query $query, string $meta_key ): void {
 	$meta_query = $query->get( 'meta_query' );
 	$existing   = is_array( $meta_query ) ? $meta_query : array();

@@ -1,12 +1,5 @@
 <?php
-/**
- * Import / Export module.
- *
- * Exports and restores all EasyRankly data (settings, redirects, post, term,
- * and user meta) as a single JSON file.
- *
- * @package EasyRankly
- */
+/** Import / Export module. Exports and restores all EasyRankly data (settings, redirects, post, term, and user meta) as a single JSON file. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -16,9 +9,7 @@ require_once ERANKLY_PATH . 'includes/migrations.php';
 require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-admin-presenter.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 
-/**
- * Export file format version. Bumped when the JSON structure changes.
- */
+/** Export file format version. Bumped when the JSON structure changes. */
 define( 'ERANKLY_EXPORT_FORMAT', '2.0' );
 
 /** Default maximum size for a complete EasyRankly JSON import. */
@@ -40,12 +31,10 @@ define( 'ERANKLY_IMPORT_JSON_MAX_NODES', 500000 );
 define( 'ERANKLY_IMPORT_JSON_NODE_BYTES', 512 );
 
 /**
- * Returns the safe application limit for a complete EasyRankly JSON import.
- *
- * The configured ceiling is additionally constrained by the memory currently
- * available to PHP. Decoding JSON into associative arrays can require many
- * times the source size, so the raw upload must remain only a small fraction of
- * the remaining memory after a reserve for WordPress and the database writes.
+ * Returns the safe application limit for a complete EasyRankly JSON import. The configured ceiling is
+ * additionally constrained by the memory currently available to PHP. Decoding JSON into associative arrays can
+ * require many times the source size, so the raw upload must remain only a small fraction of the remaining
+ * memory after a reserve for WordPress and the database writes.
  *
  * @return int Maximum number of bytes accepted from the uploaded file.
  */
@@ -72,11 +61,9 @@ function erankly_import_export_max_bytes(): int {
 }
 
 /**
- * Reads a local upload without ever allocating more than the application cap.
- *
- * The caller must still enforce that the path is a genuine PHP upload. The
- * stat check provides a fast rejection, while the bounded read closes the race
- * where the file changes after its size was inspected.
+ * Reads a local upload without ever allocating more than the application cap. The caller must still enforce that
+ * the path is a genuine PHP upload. The stat check provides a fast rejection, while the bounded read closes the
+ * race where the file changes after its size was inspected.
  *
  * @param string $path    Genuine PHP upload temporary path.
  * @param int    $maximum Maximum number of bytes to read.
@@ -134,13 +121,10 @@ function erankly_import_export_read_bounded_upload( string $path, int $maximum )
 }
 
 /**
- * Profiles JSON structure without materializing PHP arrays.
- *
- * The single-pass scanner counts every container, string, and primitive while
- * tracking balanced delimiters and nesting. Its memory use is bounded by the
+ * Profiles JSON structure without materializing PHP arrays. The single-pass scanner counts every container,
+ * string, and primitive while tracking balanced delimiters and nesting. Its memory use is bounded by the
  * supported depth rather than by the number of JSON values.
  *
- * @param string $json Raw JSON document.
  * @return array{valid:bool,nodes:int,depth:int}
  */
 function erankly_import_export_json_memory_profile( string $json ): array {
@@ -231,7 +215,6 @@ function erankly_import_export_json_memory_profile( string $json ): array {
 /**
  * Returns why a JSON document cannot safely be decoded in this request.
  *
- * @param string $json Raw JSON document.
  * @return string Empty when safe; otherwise invalid or too-complex.
  */
 function erankly_import_export_json_memory_error( string $json ): string {
@@ -268,11 +251,6 @@ function erankly_import_export_json_memory_error( string $json ): string {
 	return $profile['nodes'] > $memory_node_cap ? 'too-complex' : '';
 }
 
-/**
- * Returns the settings page URL for the Import / Export tab.
- *
- * @return string
- */
 function erankly_import_export_url(): string {
 	// On Multisite the Import/Export tab lives under Network Admin → Settings, so
 	// the form target and redirect must resolve to network/settings.php; on a
@@ -290,11 +268,7 @@ function erankly_import_export_url(): string {
 	);
 }
 
-/**
- * Dispatches import/export form submissions on the settings page.
- *
- * @return void
- */
+/** Dispatches import/export form submissions on the settings page. */
 function erankly_import_export_handle_actions(): void {
 	// On Multisite the settings option is a network option; gate write access accordingly.
 	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
@@ -368,11 +342,6 @@ function erankly_import_export_handle_actions(): void {
 	}
 }
 
-/**
- * Handles a full-data JSON import upload.
- *
- * @return void
- */
 function erankly_import_export_handle_import(): void {
 	check_admin_referer( 'erankly_io_import' );
 
@@ -456,12 +425,6 @@ function erankly_import_export_handle_import(): void {
 	);
 }
 
-/**
- * Handles an import from a third-party SEO plugin.
- *
- * @param string $source Source plugin slug.
- * @return void
- */
 function erankly_import_export_handle_third_party( string $source ): void {
 	check_admin_referer( 'erankly_io_third_party' );
 
@@ -498,7 +461,6 @@ function erankly_import_export_handle_third_party( string $source ): void {
  * Validates, privately stages and starts an official-export migration.
  *
  * @param string $requested_source auto or a supported adapter slug.
- * @return void
  */
 function erankly_import_export_handle_third_party_export( string $requested_source ): void {
 	check_admin_referer( 'erankly_io_third_party_export' );
@@ -545,13 +507,7 @@ function erankly_import_export_handle_third_party_export( string $requested_sour
 	);
 }
 
-/**
- * Handles a manual resume or cancellation of the active migration job.
- *
- * @param string $job_id Migration UUID.
- * @param string $action migration-process|migration-cancel.
- * @return void
- */
+/** Handles a manual resume or cancellation of the active migration job. */
 function erankly_import_export_handle_migration_job( string $job_id, string $action ): void {
 	check_admin_referer( 'erankly_migration_job_' . $job_id );
 
@@ -588,12 +544,7 @@ function erankly_import_export_handle_migration_job( string $job_id, string $act
 	);
 }
 
-/**
- * Streams a saved migration report as JSON.
- *
- * @param string $report_id Migration report UUID.
- * @return void
- */
+/** Streams a saved migration report as JSON. */
 function erankly_migration_report_download( string $report_id ): void {
 	$report = erankly_migration_manager()->get_report( $report_id );
 
@@ -614,11 +565,6 @@ function erankly_migration_report_download( string $report_id ): void {
 	exit;
 }
 
-/**
- * Streams the complete value-free exception ledger as CSV.
- *
- * @param string $report_id Migration report UUID.
- */
 function erankly_migration_exceptions_download( string $report_id ): void {
 	$report = erankly_migration_manager()->get_report( $report_id );
 	if ( ! is_array( $report ) ) {
@@ -667,12 +613,6 @@ function erankly_migration_exceptions_download( string $report_id ): void {
 	exit;
 }
 
-/**
- * Handles live comparison and conditional rollback from a saved report.
- *
- * @param string $report_id Migration report UUID.
- * @param string $action migration-verify-live|migration-rollback.
- */
 function erankly_import_export_handle_migration_evidence_action( string $report_id, string $action ): void {
 	check_admin_referer( 'erankly_migration_evidence_' . $report_id );
 	$manager = erankly_migration_manager();
@@ -719,12 +659,6 @@ function erankly_import_export_handle_migration_evidence_action( string $report_
 	);
 }
 
-/**
- * Redirects back to the Import / Export tab with notice arguments.
- *
- * @param array<string,mixed> $args Query args.
- * @return void
- */
 function erankly_import_export_redirect( array $args ): void {
 	wp_safe_redirect( add_query_arg( $args, erankly_import_export_url() ) );
 	exit;

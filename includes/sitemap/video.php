@@ -1,11 +1,7 @@
 <?php
 /**
- * XML sitemap generation: Video sitemap.
- *
- * Loaded only when the video feature is enabled (see erankly_bootstrap()),
- * so these functions are parsed only on sites that use this sitemap type.
- *
- * @package EasyRankly
+ * XML sitemap generation: Video sitemap. Loaded only when the video feature is enabled (see
+ * erankly_bootstrap()), so these functions are parsed only on sites that use this sitemap type.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,12 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 erankly_load_video_helpers();
 
 /**
- * Counts posts with embedded YouTube or Vimeo videos eligible for the video sitemap.
- *
- * Detects watch URLs, youtu.be short URLs, vimeo.com page URLs, YouTube embed
- * iframes, Vimeo player iframes, self-hosted HTML5 videos, and wp:video blocks.
- *
- * @return int
+ * Counts posts with embedded YouTube or Vimeo videos eligible for the video sitemap. Detects watch URLs,
+ * youtu.be short URLs, vimeo.com page URLs, YouTube embed iframes, Vimeo player iframes, self-hosted HTML5
+ * videos, and wp:video blocks.
  */
 function erankly_count_video_sitemap_posts(): int {
 	$cache_key = erankly_get_sitemap_cache_key( 'video_count' );
@@ -88,20 +81,13 @@ function erankly_count_video_sitemap_posts(): int {
 }
 
 /**
- * Returns the video sitemap XML for the given page.
- *
- * Includes published posts that contain embedded YouTube or Vimeo videos, detected
- * via watch URLs, youtu.be short links, iframes, or Gutenberg core/embed blocks.
- * Multiple videos on the same page each produce a separate <video:video> element
- * within the same <url> entry (per the Google Video Sitemap spec §2.3).
- *
- * Note: submitting a Video sitemap does not guarantee indexing by Google; the
- * embedded player must also be crawlable.
- *
- * Follows the Google Video Sitemap spec:
+ * Returns the video sitemap XML for the given page. Includes published posts that contain embedded YouTube or
+ * Vimeo videos, detected via watch URLs, youtu.be short links, iframes, or Gutenberg core/embed blocks. Multiple
+ * videos on the same page each produce a separate <video:video> element within the same <url> entry (per the
+ * Google Video Sitemap spec §2.3). Note: submitting a Video sitemap does not guarantee indexing by Google; the
+ * embedded player must also be crawlable. Follows the Google Video Sitemap spec:
  * https://developers.google.com/search/docs/crawling-indexing/sitemaps/video-sitemaps
  *
- * @param int $page Page number.
  * @return string XML string, or empty string when disabled or no video posts found.
  */
 function erankly_get_video_sitemap_xml( int $page = 1 ): string {
@@ -209,15 +195,10 @@ function erankly_get_video_sitemap_xml( int $page = 1 ): string {
 			}
 
 			/**
-			 * Filters an individual video sitemap entry.
-			 *
-			 * Return an empty array to exclude the video. The 'video_url' key contains
-			 * the original source URL detected in the post content. If a post has
-			 * multiple videos this filter fires once per video.
-			 *
-			 * @param array<string,string> $entry   Sitemap entry.
-			 * @param int                  $post_id Post ID.
-			 */
+ * Filters an individual video sitemap entry. Return an empty array to exclude the video. The 'video_url' key
+ * contains the original source URL detected in the post content. If a post has multiple videos this filter fires
+ * once per video.
+ */
 			$entry = apply_filters(
 				'erankly_video_sitemap_url',
 				array(

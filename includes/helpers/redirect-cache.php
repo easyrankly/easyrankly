@@ -1,20 +1,10 @@
 <?php
-/**
- * Redirect cache helpers.
- *
- * @package EasyRankly
- */
+/** Redirect cache helpers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns a generation-scoped object-cache key for an exact redirect.
- *
- * @param string $source_hash Redirect source hash.
- * @return string
- */
 function erankly_redirects_cache_key( string $source_hash ): string {
 	$generation = (string) get_option( ERANKLY_REDIRECTS_CACHE_GENERATION_OPTION, '0' );
 
@@ -22,12 +12,8 @@ function erankly_redirects_cache_key( string $source_hash ): string {
 }
 
 /**
- * Rotates the namespace used by exact-redirect object-cache entries.
- *
- * Old positive and negative entries become unreachable without requiring an
- * object-cache implementation to support group flushing.
- *
- * @return void
+ * Rotates the namespace used by exact-redirect object-cache entries. Old positive and negative entries become
+ * unreachable without requiring an object-cache implementation to support group flushing.
  */
 function erankly_rotate_redirects_cache_generation(): void {
 	$generation = wp_generate_uuid4();
@@ -42,14 +28,9 @@ function erankly_rotate_redirects_cache_generation(): void {
 }
 
 /**
- * Purges full-page caches after redirect data changes.
- *
- * The redirect engine runs before normal page rendering, so full-page caches
- * can preserve either an old redirect or the pre-redirect response. Multisite
- * reset batches may switch across several sites in one request, hence the
- * per-site guard rather than a request-wide boolean.
- *
- * @return void
+ * Purges full-page caches after redirect data changes. The redirect engine runs before normal page rendering, so
+ * full-page caches can preserve either an old redirect or the pre-redirect response. Multisite reset batches may
+ * switch across several sites in one request, hence the per-site guard rather than a request-wide boolean.
  */
 function erankly_redirects_flush_external_caches(): void {
 	static $flushed_sites = array();
@@ -100,10 +81,10 @@ function erankly_redirects_flush_external_caches(): void {
 	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 	/**
-	 * Fires after the known full-page caches have been purged following a
-	 * redirect mutation. Hook custom cache stacks (CDN, reverse proxy) here.
-	 *
-	 * @since 1.0.0
-	 */
+ * Fires after the known full-page caches have been purged following a redirect mutation. Hook custom cache
+ * stacks (CDN, reverse proxy) here.
+ *
+ * @since 1.0.0
+ */
 	do_action( 'erankly_redirects_caches_flushed' );
 }

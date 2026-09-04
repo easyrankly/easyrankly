@@ -1,9 +1,5 @@
 <?php
-/**
- * Shared report updates for web-request and WP-Cron rollback batches.
- *
- * @package EasyRankly
- */
+/** Shared report updates for web-request and WP-Cron rollback batches. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,7 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Persists one rollback checkpoint into its migration report.
  *
- * @param string                   $job_id Migration/report UUID.
  * @param array<string,int|string> $result Current cumulative rollback result.
  * @return bool Whether an existing report was updated.
  */

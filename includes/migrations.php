@@ -1,9 +1,5 @@
 <?php
-/**
- * Third-party SEO migration subsystem loader.
- *
- * @package EasyRankly
- */
+/** Third-party SEO migration subsystem loader. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,7 +35,6 @@ unset( $erankly_migration_file, $erankly_migration_files );
 /**
  * Loads one source adapter only when a request actually selects it.
  *
- * @param string $source Adapter slug.
  * @return bool Whether the adapter class is available.
  */
 function erankly_migration_load_adapter( string $source ): bool {
@@ -63,7 +58,6 @@ function erankly_migration_load_adapter( string $source ): bool {
 	return class_exists( $class, false );
 }
 
-/** Loads every adapter for source-selection screens and compatibility tests. */
 function erankly_migration_load_all_adapters(): void {
 	foreach ( array( 'yoast', 'rankmath', 'aioseo', 'seopress' ) as $source ) {
 		erankly_migration_load_adapter( $source );

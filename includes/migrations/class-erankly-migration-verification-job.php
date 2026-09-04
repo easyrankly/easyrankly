@@ -1,9 +1,5 @@
 <?php
-/**
- * Crash-safe background orchestration for live migration verification.
- *
- * @package EasyRankly
- */
+/** Crash-safe background orchestration for live migration verification. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,11 +11,7 @@ final class ERankly_Migration_Verification_Job {
 	private const LOCK_PREFIX = 'erankly_migration_verify_lock_';
 	private const LOCK_TTL    = 120;
 
-	/**
-	 * Queues one report idempotently without making network requests in admin.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 */
+	/** Queues one report idempotently without making network requests in admin. */
 	public static function queue( string $report_id ): bool {
 		$report_id = sanitize_text_field( $report_id );
 		$manager   = erankly_migration_manager();
@@ -71,11 +63,10 @@ final class ERankly_Migration_Verification_Job {
 	}
 
 	/**
-	 * Advances one bounded verification batch and persists its next cursor.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 * @throws RuntimeException Internally when a durable checkpoint cannot be saved.
-	 */
+ * Advances one bounded verification batch and persists its next cursor.
+ *
+ * @throws RuntimeException Internally when a durable checkpoint cannot be saved.
+ */
 	public static function process( string $report_id ): void {
 		$report_id = sanitize_text_field( $report_id );
 		$key       = self::job_key( $report_id );
@@ -178,7 +169,6 @@ final class ERankly_Migration_Verification_Job {
 		return $success;
 	}
 
-	/** Returns a controlled fail-closed terminal result. */
 	private static function failed_result(): array {
 		return array(
 			'verified_at'      => gmdate( 'c' ),
@@ -195,12 +185,6 @@ final class ERankly_Migration_Verification_Job {
 		);
 	}
 
-	/**
-	 * Schedules the next page without duplicate events.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 * @param int    $delay     Delay in seconds.
-	 */
 	private static function schedule( string $report_id, int $delay = 1 ): void {
 		$args = array( $report_id );
 		if ( false !== wp_next_scheduled( ERANKLY_MIGRATION_VERIFY_CRON_HOOK, $args ) ) {
@@ -209,11 +193,7 @@ final class ERankly_Migration_Verification_Job {
 		wp_schedule_single_event( time() + max( 1, $delay ), ERANKLY_MIGRATION_VERIFY_CRON_HOOK, $args, true );
 	}
 
-	/**
-	 * Acquires a per-report lease with atomic stale takeover.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 */
+	/** Acquires a per-report lease with atomic stale takeover. */
 	private static function acquire_lock( string $report_id ): string {
 		global $wpdb;
 
@@ -247,12 +227,7 @@ final class ERankly_Migration_Verification_Job {
 		return '';
 	}
 
-	/**
-	 * Renews a lease only while this token still owns it.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 * @param string $token     Owned lease token.
-	 */
+	/** Renews a lease only while this token still owns it. */
 	private static function renew_lock( string $report_id, string $token ): bool {
 		global $wpdb;
 
@@ -279,12 +254,7 @@ final class ERankly_Migration_Verification_Job {
 		return 1 === $updated;
 	}
 
-	/**
-	 * Releases only this token's exact persisted lease value.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 * @param string $token     Owned lease token.
-	 */
+	/** Releases only this token's exact persisted lease value. */
 	private static function release_lock( string $report_id, string $token ): void {
 		global $wpdb;
 
@@ -304,12 +274,6 @@ final class ERankly_Migration_Verification_Job {
 		wp_cache_delete( $key, 'options' );
 	}
 
-	/**
-	 * Returns whether this token still owns an unexpired lease.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 * @param string $token     Candidate lease token.
-	 */
 	private static function owns_lock( string $report_id, string $token ): bool {
 		$existing = get_option( self::lock_key( $report_id ), array() );
 
@@ -318,20 +282,11 @@ final class ERankly_Migration_Verification_Job {
 			&& hash_equals( (string) ( $existing['token'] ?? '' ), $token );
 	}
 
-	/**
-	 * Returns the bounded job option key.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 */
 	private static function job_key( string $report_id ): string {
 		return self::JOB_PREFIX . substr( hash( 'sha256', $report_id ), 0, 24 );
 	}
 
-	/**
-	 * Returns the bounded lock option key.
-	 *
-	 * @param string $report_id Migration report UUID.
-	 */
+	/** Returns the bounded lock option key. */
 	private static function lock_key( string $report_id ): string {
 		return self::LOCK_PREFIX . substr( hash( 'sha256', $report_id ), 0, 24 );
 	}

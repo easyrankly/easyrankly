@@ -1,9 +1,5 @@
 <?php
-/**
- * Schema.org JSON-LD graph.
- *
- * @package EasyRankly
- */
+/** Schema.org JSON-LD graph. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -11,11 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once ERANKLY_PATH . 'includes/schema-content.php';
 
-/**
- * Renders JSON-LD schema.
- *
- * @return void
- */
 function erankly_render_schema(): void {
 	$graph = erankly_get_schema_graph();
 
@@ -43,11 +34,7 @@ function erankly_render_schema(): void {
 	echo '</script>' . "\n";
 }
 
-/**
- * Returns the page schema graph.
- *
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_get_schema_graph(): array {
 	$post_id     = is_singular() ? get_queried_object_id() : 0;
 	$schema_mode = $post_id > 0 ? erankly_get_post_meta_string( $post_id, 'schema_mode' ) : 'default';
@@ -158,23 +145,12 @@ function erankly_get_schema_graph(): array {
 		$graph[] = $breadcrumbs;
 	}
 
-	/**
-	 * Filters the complete schema graph.
-	 *
-	 * @param array<int,array<string,mixed>> $graph Schema graph.
-	 */
 	$graph = apply_filters( 'erankly_schema', array_filter( $graph ) );
 
 	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
 }
 
-/**
- * Removes automatic graph nodes whose type was explicitly suppressed.
- *
- * @param array<int,array<string,mixed>> $graph          Schema graph.
- * @param array<int,string>              $disabled_types Schema.org types.
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_filter_schema_graph_types( array $graph, array $disabled_types ): array {
 	$disabled = array_map( 'strtolower', erankly_sanitize_schema_type_list( $disabled_types ) );
 
@@ -212,7 +188,6 @@ function erankly_schema_foundational_graph(): array {
 /**
  * Removes duplicate schema graph nodes in the same JSON-LD graph.
  *
- * @param array<int,array<string,mixed>> $graph Schema graph.
  * @return array<int,array<string,mixed>>
  */
 function erankly_dedupe_schema_graph( array $graph ): array {
@@ -238,22 +213,13 @@ function erankly_dedupe_schema_graph( array $graph ): array {
 	return $unique;
 }
 
-/**
- * Returns the configured primary identity schema ID.
- *
- * @return string
- */
 function erankly_schema_identity_id(): string {
 	$type = (string) erankly_get_setting( 'schema_identity', 'organization' );
 
 	return home_url( 'person' === $type ? '/#person' : '/#organization' );
 }
 
-/**
- * Returns Organization schema.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_organization(): array {
 	$details = erankly_get_organization_schema_details();
 	$schema  = array(
@@ -290,11 +256,6 @@ function erankly_schema_organization(): array {
 		$schema['sameAs'] = $same_as;
 	}
 
-	/**
-	 * Filters Organization schema.
-	 *
-	 * @param array<string,mixed> $schema Organization schema.
-	 */
 	return apply_filters( 'erankly_schema_organization', erankly_filter_empty_schema_values( $schema ) );
 }
 
@@ -313,19 +274,13 @@ function erankly_get_organization_schema_details(): array {
 		'taxID'       => trim( (string) erankly_get_setting( 'organization_tax_id', '' ) ),
 	);
 
-	/**
-	 * Filters extended Organization details before schema output.
-	 *
-	 * @param array<string,string> $details Organization details.
-	 */
+	/** Filters extended Organization details before schema output. */
 	$details = apply_filters( 'erankly_organization_schema_details', $details );
 
 	return is_array( $details ) ? array_filter( $details, static fn( mixed $value ): bool => is_string( $value ) && '' !== trim( $value ) ) : array();
 }
 
 /**
- * Returns the configured Organization PostalAddress.
- *
  * @param bool $require_complete Whether LocalBusiness-required fields must exist.
  * @return array<string,string>
  */
@@ -359,11 +314,7 @@ function erankly_schema_organization_address( bool $require_complete = false ): 
 	return count( $address ) > 1 ? $address : array();
 }
 
-/**
- * Returns Person schema.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_person(): array {
 	$user_id = absint( erankly_get_setting( 'schema_person_user_id', 0 ) );
 	$user    = $user_id > 0 ? get_userdata( $user_id ) : false;
@@ -402,11 +353,6 @@ function erankly_schema_person(): array {
 			$schema['sameAs'] = array( $user_url );
 		}
 
-		/**
-		 * Filters Person schema.
-		 *
-		 * @param array<string,mixed> $schema Person schema.
-		 */
 		return apply_filters( 'erankly_schema_person', array_filter( $schema ) );
 	}
 
@@ -423,19 +369,10 @@ function erankly_schema_person(): array {
 		$schema['sameAs'] = $same_as;
 	}
 
-	/**
-	 * Filters Person schema.
-	 *
-	 * @param array<string,mixed> $schema Person schema.
-	 */
 	return apply_filters( 'erankly_schema_person', $schema );
 }
 
-/**
- * Returns WebSite schema.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_website(): array {
 	$schema = array(
 		'@type'           => 'WebSite',
@@ -454,19 +391,10 @@ function erankly_schema_website(): array {
 		$schema['description'] = $description;
 	}
 
-	/**
-	 * Filters WebSite schema.
-	 *
-	 * @param array<string,mixed> $schema WebSite schema.
-	 */
 	return apply_filters( 'erankly_schema_website', erankly_filter_empty_schema_values( $schema ) );
 }
 
-/**
- * Returns the WebSite SearchAction node.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_website_search_action(): array {
 	return array(
 		'@type'       => 'SearchAction',
@@ -479,9 +407,6 @@ function erankly_schema_website_search_action(): array {
 }
 
 /**
- * Returns WebPage schema.
- *
- * @param int    $post_id       Optional post ID.
  * @param string $breadcrumb_id Optional BreadcrumbList @id to link via the breadcrumb property.
  * @return array<string,mixed>
  */
@@ -521,21 +446,10 @@ function erankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ):
 		);
 	}
 
-	/**
-	 * Filters WebPage schema.
-	 *
-	 * @param array<string,mixed> $schema  WebPage schema.
-	 * @param int                 $post_id Post ID.
-	 */
 	return apply_filters( 'erankly_schema_webpage', array_filter( $schema ), $post_id );
 }
 
-/**
- * Returns Article schema.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_article( int $post_id = 0 ): array {
 	if ( $post_id <= 0 ) {
 		$post_id = get_queried_object_id();
@@ -575,20 +489,12 @@ function erankly_schema_article( int $post_id = 0 ): array {
 		$schema['articleSection'] = $primary_category->name;
 	}
 
-	/**
-	 * Filters Article schema.
-	 *
-	 * @param array<string,mixed> $schema  Article schema.
-	 * @param int                 $post_id Post ID.
-	 */
 	return apply_filters( 'erankly_schema_article', array_filter( $schema ), $post_id );
 }
 
 /**
- * Returns the Article author node.
- *
- * Links to the Person identity node when the post author matches the
- * configured schema person, so the author and site identity stay connected.
+ * Returns the Article author node. Links to the Person identity node when the post author matches the configured
+ * schema person, so the author and site identity stay connected.
  *
  * @param int $author_id Post author user ID.
  * @return array<string,mixed>
@@ -618,12 +524,7 @@ function erankly_schema_article_author( int $author_id ): array {
 	return array_filter( $author );
 }
 
-/**
- * Returns BlogPosting schema.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_blogposting( int $post_id = 0 ): array {
 	$schema          = erankly_schema_article( $post_id );
 	$schema['@type'] = 'BlogPosting';
@@ -631,23 +532,11 @@ function erankly_schema_blogposting( int $post_id = 0 ): array {
 	return apply_filters( 'erankly_schema_blogposting', $schema, $post_id );
 }
 
-/**
- * Returns FAQPage schema when provided by filters.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_faq( int $post_id = 0 ): array {
 	$schema = array();
 
-	/**
-	 * Filters FAQ items for a post.
-	 *
-	 * Expected item shape: array( 'question' => '...', 'answer' => '...' ).
-	 *
-	 * @param array<int,array<string,string>> $items   FAQ items.
-	 * @param int                             $post_id Post ID.
-	 */
+	/** Filters FAQ items for a post. Expected item shape: array( 'question' => '...', 'answer' => '...' ). */
 	$items = apply_filters( 'erankly_faq_items', array(), $post_id );
 
 	if ( is_array( $items ) && ! empty( $items ) ) {
@@ -683,12 +572,7 @@ function erankly_schema_faq( int $post_id = 0 ): array {
 	return apply_filters( 'erankly_schema_faq', $schema, $post_id );
 }
 
-/**
- * Returns Service schema.
- *
- * @param array<string,mixed> $args Service arguments.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_service( array $args = array() ): array {
 	$schema = wp_parse_args(
 		$args,
@@ -706,12 +590,7 @@ function erankly_schema_service( array $args = array() ): array {
 	return apply_filters( 'erankly_schema_service', array_filter( $schema ), $args );
 }
 
-/**
- * Returns LocalBusiness schema.
- *
- * @param array<string,mixed> $args Business arguments.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_localbusiness( array $args = array() ): array {
 	$schema = wp_parse_args(
 		$args,
@@ -727,8 +606,6 @@ function erankly_schema_localbusiness( array $args = array() ): array {
 }
 
 /**
- * Returns LocalBusiness schema for the configured location page.
- *
  * @param int $post_id Current singular post ID.
  * @return array<string,mixed>
  */
@@ -832,23 +709,12 @@ function erankly_schema_local_business_for_page( int $post_id ): array {
 		}
 	}
 
-	/**
-	 * Filters LocalBusiness schema generated for the configured location page.
-	 *
-	 * @param array<string,mixed> $schema  LocalBusiness schema.
-	 * @param int                 $post_id Location page ID.
-	 */
 	$schema = apply_filters( 'erankly_schema_local_business', $schema, $post_id );
 
 	return is_array( $schema ) ? array_filter( $schema ) : array();
 }
 
-/**
- * Returns grouped OpeningHoursSpecification values.
- *
- * @param array<string,mixed>|null $configured_hours Optional hours override.
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_schema_opening_hours( ?array $configured_hours = null ): array {
 	$hours  = erankly_sanitize_opening_hours( null === $configured_hours ? erankly_get_setting( 'local_business_hours', array() ) : $configured_hours );
 	$days   = array(
@@ -908,11 +774,7 @@ function erankly_schema_opening_hours( ?array $configured_hours = null ): array 
 	return $specifications;
 }
 
-/**
- * Returns schema blocks configured globally for the current request.
- *
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_get_global_schema_graph(): array {
 	$blocks = erankly_get_setting( 'global_schema_blocks', array() );
 
@@ -944,12 +806,6 @@ function erankly_get_global_schema_graph(): array {
 	return $graph;
 }
 
-/**
- * Returns whether a global schema block applies to the current request.
- *
- * @param array<string,mixed> $block Schema block.
- * @return bool
- */
 function erankly_global_schema_block_matches_request( array $block ): bool {
 	if ( empty( $block['enabled'] ) ) {
 		return false;
@@ -984,12 +840,6 @@ function erankly_global_schema_block_matches_request( array $block ): bool {
 	return false;
 }
 
-/**
- * Returns whether a global schema block applies to the current post type archive.
- *
- * @param array<string,mixed> $block Schema block.
- * @return bool
- */
 function erankly_global_schema_matches_post_type_archive( array $block ): bool {
 	if ( ! is_post_type_archive() ) {
 		return false;
@@ -1022,12 +872,6 @@ function erankly_global_schema_matches_post_type_archive( array $block ): bool {
 	return $queried instanceof WP_Post_Type && in_array( $queried->name, $target_post_types, true );
 }
 
-/**
- * Returns whether a global schema block applies to the current singular object.
- *
- * @param array<string,mixed> $block Schema block.
- * @return bool
- */
 function erankly_global_schema_matches_singular( array $block ): bool {
 	if ( ! is_singular() ) {
 		return false;
@@ -1059,13 +903,6 @@ function erankly_global_schema_matches_singular( array $block ): bool {
 	return erankly_schema_target_list_contains_post( $include_items, $post_id );
 }
 
-/**
- * Returns whether a target list contains a post ID or slug.
- *
- * @param string $value   Target list.
- * @param int    $post_id Post ID.
- * @return bool
- */
 function erankly_schema_target_list_contains_post( string $value, int $post_id ): bool {
 	$items = preg_split( '/[\r\n,]+/', $value );
 
@@ -1095,26 +932,14 @@ function erankly_schema_target_list_contains_post( string $value, int $post_id )
 	return false;
 }
 
-/**
- * Builds schema data from a configured block.
- *
- * @param array<string,mixed> $block   Schema block.
- * @param int                 $post_id Post ID.
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_schema_from_configured_block( array $block, int $post_id ): array {
 	$type = isset( $block['type'] ) ? (string) $block['type'] : '';
 
 	return 'custom' === $type ? erankly_configured_custom_schemas( $block, $post_id ) : array();
 }
 
-/**
- * Builds configured custom JSON-LD schemas.
- *
- * @param array<string,mixed> $block   Schema block.
- * @param int                 $post_id Post ID.
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_configured_custom_schemas( array $block, int $post_id ): array {
 	$json = erankly_schema_block_field( $block, 'custom_json', $post_id, true );
 
@@ -1134,15 +959,7 @@ function erankly_configured_custom_schemas( array $block, int $post_id ): array 
 	return array_filter( $schemas );
 }
 
-/**
- * Returns a configured schema block field.
- *
- * @param array<string,mixed> $block     Schema block.
- * @param string              $field     Field key.
- * @param int                 $post_id   Post ID.
- * @param bool                $raw_value Whether to return the raw stored value.
- * @return string
- */
+/** @param bool                $raw_value Whether to return the raw stored value. */
 function erankly_schema_block_field( array $block, string $field, int $post_id, bool $raw_value = false ): string {
 	$fields = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
 	$value  = isset( $fields[ $field ] ) ? trim( (string) $fields[ $field ] ) : '';
@@ -1157,7 +974,6 @@ function erankly_schema_block_field( array $block, string $field, int $post_id, 
 /**
  * Recursively removes empty schema values.
  *
- * @param array<string,mixed> $schema Schema data.
  * @return array<string,mixed>
  */
 function erankly_filter_empty_schema_values( array $schema ): array {

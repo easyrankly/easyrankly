@@ -1,17 +1,11 @@
 <?php
-/**
- * Import / Export data serialization.
- *
- * @package EasyRankly
- */
+/** Import / Export data serialization. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Returns one bounded keyset page for integrations that need programmatic export.
- *
  * @param array<string,mixed> $cursor Stream and last row ID from the previous page.
  * @param int                 $limit  Maximum records in this page.
  * @return array<string,mixed>
@@ -62,14 +56,7 @@ function erankly_export_build_data( array $cursor = array(), int $limit = 500 ):
 	return is_array( $payload ) ? $payload : array();
 }
 
-/**
- * Returns one bounded export page for a declared data stream.
- *
- * @param string $stream   Export stream identifier.
- * @param int    $after_id Last emitted keyset cursor.
- * @param int    $limit    Maximum page size.
- * @return array<int,array<string,mixed>> Export rows.
- */
+/** @param int    $after_id Last emitted keyset cursor. */
 function erankly_export_page( string $stream, int $after_id, int $limit ): array {
 	global $wpdb;
 
@@ -116,8 +103,6 @@ function erankly_export_page( string $stream, int $after_id, int $limit ): array
 /**
  * Emits a JSON array while holding at most one keyset page in memory.
  *
- * @param string $stream Export stream identifier.
- * @param int    $limit  Maximum page size.
  * @throws RuntimeException When a row cannot be encoded or the cursor stalls.
  */
 function erankly_export_stream_array( string $stream, int $limit = 500 ): void {
@@ -142,11 +127,6 @@ function erankly_export_stream_array( string $stream, int $limit = 500 ): void {
 	echo ']'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response framing.
 }
 
-/**
- * Streams the export payload as a JSON download.
- *
- * @return void
- */
 function erankly_export_download(): void {
 	$filename = 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
 
@@ -163,13 +143,7 @@ function erankly_export_download(): void {
 		'settings'    => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
 	);
 
-	/**
-	 * Filters the native EasyRankly export header.
-	 *
-	 * Add-ons may attach extra keys they own. Do not mutate `settings`.
-	 *
-	 * @param array<string,mixed> $header Export header.
-	 */
+	/** Filters the native EasyRankly export header. Add-ons may attach extra keys they own. Do not mutate `settings`. */
 	$header = apply_filters( 'erankly_export_header', $header );
 	$header = is_array( $header ) ? $header : array();
 
@@ -193,8 +167,6 @@ function erankly_export_download(): void {
 /**
  * Restores an EasyRankly export payload.
  *
- * @param array<string,mixed> $data       Decoded export data.
- * @param array<string,mixed> $checkpoint Optional stage/offset/counts checkpoint.
  * @return array<string,mixed> Cumulative counts plus cursor and done.
  */
 function erankly_import_apply( array $data, array $checkpoint = array() ): array {
@@ -204,12 +176,9 @@ function erankly_import_apply( array $data, array $checkpoint = array() ): array
 }
 
 /**
- * Imports useful per-content SEO data from a third-party plugin.
+ * Imports useful per-content SEO data from a third-party plugin. Existing EasyRankly values are never
+ * overwritten, so the import only fills in fields that are currently empty.
  *
- * Existing EasyRankly values are never overwritten, so the import only fills in
- * fields that are currently empty.
- *
- * @param string $source Source plugin slug.
  * @return array{post_meta:int,term_meta:int,queued:bool,job_id:string}
  */
 function erankly_import_third_party( string $source ): array {

@@ -1,18 +1,11 @@
 <?php
-/**
- * Template-variable helpers shared by migration UI and background workers.
- *
- * @package EasyRankly
- */
+/** Template-variable helpers shared by migration UI and background workers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Collects bounded, deduplicated variable-conversion diagnostics for a run.
- *
- * @param array<string,string>|null $warning Warning to add.
  * @param bool                      $reset   Whether to clear prior diagnostics.
  * @return array<int,array<string,string>>
  */
@@ -37,13 +30,6 @@ function erankly_import_variable_diagnostics( ?array $warning = null, bool $rese
 	return array_values( $warnings );
 }
 
-/**
- * Converts third-party template variables to EasyRankly's {{token}} syntax.
- *
- * @param string $value  Raw template string.
- * @param string $source Source plugin: yoast|rankmath|aioseo|seopress.
- * @return string
- */
 function erankly_import_convert_variables( string $value, string $source ): string {
 	if ( '' === $value ) {
 		return '';

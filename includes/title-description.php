@@ -1,23 +1,14 @@
 <?php
 /**
- * Document title and meta description computation.
- *
- * Loaded by meta.php (always required), so these functions are globally
- * available wherever the head metadata is built.
- *
- * @package EasyRankly
+ * Document title and meta description computation. Loaded by meta.php (always required), so these functions are
+ * globally available wherever the head metadata is built.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Filters the document title.
- *
- * @param string $title Original title.
- * @return string
- */
+/** Filters the document title. */
 function erankly_filter_document_title( string $title ): string {
 	$seo_title = erankly_get_title();
 
@@ -27,7 +18,6 @@ function erankly_filter_document_title( string $title ): string {
 /**
  * Filters title parts when themes use title-tag support.
  *
- * @param array<string,string> $parts Title parts.
  * @return array<string,string>
  */
 function erankly_filter_document_title_parts( array $parts ): array {
@@ -41,11 +31,6 @@ function erankly_filter_document_title_parts( array $parts ): array {
 	return $parts;
 }
 
-/**
- * Returns the computed SEO title.
- *
- * @return string
- */
 function erankly_get_title(): string {
 	static $resolved = null;
 
@@ -159,21 +144,11 @@ function erankly_get_title(): string {
 
 	$title = erankly_normalize_seo_text( $title );
 
-	/**
-	 * Filters the computed SEO title.
-	 *
-	 * @param string $title Computed title.
-	 */
 	$resolved = (string) apply_filters( 'erankly_title', $title );
 
 	return $resolved;
 }
 
-/**
- * Returns the computed meta description.
- *
- * @return string
- */
 function erankly_get_description(): string {
 	static $resolved = null;
 
@@ -274,11 +249,6 @@ function erankly_get_description(): string {
 
 	$description = $description_generated_fallback ? erankly_trim_text( strip_shortcodes( $description ), 160 ) : erankly_normalize_seo_text( $description );
 
-	/**
-	 * Filters the computed meta description.
-	 *
-	 * @param string $description Computed description.
-	 */
 	$resolved = (string) apply_filters( 'erankly_description', $description );
 
 	return $resolved;

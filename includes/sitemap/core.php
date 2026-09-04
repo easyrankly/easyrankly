@@ -1,27 +1,18 @@
 <?php
-/**
- * XML sitemap generation.
- *
- * @package EasyRankly
- */
+/** XML sitemap generation. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Sitemap URL limit per file.
- */
+/** Sitemap URL limit per file. */
 const ERANKLY_SITEMAP_PER_PAGE = 1000;
-
 
 // Core wp_sitemaps integration (posts / taxonomies / users).
 
 /**
- * Injects EasyRankly's per-post exclusion meta_query into core sitemap post queries.
- *
- * Respects the canonical index directive, the legacy noindex flag and the
- * explicit sitemap exclusion setting.
+ * Injects EasyRankly's per-post exclusion meta_query into core sitemap post queries. Respects the canonical
+ * index directive, the legacy noindex flag and the explicit sitemap exclusion setting.
  *
  * @param array<string,mixed> $args      WP_Query args built by the core sitemap provider.
  * @param string              $post_type Post type being queried.
@@ -57,10 +48,7 @@ function erankly_filter_core_sitemap_posts_query_args( array $args, string $post
 }
 
 /**
- * Injects EasyRankly's per-term exclusion meta_query into core sitemap term queries.
- *
  * @param array<string,mixed> $args     WP_Term_Query args built by the core sitemap provider.
- * @param string              $taxonomy Taxonomy being queried.
  * @return array<string,mixed>
  */
 function erankly_filter_core_sitemap_terms_query_args( array $args, string $taxonomy ): array {
@@ -85,8 +73,6 @@ function erankly_filter_core_sitemap_terms_query_args( array $args, string $taxo
 }
 
 /**
- * Removes globally noindex'd or sitemap-disabled post types from the core sitemap.
- *
  * @param array<string,WP_Post_Type> $post_types Post type objects indexed by name.
  * @return array<string,WP_Post_Type>
  */
@@ -104,8 +90,6 @@ function erankly_filter_core_sitemap_post_types( array $post_types ): array {
 }
 
 /**
- * Removes globally noindex'd or sitemap-disabled taxonomies from the core sitemap.
- *
  * @param array<string,WP_Taxonomy> $taxonomies Taxonomy objects indexed by name.
  * @return array<string,WP_Taxonomy>
  */
@@ -119,13 +103,7 @@ function erankly_filter_core_sitemap_taxonomies( array $taxonomies ): array {
 	return $taxonomies;
 }
 
-/**
- * Removes the user sitemap provider when it is disabled in EasyRankly settings.
- *
- * @param WP_Sitemaps_Provider|null $provider Provider object.
- * @param string                    $name     Provider name.
- * @return WP_Sitemaps_Provider|null
- */
+/** @return WP_Sitemaps_Provider|null */
 function erankly_filter_core_sitemap_add_provider( $provider, string $name ) {
 	if ( 'users' === $name && ! erankly_should_include_user_sitemap() ) {
 		return null;
@@ -134,13 +112,7 @@ function erankly_filter_core_sitemap_add_provider( $provider, string $name ) {
 	return $provider;
 }
 
-/**
- * Sends sitemap response.
- *
- * @param string $type Sitemap type.
- * @param int    $page Sitemap page.
- * @return never
- */
+/** @return never */
 function erankly_render_sitemap_response( string $type, int $page = 1 ) {
 	$type = sanitize_key( $type );
 	$page = max( 1, $page );
@@ -198,14 +170,10 @@ function erankly_render_sitemap_response( string $type, int $page = 1 ) {
 }
 
 /**
- * Returns image URLs for a post sitemap entry.
+ * Returns image URLs for a post sitemap entry. Sources (in order): featured image, images found in post content
+ * (img tags, Gutenberg image/gallery blocks), separate and legacy SEO social image URLs, and stored OG/Twitter
+ * attachment IDs. Only absolute http(s) URLs are returned; duplicates are dropped.
  *
- * Sources (in order): featured image, images found in post content (img tags,
- * Gutenberg image/gallery blocks), separate and legacy SEO social image URLs,
- * and stored OG/Twitter attachment IDs. Only absolute http(s) URLs are returned;
- * duplicates are dropped.
- *
- * @param int $post_id Post ID.
  * @return array<int,string>
  */
 function erankly_get_sitemap_images( int $post_id ): array {
@@ -240,13 +208,10 @@ function erankly_get_sitemap_images( int $post_id ): array {
 	}
 
 	/**
-	 * Filters image sitemap URLs for a post.
-	 *
-	 * Each element may be a URL string or an array with a 'loc' key.
-	 *
-	 * @param array<int,string|array<string,string>> $images  Image URLs or entries with a loc key.
-	 * @param int                                    $post_id Post ID.
-	 */
+ * Filters image sitemap URLs for a post. Each element may be a URL string or an array with a 'loc' key.
+ *
+ * @param array<int,string|array<string,string>> $images  Image URLs or entries with a loc key.
+ */
 	$images = apply_filters( 'erankly_sitemap_images', $images, $post_id );
 
 	if ( ! is_array( $images ) ) {
@@ -267,11 +232,7 @@ function erankly_get_sitemap_images( int $post_id ): array {
 	return array_values( array_unique( $clean ) );
 }
 
-/**
- * Returns post types eligible for sitemap output.
- *
- * @return array<string,WP_Post_Type>
- */
+/** @return array<string,WP_Post_Type> */
 function erankly_get_sitemap_post_types(): array {
 	$post_types = erankly_get_public_post_types();
 
@@ -288,18 +249,13 @@ function erankly_get_sitemap_post_types(): array {
 		}
 	}
 
-	/**
-	 * Filters post types included in the XML sitemap.
-	 *
-	 * @param array<string,WP_Post_Type> $post_types Sitemap post type objects.
-	 */
+	/** @param array<string,WP_Post_Type> $post_types Sitemap post type objects. */
 	return apply_filters( 'erankly_sitemap_post_types', $post_types );
 }
 
 /**
  * Filters post type names by global sitemap/robots directives.
  *
- * @param array<int|string,mixed> $post_types Post type names.
  * @return array<int,string>
  */
 function erankly_filter_sitemap_post_type_names_by_global_directives( array $post_types ): array {
@@ -323,15 +279,11 @@ function erankly_filter_sitemap_post_type_names_by_global_directives( array $pos
 }
 
 /**
- * Returns the SQL suffix that excludes posts blocked from sitemap output.
- *
- * The tri-state directive is canonical when it contains a recognized value.
- * The legacy boolean is consulted only when that directive is absent, retaining
- * compatibility without allowing a stale legacy flag to override explicit
- * `index` metadata.
+ * Returns the SQL suffix that excludes posts blocked from sitemap output. The tri-state directive is canonical
+ * when it contains a recognized value. The legacy boolean is consulted only when that directive is absent,
+ * retaining compatibility without allowing a stale legacy flag to override explicit `index` metadata.
  *
  * @param string $post_alias Alias of the posts table in the owning query.
- * @return string
  */
 function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p' ): string {
 	global $wpdb;
@@ -371,10 +323,8 @@ function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p' ): string {
 }
 
 /**
- * Returns meta query clauses that exclude blocked sitemap URLs.
- *
- * The canonical tri-state directive takes precedence over the legacy boolean.
- * A recognized explicit `index` therefore remains eligible even if stale
+ * Returns meta query clauses that exclude blocked sitemap URLs. The canonical tri-state directive takes
+ * precedence over the legacy boolean. A recognized explicit `index` therefore remains eligible even if stale
  * `_erankly_noindex` metadata is still present.
  *
  * @return array<int|string,mixed>
@@ -427,10 +377,8 @@ function erankly_get_sitemap_exclusion_meta_query(): array {
 }
 
 /**
- * Returns meta query clauses that exclude noindex terms from taxonomy sitemaps.
- *
- * Terms use the same canonical and legacy keys as posts, so the post exclusion
- * clauses apply unchanged.
+ * Returns meta query clauses that exclude noindex terms from taxonomy sitemaps. Terms use the same canonical and
+ * legacy keys as posts, so the post exclusion clauses apply unchanged.
  *
  * @return array<int|string,mixed>
  */
@@ -439,42 +387,25 @@ function erankly_get_sitemap_term_exclusion_meta_query(): array {
 }
 
 /**
- * Determines whether the user sitemap should be exposed.
- *
- * Single-author sites do not need author archive URLs in XML sitemaps because
- * those archives usually duplicate the main content listing.
- *
- * @return bool
+ * Determines whether the user sitemap should be exposed. Single-author sites do not need author archive URLs in
+ * XML sitemaps because those archives usually duplicate the main content listing.
  */
 function erankly_should_include_user_sitemap(): bool {
 	$author_hidden = erankly_get_global_entity_directive( 'global_special_meta', 'author', 'noindex' )
 		|| erankly_get_global_entity_directive( 'global_special_meta', 'author', 'disable_sitemap' );
 	$include       = ! $author_hidden && erankly_count_sitemap_users() > 1;
 
-	/**
-	 * Filters whether author archive URLs are included in the XML sitemap.
-	 *
-	 * @param bool $include Whether the user sitemap should be included.
-	 */
+	/** @param bool $include Whether the user sitemap should be included. */
 	return (bool) apply_filters( 'erankly_include_user_sitemap', $include );
 }
 
-/**
- * Counts users with sitemap-eligible published content.
- *
- * @return int
- */
 function erankly_count_sitemap_users(): int {
 	$stats = erankly_get_sitemap_user_stats();
 
 	return $stats['count'];
 }
 
-/**
- * Returns aggregate statistics for sitemap-eligible authors.
- *
- * @return array{count:int,lastmod:string}
- */
+/** @return array{count:int,lastmod:string} */
 function erankly_get_sitemap_user_stats(): array {
 	global $wpdb;
 
@@ -533,12 +464,6 @@ function erankly_get_sitemap_user_stats(): array {
 	return $cache;
 }
 
-/**
- * Formats a GMT MySQL datetime for XML sitemap output.
- *
- * @param string $date GMT MySQL datetime.
- * @return string
- */
 function erankly_format_sitemap_gmt_date( string $date ): string {
 	if ( '' === $date || str_starts_with( $date, '0000-00-00' ) ) {
 		return '';

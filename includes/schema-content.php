@@ -1,9 +1,5 @@
 <?php
-/**
- * Schema.org content detection from post content and supported plugins.
- *
- * @package EasyRankly
- */
+/** Schema.org content detection from post content and supported plugins. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,8 +10,6 @@ add_filter( 'erankly_faq_items', 'erankly_faq_items_from_content', 10, 2 );
 /**
  * Populates FAQ items from Gutenberg blocks when no filter has provided them.
  *
- * @param array<int,array<string,string>> $items   FAQ items.
- * @param int                             $post_id Post ID.
  * @return array<int,array<string,string>>
  */
 function erankly_faq_items_from_content( array $items, int $post_id ): array {
@@ -32,12 +26,7 @@ function erankly_faq_items_from_content( array $items, int $post_id ): array {
 	return erankly_extract_faq_items_from_content( $post->post_content );
 }
 
-/**
- * Extracts FAQ question/answer pairs from post content.
- *
- * @param string $content Raw post content.
- * @return array<int,array<string,string>>
- */
+/** @return array<int,array<string,string>> */
 function erankly_extract_faq_items_from_content( string $content ): array {
 	$items = erankly_extract_faq_items_from_blocks( $content );
 
@@ -48,12 +37,7 @@ function erankly_extract_faq_items_from_content( string $content ): array {
 	return erankly_extract_faq_items_from_html( $content );
 }
 
-/**
- * Extracts FAQ items from structured-data Gutenberg blocks.
- *
- * @param string $content Raw post content.
- * @return array<int,array<string,string>>
- */
+/** @return array<int,array<string,string>> */
 function erankly_extract_faq_items_from_blocks( string $content ): array {
 	if ( ! function_exists( 'parse_blocks' ) ) {
 		return array();
@@ -104,12 +88,7 @@ function erankly_extract_faq_items_from_blocks( string $content ): array {
 	return array_merge( $items, erankly_extract_faq_items_from_accordion_blocks( $content ) );
 }
 
-/**
- * Extracts FAQ items from core accordion blocks when FAQ schema is enabled.
- *
- * @param string $content Raw post content.
- * @return array<int,array<string,string>>
- */
+/** @return array<int,array<string,string>> */
 function erankly_extract_faq_items_from_accordion_blocks( string $content ): array {
 	if ( ! function_exists( 'parse_blocks' ) ) {
 		return array();
@@ -149,12 +128,6 @@ function erankly_extract_faq_items_from_accordion_blocks( string $content ): arr
 	return $items;
 }
 
-/**
- * Returns the question text from a core accordion item block.
- *
- * @param array<string,mixed> $item_block Accordion item block.
- * @return string
- */
 function erankly_extract_accordion_item_question( array $item_block ): string {
 	$inner_blocks = isset( $item_block['innerBlocks'] ) && is_array( $item_block['innerBlocks'] )
 		? $item_block['innerBlocks']
@@ -189,12 +162,6 @@ function erankly_extract_accordion_item_question( array $item_block ): string {
 	return '';
 }
 
-/**
- * Returns the answer text from a core accordion item block.
- *
- * @param array<string,mixed> $item_block Accordion item block.
- * @return string
- */
 function erankly_extract_accordion_item_answer( array $item_block ): string {
 	$inner_blocks = isset( $item_block['innerBlocks'] ) && is_array( $item_block['innerBlocks'] )
 		? $item_block['innerBlocks']
@@ -212,12 +179,6 @@ function erankly_extract_accordion_item_answer( array $item_block ): string {
 	return erankly_schema_plain_text_from_inner_blocks( $panel_inner );
 }
 
-/**
- * Collects plain text from nested Gutenberg blocks.
- *
- * @param array<int,array<string,mixed>> $blocks Block tree.
- * @return string
- */
 function erankly_schema_plain_text_from_inner_blocks( array $blocks ): string {
 	$parts = array();
 
@@ -261,12 +222,7 @@ function erankly_schema_plain_text_from_inner_blocks( array $blocks ): string {
 	return trim( implode( ' ', $parts ) );
 }
 
-/**
- * Extracts FAQ items from Yoast FAQ block HTML markup.
- *
- * @param string $content Raw post content.
- * @return array<int,array<string,string>>
- */
+/** @return array<int,array<string,string>> */
 function erankly_extract_faq_items_from_html( string $content ): array {
 	$items = array();
 
@@ -292,12 +248,7 @@ function erankly_extract_faq_items_from_html( string $content ): array {
 	return $items;
 }
 
-/**
- * Returns HowTo schema detected in post content.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_howto( int $post_id ): array {
 	$post = get_post( $post_id );
 
@@ -308,33 +259,16 @@ function erankly_schema_howto( int $post_id ): array {
 	$schema = erankly_schema_howto_from_blocks( $post->post_content, $post_id );
 
 	if ( ! empty( $schema ) ) {
-		/**
-		 * Filters HowTo schema.
-		 *
-		 * @param array<string,mixed> $schema  HowTo schema.
-		 * @param int                 $post_id Post ID.
-		 */
+
 		return apply_filters( 'erankly_schema_howto', $schema, $post_id );
 	}
 
 	$schema = erankly_schema_howto_from_html( $post->post_content, $post_id );
 
-	/**
-	 * Filters HowTo schema.
-	 *
-	 * @param array<string,mixed> $schema  HowTo schema.
-	 * @param int                 $post_id Post ID.
-	 */
 	return apply_filters( 'erankly_schema_howto', $schema, $post_id );
 }
 
-/**
- * Builds HowTo schema from structured-data Gutenberg blocks.
- *
- * @param string $content Raw post content.
- * @param int    $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_howto_from_blocks( string $content, int $post_id ): array {
 	if ( ! function_exists( 'parse_blocks' ) ) {
 		return array();
@@ -429,13 +363,7 @@ function erankly_schema_howto_from_blocks( string $content, int $post_id ): arra
 	return array_filter( $schema );
 }
 
-/**
- * Builds HowTo schema from Yoast How-To block HTML markup.
- *
- * @param string $content Raw post content.
- * @param int    $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_howto_from_html( string $content, int $post_id ): array {
 	$steps = array();
 
@@ -499,12 +427,6 @@ function erankly_schema_howto_from_html( string $content, int $post_id ): array 
 	return array_filter( $schema );
 }
 
-/**
- * Returns ISO 8601 duration for a How-To block.
- *
- * @param array<string,mixed> $attrs Block attributes.
- * @return string
- */
 function erankly_schema_howto_total_time( array $attrs ): string {
 	if ( empty( $attrs['hasDuration'] ) ) {
 		return '';
@@ -521,12 +443,7 @@ function erankly_schema_howto_total_time( array $attrs ): string {
 	return 'P' . ( $days > 0 ? $days . 'D' : '' ) . 'T' . $hours . 'H' . $minutes . 'M';
 }
 
-/**
- * Returns Event schema for supported event post types.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_event( int $post_id ): array {
 	$post_type = get_post_type( $post_id );
 
@@ -542,47 +459,22 @@ function erankly_schema_event( int $post_id ): array {
 		return array();
 	}
 
-	/**
-	 * Filters Event schema.
-	 *
-	 * @param array<string,mixed> $schema  Event schema.
-	 * @param int                 $post_id Post ID.
-	 */
 	return apply_filters( 'erankly_schema_event', array_filter( $schema ), $post_id );
 }
 
-/**
- * Returns supported event post types.
- *
- * @return array<int,string>
- */
+/** @return array<int,string> */
 function erankly_get_event_post_types(): array {
-	/**
-	 * Filters post types eligible for automatic Event schema.
-	 *
-	 * @param array<int,string> $post_types Event post types.
-	 */
+
 	$post_types = apply_filters( 'erankly_event_post_types', array( 'tribe_events', 'event', 'events' ) );
 
 	return is_array( $post_types ) ? array_values( array_filter( array_map( 'strval', $post_types ) ) ) : array();
 }
 
-/**
- * Returns whether a post type should receive Event schema.
- *
- * @param string $post_type Post type slug.
- * @return bool
- */
 function erankly_is_event_post_type( string $post_type ): bool {
 	return in_array( $post_type, erankly_get_event_post_types(), true );
 }
 
-/**
- * Builds Event schema for The Events Calendar.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_event_from_tec( int $post_id ): array {
 	$start = (string) get_post_meta( $post_id, '_EventStartDate', true );
 	$end   = (string) get_post_meta( $post_id, '_EventEndDate', true );
@@ -639,13 +531,7 @@ function erankly_schema_event_from_tec( int $post_id ): array {
 	return $schema;
 }
 
-/**
- * Builds Event schema for generic event plugins.
- *
- * @param int    $post_id   Post ID.
- * @param string $post_type Post type slug.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_event_generic( int $post_id, string $post_type ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Keeps the event-builder signature consistent across adapters.
 	$start_keys = array( '_EventStartDate', '_event_start', 'event_start_date', 'event_start', 'start_date' );
 	$end_keys   = array( '_EventEndDate', '_event_end', 'event_end_date', 'event_end', 'end_date' );
@@ -690,13 +576,7 @@ function erankly_schema_event_generic( int $post_id, string $post_type ): array 
 	return $schema;
 }
 
-/**
- * Returns the first available event meta value from a list of keys.
- *
- * @param int               $post_id Post ID.
- * @param array<int,string> $keys    Meta keys to try.
- * @return string
- */
+/** @param array<int,string> $keys    Meta keys to try. */
 function erankly_schema_event_meta_value( int $post_id, array $keys ): string {
 	foreach ( $keys as $key ) {
 		$value = get_post_meta( $post_id, $key, true );
@@ -709,12 +589,7 @@ function erankly_schema_event_meta_value( int $post_id, array $keys ): string {
 	return '';
 }
 
-/**
- * Normalises an event datetime string to ISO 8601 when possible.
- *
- * @param string $value Raw datetime value.
- * @return string
- */
+/** Normalises an event datetime string to ISO 8601 when possible. */
 function erankly_schema_event_datetime( string $value ): string {
 	$value = trim( $value );
 
@@ -727,12 +602,7 @@ function erankly_schema_event_datetime( string $value ): string {
 	return false !== $timestamp ? gmdate( DATE_W3C, $timestamp ) : $value;
 }
 
-/**
- * Builds an Event location node from a TEC venue.
- *
- * @param int $post_id Event post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_event_location_from_tec( int $post_id ): array {
 	$venue_id = absint( get_post_meta( $post_id, '_EventVenueID', true ) );
 
@@ -766,11 +636,9 @@ function erankly_schema_event_location_from_tec( int $post_id ): array {
 }
 
 /**
- * Returns VideoObject schema nodes for embedded videos in a post.
+ * Returns VideoObject schema nodes for embedded videos in a post. Uses the same extraction logic as the video
+ * sitemap.
  *
- * Uses the same extraction logic as the video sitemap.
- *
- * @param int $post_id Post ID.
  * @return array<int,array<string,mixed>>
  */
 function erankly_schema_video_objects( int $post_id ): array {
@@ -838,15 +706,10 @@ function erankly_schema_video_objects( int $post_id ): array {
 		}
 
 		/**
-		 * Filters an individual VideoObject schema node.
-		 *
-		 * Return an empty array to exclude the video.
-		 *
-		 * @param array<string,mixed> $object    VideoObject schema.
-		 * @param int                 $post_id   Post ID.
-		 * @param string              $video_url Detected video URL.
-		 * @param int                 $index     Zero-based index on the page.
-		 */
+ * Filters an individual VideoObject schema node. Return an empty array to exclude the video.
+ *
+ * @param int                 $index     Zero-based index on the page.
+ */
 		$object = apply_filters( 'erankly_schema_video_object', $object, $post_id, $video_url, (int) $index );
 
 		if ( ! empty( $object ) ) {
@@ -854,32 +717,14 @@ function erankly_schema_video_objects( int $post_id ): array {
 		}
 	}
 
-	/**
-	 * Filters all VideoObject schema nodes for a post.
-	 *
-	 * @param array<int,array<string,mixed>> $objects   VideoObject nodes.
-	 * @param int                            $post_id   Post ID.
-	 */
 	$objects = apply_filters( 'erankly_schema_video_objects', $objects, $post_id );
 
 	return is_array( $objects ) ? array_values( array_filter( $objects ) ) : array();
 }
 
-/**
- * Returns Service schema when configured for a page.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_service_for_page( int $post_id ): array {
-	/**
-	 * Filters Service schema arguments for the current page.
-	 *
-	 * Return a non-empty array to emit Service schema via erankly_schema_service().
-	 *
-	 * @param array<string,mixed> $args    Service arguments.
-	 * @param int                 $post_id Post ID.
-	 */
+	/** Filters Service schema arguments for the current page. Return a non-empty array to emit Service schema via erankly_schema_service(). */
 	$args = apply_filters( 'erankly_schema_service_args', array(), $post_id );
 
 	if ( empty( $args ) || ! is_array( $args ) ) {
@@ -890,9 +735,6 @@ function erankly_schema_service_for_page( int $post_id ): array {
 }
 
 /**
- * Finds Gutenberg blocks by block name, including nested blocks.
- *
- * @param array<int,array<string,mixed>> $blocks Block tree.
  * @param array<int,string>              $names  Block names to match.
  * @return array<int,array<string,mixed>>
  */
@@ -918,13 +760,6 @@ function erankly_find_blocks_by_names( array $blocks, array $names ): array {
 	return $found;
 }
 
-/**
- * Returns plain text from the first populated field in a data row.
- *
- * @param array<string,mixed> $row  Source row.
- * @param array<int,string>   $keys Candidate field keys.
- * @return string
- */
 function erankly_schema_plain_text_from_field( array $row, array $keys ): string {
 	foreach ( $keys as $key ) {
 		if ( ! isset( $row[ $key ] ) ) {
@@ -945,12 +780,6 @@ function erankly_schema_plain_text_from_field( array $row, array $keys ): string
 	return '';
 }
 
-/**
- * Converts HTML content to plain text suitable for schema fields.
- *
- * @param string $html HTML string.
- * @return string
- */
 function erankly_schema_plain_text_from_html( string $html ): string {
 	return trim( wp_strip_all_tags( html_entity_decode( $html, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
 }

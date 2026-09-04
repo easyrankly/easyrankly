@@ -1,19 +1,11 @@
 <?php
-/**
- * Shared admin field renderers used by settings and classic-editor surfaces.
- *
- * @package EasyRankly
- */
+/** Shared admin field renderers used by settings and classic-editor surfaces. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns grouped dynamic variables for admin pickers.
- *
- * @return array<string,array{label:string,variables:array<string,string>}>
- */
+/** @return array<string,array{label:string,variables:array<string,string>}> */
 function erankly_get_variable_groups(): array {
 	return array(
 		'content'    => array(
@@ -93,12 +85,7 @@ function erankly_get_variable_groups(): array {
 	);
 }
 
-/**
- * Renders a dynamic variable picker for a field.
- *
- * @param array<string,string> $examples Example values for friendly previews.
- * @return void
- */
+/** @param array<string,string> $examples Example values for friendly previews. */
 function erankly_render_variable_picker( array $examples = array() ): void {
 	if ( array() === $examples ) {
 		static $site_examples = null;
@@ -129,15 +116,7 @@ function erankly_render_variable_picker( array $examples = array() ): void {
 	<?php
 }
 
-/**
- * Renders a repeatable schema block.
- *
- * @param array<string,mixed> $block       Schema block.
- * @param string              $index       Field index.
- * @param string              $name_prefix Field name prefix.
- * @param bool                $is_global   Whether to render targeting controls.
- * @return void
- */
+/** @param bool                $is_global   Whether to render targeting controls. */
 function erankly_render_schema_block( array $block, string $index, string $name_prefix, bool $is_global = false ): void {
 	$enabled     = ! isset( $block['enabled'] ) || ! empty( $block['enabled'] );
 	$fields      = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
@@ -168,15 +147,7 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 	<?php
 }
 
-/**
- * Renders targeting controls for a global schema block.
- *
- * @param array<string,mixed> $block       Schema block.
- * @param string              $index       Field index.
- * @param string              $name_prefix Field name prefix.
- * @param bool                $enabled     Whether the block is enabled.
- * @return void
- */
+/** @param bool                $enabled     Whether the block is enabled. */
 function erankly_render_schema_targeting_fields( array $block, string $index, string $name_prefix, bool $enabled ): void {
 	$target_contexts   = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? array_map( 'sanitize_key', $block['target_contexts'] ) : array();
 	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? array_map( 'sanitize_key', $block['target_post_types'] ) : array();
@@ -223,17 +194,6 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 	<?php
 }
 
-/**
- * Renders a schema textarea field.
- *
- * @param string $index       Field index.
- * @param string $name_prefix Field name prefix.
- * @param string $key         Field key.
- * @param string $label       Field label.
- * @param string $value       Field value.
- * @param int    $rows        Textarea rows.
- * @return void
- */
 function erankly_render_schema_textarea_field( string $index, string $name_prefix, string $key, string $label, string $value, int $rows ): void {
 	$field_id = 'erankly-schema-' . sanitize_html_class( $index ) . '-' . sanitize_html_class( $key );
 	?>
@@ -248,16 +208,9 @@ function erankly_render_schema_textarea_field( string $index, string $name_prefi
 }
 
 /**
- * Renders a media picker that fills an image URL text field.
- *
- * @param string $id                 Input ID.
- * @param string $name               URL input name.
- * @param string $value              URL input value.
- * @param string $placeholder        URL input placeholder.
  * @param string $attachment_id_name Optional attachment ID input name.
  * @param int    $attachment_id      Optional attachment ID value.
  * @param bool   $show_preview       Whether to render the image preview.
- * @return void
  */
 function erankly_render_media_url_field( string $id, string $name, string $value, string $placeholder = '', string $attachment_id_name = '', int $attachment_id = 0, bool $show_preview = true ): void {
 	$preview = '' !== $value && false === strpos( $value, '{{' ) ? $value : '';

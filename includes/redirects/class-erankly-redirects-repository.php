@@ -1,21 +1,13 @@
 <?php
-/**
- * Redirect database access.
- *
- * @package EasyRankly
- */
+/** Redirect database access. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Repository for the erankly_redirects table.
- */
+/** Repository for the erankly_redirects table. */
 final class ERankly_Redirects_Repository {
-	/**
-	 * Non-autoloaded option containing frontend-ready active rules.
-	 */
+	/** Non-autoloaded option containing frontend-ready active rules. */
 	private const RUNTIME_RULES_OPTION         = 'erankly_redirects_runtime_rules';
 	private const RUNTIME_RULES_VERSION        = 4;
 	private const RUNTIME_GLOBAL_OPTION        = 'erankly_redirects_runtime_rules_global';
@@ -23,141 +15,73 @@ final class ERankly_Redirects_Repository {
 	private const RUNTIME_PREFIX_INDEX_OPTION  = 'erankly_redirects_runtime_rules_prefix_index';
 	private const RUNTIME_PREFIX_OPTION_PREFIX = 'erankly_redirects_runtime_rules_prefix_';
 
-	/**
-	 * Sentinel value stored in object cache when no exact redirect exists for a hash.
-	 */
 	private const NO_REDIRECT_SENTINEL = '__erankly_no_redirect__';
 
-	/**
-	 * Object cache group.
-	 *
-	 * @var string
-	 */
 	private string $cache_group = 'erankly_redirects';
 
-	/**
-	 * Database table name.
-	 *
-	 * @var string
-	 */
 	private string $table_name;
 
-	/**
-	 * Request-level runtime manifest, or a freshly compiled rule set.
-	 *
-	 * @var array<string,mixed>|null
-	 */
+	/** @var array<string,mixed>|null */
 	private ?array $runtime_rules = null;
 
-	/**
-	 * Whether mutation invalidation is deferred during a bulk import.
-	 *
-	 * @var bool
-	 */
 	private bool $bulk_mode = false;
 
-	/**
-	 * Whether a bulk import changed at least one rule.
-	 *
-	 * @var bool
-	 */
+	/** Whether a bulk import changed at least one rule. */
 	private bool $bulk_dirty = false;
 
-	/**
-	 * Constructor.
-	 */
 	public function __construct() {
 		$this->table_name = self::get_table_name();
 	}
 
-	/**
-	 * Get the full table name.
-	 *
-	 * @return string
-	 */
 	public static function get_table_name(): string {
 		global $wpdb;
 
 		return $wpdb->prefix . 'erankly_redirects';
 	}
 
-	/**
-	 * Get cache key for a source hash.
-	 *
-	 * @param string $source_hash Source hash.
-	 * @return string
-	 */
 	public function get_cache_key( string $source_hash ): string {
 		return erankly_redirects_cache_key( $source_hash );
 	}
 
 	/**
-	 * Read exact redirect from cache.
-	 *
-	 * Returns the cached redirect array on a positive hit, the NO_REDIRECT_SENTINEL string
-	 * on a negative hit, or false when the key is not in cache.
-	 *
-	 * @param string $source_hash Source hash.
-	 * @return array<string,mixed>|string|false
-	 */
+ * Read exact redirect from cache. Returns the cached redirect array on a positive hit, the NO_REDIRECT_SENTINEL
+ * string on a negative hit, or false when the key is not in cache.
+ *
+ * @return array<string,mixed>|string|false
+ */
 	public function get_cached_exact( string $source_hash ) {
 		return wp_cache_get( $this->get_cache_key( $source_hash ), $this->cache_group );
 	}
 
-	/**
-	 * Store exact redirect in cache.
-	 *
-	 * @param string              $source_hash Source hash.
-	 * @param array<string,mixed> $redirect Redirect row.
-	 */
 	public function set_cached_exact( string $source_hash, array $redirect ): void {
 		wp_cache_set( $this->get_cache_key( $source_hash ), $redirect, $this->cache_group, HOUR_IN_SECONDS );
 	}
 
-	/**
-	 * Store a negative-cache sentinel so subsequent requests skip the exact-match DB query.
-	 *
-	 * @param string $source_hash Source hash.
-	 */
+	/** Store a negative-cache sentinel so subsequent requests skip the exact-match DB query. */
 	public function set_cached_exact_miss( string $source_hash ): void {
 		wp_cache_set( $this->get_cache_key( $source_hash ), self::NO_REDIRECT_SENTINEL, $this->cache_group, HOUR_IN_SECONDS );
 	}
 
-	/**
-	 * Check whether a cached value is the negative-cache sentinel.
-	 *
-	 * @param mixed $value Value returned by get_cached_exact().
-	 * @return bool
-	 */
+	/** @param mixed $value Value returned by get_cached_exact(). */
 	public function is_cached_exact_miss( $value ): bool {
 		return is_string( $value ) && self::NO_REDIRECT_SENTINEL === $value;
 	}
 
-	/**
-	 * Delete exact redirect cache.
-	 *
-	 * Removes both positive hits and negative-cache sentinels for the given hash.
-	 *
-	 * @param string $source_hash Source hash.
-	 */
+	/** Delete exact redirect cache. Removes both positive hits and negative-cache sentinels for the given hash. */
 	public function delete_cached_exact( string $source_hash ): void {
 		wp_cache_delete( $this->get_cache_key( $source_hash ), $this->cache_group );
 	}
 
 	/**
-	 * Returns only advanced rules that can match the current route/query.
-	 *
-	 * The non-autoloaded option is rebuilt lazily after redirect mutations. This
-	 * removes custom-table queries from normal frontend requests for patterns.
-	 *
-	 * Passing no route preserves the historical all-patterns API for extensions.
-	 * Runtime requests use prefix/query buckets so unrelated rules are never
-	 * traversed by the matcher.
-	 *
-	 * @param string $request_path  Normalized request path, or empty for all rules.
-	 * @param string $current_query Current raw query string.
-	 * @return array<int,array<string,mixed>>
-	 */
+ * Returns only advanced rules that can match the current route/query. The non-autoloaded option is rebuilt
+ * lazily after redirect mutations. This removes custom-table queries from normal frontend requests for patterns.
+ * Passing no route preserves the historical all-patterns API for extensions. Runtime requests use prefix/query
+ * buckets so unrelated rules are never traversed by the matcher.
+ *
+ * @param string $request_path  Normalized request path, or empty for all rules.
+ * @param string $current_query Current raw query string.
+ * @return array<int,array<string,mixed>>
+ */
 	public function get_pattern_rules( string $request_path = '', string $current_query = '' ): array {
 		global $wpdb;
 
@@ -222,11 +146,10 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Compiles database rows into route/query buckets and reusable match data.
-	 *
-	 * @param array<int,array<string,mixed>> $rows Active advanced rows.
-	 * @return array<string,mixed>
-	 */
+ * Compiles database rows into route/query buckets and reusable match data.
+ *
+ * @return array<string,mixed>
+ */
 	private function compile_runtime_rules( array $rows ): array {
 		$compiled = array(
 			'version' => self::RUNTIME_RULES_VERSION,
@@ -291,13 +214,11 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Persists independently loadable global and path-prefix rule segments.
-	 *
-	 * The public manifest stays small. Runtime requests therefore deserialize
-	 * only the global bucket and the one bucket matching their first path segment.
-	 *
-	 * @param array<string,mixed> $compiled Freshly compiled runtime rules.
-	 */
+ * Persists independently loadable global and path-prefix rule segments. The public manifest stays small. Runtime
+ * requests therefore deserialize only the global bucket and the one bucket matching their first path segment.
+ *
+ * @param array<string,mixed> $compiled Freshly compiled runtime rules.
+ */
 	private function persist_runtime_rules( array $compiled ): void {
 		$global = is_array( $compiled['global'] ?? null ) ? $compiled['global'] : array();
 		$all    = is_array( $compiled['all'] ?? null ) ? $compiled['all'] : array();
@@ -329,11 +250,7 @@ final class ERankly_Redirects_Repository {
 		);
 	}
 
-	/**
-	 * Returns a coarse, case-insensitive first-path-segment bucket key.
-	 *
-	 * @param string $path Normalized or raw request path.
-	 */
+	/** @param string $path Normalized or raw request path. */
 	private function runtime_prefix_key( string $path ): string {
 		$path     = ERankly_Redirects_Normalizer::normalize_path( $path );
 		$segments = explode( '/', trim( strtolower( $path ), '/' ) );
@@ -341,21 +258,16 @@ final class ERankly_Redirects_Repository {
 		return sanitize_key( (string) ( $segments[0] ?? '' ) );
 	}
 
-	/**
-	 * Returns the fixed-length option name for one path-prefix bucket.
-	 *
-	 * @param string $prefix Normalized first path segment.
-	 */
+	/** @param string $prefix Normalized first path segment. */
 	private function runtime_prefix_option_name( string $prefix ): string {
 		return self::RUNTIME_PREFIX_OPTION_PREFIX . substr( hash( 'sha256', $prefix ), 0, 24 );
 	}
 
 	/**
-	 * Retrieve an exact match rule using cache fallback to DB.
-	 *
-	 * @param string $source_hash Source hash.
-	 * @return array<string,mixed>|null
-	 */
+ * Retrieve an exact match rule using cache fallback to DB.
+ *
+ * @return array<string,mixed>|null
+ */
 	public function get_exact_rule_cached( string $source_hash ): ?array {
 		$cached = $this->get_cached_exact( $source_hash );
 		if ( $this->is_cached_exact_miss( $cached ) ) {
@@ -376,14 +288,10 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Invalidates frontend redirect rules after a mutation.
-	 *
-	 * Clears the request-level rules, the persisted runtime-rules option, and any
-	 * full-page caches that would otherwise keep serving stale responses for the
-	 * affected URLs.
-	 *
-	 * @return void
-	 */
+ * Invalidates frontend redirect rules after a mutation. Clears the request-level rules, the persisted
+ * runtime-rules option, and any full-page caches that would otherwise keep serving stale responses for the
+ * affected URLs.
+ */
 	public function invalidate_runtime_rules(): void {
 		if ( $this->bulk_mode ) {
 			$this->bulk_dirty = true;
@@ -420,12 +328,7 @@ final class ERankly_Redirects_Repository {
 		}
 	}
 
-	/**
-	 * Find an active exact redirect by hash.
-	 *
-	 * @param string $source_hash Source hash.
-	 * @return array<string,mixed>|null
-	 */
+	/** @return array<string,mixed>|null */
 	public function find_active_exact_by_hash( string $source_hash ): ?array {
 		global $wpdb;
 
@@ -444,12 +347,7 @@ final class ERankly_Redirects_Repository {
 		return is_array( $row ) ? $row : null;
 	}
 
-	/**
-	 * Returns active exact redirect source hashes from one batched lookup.
-	 *
-	 * @param array<int,string> $source_hashes Source hashes.
-	 * @return array<string,true> Map of hashes with an active exact rule.
-	 */
+	/** @return array<string,true> Map of hashes with an active exact rule. */
 	public function find_active_exact_hashes( array $source_hashes ): array {
 		global $wpdb;
 
@@ -495,12 +393,7 @@ final class ERankly_Redirects_Repository {
 		return $active;
 	}
 
-	/**
-	 * Find a redirect by rule identity hash, regardless of active state.
-	 *
-	 * @param string $rule_hash Rule identity hash.
-	 * @return array<string,mixed>|null
-	 */
+	/** @return array<string,mixed>|null */
 	public function find_by_hash( string $rule_hash ): ?array {
 		global $wpdb;
 
@@ -515,12 +408,7 @@ final class ERankly_Redirects_Repository {
 		return is_array( $row ) ? $row : null;
 	}
 
-	/**
-	 * Find a redirect by ID.
-	 *
-	 * @param int $id Redirect ID.
-	 * @return array<string,mixed>|null
-	 */
+	/** @return array<string,mixed>|null */
 	public function find_by_id( int $id ): ?array {
 		global $wpdb;
 
@@ -535,12 +423,7 @@ final class ERankly_Redirects_Repository {
 		return is_array( $row ) ? $row : null;
 	}
 
-	/**
-	 * Build a WHERE clause and matching bind params for a source-path search.
-	 *
-	 * @param string $search Raw search term.
-	 * @return array{0:string,1:array<int,mixed>}
-	 */
+	/** @return array{0:string,1:array<int,mixed>} */
 	private function build_search_clause( string $search ): array {
 		global $wpdb;
 
@@ -557,26 +440,23 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Columns allowed for admin table sorting, mapped to their DB column name.
-	 *
-	 * @var array<string,string>
-	 */
+ * Columns allowed for admin table sorting, mapped to their DB column name.
+ *
+ * @var array<string,string>
+ */
 	private const SORTABLE_COLUMNS = array(
 		'hit_count'   => 'hit_count',
 		'last_hit_at' => 'last_hit_at',
 	);
 
 	/**
-	 * List redirects for admin.
-	 *
-	 * @param string $search  Search term matched against the source path.
-	 * @param int    $page Page number.
-	 * @param int    $per_page Rows per page.
-	 * @param string $orderby Column to sort by. Must be a key of SORTABLE_COLUMNS; any other
-	 *                        value falls back to the default `id DESC` order.
-	 * @param string $order   Sort direction, `asc` or `desc`.
-	 * @return array<int,array<string,mixed>>
-	 */
+ * List redirects for admin.
+ *
+ * @param string $search  Search term matched against the source path.
+ * @param string $orderby Column to sort by. Must be a key of SORTABLE_COLUMNS; any other
+ * @param string $order   Sort direction, `asc` or `desc`.
+ * @return array<int,array<string,mixed>>
+ */
 	public function list_redirects( string $search, int $page, int $per_page, string $orderby = '', string $order = 'desc' ): array {
 		global $wpdb;
 
@@ -608,12 +488,7 @@ final class ERankly_Redirects_Repository {
 		return is_array( $rows ) ? $rows : array();
 	}
 
-	/**
-	 * Count redirects for admin pagination.
-	 *
-	 * @param string $search Search term matched against the source path.
-	 * @return int
-	 */
+	/** @param string $search Search term matched against the source path. */
 	public function count_redirects( string $search = '' ): int {
 		global $wpdb;
 
@@ -632,12 +507,9 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Returns one keyset-paginated redirect export page.
-	 *
-	 * @param int $after_id Last exported redirect ID.
-	 * @param int $limit    Maximum rows.
-	 * @return array<int,array<string,mixed>>
-	 */
+ * @param int $after_id Last exported redirect ID.
+ * @return array<int,array<string,mixed>>
+ */
 	public function export_page( int $after_id, int $limit = 500 ): array {
 		global $wpdb;
 
@@ -653,12 +525,7 @@ final class ERankly_Redirects_Repository {
 		return is_array( $rows ) ? $rows : array();
 	}
 
-	/**
-	 * Create a redirect.
-	 *
-	 * @param array<string,mixed> $data Redirect data.
-	 * @return int Inserted ID, or 0 on failure.
-	 */
+	/** @return int Inserted ID, or 0 on failure. */
 	public function create( array $data ): int {
 		global $wpdb;
 
@@ -685,13 +552,6 @@ final class ERankly_Redirects_Repository {
 		return (int) $wpdb->insert_id;
 	}
 
-	/**
-	 * Update a redirect.
-	 *
-	 * @param int                 $id Redirect ID.
-	 * @param array<string,mixed> $data Redirect data.
-	 * @return bool
-	 */
 	public function update( int $id, array $data ): bool {
 		global $wpdb;
 
@@ -709,12 +569,6 @@ final class ERankly_Redirects_Repository {
 		return false !== $result;
 	}
 
-	/**
-	 * Delete a redirect.
-	 *
-	 * @param int $id Redirect ID.
-	 * @return bool
-	 */
 	public function delete( int $id ): bool {
 		global $wpdb;
 
@@ -735,12 +589,6 @@ final class ERankly_Redirects_Repository {
 		return false !== $result;
 	}
 
-	/**
-	 * Toggle active state.
-	 *
-	 * @param int $id Redirect ID.
-	 * @return bool
-	 */
 	public function toggle_active( int $id ): bool {
 		global $wpdb;
 
@@ -766,12 +614,7 @@ final class ERankly_Redirects_Repository {
 		return false !== $result;
 	}
 
-	/**
-	 * Upsert a redirect by its complete matching identity.
-	 *
-	 * @param array<string,mixed> $data Redirect data.
-	 * @return string created|updated|failed
-	 */
+	/** Upsert a redirect by its complete matching identity. */
 	public function upsert_by_hash( array $data ): string {
 		$data     = $this->normalize_data( $data );
 		$existing = $this->find_by_hash( (string) $data['rule_hash'] );
@@ -784,11 +627,10 @@ final class ERankly_Redirects_Repository {
 	}
 
 	/**
-	 * Applies backward-compatible defaults and computes both path and rule hashes.
-	 *
-	 * @param array<string,mixed> $data Redirect data.
-	 * @return array<string,mixed>
-	 */
+ * Applies backward-compatible defaults and computes both path and rule hashes.
+ *
+ * @return array<string,mixed>
+ */
 	private function normalize_data( array $data ): array {
 		$match_type = isset( $data['match_type'] ) && in_array( $data['match_type'], ERankly_Redirects_Normalizer::VALID_MATCH_TYPES, true )
 			? (string) $data['match_type']
@@ -833,23 +675,14 @@ final class ERankly_Redirects_Repository {
 		return $data;
 	}
 
-	/**
-	 * Increment redirect stats with one lightweight write.
-	 *
-	 * @param int $id Redirect ID.
-	 */
+	/** Increment redirect stats with one lightweight write. */
 	public function increment_hit( int $id ): void {
 		global $wpdb;
 
 		/**
-		 * Filters the redirect statistics sampling rate.
-		 *
-		 * A rate of 10 performs approximately one database write every ten hits
-		 * and increments the counter by ten. Use 1 for exact synchronous counts.
-		 *
-		 * @param int $sample_rate Sampling rate.
-		 * @param int $id          Redirect ID.
-		 */
+ * Filters the redirect statistics sampling rate. A rate of 10 performs approximately one database write every
+ * ten hits and increments the counter by ten. Use 1 for exact synchronous counts.
+ */
 		$sample_rate = max( 1, (int) apply_filters( 'erankly_redirect_hit_sample_rate', 10, $id ) );
 
 		if ( $sample_rate > 1 && 1 !== wp_rand( 1, $sample_rate ) ) {

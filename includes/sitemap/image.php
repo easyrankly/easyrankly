@@ -1,11 +1,7 @@
 <?php
 /**
- * XML sitemap generation: Image sitemap.
- *
- * Loaded only when the image feature is enabled (see erankly_bootstrap()),
- * so these functions are parsed only on sites that use this sitemap type.
- *
- * @package EasyRankly
+ * XML sitemap generation: Image sitemap. Loaded only when the image feature is enabled (see
+ * erankly_bootstrap()), so these functions are parsed only on sites that use this sitemap type.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,13 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Counts published sitemap-eligible posts for the image sitemap.
- *
- * Posts without any associated image are skipped
- * during XML generation. An exact count would require loading every post's
- * content, which is not practical for large sites.
- *
- * @return int
+ * Counts published sitemap-eligible posts for the image sitemap. Posts without any associated image are skipped
+ * during XML generation. An exact count would require loading every post's content, which is not practical for
+ * large sites.
  */
 function erankly_count_image_sitemap_items(): int {
 	$cache_key = erankly_get_sitemap_cache_key( 'image_count' );
@@ -82,17 +74,12 @@ function erankly_count_image_sitemap_items(): int {
 }
 
 /**
- * Returns the image sitemap XML for the given page.
- *
- * Associates images with the public pages that contain them. Uses each post's
- * own permalink as <loc> (NOT the attachment page). Includes only images that
- * are genuinely attached to or embedded in a publicly viewable, non-excluded page.
- * Does not emit the Google-deprecated <image:title> element.
- *
- * Follows the Google Image Sitemap spec:
+ * Returns the image sitemap XML for the given page. Associates images with the public pages that contain them.
+ * Uses each post's own permalink as <loc> (NOT the attachment page). Includes only images that are genuinely
+ * attached to or embedded in a publicly viewable, non-excluded page. Does not emit the Google-deprecated
+ * <image:title> element. Follows the Google Image Sitemap spec:
  * https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps
  *
- * @param int $page Page number.
  * @return string XML string, or empty string when disabled or no image posts found.
  */
 function erankly_get_image_sitemap_xml( int $page = 1 ): string {
@@ -186,14 +173,7 @@ function erankly_get_image_sitemap_xml( int $page = 1 ): string {
 
 		$image_nodes = '';
 		foreach ( $images as $image_url ) {
-			/**
-			 * Filters an individual image sitemap entry.
-			 *
-			 * Return an empty array to exclude the image.
-			 *
-			 * @param array<string,string> $entry   Sitemap entry.
-			 * @param int                  $post_id Post ID.
-			 */
+			/** Filters an individual image sitemap entry. Return an empty array to exclude the image. */
 			$entry = apply_filters(
 				'erankly_image_sitemap_url',
 				array(

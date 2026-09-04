@@ -1,9 +1,5 @@
 <?php
-/**
- * Orchestrates dry runs, conflict-safe writes and migration reports.
- *
- * @package EasyRankly
- */
+/** Orchestrates dry runs, conflict-safe writes and migration reports. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,18 +11,10 @@ final class ERankly_Migration_Manager {
 	private const REPORT_LIMIT   = 10;
 	private const DETAIL_LIMIT   = 100;
 
-	/**
-	 * Registered source adapters.
-	 *
-	 * @var array<string,ERankly_Migration_Adapter>
-	 */
+	/** @var array<string,ERankly_Migration_Adapter> */
 	private array $adapters = array();
 
-	/**
-	 * Returns all registered source adapters.
-	 *
-	 * @return array<string,ERankly_Migration_Adapter>
-	 */
+	/** @return array<string,ERankly_Migration_Adapter> */
 	public function adapters(): array {
 		foreach ( array( 'yoast', 'rankmath', 'aioseo', 'seopress' ) as $source ) {
 			$this->adapter( $source );
@@ -35,12 +23,7 @@ final class ERankly_Migration_Manager {
 		return $this->adapters;
 	}
 
-	/**
-	 * Returns one source adapter.
-	 *
-	 * @param string $source Source adapter slug.
-	 * @return ERankly_Migration_Adapter|null
-	 */
+	/** @return ERankly_Migration_Adapter|null */
 	public function adapter( string $source ): ?ERankly_Migration_Adapter {
 		$source = sanitize_key( $source );
 		if ( isset( $this->adapters[ $source ] ) ) {
@@ -64,13 +47,12 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Builds the immutable header and zeroed counters for a migration report.
-	 *
-	 * @param string $source  Source adapter slug.
-	 * @param bool   $dry_run Whether writes are simulated.
-	 * @param string $run_id  Optional pre-generated run UUID.
-	 * @return array<string,mixed>
-	 */
+ * Builds the immutable header and zeroed counters for a migration report.
+ *
+ * @param bool   $dry_run Whether writes are simulated.
+ * @param string $run_id  Optional pre-generated run UUID.
+ * @return array<string,mixed>
+ */
 	public function new_report( string $source, bool $dry_run, string $run_id = '' ): array {
 		$adapter = $this->adapter( $source );
 		$run_id  = '' !== $run_id ? sanitize_text_field( $run_id ) : wp_generate_uuid4();
@@ -92,12 +74,11 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Runs a preview or real migration.
-	 *
-	 * @param string $source  Source adapter slug.
-	 * @param bool   $dry_run Whether writes must be simulated.
-	 * @return array<string,mixed>
-	 */
+ * Runs a preview or real migration.
+ *
+ * @param bool   $dry_run Whether writes must be simulated.
+ * @return array<string,mixed>
+ */
 	public function run( string $source, bool $dry_run ): array {
 		$adapter = $this->adapter( $source );
 		$report  = $this->new_report( $source, $dry_run );
@@ -193,17 +174,9 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Applies one object's mapped metadata.
-	 *
-	 * @param string              $object_type post|term|user.
-	 * @param int                 $object_id   Object ID.
-	 * @param array<string,mixed> $meta        Mapped EasyRankly metadata.
-	 * @param string              $reference   Source reference.
-	 * @param bool                $dry_run     Whether writes are simulated.
-	 * @param array<string,mixed> $planned     Fields already planned in this run.
-	 * @param array<string,mixed> $report      Running report.
-	 * @return void
-	 */
+ * @param bool                $dry_run     Whether writes are simulated.
+ * @param array<string,mixed> $planned     Fields already planned in this run.
+ */
 	private function apply_meta_record( string $object_type, int $object_id, array $meta, string $reference, bool $dry_run, array &$planned, array &$report ): void {
 		$allowed = erankly_get_meta_keys();
 
@@ -260,15 +233,7 @@ final class ERankly_Migration_Manager {
 		}
 	}
 
-	/**
-	 * Applies redirect records with source ownership and rule-hash conflict checks.
-	 *
-	 * @param ERankly_Migration_Adapter $adapter Source adapter.
-	 * @param string                    $run_id  Migration UUID.
-	 * @param bool                      $dry_run Whether writes are simulated.
-	 * @param array<string,mixed>       $report  Running report.
-	 * @return void
-	 */
+	/** @param bool                      $dry_run Whether writes are simulated. */
 	private function apply_redirects( ERankly_Migration_Adapter $adapter, string $run_id, bool $dry_run, array &$report ): void {
 		erankly_ensure_redirect_classes_available();
 
@@ -372,23 +337,16 @@ final class ERankly_Migration_Manager {
 		}
 	}
 
-	/**
-	 * Checks whether stored and proposed redirects have identical behavior.
-	 *
-	 * @param array<string,mixed> $existing Stored redirect.
-	 * @param array<string,mixed> $proposed Proposed redirect.
-	 * @return bool
-	 */
+	/** Checks whether stored and proposed redirects have identical behavior. */
 	public function same_redirect( array $existing, array $proposed ): bool {
 		return hash_equals( $this->redirect_value_hash( $existing ), $this->redirect_value_hash( $proposed ) );
 	}
 
 	/**
-	 * Hashes redirect behavior without provenance or migration-run fields.
-	 *
-	 * @param array<string,mixed> $redirect Normalized or stored redirect.
-	 * @return string
-	 */
+ * Hashes redirect behavior without provenance or migration-run fields.
+ *
+ * @param array<string,mixed> $redirect Normalized or stored redirect.
+ */
 	public function redirect_value_hash( array $redirect ): string {
 		$keys     = array( 'source_path', 'source_query', 'target_url', 'status_code', 'match_type', 'is_regex', 'is_wildcard', 'case_sensitive', 'trailing_slash', 'query_mode', 'priority', 'is_active', 'visibility', 'required_role', 'conditions', 'start_at', 'end_at' );
 		$behavior = array();
@@ -400,12 +358,6 @@ final class ERankly_Migration_Manager {
 		return hash( 'sha256', (string) wp_json_encode( $behavior ) );
 	}
 
-	/**
-	 * Checks whether a mapped value should be considered importable.
-	 *
-	 * @param mixed $value Mapped value.
-	 * @return bool
-	 */
 	public function is_meaningful( mixed $value ): bool {
 		if ( true === $value ) {
 			return true;
@@ -420,15 +372,6 @@ final class ERankly_Migration_Manager {
 		return is_string( $value ) && '' !== trim( $value );
 	}
 
-	/**
-	 * Adds a bounded detail row.
-	 *
-	 * @param array<string,mixed> $report    Running report.
-	 * @param string              $code      Detail code.
-	 * @param string              $reference Source record reference.
-	 * @param string              $field     Target field.
-	 * @return void
-	 */
 	private function detail( array &$report, string $code, string $reference, string $field ): void {
 		if ( count( $report['details'] ) >= self::DETAIL_LIMIT ) {
 			return;
@@ -441,11 +384,7 @@ final class ERankly_Migration_Manager {
 		);
 	}
 
-	/**
-	 * Returns a zeroed report counter map.
-	 *
-	 * @return array<string,int>
-	 */
+	/** @return array<string,int> */
 	public function empty_counts(): array {
 		return array(
 			'settings_found'          => 0,
@@ -492,11 +431,10 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Completes and persists a bounded report history.
-	 *
-	 * @param array<string,mixed> $report Running report.
-	 * @return array<string,mixed>
-	 */
+ * Completes and persists a bounded report history.
+ *
+ * @return array<string,mixed>
+ */
 	public function finish_report( array $report ): array {
 		if ( empty( $report['completed_at'] ) ) {
 			$report['completed_at'] = gmdate( 'c' );
@@ -524,12 +462,9 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Evaluates the strict go-live gate, optionally refreshing rollback expiry.
-	 *
-	 * @param array<string,mixed> $report Terminal migration report.
-	 * @param bool                $refresh_rollback Whether to read the live journal state.
-	 * @return array<string,mixed>
-	 */
+ * @param bool                $refresh_rollback Whether to read the live journal state.
+ * @return array<string,mixed>
+ */
 	public function evaluate_go_live_gate( array $report, bool $refresh_rollback = false ): array {
 		$rollback = is_array( $report['evidence']['rollback'] ?? null ) ? $report['evidence']['rollback'] : array();
 		if ( $refresh_rollback && 'import' === (string) ( $report['mode'] ?? '' ) && function_exists( 'erankly_migration_journal' ) ) {
@@ -550,11 +485,10 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Builds a deterministic post-preview/import decision and switch checklist.
-	 *
-	 * @param array<string,mixed> $report Terminal migration report.
-	 * @return array<string,mixed>
-	 */
+ * Builds a deterministic post-preview/import decision and switch checklist.
+ *
+ * @return array<string,mixed>
+ */
 	private function build_verification( array $report ): array {
 		$counts          = is_array( $report['counts'] ?? null ) ? $report['counts'] : array();
 		$mode            = (string) ( $report['mode'] ?? '' );
@@ -646,11 +580,10 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Keeps the legacy summary aligned with the authoritative go-live gate.
-	 *
-	 * @param array<string,mixed> $report Migration report.
-	 * @return array<string,mixed>
-	 */
+ * Keeps the legacy summary aligned with the authoritative go-live gate.
+ *
+ * @return array<string,mixed>
+ */
 	private function synchronize_verification_with_gate( array $report ): array {
 		if ( 'import' !== (string) ( $report['mode'] ?? '' ) ) {
 			return $report;
@@ -675,11 +608,10 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
-	 * Returns a persisted migration report.
-	 *
-	 * @param string $report_id Migration UUID.
-	 * @return array<string,mixed>|null
-	 */
+ * Returns a persisted migration report.
+ *
+ * @return array<string,mixed>|null
+ */
 	public function get_report( string $report_id ): ?array {
 		$reports = get_option( self::REPORTS_OPTION, array() );
 		if ( ! is_array( $reports ) || ! isset( $reports[ $report_id ] ) || ! is_array( $reports[ $report_id ] ) ) {
@@ -692,11 +624,7 @@ final class ERankly_Migration_Manager {
 		return $report;
 	}
 
-	/**
-	 * Returns reports ordered newest first.
-	 *
-	 * @return array<int,array<string,mixed>>
-	 */
+	/** @return array<int,array<string,mixed>> */
 	public function reports(): array {
 		$reports = get_option( self::REPORTS_OPTION, array() );
 		if ( ! is_array( $reports ) ) {
@@ -714,12 +642,7 @@ final class ERankly_Migration_Manager {
 		return array_values( array_filter( $reports, 'is_array' ) );
 	}
 
-	/**
-	 * Replaces one existing report after a privileged verification or rollback action.
-	 *
-	 * @param array<string,mixed> $report Updated report.
-	 * @return bool Whether storage changed.
-	 */
+	/** Replaces one existing report after a privileged verification or rollback action. */
 	public function update_report( array $report ): bool {
 		$report_id = sanitize_text_field( (string) ( $report['id'] ?? '' ) );
 		$reports   = get_option( self::REPORTS_OPTION, array() );

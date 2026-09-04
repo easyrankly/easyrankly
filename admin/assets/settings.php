@@ -1,20 +1,11 @@
 <?php
-/**
- * Settings and classic editor assets.
- *
- * @package EasyRankly
- */
+/** Settings and classic editor assets. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Enqueues admin assets only where needed.
- *
- * @param string $hook_suffix Admin hook.
- * @return void
- */
+/** Enqueues admin assets only where needed. */
 function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	$screen = get_current_screen();
 
@@ -256,10 +247,10 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	}
 
 	/**
-	 * Fires after EasyRankly has enqueued its admin assets for this screen.
-	 *
-	 * @param array<string,mixed> $context Screen flags for add-ons.
-	 */
+ * Fires after EasyRankly has enqueued its admin assets for this screen.
+ *
+ * @param array<string,mixed> $context Screen flags for add-ons.
+ */
 	do_action(
 		'erankly_admin_enqueue_assets',
 		array(

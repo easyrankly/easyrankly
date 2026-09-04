@@ -1,19 +1,10 @@
 <?php
-/**
- * First-run setup wizard.
- *
- * @package EasyRankly
- */
+/** First-run setup wizard. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Saves the setup choices.
- *
- * @return void
- */
 function erankly_setup_wizard_handle_save(): void {
 	check_admin_referer( 'erankly_setup_save' );
 
@@ -41,11 +32,7 @@ function erankly_setup_wizard_handle_save(): void {
 	exit;
 }
 
-/**
- * Dismisses the automatic first-run wizard.
- *
- * @return void
- */
+/** Dismisses the automatic first-run wizard. */
 function erankly_setup_wizard_handle_skip(): void {
 	check_admin_referer( 'erankly_setup_skip' );
 
@@ -59,11 +46,6 @@ function erankly_setup_wizard_handle_skip(): void {
 	exit;
 }
 
-/**
- * Renders the setup wizard.
- *
- * @return void
- */
 function erankly_setup_wizard_render_screen(): void {
 	if ( ! current_user_can( erankly_setup_wizard_capability() ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );

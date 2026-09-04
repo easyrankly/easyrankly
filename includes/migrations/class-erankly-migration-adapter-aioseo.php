@@ -1,9 +1,5 @@
 <?php
-/**
- * All in One SEO and AIOSEO Pro migration adapter.
- *
- * @package EasyRankly
- */
+/** All in One SEO and AIOSEO Pro migration adapter. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -13,29 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	private const TABLE_SUFFIXES = array( 'aioseo_posts', 'aioseo_terms', 'aioseo_redirects' );
 
-	/**
-	 * Returns the adapter slug.
-	 *
-	 * @return string
-	 */
 	public function slug(): string {
 		return 'aioseo';
 	}
 
-	/**
-	 * Returns the source label.
-	 *
-	 * @return string
-	 */
 	public function label(): string {
 		return 'All in One SEO';
 	}
 
-	/**
-	 * Returns the detected source version.
-	 *
-	 * @return string
-	 */
+	/** Returns the detected source version. */
 	public function version(): string {
 		if ( function_exists( 'aioseo' ) ) {
 			$instance = aioseo();
@@ -60,7 +42,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $pro ? 'pro' : 'lite';
 	}
 
-	/** Returns separately certified AIOSEO feature profiles. */
 	public function modules(): array {
 		$modules = array( 'search-appearance', 'social', 'schema', 'robots' );
 		if ( $this->table_has_rows( 'aioseo_terms' ) ) {
@@ -82,7 +63,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return array_values( array_unique( $modules ) );
 	}
 
-	/** Returns certification state for detected AIOSEO modules. */
 	public function module_support(): array {
 		$mapped  = array( 'search-appearance', 'social', 'schema', 'robots', 'term-seo', 'redirects', 'pro' );
 		$support = array();
@@ -100,12 +80,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Returns the Pro redirection profile proven by AIOSEO export signatures.
-	 *
-	 * @param string $format Certified export format.
-	 * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
-	 */
+	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
 	protected function export_source_profile( string $format ): array {
 		if ( in_array( $format, array( 'aioseo-redirects-csv', 'aioseo-redirects-json' ), true ) ) {
 			return array(
@@ -166,16 +141,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Returns the supported source capabilities.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	public function capabilities(): array {
 		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'v3 and v4 posts', 'PRO terms', 'social', 'advanced robots', 'schema configuration', 'primary terms', 'PRO redirects' );
 	}
 
-	/** Returns normalized AIOSEO global settings. */
 	public function global_settings(): array {
 		if ( $this->uses_export_file() ) {
 			return array();
@@ -478,11 +448,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $settings;
 	}
 
-	/**
-	 * Determines whether AIOSEO data is available.
-	 *
-	 * @return bool
-	 */
 	public function is_available(): bool {
 		if ( $this->uses_export_file() ) {
 			return 'supported' === (string) $this->profile()['storage_status'];
@@ -498,11 +463,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 			|| $this->has_option_map( 'aioseo_options_dynamic_localized' );
 	}
 
-	/**
-	 * Yields normalized content records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function content_records(): iterable {
 		foreach ( array(
 			'aioseo_posts' => array( 'post', 'post_id' ),
@@ -542,12 +503,9 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns one resumable AIOSEO v4/v3 content page.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source rows or objects to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source rows or objects to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function content_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -624,11 +582,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		}
 	}
 
-	/**
-	 * Yields normalized redirect records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function redirect_records(): iterable {
 		foreach ( $this->table_rows( 'aioseo_redirects' ) as $row ) {
 			$source = (string) ( $row['source_url'] ?? '' );
@@ -657,12 +611,9 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns one keyset-paginated AIOSEO Pro redirect page.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source rows to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source rows to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function redirect_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -701,14 +652,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Maps an AIOSEO v4 database row.
-	 *
-	 * @param array<string,mixed> $row         Source row.
-	 * @param string              $object_type post|term.
-	 * @param int                 $object_id   Object ID.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function map_row( array $row, string $object_type, int $object_id ): array {
 		$get    = static fn( string $key ): string => isset( $row[ $key ] ) && is_scalar( $row[ $key ] ) ? trim( (string) $row[ $key ] ) : '';
 		$og_url = $get( 'og_image_custom_url' );
@@ -804,12 +748,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $this->with_extension_meta( $mapped );
 	}
 
-	/**
-	 * Maps an AIOSEO v3 post metadata record.
-	 *
-	 * @param array<string,mixed> $meta V3 post metadata.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function map_v3_meta( array $meta ): array {
 		$og     = maybe_unserialize( $meta['_aioseop_opengraph_settings'] ?? array() );
 		$og     = is_array( $og ) ? $og : array();
@@ -841,12 +780,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $this->with_extension_meta( $mapped );
 	}
 
-	/**
-	 * Yields rows from an AIOSEO source table in bounded batches.
-	 *
-	 * @param string $suffix Table suffix.
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	private function table_rows( string $suffix ): iterable {
 		if ( ! in_array( $suffix, self::TABLE_SUFFIXES, true ) ) {
 			return;
@@ -865,12 +799,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		} while ( empty( $page['done'] ) );
 	}
 
-	/**
-	 * Determines whether an AIOSEO source table contains rows.
-	 *
-	 * @param string $suffix Table suffix.
-	 * @return bool
-	 */
 	private function table_has_rows( string $suffix ): bool {
 		global $wpdb;
 
@@ -885,13 +813,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i LIMIT 1', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Presence check against a whitelisted prefixed table.
 	}
 
-	/**
-	 * Checks whether a certified optional AIOSEO column contains data.
-	 *
-	 * @param string $suffix Table suffix.
-	 * @param string $column Certified optional column.
-	 * @return bool
-	 */
 	private function table_column_has_values( string $suffix, string $column ): bool {
 		global $wpdb;
 
@@ -915,12 +836,10 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Resolves an AIOSEO entity's inherited robots policy.
-	 *
-	 * @param array<string|int,mixed> $config        Entity configuration.
-	 * @param array<string|int,mixed> $global_robots Site-wide robots configuration.
-	 * @return array<string|int,mixed>
-	 */
+ * Resolves an AIOSEO entity's inherited robots policy.
+ *
+ * @return array<string|int,mixed>
+ */
 	private function effective_robots( array $config, array $global_robots ): array {
 		$robots = $this->first_nested_value( $config, array( 'advanced.robotsMeta', 'robotsMeta', 'robots' ), array() );
 		$robots = is_array( $robots ) ? $robots : array();
@@ -929,15 +848,13 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Expands AIOSEO's built-in global robots mode into its rendered policy.
-	 *
-	 * When `default` is enabled AIOSEO ignores the stored custom flags, emits a
-	 * large image preview, and applies noindex/nofollow to pagination plus a
-	 * noindex HTTP header to feeds.
-	 *
-	 * @param array<string,mixed> $robots Stored AIOSEO global robots map.
-	 * @return array<string,mixed>
-	 */
+ * Expands AIOSEO's built-in global robots mode into its rendered policy. When `default` is enabled AIOSEO
+ * ignores the stored custom flags, emits a large image preview, and applies noindex/nofollow to pagination plus
+ * a noindex HTTP header to feeds.
+ *
+ * @param array<string,mixed> $robots Stored AIOSEO global robots map.
+ * @return array<string,mixed>
+ */
 	private function resolved_global_robots( array $robots ): array {
 		if ( ! $this->enabled( $robots['default'] ?? false ) ) {
 			return $robots;
@@ -960,13 +877,11 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Reads AIOSEO's current all/included sitemap list and legacy keyed maps.
-	 *
-	 * @param array<string|int,mixed> $options Source options.
-	 * @param string                  $group   postTypes|taxonomies.
-	 * @param string                  $name    Post type or taxonomy.
-	 * @return bool|null
-	 */
+ * Reads AIOSEO's current all/included sitemap list and legacy keyed maps.
+ *
+ * @param string                  $name    Post type or taxonomy.
+ * @return bool|null
+ */
 	private function sitemap_membership( array $options, string $group, string $name ): ?bool {
 		$config = $this->nested_value( $options, array( 'sitemap', 'general', $group ), null );
 		if ( is_array( $config ) && ( array_key_exists( 'all', $config ) || array_key_exists( 'included', $config ) ) ) {
@@ -991,11 +906,10 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Expands AIOSEO's "same username" profile shorthand to canonical URLs.
-	 *
-	 * @param array<string|int,mixed> $options Source options.
-	 * @return array<int,string>
-	 */
+ * Expands AIOSEO's "same username" profile shorthand to canonical URLs.
+ *
+ * @return array<int,string>
+ */
 	private function same_username_profiles( array $options ): array {
 		$config = $this->nested_value( $options, 'social.profiles.sameUsername', array() );
 		$config = is_array( $config ) ? $config : array();
@@ -1027,12 +941,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $urls;
 	}
 
-	/**
-	 * Normalizes an AIOSEO Twitter card value.
-	 *
-	 * @param string $value Source card value.
-	 * @return string
-	 */
 	private function twitter_card( string $value ): string {
 		$value = strtolower( $value );
 		if ( '' === $value || 'default' === $value ) {
@@ -1041,13 +949,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return false !== strpos( $value, 'large' ) ? 'summary_large_image' : 'summary';
 	}
 
-	/**
-	 * Maps AIOSEO query handling to the target model.
-	 *
-	 * @param string $value Source query option.
-	 * @param string $query Query found in the source URL.
-	 * @return string
-	 */
+	/** @param string $query Query found in the source URL. */
 	private function aioseo_query_mode( string $value, string $query ): string {
 		$value = strtolower( $value );
 		if ( false !== strpos( $value, 'pass' ) || false !== strpos( $value, 'preserve' ) ) {
@@ -1059,12 +961,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return 'ignore';
 	}
 
-	/**
-	 * Normalizes AIOSEO primary-term data.
-	 *
-	 * @param mixed $value Source primary-term data.
-	 * @return array<string,int>
-	 */
+	/** @return array<string,int> */
 	private function primary_terms( mixed $value ): array {
 		if ( is_string( $value ) ) {
 			$decoded = json_decode( $value, true );
@@ -1086,13 +983,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $primary;
 	}
 
-	/**
-	 * Builds a JSON-LD entity from an old AIOSEO schema record.
-	 *
-	 * @param string $type    Source schema type.
-	 * @param mixed  $options Source schema options.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function old_schema_entity( string $type, mixed $options ): array {
 		$type = preg_replace( '/[^A-Za-z0-9_-]/', '', $type ) ?? '';
 		if ( ! in_array( $type, array( 'SoftwareApplication', 'Product', 'Recipe', 'Course' ), true ) ) {
@@ -1109,12 +1000,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		return $node;
 	}
 
-	/**
-	 * Converts AIOSEO variables throughout a schema value.
-	 *
-	 * @param mixed $value Schema value.
-	 * @return mixed
-	 */
 	private function convert_schema_variables( mixed $value ): mixed {
 		if ( is_string( $value ) ) {
 			return erankly_import_convert_variables( $value, 'aioseo' );

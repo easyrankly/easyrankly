@@ -1,21 +1,10 @@
 <?php
-/**
- * Post meta persistence.
- *
- * @package EasyRankly
- */
+/** Post meta persistence. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Saves meta box values.
- *
- * @param int     $post_id Post ID.
- * @param WP_Post $post    Post object.
- * @return void
- */
 function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 	if ( ! isset( $_POST['erankly_meta_box_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['erankly_meta_box_nonce'] ) ), 'erankly_save_meta_box' ) ) {
 		return;
@@ -189,11 +178,6 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 		}
 	}
 
-	/**
-	 * Fires after core saves all classic meta box fields.
-	 *
-	 * @param int     $post_id Post ID.
-	 * @param WP_Post $post    Post object.
-	 */
+	/** Fires after core saves all classic meta box fields. */
 	do_action( 'erankly_save_meta_box', $post_id, $post );
 }

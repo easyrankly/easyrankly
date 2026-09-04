@@ -1,9 +1,5 @@
 <?php
-/**
- * SEOPress and SEOPress PRO migration adapter.
- *
- * @package EasyRankly
- */
+/** SEOPress and SEOPress PRO migration adapter. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -11,29 +7,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** SEOPress Free/PRO adapter. */
 final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter {
-	/**
-	 * Returns the adapter slug.
-	 *
-	 * @return string
-	 */
+
 	public function slug(): string {
 		return 'seopress';
 	}
 
-	/**
-	 * Returns the source label.
-	 *
-	 * @return string
-	 */
 	public function label(): string {
 		return 'SEOPress';
 	}
 
-	/**
-	 * Returns the detected source version.
-	 *
-	 * @return string
-	 */
+	/** Returns the detected source version. */
 	public function version(): string {
 		return $this->detect_version(
 			'SEOPRESS_VERSION',
@@ -42,7 +25,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	/** Returns Free or PRO from installed code and paid data surfaces. */
 	public function edition(): string {
 		$pro = defined( 'SEOPRESS_PRO_VERSION' )
 			|| ! empty( $this->installed_plugins( array( 'wp-seopress-pro/seopress-pro.php' ) ) )
@@ -52,7 +34,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		return $pro ? 'pro' : 'free';
 	}
 
-	/** Returns independently visible SEOPress feature profiles. */
 	public function modules(): array {
 		$modules = array( 'titles', 'social', 'robots' );
 		if ( $this->has_meta( 'post', array( '_seopress_pro_schemas_manual', '_seopress_pro_rich_snippets_type' ), array( '_seopress_pro_rich_snippets_' ) ) ) {
@@ -68,7 +49,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		return array_values( array_unique( $modules ) );
 	}
 
-	/** Returns certification state for detected SEOPress modules. */
 	public function module_support(): array {
 		$support = array();
 		foreach ( $this->modules() as $module ) {
@@ -85,12 +65,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Returns the edition-neutral profile proven by SEOPress metadata exports.
-	 *
-	 * @param string $format Certified export format.
-	 * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
-	 */
+	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
 	protected function export_source_profile( string $format ): array {
 		if ( 'seopress-metadata-csv' === $format ) {
 			return array(
@@ -164,16 +139,11 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Returns the supported source capabilities.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	public function capabilities(): array {
 		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'attachment redirects', 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex, query and login redirect conditions' );
 	}
 
-	/** Returns normalized SEOPress global settings. */
 	public function global_settings(): array {
 		if ( $this->uses_export_file() ) {
 			return array();
@@ -379,11 +349,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		return $settings;
 	}
 
-	/**
-	 * Determines whether SEOPress data is available.
-	 *
-	 * @return bool
-	 */
 	public function is_available(): bool {
 		if ( $this->uses_export_file() ) {
 			return 'supported' === (string) $this->profile()['storage_status'];
@@ -401,11 +366,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			|| $this->has_option_map( 'seopress_advanced_option_name' );
 	}
 
-	/**
-	 * Yields normalized content records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function content_records(): iterable {
 		foreach ( array( 'post', 'term' ) as $object_type ) {
 			$prefixes = 'post' === $object_type ? array( '_seopress_pro_rich_snippets_' ) : array();
@@ -424,12 +385,9 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	}
 
 	/**
-	 * Returns one keyset-paginated SEOPress content page.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source objects to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source objects to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function content_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -486,11 +444,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		}
 	}
 
-	/**
-	 * Yields normalized redirect records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function redirect_records(): iterable {
 		foreach ( array( 'post', 'term' ) as $object_type ) {
 			foreach ( $this->meta_objects( $object_type, $this->redirect_keys() ) as $record ) {
@@ -537,12 +491,9 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	}
 
 	/**
-	 * Returns one keyset-paginated SEOPress Free/PRO redirect page.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source objects to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source objects to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function redirect_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -593,13 +544,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		}
 	}
 
-	/**
-	 * Maps one SEOPress redirect metadata owner.
-	 *
-	 * @param string                                 $object_type post|term.
-	 * @param array{id:int,meta:array<string,mixed>} $record Source record.
-	 * @return array<string,mixed>|null
-	 */
+	/** @return array<string,mixed>|null */
 	private function map_redirect_record( string $object_type, array $record ): ?array {
 		$meta = $record['meta'];
 		if ( 'post' === $object_type ) {
@@ -641,14 +586,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Maps SEOPress metadata.
-	 *
-	 * @param array<string,mixed> $meta        Source metadata.
-	 * @param string              $object_type post|term.
-	 * @param int                 $object_id   Object ID.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function map_meta( array $meta, string $object_type, int $object_id ): array {
 		$get                                  = fn( string $key ): string => $this->value( $meta, $key );
 		$mapped                               = array(
@@ -722,11 +660,10 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	}
 
 	/**
-	 * Converts the most common legacy SEOPress PRO schema fields.
-	 *
-	 * @param array<string,mixed> $meta Source metadata.
-	 * @return array<string,mixed>
-	 */
+ * Converts the most common legacy SEOPress PRO schema fields.
+ *
+ * @return array<string,mixed>
+ */
 	private function legacy_schema_entity( array $meta ): array {
 		$source_type = strtolower( $this->value( $meta, '_seopress_pro_rich_snippets_type' ) );
 		$type_map    = array(
@@ -781,11 +718,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		return $node;
 	}
 
-	/**
-	 * Returns exact SEOPress content metadata keys.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	private function content_keys(): array {
 		return array(
 			'_seopress_titles_title',
@@ -813,11 +746,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Returns exact SEOPress redirect metadata keys.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	private function redirect_keys(): array {
 		return array(
 			'_seopress_redirections_value',
@@ -829,11 +758,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Determines whether SEOPress redirect posts exist.
-	 *
-	 * @return bool
-	 */
 	private function has_redirect_posts(): bool {
 		global $wpdb;
 

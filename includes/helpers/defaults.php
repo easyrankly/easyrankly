@@ -1,21 +1,11 @@
 <?php
-/**
- * Shared helpers: defaults and meta scaffolding.
- *
- * Loaded lazily for full settings, activation, reset, and migration writes.
- *
- * @package EasyRankly
- */
+/** Shared helpers: defaults and meta scaffolding. Loaded lazily for full settings, activation, reset, and migration writes. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns the default global metadata template for post types.
- *
- * @return array<string,string>
- */
+/** @return array<string,string> */
 function erankly_default_post_type_meta_template(): array {
 	return array(
 		'title'       => '{{post_title}}',
@@ -23,11 +13,7 @@ function erankly_default_post_type_meta_template(): array {
 	);
 }
 
-/**
- * Returns the default global metadata template for taxonomies.
- *
- * @return array<string,string>
- */
+/** @return array<string,string> */
 function erankly_default_taxonomy_meta_template(): array {
 	return array(
 		'title'       => '{{term_name}}',
@@ -35,11 +21,7 @@ function erankly_default_taxonomy_meta_template(): array {
 	);
 }
 
-/**
- * Returns the default global social metadata template for post content.
- *
- * @return array<string,string>
- */
+/** @return array<string,string> */
 function erankly_default_social_meta_template(): array {
 	return array(
 		'title'       => '{{post_title}}',
@@ -47,14 +29,7 @@ function erankly_default_social_meta_template(): array {
 	);
 }
 
-
-/**
- * Builds global metadata defaults for a list of entities.
- *
- * @param array<int,string>    $keys     Entity keys.
- * @param array<string,string> $template Metadata template fields.
- * @return array<string,array<string,string>>
- */
+/** @return array<string,array<string,string>> */
 function erankly_build_global_entity_meta_defaults( array $keys, array $template ): array {
 	$defaults = array();
 
@@ -78,11 +53,7 @@ function erankly_build_global_entity_meta_defaults( array $keys, array $template
 	return $defaults;
 }
 
-/**
- * Returns default global metadata for all supported post types.
- *
- * @return array<string,array<string,string>>
- */
+/** @return array<string,array<string,string>> */
 function erankly_default_global_post_type_meta(): array {
 	$defaults = erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_post_types() ), erankly_default_post_type_meta_template() );
 
@@ -95,23 +66,16 @@ function erankly_default_global_post_type_meta(): array {
 	return $defaults;
 }
 
-/**
- * Returns default global metadata for all supported taxonomies.
- *
- * @return array<string,array<string,string>>
- */
+/** @return array<string,array<string,string>> */
 function erankly_default_global_taxonomy_meta(): array {
 	return erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_taxonomies() ), erankly_default_taxonomy_meta_template() );
 }
 
-
 /**
- * Returns default global metadata for the special page entities.
- *
- * Titles and descriptions start empty. Search results and the 404 page default
- * to hidden; author and date archives default to visible. "Hidden" sets noindex
- * and disable_sitemap (nofollow and noarchive stay off, as advanced-only opt-ins)
- * so the simplified "Hide from search results" control round-trips correctly.
+ * Returns default global metadata for the special page entities. Titles and descriptions start empty. Search
+ * results and the 404 page default to hidden; author and date archives default to visible. "Hidden" sets noindex
+ * and disable_sitemap (nofollow and noarchive stay off, as advanced-only opt-ins) so the simplified "Hide from
+ * search results" control round-trips correctly.
  *
  * @return array<string,array<string,string|int>>
  */
@@ -143,11 +107,9 @@ function erankly_default_global_special_meta(): array {
 }
 
 /**
- * Sanitizes global title and description templates keyed by entity name.
+ * Sanitizes global title and description templates keyed by entity name. Shared by settings forms, import/export
+ * and REST writers.
  *
- * Shared by settings forms, import/export and REST writers.
- *
- * @param mixed             $input        Raw input.
  * @param array<int,string> $allowed_keys Entity keys allowed in settings.
  * @param bool              $linked       Whether one template should apply to every entity.
  * @param bool              $with_social  Whether to also keep per-entity social fields.
@@ -259,12 +221,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 	return $clean;
 }
 
-/**
- * Sanitizes a Schema.org type name used by post-type defaults.
- *
- * @param mixed $value Raw type name.
- * @return string
- */
+/** Sanitizes a Schema.org type name used by post-type defaults. */
 function erankly_sanitize_schema_type_name( mixed $value ): string {
 	$value = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $value );
 
@@ -274,7 +231,6 @@ function erankly_sanitize_schema_type_name( mixed $value ): string {
 /**
  * Sanitizes global robots and sitemap directives.
  *
- * @param array<string,mixed> $fields Raw fields.
  * @return array<string,int|string>
  */
 function erankly_sanitize_global_entity_directives( array $fields ): array {
@@ -332,7 +288,6 @@ function erankly_sanitize_global_entity_directives( array $fields ): array {
 /**
  * Sanitizes the social fields of a global entity.
  *
- * @param array<string,mixed> $fields Raw fields.
  * @return array<string,string|int>
  */
 function erankly_sanitize_global_entity_social( array $fields ): array {
@@ -346,12 +301,7 @@ function erankly_sanitize_global_entity_social( array $fields ): array {
 	);
 }
 
-/**
- * Determines whether a sanitized social field set carries no usable value.
- *
- * @param array<string,string|int> $social Sanitized social fields.
- * @return bool
- */
+/** Determines whether a sanitized social field set carries no usable value. */
 function erankly_global_entity_social_is_empty( array $social ): bool {
 	return '' === ( $social['og_title'] ?? '' )
 		&& '' === ( $social['og_description'] ?? '' )
@@ -361,11 +311,7 @@ function erankly_global_entity_social_is_empty( array $social ): bool {
 		&& 0 === (int) ( $social['og_image_id'] ?? 0 );
 }
 
-/**
- * Returns default plugin settings.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_default_settings(): array {
 	$social_template = erankly_default_social_meta_template();
 

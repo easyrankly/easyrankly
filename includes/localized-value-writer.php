@@ -1,21 +1,14 @@
 <?php
-/**
- * Public, allowlisted writer for localized EasyRankly source values.
- *
- * @package EasyRankly
- */
+/** Public, allowlisted writer for localized EasyRankly source values. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Returns the public localized-source contract definition for one key.
+ * Returns the public localized-source contract definition for one key. This deliberately closed registry is not
+ * filterable. Dynamic post-type and taxonomy keys are accepted only when WordPress reports the subtype public.
  *
- * This deliberately closed registry is not filterable. Dynamic post-type and
- * taxonomy keys are accepted only when WordPress reports the subtype public.
- *
- * @param string $key Public localized-source key.
  * @return array{key:string,path:array<int,string>,format:string,max_length:int}|WP_Error
  */
 function erankly_get_localized_value_source_definition( string $key ): array|WP_Error {
@@ -83,13 +76,10 @@ function erankly_get_localized_value_source_definition( string $key ): array|WP_
 }
 
 /**
- * Returns the current canonical value and a fingerprint suitable for CAS.
+ * Returns the current canonical value and a fingerprint suitable for CAS. The value is intentionally present in
+ * a successful state response because a migration must materialize it as the former language override. Error
+ * payloads never contain the value.
  *
- * The value is intentionally present in a successful state response because a
- * migration must materialize it as the former language override. Error payloads
- * never contain the value.
- *
- * @param string $key Public localized-source key.
  * @return array{contract:string,key:string,value:string,value_hash:string,fingerprint:string,format:string}|WP_Error
  */
 function erankly_get_localized_value_source_state( string $key ): array|WP_Error {
@@ -109,15 +99,11 @@ function erankly_get_localized_value_source_state( string $key ): array|WP_Error
 }
 
 /**
- * Writes one registered source value with fingerprint CAS and verification.
+ * Writes one registered source value with fingerprint CAS and verification. Repeating a completed write or
+ * restore is idempotent even when its expected fingerprint is now stale. A different desired value must match
+ * the current fingerprint. The shared settings mutex serializes this operation with every other EasyRankly
+ * settings writer.
  *
- * Repeating a completed write or restore is idempotent even when its expected
- * fingerprint is now stale. A different desired value must match the current
- * fingerprint. The shared settings mutex serializes this operation with every
- * other EasyRankly settings writer.
- *
- * @param string $key                  Public localized-source key.
- * @param mixed  $value                Already-unslashed source value.
  * @param string $expected_fingerprint Fingerprint returned by the read API.
  * @return array{contract:string,key:string,value:string,value_hash:string,fingerprint:string,format:string,changed:bool,idempotent:bool}|WP_Error
  */
@@ -204,14 +190,7 @@ function erankly_update_localized_value_source( string $key, mixed $value, strin
 			);
 		}
 
-		/**
-		 * Fires after storage write and before verification.
-		 *
-		 * Payloads contain identifiers and fingerprints only, never values.
-		 *
-		 * @param string $key         Registered public key.
-		 * @param string $fingerprint Previous source fingerprint.
-		 */
+		/** Fires after storage write and before verification. Payloads contain identifiers and fingerprints only, never values. */
 		do_action( 'erankly_localized_value_source_write_checkpoint', (string) $definition['key'], $expected_fingerprint );
 
 		$verified = erankly_localized_value_source_state_from_definition( $definition );
@@ -241,12 +220,10 @@ function erankly_update_localized_value_source( string $key, mixed $value, strin
 }
 
 /**
- * Forces the CAS read after lock acquisition to bypass stale request/cache data.
- *
- * The settings option is autoloaded, so deleting only its individual cache key
- * is insufficient. Clearing alloptions and notoptions is required for a
- * long-running process to observe a write completed by another process before
- * it acquired the shared mutex.
+ * Forces the CAS read after lock acquisition to bypass stale request/cache data. The settings option is
+ * autoloaded, so deleting only its individual cache key is insufficient. Clearing alloptions and notoptions is
+ * required for a long-running process to observe a write completed by another process before it acquired the
+ * shared mutex.
  */
 function erankly_localized_value_source_refresh_settings(): void {
 	erankly_clear_settings_cache();
@@ -284,12 +261,7 @@ function erankly_localized_value_source_authorized(): bool|WP_Error {
 	return true;
 }
 
-/**
- * Builds one source state without re-running public authorization.
- *
- * @param array{key:string,path:array<int,string>,format:string,max_length:int} $definition Definition.
- * @return array{contract:string,key:string,value:string,value_hash:string,fingerprint:string,format:string}
- */
+/** @return array{contract:string,key:string,value:string,value_hash:string,fingerprint:string,format:string} */
 function erankly_localized_value_source_state_from_definition( array $definition ): array {
 	$value       = erankly_localized_value_source_get_path( erankly_get_settings(), (array) $definition['path'] );
 	$value       = is_scalar( $value ) ? (string) $value : '';
@@ -317,14 +289,10 @@ function erankly_localized_value_source_state_from_definition( array $definition
 }
 
 /**
- * Sanitizes a candidate through the full core settings rules.
- *
- * A mutation is rejected when sanitization would alter it. Add-on values are
- * already sanitized by their closed registry, while hostile direct calls fail
+ * Sanitizes a candidate through the full core settings rules. A mutation is rejected when sanitization would
+ * alter it. Add-on values are already sanitized by their closed registry, while hostile direct calls fail
  * instead of silently changing meaning.
  *
- * @param array{key:string,path:array<int,string>,format:string,max_length:int} $definition Definition.
- * @param mixed                                                                 $value      Candidate.
  * @return string|WP_Error
  */
 function erankly_localized_value_source_sanitize_candidate( array $definition, mixed $value ): string|WP_Error {
@@ -358,7 +326,6 @@ function erankly_localized_value_source_sanitize_candidate( array $definition, m
 /**
  * Loads and applies the canonical settings sanitizer.
  *
- * @param array<string,mixed> $settings Full current settings.
  * @return array<string,mixed>
  */
 function erankly_localized_value_source_sanitize_settings( array $settings ): array {
@@ -369,13 +336,6 @@ function erankly_localized_value_source_sanitize_settings( array $settings ): ar
 	return erankly_sanitize_settings( $settings );
 }
 
-/**
- * Returns one nested source value.
- *
- * @param array<string,mixed> $settings Full current settings.
- * @param array<int,string>   $path     Allowlisted path.
- * @return mixed
- */
 function erankly_localized_value_source_get_path( array $settings, array $path ): mixed {
 	$value = $settings;
 	foreach ( $path as $part ) {
@@ -385,13 +345,6 @@ function erankly_localized_value_source_get_path( array $settings, array $path )
 	return $value;
 }
 
-/**
- * Sets one nested source value.
- *
- * @param array<string,mixed> $settings Full current settings.
- * @param array<int,string>   $path     Allowlisted path.
- * @param string              $value    Sanitized value.
- */
 function erankly_localized_value_source_set_path( array &$settings, array $path, string $value ): void {
 	$target = &$settings;
 	$last   = array_pop( $path );
@@ -404,14 +357,6 @@ function erankly_localized_value_source_set_path( array &$settings, array $path,
 	$target[ (string) $last ] = $value;
 }
 
-/**
- * Returns one bounded machine-readable public error.
- *
- * @param string              $code    Stable code.
- * @param string              $message Safe localized message.
- * @param int                 $status  HTTP status.
- * @param array<string,mixed> $data    Bounded non-sensitive data.
- */
 function erankly_localized_value_source_error( string $code, string $message, int $status, array $data = array() ): WP_Error {
 	$data['status']    = $status;
 	$data['retryable'] = isset( $data['retryable'] ) ? (bool) $data['retryable'] : in_array( $status, array( 423, 503 ), true );

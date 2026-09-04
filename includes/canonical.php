@@ -1,19 +1,10 @@
 <?php
-/**
- * Canonical URL handling.
- *
- * @package EasyRankly
- */
+/** Canonical URL handling. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns the computed canonical URL.
- *
- * @return string
- */
 function erankly_get_canonical(): string {
 	static $resolved = null;
 
@@ -73,21 +64,11 @@ function erankly_get_canonical(): string {
 
 	$canonical = erankly_localize_url( esc_url_raw( (string) $canonical ) );
 
-	/**
-	 * Filters the computed canonical URL.
-	 *
-	 * @param string $canonical Canonical URL.
-	 */
 	$resolved = (string) apply_filters( 'erankly_canonical', $canonical );
 
 	return $resolved;
 }
 
-/**
- * Returns a self-referencing canonical URL for paginated archives.
- *
- * @return string
- */
 function erankly_get_paged_archive_canonical(): string {
 	$page = max( 1, (int) get_query_var( 'paged', 1 ) );
 	$url  = get_pagenum_link( $page, false );

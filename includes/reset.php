@@ -1,13 +1,8 @@
 <?php
 /**
- * Reset module.
- *
- * Restores EasyRankly to a clean state without deactivating the plugin: wipes
- * settings, redirects, and post/term/special-page metadata. On Multisite a
- * Network Admin gets two scopes: a local reset for the primary site's own
- * content, and a global reset that also sweeps every site on the network.
- *
- * @package EasyRankly
+ * Reset module. Restores EasyRankly to a clean state without deactivating the plugin: wipes settings, redirects,
+ * and post/term/special-page metadata. On Multisite a Network Admin gets two scopes: a local reset for the
+ * primary site's own content, and a global reset that also sweeps every site on the network.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -19,11 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 erankly_load_default_helpers();
 require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
 
-/**
- * Returns the settings page URL for the Settings tab (where the Reset box lives).
- *
- * @return string
- */
+/** Returns the settings page URL for the Settings tab (where the Reset box lives). */
 function erankly_reset_url(): string {
 	$base = is_network_admin()
 		? network_admin_url( 'settings.php' )
@@ -38,11 +29,7 @@ function erankly_reset_url(): string {
 	);
 }
 
-/**
- * Dispatches reset form submissions on the settings page.
- *
- * @return void
- */
+/** Dispatches reset form submissions on the settings page. */
 function erankly_reset_handle_actions(): void {
 	// On Multisite the settings option is a network option; gate write access accordingly.
 	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
@@ -68,12 +55,11 @@ function erankly_reset_handle_actions(): void {
 	check_admin_referer( 'erankly_' . $action );
 
 	/**
-	 * Handles authenticated add-on reset actions before core's built-in paths.
-	 *
-	 * Extensions must render a nonce for the `erankly_{$action}` action.
-	 *
-	 * @param string $action Authenticated reset action slug.
-	 */
+ * Handles authenticated add-on reset actions before core's built-in paths. Extensions must render a nonce for
+ * the `erankly_{$action}` action.
+ *
+ * @param string $action Authenticated reset action slug.
+ */
 	do_action( 'erankly_reset_action', $action );
 
 	if ( 'reset_local' === $action ) {
@@ -100,25 +86,15 @@ function erankly_reset_handle_actions(): void {
 	}
 }
 
-/**
- * Redirects back to the Settings tab with a notice argument.
- *
- * @param array<string,mixed> $args Query args.
- * @return void
- */
 function erankly_reset_redirect( array $args ): void {
 	wp_safe_redirect( add_query_arg( $args, erankly_reset_url() ) );
 	exit;
 }
 
 /**
- * Abandons any settings mutex lease before a destructive reset rewrite.
- *
- * Reset already requires an exclusive capability check and may have deleted
- * plugin data before restoring defaults. A leftover lease from a crashed or
- * concurrent settings save must not block that final write.
- *
- * @return void
+ * Abandons any settings mutex lease before a destructive reset rewrite. Reset already requires an exclusive
+ * capability check and may have deleted plugin data before restoring defaults. A leftover lease from a crashed
+ * or concurrent settings save must not block that final write.
  */
 function erankly_reset_abandon_settings_lock(): void {
 	if ( ! defined( 'ERANKLY_SETTINGS_LOCK_OPTION' ) ) {
@@ -134,15 +110,11 @@ function erankly_reset_abandon_settings_lock(): void {
 }
 
 /**
- * Wipes the current site's own EasyRankly data: redirects, post/term meta,
- * special-page metadata, and sitemap caches.
+ * Wipes the current site's own EasyRankly data: redirects, post/term meta, special-page metadata, and sitemap
+ * caches. On single-site this also resets the plugin settings themselves, since those are stored per site there.
+ * On Multisite the settings option is network-wide, so a per-site reset must leave it untouched.
+ * erankly_reset_network() handles that scope separately.
  *
- * On single-site this also resets the plugin settings themselves, since those
- * are stored per site there. On Multisite the settings option is network-wide,
- * so a per-site reset must leave it untouched. erankly_reset_network()
- * handles that scope separately.
- *
- * @return void
  * @throws RuntimeException When a database cleanup operation fails.
  */
 function erankly_reset_site_data(): void {
@@ -306,22 +278,15 @@ function erankly_reset_site_data(): void {
 		erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'pending' );
 	}
 
-	/**
-	 * Fires after core has wiped this site's EasyRankly data.
-	 *
-	 * Add-ons should delete their own options, transients and cron events here.
-	 */
+	/** Fires after core has wiped this site's EasyRankly data. Add-ons should delete their own options, transients and cron events here. */
 	do_action( 'erankly_reset_site_data' );
 }
 
 /**
- * Resets the current network's shared core settings.
+ * Resets the current network's shared core settings. This is the first resumable worker phase, not part of the
+ * form submission. Every operation is idempotent and verified so a transient failure can be retried without
+ * losing the reset job that records its status.
  *
- * This is the first resumable worker phase, not part of the form submission.
- * Every operation is idempotent and verified so a transient failure can be
- * retried without losing the reset job that records its status.
- *
- * @return void
  * @throws RuntimeException When shared reset state cannot be persisted.
  */
 function erankly_reset_network_shared_data(): void {
@@ -350,11 +315,8 @@ function erankly_reset_network_shared_data(): void {
 }
 
 /**
- * Queues a resumable reset for the current network.
- *
- * No plugin data is mutated until the job has been stored and scheduled. The
- * worker then resets shared state and per-site data in
- * bounded, retryable phases.
+ * Queues a resumable reset for the current network. No plugin data is mutated until the job has been stored and
+ * scheduled. The worker then resets shared state and per-site data in bounded, retryable phases.
  *
  * @return bool Whether the background cleanup was queued.
  */
@@ -364,11 +326,7 @@ function erankly_reset_network(): bool {
 	return erankly_queue_network_reset();
 }
 
-/**
- * Renders the Reset card shown on the Settings tab, after Preferences.
- *
- * @return void
- */
+/** Renders the Reset card shown on the Settings tab, after Preferences. */
 function erankly_reset_render_panel(): void {
 	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
 
@@ -450,19 +408,9 @@ function erankly_reset_render_panel(): void {
 	<?php
 }
 
-/**
- * Renders the reset admin notice for the current request.
- *
- * @return void
- */
 function erankly_reset_render_notice(): void {
 	$notice = isset( $_GET['erankly_reset_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_reset_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag.
 
-	/**
-	 * Renders add-on reset notices.
-	 *
-	 * @param string $notice Notice slug.
-	 */
 	do_action( 'erankly_reset_notice', $notice );
 
 	if ( 'local' === $notice ) {

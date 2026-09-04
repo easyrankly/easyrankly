@@ -1,22 +1,11 @@
 <?php
-/**
- * WooCommerce Product schema compatibility.
- *
- * Loaded by the public compatibility wrapper only when WooCommerce is active.
- *
- * @package EasyRankly
- */
+/** WooCommerce Product schema compatibility. Loaded by the public compatibility wrapper only when WooCommerce is active. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Builds WooCommerce product schema additions when available.
- *
- * @param int $post_id Post ID.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_build_woocommerce_product_data( int $post_id ): array {
 	if ( 'product' !== get_post_type( $post_id ) || ! erankly_should_render_woocommerce_product_schema( $post_id ) ) {
 		return array();
@@ -86,13 +75,7 @@ function erankly_build_woocommerce_product_data( int $post_id ): array {
 	return array_filter( $data );
 }
 
-/**
- * Builds a simple-product Offer node.
- *
- * @param WC_Product $product   Product.
- * @param string     $permalink Product permalink.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_get_woocommerce_simple_offer( WC_Product $product, string $permalink ): array {
 	$price = $product->get_price();
 	if ( '' === $price ) {
@@ -114,13 +97,7 @@ function erankly_get_woocommerce_simple_offer( WC_Product $product, string $perm
 	return $offer;
 }
 
-/**
- * Builds a variable-product AggregateOffer node.
- *
- * @param WC_Product_Variable $product   Variable product.
- * @param string              $permalink Product permalink.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_get_woocommerce_variable_offer( WC_Product_Variable $product, string $permalink ): array {
 	$prices = $product->get_variation_prices( false );
 	if ( empty( $prices['price'] ) ) {
@@ -139,13 +116,7 @@ function erankly_get_woocommerce_variable_offer( WC_Product_Variable $product, s
 	);
 }
 
-/**
- * Returns approved product reviews as Review nodes.
- *
- * @param int $post_id Product post ID.
- * @param int $limit   Maximum reviews.
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_get_woocommerce_product_reviews( int $post_id, int $limit = 10 ): array {
 	$comments = get_comments(
 		array(
@@ -185,12 +156,6 @@ function erankly_get_woocommerce_product_reviews( int $post_id, int $limit = 10 
 	return $reviews;
 }
 
-/**
- * Returns a product brand from common taxonomies.
- *
- * @param int $post_id Product post ID.
- * @return string
- */
 function erankly_get_woocommerce_product_brand( int $post_id ): string {
 	foreach ( array( 'product_brand', 'pa_brand', 'pwb-brand' ) as $taxonomy ) {
 		if ( ! taxonomy_exists( $taxonomy ) ) {

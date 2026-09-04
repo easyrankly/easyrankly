@@ -1,9 +1,5 @@
 <?php
-/**
- * Persistent value-free exception ledger for migration reports.
- *
- * @package EasyRankly
- */
+/** Persistent value-free exception ledger for migration reports. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,14 +10,12 @@ final class ERankly_Migration_Evidence_Store {
 	private const SCHEMA_VERSION        = '1.0';
 	private const SCHEMA_VERSION_OPTION = 'erankly_migration_evidence_db_version';
 
-	/** Returns the site-scoped exception-ledger table name. */
 	public static function table_name(): string {
 		global $wpdb;
 
 		return $wpdb->prefix . 'erankly_migration_exceptions';
 	}
 
-	/** Creates or upgrades the exception-ledger table. */
 	public function ensure_schema(): bool {
 		global $wpdb;
 
@@ -60,14 +54,7 @@ final class ERankly_Migration_Evidence_Store {
 		return $available;
 	}
 
-	/**
-	 * Stores one exception occurrence idempotently.
-	 *
-	 * @param string              $job_id Migration UUID.
-	 * @param int                 $queue_id Queue row ID.
-	 * @param array<string,mixed> $exception Value-free exception.
-	 * @throws RuntimeException When durable evidence cannot be stored.
-	 */
+	/** @throws RuntimeException When durable evidence cannot be stored. */
 	public function add( string $job_id, int $queue_id, array $exception ): void {
 		global $wpdb;
 
@@ -98,12 +85,6 @@ final class ERankly_Migration_Evidence_Store {
 		}
 	}
 
-	/**
-	 * Returns the number of complete exception rows for a report.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return int Exception count.
-	 */
 	public function count( string $job_id ): int {
 		global $wpdb;
 
@@ -116,14 +97,7 @@ final class ERankly_Migration_Evidence_Store {
 		);
 	}
 
-	/**
-	 * Returns one bounded CSV/download page.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param int    $after_id Last consumed ledger ID.
-	 * @param int    $limit Maximum rows.
-	 * @return array<int,array<string,mixed>> Complete exception page.
-	 */
+	/** @param int    $after_id Last consumed ledger ID. */
 	public function page( string $job_id, int $after_id, int $limit = 500 ): array {
 		global $wpdb;
 
@@ -138,11 +112,7 @@ final class ERankly_Migration_Evidence_Store {
 		return is_array( $rows ) ? array_values( array_filter( $rows, 'is_array' ) ) : array();
 	}
 
-	/**
-	 * Deletes the exception ledger when its bounded parent report is evicted.
-	 *
-	 * @param string $job_id Migration UUID.
-	 */
+	/** Deletes the exception ledger when its bounded parent report is evicted. */
 	public function delete_job( string $job_id ): void {
 		global $wpdb;
 

@@ -1,19 +1,11 @@
 <?php
-/**
- * Shared helpers: sitemap URLs and cache invalidation.
- *
- * Loaded only for sitemap, robots, lifecycle and related settings work.
- *
- * @package EasyRankly
- */
+/** Shared helpers: sitemap URLs and cache invalidation. Loaded only for sitemap, robots, lifecycle and related settings work. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Resolves a sitemap URL, using query parameters if permalinks are disabled.
- *
  * @param string $path The root-relative sitemap path (e.g. '/wp-sitemap.xml').
  * @return string The resolved absolute URL.
  */
@@ -34,23 +26,14 @@ function erankly_get_sitemap_url( string $path ): string {
 }
 
 /**
- * Returns the URL of the core wp_sitemaps XSL stylesheet.
- *
- * The specialist sitemaps reuse the native stylesheet so their browser view is
- * visually identical to the core /wp-sitemap.xml pages.
- *
- * @return string
+ * Returns the URL of the core wp_sitemaps XSL stylesheet. The specialist sitemaps reuse the native stylesheet so
+ * their browser view is visually identical to the core /wp-sitemap.xml pages.
  */
 function erankly_get_sitemap_stylesheet_url(): string {
 	return wp_sitemaps_get_server()->renderer->get_sitemap_stylesheet_url();
 }
 
-/**
- * Clears sitemap transients.
- *
- * @param mixed ...$hook_args Hook arguments (not used, hook may pass any number of args).
- * @return void
- */
+/** @param mixed ...$hook_args Hook arguments (not used, hook may pass any number of args). */
 function erankly_flush_sitemap_cache( mixed ...$hook_args ): void {
 	unset( $hook_args );
 	static $flushed_sites = array();
@@ -67,12 +50,7 @@ function erankly_flush_sitemap_cache( mixed ...$hook_args ): void {
 	update_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, max( 1, $version + 1 ), false );
 }
 
-/**
- * Invalidates sitemap caches after a meaningful post save.
- *
- * @param int $post_id Post ID.
- * @return void
- */
+/** Invalidates sitemap caches after a meaningful post save. */
 function erankly_flush_sitemap_cache_for_post( int $post_id ): void {
 	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
 		return;
@@ -81,26 +59,14 @@ function erankly_flush_sitemap_cache_for_post( int $post_id ): void {
 	erankly_flush_sitemap_cache();
 }
 
-/**
- * Invalidates sitemap caches after a post deletion.
- *
- * @param int $post_id Post ID.
- * @return void
- */
+/** Invalidates sitemap caches after a post deletion. */
 function erankly_flush_sitemap_cache_for_deleted_post( int $post_id ): void {
 	if ( $post_id > 0 ) {
 		erankly_flush_sitemap_cache();
 	}
 }
 
-/**
- * Invalidates sitemap caches after a publication status transition.
- *
- * @param string  $new_status New status.
- * @param string  $old_status Previous status.
- * @param WP_Post $post       Post object.
- * @return void
- */
+/** Invalidates sitemap caches after a publication status transition. */
 function erankly_flush_sitemap_cache_for_status( string $new_status, string $old_status, WP_Post $post ): void {
 	if ( $new_status === $old_status || wp_is_post_revision( $post->ID ) ) {
 		return;
@@ -115,9 +81,6 @@ function erankly_flush_sitemap_cache_for_status( string $new_status, string $old
  * Invalidates sitemap caches only for EasyRankly term metadata.
  *
  * @param mixed  $meta_id  Meta row ID or deleted row IDs.
- * @param int    $term_id  Term ID.
- * @param string $meta_key Meta key.
- * @return void
  */
 function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id, string $meta_key ): void {
 	unset( $meta_id, $term_id );
@@ -131,9 +94,6 @@ function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id
  * Invalidates sitemap caches only for EasyRankly post metadata.
  *
  * @param mixed  $meta_id    Meta row ID or deleted row IDs.
- * @param int    $object_id  Post ID.
- * @param string $meta_key   Meta key.
- * @return void
  */
 function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_id, string $meta_key ): void {
 	unset( $meta_id, $object_id );
@@ -144,13 +104,8 @@ function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_
 }
 
 /**
- * Returns a versioned sitemap transient key.
- *
- * Versioning makes invalidation a constant-time option update. Older transient
- * rows expire naturally instead of being deleted with a wildcard SQL query.
- *
- * @param string $suffix Cache key suffix.
- * @return string
+ * Returns a versioned sitemap transient key. Versioning makes invalidation a constant-time option update. Older
+ * transient rows expire naturally instead of being deleted with a wildcard SQL query.
  */
 function erankly_get_sitemap_cache_key( string $suffix ): string {
 	static $version = null;

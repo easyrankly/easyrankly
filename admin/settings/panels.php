@@ -1,12 +1,8 @@
 <?php
 /**
- * Settings page: per-panel renderers.
- *
- * Each function renders one tab panel of the EasyRankly settings screen. The
- * markup was extracted verbatim from erankly_render_settings_page() to keep
- * that orchestrator small; the generated output is unchanged.
- *
- * @package EasyRankly
+ * Settings page: per-panel renderers. Each function renders one tab panel of the EasyRankly settings screen. The
+ * markup was extracted verbatim from erankly_render_settings_page() to keep that orchestrator small; the
+ * generated output is unchanged.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,13 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Renders the Features settings panel.
- *
- * @param array<string,mixed> $settings          Plugin settings.
  * @param bool                $redirects_enabled Whether the redirect module is enabled.
  * @param bool                $sitemap_enabled   Whether the sitemap module is enabled.
- * @param string              $active_panel      Active panel ID.
- * @return void
  */
 function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, string $active_panel ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
@@ -39,11 +30,7 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_sitemap]" value="1" <?php checked( $sitemap_enabled ); ?>> <?php esc_html_e( 'Enable the sitemap module', 'easyrankly' ); ?></label>
 						</div>
 						<?php
-						/**
-						 * Prints extra feature-module toggles after Redirects and Sitemap.
-						 *
-						 * @param array<string,mixed> $settings Plugin settings.
-						 */
+						/** Prints extra feature-module toggles after Redirects and Sitemap. */
 						do_action( 'erankly_settings_features_modules', $settings );
 						?>
 							</div>
@@ -53,14 +40,9 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 }
 
 /**
- * Renders the General settings panel.
- *
- * @param array<string,mixed> $settings                 Plugin settings.
  * @param int                 $schema_person_user_id    Selected Person schema user ID.
  * @param WP_User|false       $schema_person_user       Selected Person schema user, or false.
  * @param bool                $show_organization_fields Whether to show Organization-only fields.
- * @param string              $active_panel             Active panel ID.
- * @return void
  */
 function erankly_render_settings_panel_general( array $settings, int $schema_person_user_id, $schema_person_user, bool $show_organization_fields, string $active_panel ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
@@ -189,12 +171,6 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 	<?php
 }
 
-/**
- * Renders the Social settings panel.
- *
- * @param array<string,mixed> $settings Plugin settings.
- * @return void
- */
 function erankly_render_settings_panel_social( array $settings ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the
@@ -271,12 +247,8 @@ function erankly_render_settings_panel_social( array $settings ): void {
 }
 
 /**
- * Renders the Schema settings panel.
- *
- * @param array<string,mixed> $settings             Plugin settings.
  * @param array<int,mixed>    $global_schema_blocks Configured global schema blocks.
  * @param string              $global_schema_name   Schema blocks field name prefix.
- * @return void
  */
 function erankly_render_settings_panel_schema( array $settings, array $global_schema_blocks, string $global_schema_name ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
@@ -315,13 +287,6 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 	<?php
 }
 
-/**
- * Renders the Sitemap settings panel.
- *
- * @param array<string,mixed> $settings    Plugin settings.
- * @param string              $sitemap_url Absolute wp-sitemap.xml URL.
- * @return void
- */
 function erankly_render_settings_panel_sitemap( array $settings, string $sitemap_url ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the
@@ -407,13 +372,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 	<?php
 }
 
-/**
- * Renders the Settings settings panel.
- *
- * @param array<string,mixed> $settings          Plugin settings.
- * @param bool                $redirects_enabled Whether the redirect module is enabled.
- * @return void
- */
+/** @param bool                $redirects_enabled Whether the redirect module is enabled. */
 function erankly_render_settings_panel_settings( array $settings, bool $redirects_enabled ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the
@@ -451,12 +410,6 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 	<?php
 }
 
-/**
- * Renders the Advanced settings panel.
- *
- * @param array<string,mixed> $settings Plugin settings.
- * @return void
- */
 function erankly_render_settings_panel_advanced( array $settings ): void {
 	// The panel is only ever reachable on single-site or from Network Admin
 	// (a per-site admin on Multisite never gets this tab), so that's the

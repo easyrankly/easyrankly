@@ -1,33 +1,21 @@
 <?php
 /**
- * XML sitemap generation: News sitemap.
- *
- * Loaded only when the Google News feature is enabled (see erankly_bootstrap()),
- * so these functions are parsed only on sites that use this sitemap type.
- *
- * @package EasyRankly
+ * XML sitemap generation: News sitemap. Loaded only when the Google News feature is enabled (see
+ * erankly_bootstrap()), so these functions are parsed only on sites that use this sitemap type.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Counts posts eligible for the Google News sitemap (published in the last 48 hours).
- *
- * @return int
- */
+/** Counts posts eligible for the Google News sitemap (published in the last 48 hours). */
 function erankly_count_news_sitemap_posts(): int {
 	$stats = erankly_get_news_sitemap_stats();
 
 	return $stats['count'];
 }
 
-/**
- * Returns aggregate Google News sitemap statistics.
- *
- * @return array{count:int,lastmod:string}
- */
+/** @return array{count:int,lastmod:string} */
 function erankly_get_news_sitemap_stats(): array {
 	global $wpdb;
 
@@ -37,11 +25,6 @@ function erankly_get_news_sitemap_stats(): array {
 		return $cache;
 	}
 
-	/**
-	 * Filters the post types included in the Google News sitemap.
-	 *
-	 * @param array<int,string> $post_types Post type names.
-	 */
 	$setting_types = (array) erankly_get_setting( 'news_sitemap_post_types', array( 'post' ) );
 	$post_types    = erankly_filter_sitemap_post_type_names_by_global_directives( (array) apply_filters( 'erankly_news_sitemap_post_types', $setting_types ) );
 
@@ -85,11 +68,7 @@ function erankly_get_news_sitemap_stats(): array {
 	return $cache;
 }
 
-/**
- * Returns the latest publication date among Google News sitemap posts.
- *
- * @return string W3C date string or empty string.
- */
+/** @return string W3C date string or empty string. */
 function erankly_get_news_sitemap_lastmod(): string {
 	$stats = erankly_get_news_sitemap_stats();
 
@@ -97,9 +76,7 @@ function erankly_get_news_sitemap_lastmod(): string {
 }
 
 /**
- * Returns the Google News sitemap XML.
- *
- * Includes only posts (post type: post) published in the last 48 hours.
+ * Returns the Google News sitemap XML. Includes only posts (post type: post) published in the last 48 hours.
  * Follows the Google News Sitemap spec:
  * https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap
  *
@@ -113,11 +90,6 @@ function erankly_get_news_sitemap_xml(): string {
 		return $cached;
 	}
 
-	/**
-	 * Filters the post types included in the Google News sitemap.
-	 *
-	 * @param array<int,string> $post_types Post type names.
-	 */
 	$setting_types = (array) erankly_get_setting( 'news_sitemap_post_types', array( 'post' ) );
 	$post_types    = erankly_filter_sitemap_post_type_names_by_global_directives( (array) apply_filters( 'erankly_news_sitemap_post_types', $setting_types ) );
 
@@ -175,13 +147,9 @@ function erankly_get_news_sitemap_xml(): string {
 	}
 
 	/**
-	 * Filters the publication name used in the Google News sitemap.
-	 *
-	 * Configure the name under Settings → Sitemap → "News publication name".
-	 * Note: a News sitemap does not guarantee inclusion in Google News.
-	 *
-	 * @param string $name Publication name.
-	 */
+ * Filters the publication name used in the Google News sitemap. Configure the name under Settings → Sitemap
+ * → "News publication name". Note: a News sitemap does not guarantee inclusion in Google News.
+ */
 	$pub_name = trim( (string) apply_filters( 'erankly_news_sitemap_publication_name', $pub_name ) );
 
 	if ( '' === $pub_name ) {
@@ -191,11 +159,7 @@ function erankly_get_news_sitemap_xml(): string {
 		return '';
 	}
 
-	/**
-	 * Filters the publication language used in the Google News sitemap (ISO 639 two-letter code).
-	 *
-	 * @param string $lang Publication language code.
-	 */
+	/** Filters the publication language used in the Google News sitemap (ISO 639 two-letter code). */
 	$pub_lang = (string) apply_filters(
 		'erankly_news_sitemap_publication_language',
 		strtolower( substr( get_locale(), 0, 2 ) )
@@ -219,13 +183,11 @@ function erankly_get_news_sitemap_xml(): string {
 		$lastmod = get_post_modified_time( DATE_W3C, true, $post_id );
 
 		/**
-		 * Filters an individual Google News sitemap URL entry.
-		 *
-		 * Return an empty array (or an entry with empty 'loc') to exclude the URL.
-		 *
-		 * @param array<string,string> $entry   Sitemap entry with keys: loc, lastmod, pubdate, title.
-		 * @param int                  $post_id Post ID.
-		 */
+ * Filters an individual Google News sitemap URL entry. Return an empty array (or an entry with empty 'loc') to
+ * exclude the URL.
+ *
+ * @param array<string,string> $entry   Sitemap entry with keys: loc, lastmod, pubdate, title.
+ */
 		$entry = apply_filters(
 			'erankly_news_sitemap_url',
 			array(

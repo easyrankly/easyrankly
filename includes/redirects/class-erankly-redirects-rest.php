@@ -1,46 +1,26 @@
 <?php
-/**
- * REST routes for AJAX redirect row actions (toggle/delete).
- *
- * @package EasyRankly
- */
+/** REST routes for AJAX redirect row actions (toggle/delete). */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Exposes toggle/delete as REST routes so the admin table can update rows
- * in place without a full page reload, preserving the current search term
- * and pagination state.
+ * Exposes toggle/delete as REST routes so the admin table can update rows in place without a full page reload,
+ * preserving the current search term and pagination state.
  */
 final class ERankly_Redirects_Rest {
-	/**
-	 * Redirect repository.
-	 *
-	 * @var ERankly_Redirects_Repository
-	 */
+
 	private ERankly_Redirects_Repository $repository;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param ERankly_Redirects_Repository $repository Redirect repository.
-	 */
 	public function __construct( ERankly_Redirects_Repository $repository ) {
 		$this->repository = $repository;
 	}
 
-	/**
-	 * Register REST hooks.
-	 */
 	public function register_hooks(): void {
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 	}
 
-	/**
-	 * Register the toggle/delete routes.
-	 */
 	public function register_routes(): void {
 		$id_args = array(
 			'id' => array(
@@ -73,21 +53,12 @@ final class ERankly_Redirects_Rest {
 		);
 	}
 
-	/**
-	 * Capability check shared by both routes.
-	 *
-	 * @return bool
-	 */
+	/** Capability check shared by both routes. */
 	public function check_permission(): bool {
 		return current_user_can( 'manage_options' );
 	}
 
-	/**
-	 * Toggle a redirect's active state.
-	 *
-	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
-	 */
+	/** @return WP_REST_Response|WP_Error */
 	public function toggle( WP_REST_Request $request ) {
 		$id       = absint( $request->get_param( 'id' ) );
 		$redirect = $id > 0 ? $this->repository->find_by_id( $id ) : null;
@@ -110,12 +81,7 @@ final class ERankly_Redirects_Rest {
 		);
 	}
 
-	/**
-	 * Delete a redirect.
-	 *
-	 * @param WP_REST_Request $request REST request.
-	 * @return WP_REST_Response|WP_Error
-	 */
+	/** @return WP_REST_Response|WP_Error */
 	public function delete( WP_REST_Request $request ) {
 		$id       = absint( $request->get_param( 'id' ) );
 		$redirect = $id > 0 ? $this->repository->find_by_id( $id ) : null;

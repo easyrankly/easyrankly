@@ -1,11 +1,5 @@
 <?php
-/**
- * Redirect module.
- *
- * This file is required only when the redirect manager feature is enabled.
- *
- * @package EasyRankly
- */
+/** Redirect module. This file is required only when the redirect manager feature is enabled. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -13,21 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
 
-/**
- * Database schema version for the redirects table.
- */
+/** Database schema version for the redirects table. */
 define( 'ERANKLY_REDIRECTS_DB_VERSION', '2.0.0' );
 
-/**
- * Option name tracking the installed redirects table version.
- */
+/** Option name tracking the installed redirects table version. */
 define( 'ERANKLY_REDIRECTS_DB_VERSION_OPTION', 'erankly_redirects_db_version' );
 
-/**
- * Boots the redirect module.
- *
- * @return void
- */
 function erankly_redirects_boot(): void {
 	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-normalizer.php';
 	require_once ERANKLY_PATH . 'includes/redirects/class-erankly-redirects-activator.php';
@@ -60,13 +45,9 @@ function erankly_redirects_boot(): void {
 }
 
 /**
- * Creates the redirects table on first use and ensures the schema is current.
- *
- * Runs every time the module boots; the version-string comparison is the
- * idempotency guard that prevents re-running dbDelta on an already up-to-date
- * table.
- *
- * @return void
+ * Creates the redirects table on first use and ensures the schema is current. Runs every time the module boots;
+ * the version-string comparison is the idempotency guard that prevents re-running dbDelta on an already
+ * up-to-date table.
  */
 function erankly_redirects_maybe_upgrade_db(): void {
 	$installed = (string) get_option( ERANKLY_REDIRECTS_DB_VERSION_OPTION, '' );
@@ -82,12 +63,8 @@ function erankly_redirects_maybe_upgrade_db(): void {
 }
 
 /**
- * Renders the redirect management UI for the settings page.
- *
- * Only outputs the full management interface when the feature is enabled and
- * the admin handler has been booted.
- *
- * @return void
+ * Renders the redirect management UI for the settings page. Only outputs the full management interface when the
+ * feature is enabled and the admin handler has been booted.
  */
 function erankly_redirects_render_panel(): void {
 	$admin = $GLOBALS['erankly_redirects_admin'] ?? null;

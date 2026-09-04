@@ -1,73 +1,34 @@
 <?php
-/**
- * Runtime defaults used by rendered SEO content and admin editors.
- *
- * @package EasyRankly
- */
+/** Runtime defaults used by rendered SEO content and admin editors. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns the default social image URL placeholder for admin fields.
- *
- * @return string
- */
 function erankly_default_social_image_placeholder(): string {
 	return home_url( '/social-image.webp' );
 }
 
-/**
- * Returns the default Organization or Person name template.
- *
- * @return string
- */
 function erankly_default_organization_name_template(): string {
 	return '{{site_name}}';
 }
 
-/**
- * Returns the default WebSite name template.
- *
- * @return string
- */
 function erankly_default_website_name_template(): string {
 	return '{{site_name}}';
 }
 
-/**
- * Returns the default WebSite description template.
- *
- * @return string
- */
 function erankly_default_website_description_template(): string {
 	return '{{site_description}}';
 }
 
-/**
- * Returns the default organization logo URL placeholder for admin fields.
- *
- * @return string
- */
 function erankly_default_organization_logo_placeholder(): string {
 	return home_url( '/organization-logo.webp' );
 }
 
-/**
- * Returns the default Organization logo URL template.
- *
- * @return string
- */
 function erankly_default_organization_logo_url_template(): string {
 	return '{{site_icon_url}}';
 }
 
-/**
- * Returns the WordPress Site Icon URL.
- *
- * @return string
- */
 function erankly_get_site_icon_url(): string {
 	if ( ! function_exists( 'get_site_icon_url' ) ) {
 		return '';
@@ -76,11 +37,6 @@ function erankly_get_site_icon_url(): string {
 	return esc_url_raw( (string) get_site_icon_url( 512 ) );
 }
 
-/**
- * Returns the effective Organization logo URL.
- *
- * @return string
- */
 function erankly_get_organization_logo_url(): string {
 	$logo_url = esc_url_raw(
 		erankly_replace_variables(
@@ -99,11 +55,6 @@ function erankly_get_organization_logo_url(): string {
 	return '' !== $logo ? $logo : erankly_get_site_icon_url();
 }
 
-/**
- * Returns the effective Organization or Person name.
- *
- * @return string
- */
 function erankly_get_organization_name(): string {
 	$name = erankly_replace_variables(
 		(string) erankly_get_setting( 'organization_name', erankly_default_organization_name_template() ),
@@ -114,11 +65,6 @@ function erankly_get_organization_name(): string {
 	return '' !== $name ? $name : get_bloginfo( 'name' );
 }
 
-/**
- * Returns the effective WebSite name for schema output.
- *
- * @return string
- */
 function erankly_get_website_name(): string {
 	$name = erankly_replace_variables(
 		(string) erankly_get_setting( 'website_name', erankly_default_website_name_template() ),
@@ -129,13 +75,7 @@ function erankly_get_website_name(): string {
 	return '' !== $name ? $name : get_bloginfo( 'name' );
 }
 
-/**
- * Returns the effective WebSite description for schema output.
- *
- * Empty when no tagline or custom value is configured.
- *
- * @return string
- */
+/** Returns the effective WebSite description for schema output. Empty when no tagline or custom value is configured. */
 function erankly_get_website_description(): string {
 	return trim(
 		erankly_replace_variables(
@@ -146,11 +86,7 @@ function erankly_get_website_description(): string {
 	);
 }
 
-/**
- * Returns Organization logo schema as an ImageObject.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_organization_logo(): array {
 	$logo_url = erankly_get_organization_logo_url();
 
@@ -184,10 +120,8 @@ function erankly_schema_organization_logo(): array {
 }
 
 /**
- * Returns the supported special page / archive entities keyed by slug.
- *
- * These are singleton page types (homepage, blog page, archives, search, 404)
- * that share the same metadata structure as post types and taxonomies but have
+ * Returns the supported special page / archive entities keyed by slug. These are singleton page types (homepage,
+ * blog page, archives, search, 404) that share the same metadata structure as post types and taxonomies but have
  * a single configuration each.
  *
  * @param bool $translate_labels Whether to translate labels for display.
@@ -203,21 +137,14 @@ function erankly_special_page_keys( bool $translate_labels = true ): array {
 		'404'      => $translate_labels ? __( '404 page', 'easyrankly' ) : '404 page',
 	);
 
-	/**
-	 * Filters the supported special page entities.
-	 *
-	 * @param array<string,string> $keys Map of entity key => admin label.
-	 */
+	/** @param array<string,string> $keys Map of entity key => admin label. */
 	return (array) apply_filters( 'erankly_special_pages', $keys );
 }
 
 /**
- * Returns the special page entity key matching the current main query.
- *
- * Mirrors the page-type resolution used for titles, descriptions and robots so
- * the same metadata applies consistently. A static front page is handled as a
- * singular post, so it returns '' there; the 'homepage' key applies when the
- * front page shows the blog.
+ * Returns the special page entity key matching the current main query. Mirrors the page-type resolution used for
+ * titles, descriptions and robots so the same metadata applies consistently. A static front page is handled as a
+ * singular post, so it returns '' there; the 'homepage' key applies when the front page shows the blog.
  *
  * @return string Entity key, or '' when the request is not a special page.
  */

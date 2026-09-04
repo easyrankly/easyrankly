@@ -1,19 +1,10 @@
 <?php
-/**
- * Redirect helpers shared by migration UI and background workers.
- *
- * @package EasyRankly
- */
+/** Redirect helpers shared by migration UI and background workers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Loads redirect class files on demand even when the module is disabled.
- *
- * @return void
- */
 function erankly_ensure_redirect_classes_available(): void {
 	$base = ERANKLY_PATH . 'includes/redirects/';
 	require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
@@ -32,8 +23,6 @@ function erankly_ensure_redirect_classes_available(): void {
 }
 
 /**
- * Normalizes an exported redirect row into repository-ready data.
- *
  * @param array<string,mixed> $row Redirect row from the export file.
  * @return array<string,mixed>|null
  */

@@ -1,23 +1,15 @@
 <?php
-/**
- * Shared video URL extraction helpers.
- *
- * Used by the video sitemap and VideoObject schema so both modules stay in sync.
- *
- * @package EasyRankly
- */
+/** Shared video URL extraction helpers. Used by the video sitemap and VideoObject schema so both modules stay in sync. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Extracts all embedded video URLs from post content.
- *
- * Detects YouTube, Vimeo, HTML5 video tags, and Gutenberg wp:video blocks.
+ * Extracts all embedded video URLs from post content. Detects YouTube, Vimeo, HTML5 video tags, and Gutenberg
+ * wp:video blocks.
  *
  * @param string $content Post content (raw, unfiltered).
- * @return array<int,string> Unique video URLs.
  */
 function erankly_extract_video_urls( string $content ): array {
 	$urls = array();
@@ -64,7 +56,6 @@ function erankly_extract_video_urls( string $content ): array {
 /**
  * Back-compat alias used by the video sitemap.
  *
- * @param string $content Post content.
  * @return array<int,string>
  */
 function erankly_extract_sitemap_video_urls( string $content ): array {
@@ -72,8 +63,6 @@ function erankly_extract_sitemap_video_urls( string $content ): array {
 }
 
 /**
- * Returns the embed player URL for a YouTube or Vimeo video URL.
- *
  * @param string $video_url Video URL (page, short, or embed form).
  * @return string Embed URL, or empty string if unsupported.
  */
@@ -97,22 +86,12 @@ function erankly_get_video_embed_url( string $video_url ): string {
 	return '';
 }
 
-/**
- * Back-compat alias used by the video sitemap.
- *
- * @param string $video_url Video URL.
- * @return string
- */
+/** Back-compat alias used by the video sitemap. */
 function erankly_get_sitemap_video_embed_url( string $video_url ): string {
 	return erankly_get_video_embed_url( $video_url );
 }
 
-/**
- * Returns the direct file URL for self-hosted HTML5 videos.
- *
- * @param string $video_url Video URL.
- * @return string Content URL, or empty string if unsupported.
- */
+/** @return string Content URL, or empty string if unsupported. */
 function erankly_get_video_content_url( string $video_url ): string {
 	$path = wp_parse_url( $video_url, PHP_URL_PATH );
 
@@ -123,23 +102,12 @@ function erankly_get_video_content_url( string $video_url ): string {
 	return '';
 }
 
-/**
- * Back-compat alias used by the video sitemap.
- *
- * @param string $video_url Video URL.
- * @return string
- */
+/** Back-compat alias used by the video sitemap. */
 function erankly_get_sitemap_video_content_url( string $video_url ): string {
 	return erankly_get_video_content_url( $video_url );
 }
 
-/**
- * Returns the thumbnail URL for a video entry.
- *
- * @param int    $post_id   Post ID.
- * @param string $video_url Video URL.
- * @return string Thumbnail URL, or empty string.
- */
+/** @return string Thumbnail URL, or empty string. */
 function erankly_get_video_thumbnail_url( int $post_id, string $video_url ): string {
 	$featured_id = (int) get_post_thumbnail_id( $post_id );
 
@@ -158,13 +126,7 @@ function erankly_get_video_thumbnail_url( int $post_id, string $video_url ): str
 	return '';
 }
 
-/**
- * Back-compat alias used by the video sitemap.
- *
- * @param int    $post_id   Post ID.
- * @param string $video_url Video URL.
- * @return string
- */
+/** Back-compat alias used by the video sitemap. */
 function erankly_get_sitemap_video_thumbnail_url( int $post_id, string $video_url ): string {
 	return erankly_get_video_thumbnail_url( $post_id, $video_url );
 }

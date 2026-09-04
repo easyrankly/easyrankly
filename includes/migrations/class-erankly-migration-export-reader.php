@@ -1,9 +1,5 @@
 <?php
-/**
- * Resumable readers for official SEO-plugin CSV/JSON exports.
- *
- * @package EasyRankly
- */
+/** Resumable readers for official SEO-plugin CSV/JSON exports. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,12 +20,10 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Inspects the file signature for one source adapter.
-	 *
-	 * @param string $path   Local export path.
-	 * @param string $source yoast|rankmath|aioseo|seopress.
-	 * @return array{status:string,format:string,reason:string}
-	 */
+ * Inspects the file signature for one source adapter.
+ *
+ * @return array{status:string,format:string,reason:string}
+ */
 	public static function inspect( string $path, string $source ): array {
 		if ( ! is_file( $path ) || is_link( $path ) || ! is_readable( $path ) ) {
 			return array(
@@ -75,12 +69,6 @@ final class ERankly_Migration_Export_Reader {
 		);
 	}
 
-	/**
-	 * Returns a bounded record estimate for inventory reporting.
-	 *
-	 * @param string $path Local export path.
-	 * @return int
-	 */
 	public static function count_records( string $path ): int {
 		if ( ! is_file( $path ) || is_link( $path ) || ! is_readable( $path ) ) {
 			return 0;
@@ -115,15 +103,7 @@ final class ERankly_Migration_Export_Reader {
 		}
 	}
 
-	/**
-	 * Reads one normalized content page from an official export.
-	 *
-	 * @param string              $path   Local export path.
-	 * @param string              $source Adapter slug.
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source rows.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+	/** @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool} */
 	public static function content_batch( string $path, string $source, array $cursor, int $limit ): array {
 		$inspection = self::inspect( $path, $source );
 		$format     = (string) $inspection['format'];
@@ -154,15 +134,7 @@ final class ERankly_Migration_Export_Reader {
 		);
 	}
 
-	/**
-	 * Reads one normalized redirect page from an official export.
-	 *
-	 * @param string              $path   Local export path.
-	 * @param string              $source Adapter slug.
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source rows.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+	/** @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool} */
 	public static function redirect_batch( string $path, string $source, array $cursor, int $limit ): array {
 		$inspection = self::inspect( $path, $source );
 		if ( 'supported' !== (string) ( $inspection['status'] ?? '' ) ) {
@@ -219,11 +191,10 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Returns normalized CSV headers with a UTF-8 BOM removed.
-	 *
-	 * @param string $path Local CSV path.
-	 * @return array<int,string>
-	 */
+ * Returns normalized CSV headers with a UTF-8 BOM removed.
+ *
+ * @return array<int,string>
+ */
 	private static function csv_headers( string $path ): array {
 		$file      = new SplFileObject( $path, 'rb' );
 		$delimiter = self::csv_delimiter( $path );
@@ -247,13 +218,6 @@ final class ERankly_Migration_Export_Reader {
 		);
 	}
 
-	/**
-	 * Returns a certified format identifier for a header signature.
-	 *
-	 * @param array<int,string> $headers Normalized CSV headers.
-	 * @param string            $source  Adapter slug.
-	 * @return string
-	 */
 	private static function csv_format( array $headers, string $source ): string {
 		$has = static fn( array $required ): bool => empty( array_diff( $required, $headers ) );
 		if ( 'yoast' === $source && $has( array( 'origin', 'target', 'type', 'format' ) ) ) {
@@ -275,12 +239,6 @@ final class ERankly_Migration_Export_Reader {
 		return '';
 	}
 
-	/**
-	 * Detects the supported comma or semicolon CSV delimiter.
-	 *
-	 * @param string $path Local CSV path.
-	 * @return string
-	 */
 	private static function csv_delimiter( string $path ): string {
 		$file       = new SplFileObject( $path, 'rb' );
 		$line       = (string) $file->fgets();
@@ -291,16 +249,12 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Reads one CSV page from a durable byte cursor.
-	 *
-	 * A legacy row-only cursor is accepted once and upgraded to a byte cursor.
-	 *
-	 * @param string              $path   Local CSV path.
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source rows.
-	 * @return array{rows:array<int,array<string,string>>,start:int,next:int,byte:int,done:bool}
-	 * @throws RuntimeException When the durable byte cursor is invalid.
-	 */
+ * Reads one CSV page from a durable byte cursor. A legacy row-only cursor is accepted once and upgraded to a
+ * byte cursor.
+ *
+ * @return array{rows:array<int,array<string,string>>,start:int,next:int,byte:int,done:bool}
+ * @throws RuntimeException When the durable byte cursor is invalid.
+ */
 	private static function csv_page( string $path, array $cursor, int $limit ): array {
 		$headers   = self::csv_headers( $path );
 		$limit     = max( 1, min( 500, $limit ) );
@@ -352,14 +306,7 @@ final class ERankly_Migration_Export_Reader {
 		);
 	}
 
-	/**
-	 * Maps Rank Math or SEOPress metadata CSV rows.
-	 *
-	 * @param string              $source Adapter slug.
-	 * @param array<string,mixed> $row    Normalized CSV row.
-	 * @param int                 $line   Physical source line.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private static function map_content_row( string $source, array $row, int $line ): array {
 		$object_id = absint( $row['id'] ?? 0 );
 		if ( $object_id < 1 ) {
@@ -421,12 +368,6 @@ final class ERankly_Migration_Export_Reader {
 
 		$meta = array_filter( $meta, static fn( mixed $value ): bool => ! ( '' === $value || array() === $value || null === $value || false === $value ) );
 
-		/**
-		 * Filters mapped EasyRankly metadata from an official CSV/JSON export row.
-		 *
-		 * @param array<string,mixed> $meta      Core-owned mapped meta.
-		 * @param string              $source    Adapter slug.
-		 */
 		$filtered = apply_filters( 'erankly_migration_mapped_meta', $meta, $source );
 		$meta     = is_array( $filtered ) ? $filtered : $meta;
 
@@ -439,13 +380,9 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Maps one official redirect export row.
-	 *
-	 * @param string              $source Adapter slug.
-	 * @param array<string,mixed> $row    Normalized export row.
-	 * @param int                 $line   Physical source line or JSON position.
-	 * @return array<string,mixed>
-	 */
+ * @param int                 $line   Physical source line or JSON position.
+ * @return array<string,mixed>
+ */
 	private static function map_redirect_row( string $source, array $row, int $line ): array {
 		$origin       = '';
 		$target       = '';
@@ -544,15 +481,13 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Returns or atomically creates the normalized NDJSON sidecar for a source.
-	 *
-	 * The bounded source JSON is decoded exactly once. Every subsequent batch
-	 * seeks directly to its durable byte checkpoint in this private sidecar.
-	 *
-	 * @param string $path Local managed AIOSEO JSON path.
-	 * @return string Sidecar path, or an empty string when invalid.
-	 * @throws RuntimeException Internally when a normalized row cannot be staged.
-	 */
+ * Returns or atomically creates the normalized NDJSON sidecar for a source. The bounded source JSON is decoded
+ * exactly once. Every subsequent batch seeks directly to its durable byte checkpoint in this private sidecar.
+ *
+ * @param string $path Local managed AIOSEO JSON path.
+ * @return string Sidecar path, or an empty string when invalid.
+ * @throws RuntimeException Internally when a normalized row cannot be staged.
+ */
 	private static function json_index( string $path ): string {
 		$size  = filesize( $path );
 		$mtime = filemtime( $path );
@@ -643,12 +578,11 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Writes a complete sidecar fragment, including after a partial fwrite().
-	 *
-	 * @param resource $handle Open private sidecar handle.
-	 * @param string   $bytes  Bytes to persist.
-	 * @throws RuntimeException When the complete fragment cannot be written.
-	 */
+ * Writes a complete sidecar fragment, including after a partial fwrite().
+ *
+ * @param resource $handle Open private sidecar handle.
+ * @throws RuntimeException When the complete fragment cannot be written.
+ */
 	private static function write_json_index_bytes( $handle, string $bytes ): void {
 		$length = strlen( $bytes );
 		$offset = 0;
@@ -661,13 +595,7 @@ final class ERankly_Migration_Export_Reader {
 		}
 	}
 
-	/**
-	 * Checks that a sidecar marker matches the immutable managed source.
-	 *
-	 * @param string $index Sidecar path.
-	 * @param int    $size  Expected source size.
-	 * @param int    $mtime Expected source modification time.
-	 */
+	/** @param int    $mtime Expected source modification time. */
 	private static function json_index_is_current( string $index, int $size, int $mtime ): bool {
 		if ( ! is_file( $index ) || is_link( $index ) || ! is_readable( $index ) ) {
 			return false;
@@ -681,11 +609,7 @@ final class ERankly_Migration_Export_Reader {
 			&& (int) ( $header['source_mtime'] ?? -1 ) === $mtime;
 	}
 
-	/**
-	 * Returns whether a valid sidecar contains at least one normalized row.
-	 *
-	 * @param string $index Sidecar path.
-	 */
+	/** Returns whether a valid sidecar contains at least one normalized row. */
 	private static function json_index_has_rows( string $index ): bool {
 		$file = new SplFileObject( $index, 'rb' );
 		$file->fgets();
@@ -694,14 +618,10 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Reads one normalized JSON page from a durable byte cursor.
-	 *
-	 * @param string              $path   Managed source JSON path.
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum normalized rows.
-	 * @return array{rows:array<int,array<string,mixed>>,start:int,next:int,byte:int,done:bool}
-	 * @throws RuntimeException When the durable normalized sidecar is corrupt.
-	 */
+ * @param string              $path   Managed source JSON path.
+ * @return array{rows:array<int,array<string,mixed>>,start:int,next:int,byte:int,done:bool}
+ * @throws RuntimeException When the durable normalized sidecar is corrupt.
+ */
 	private static function json_page( string $path, array $cursor, int $limit ): array {
 		$index = self::json_index( $path );
 		if ( '' === $index ) {
@@ -759,12 +679,10 @@ final class ERankly_Migration_Export_Reader {
 	}
 
 	/**
-	 * Converts CSV robots columns to explicit EasyRankly directives.
-	 *
-	 * @param string $robots   Basic robots directives.
-	 * @param string $advanced Advanced robots directives.
-	 * @return array<string,mixed>
-	 */
+ * Converts CSV robots columns to explicit EasyRankly directives.
+ *
+ * @return array<string,mixed>
+ */
 	private static function robots_meta( string $robots, string $advanced ): array {
 		$values = array_map( 'trim', explode( ',', strtolower( $robots ) ) );
 		$meta   = array();
@@ -803,12 +721,7 @@ final class ERankly_Migration_Export_Reader {
 		return $meta;
 	}
 
-	/**
-	 * Converts Rank Math schema_data JSON to custom schema blocks.
-	 *
-	 * @param mixed $payload Source schema payload.
-	 * @return array<int,array<string,mixed>>
-	 */
+	/** @return array<int,array<string,mixed>> */
 	private static function schema_blocks( mixed $payload ): array {
 		if ( is_string( $payload ) ) {
 			$payload = json_decode( $payload, true );
@@ -834,34 +747,17 @@ final class ERankly_Migration_Export_Reader {
 		return $blocks;
 	}
 
-	/**
-	 * Returns a comma/newline-delimited list.
-	 *
-	 * @param string $value Source list.
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	private static function list_value( string $value ): array {
 		$values = preg_split( '/[\r\n,]+/', $value );
 		return array_values( array_unique( array_filter( array_map( 'sanitize_text_field', is_array( $values ) ? $values : array() ), 'strlen' ) ) );
 	}
 
-	/**
-	 * Source truthy helper.
-	 *
-	 * @param mixed $value Source value.
-	 * @return bool
-	 */
+	/** Source truthy helper. */
 	private static function truthy( mixed $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'yes', 'true', 'on', 'active', 'enabled' ), true );
 	}
 
-	/**
-	 * Returns the first matching header name.
-	 *
-	 * @param array<int,string> $headers    Normalized headers.
-	 * @param array<int,string> $candidates Accepted aliases.
-	 * @return string
-	 */
 	private static function first_header( array $headers, array $candidates ): string {
 		foreach ( $candidates as $candidate ) {
 			if ( in_array( $candidate, $headers, true ) ) {
@@ -871,13 +767,6 @@ final class ERankly_Migration_Export_Reader {
 		return '';
 	}
 
-	/**
-	 * Returns the first scalar row value among aliases.
-	 *
-	 * @param array<string,mixed> $row        Normalized row.
-	 * @param array<int,string>   $candidates Accepted aliases.
-	 * @return string
-	 */
 	private static function first_value( array $row, array $candidates ): string {
 		foreach ( $candidates as $candidate ) {
 			if ( isset( $row[ $candidate ] ) && is_scalar( $row[ $candidate ] ) ) {

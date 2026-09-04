@@ -1,9 +1,5 @@
 <?php
-/**
- * Resumable third-party SEO migration worker.
- *
- * @package EasyRankly
- */
+/** Resumable third-party SEO migration worker. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,39 +10,16 @@ final class ERankly_Migration_Job_Runner {
 	private const LOCK_TTL     = 300;
 	private const DETAIL_LIMIT = 100;
 
-	/**
-	 * Shared source adapter and report manager.
-	 *
-	 * @var ERankly_Migration_Manager
-	 */
+	/** Shared source adapter and report manager. */
 	private ERankly_Migration_Manager $manager;
 
-	/**
-	 * Durable event queue and checkpoint store.
-	 *
-	 * @var ERankly_Migration_Job_Store
-	 */
 	private ERankly_Migration_Job_Store $store;
 
-	/**
-	 * Complete value-free exception ledger.
-	 *
-	 * @var ERankly_Migration_Evidence_Store
-	 */
 	private ERankly_Migration_Evidence_Store $evidence_store;
 
-	/**
-	 * Persistent conditional rollback journal.
-	 *
-	 * @var ERankly_Migration_Journal
-	 */
 	private ERankly_Migration_Journal $journal;
 
-	/**
-	 * Request-local active job with aggregated counters.
-	 *
-	 * @var array<string,mixed>|null
-	 */
+	/** @var array<string,mixed>|null */
 	private ?array $active_job_cache = null;
 
 	/** Creates the runner around the shared migration services. */
@@ -58,14 +31,13 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Starts a new resumable preview or import.
-	 *
-	 * @param string $source      Adapter slug.
-	 * @param bool   $dry_run     Whether writes are simulated.
-	 * @param string $export_file Optional local official CSV/JSON export.
-	 * @return array{ok:bool,job?:array<string,mixed>,error?:string}
-	 * @throws RuntimeException When an owned checkpoint cannot be removed after a failed start.
-	 */
+ * Starts a new resumable preview or import.
+ *
+ * @param bool   $dry_run     Whether writes are simulated.
+ * @param string $export_file Optional local official CSV/JSON export.
+ * @return array{ok:bool,job?:array<string,mixed>,error?:string}
+ * @throws RuntimeException When an owned checkpoint cannot be removed after a failed start.
+ */
 	public function start( string $source, bool $dry_run, string $export_file = '' ): array {
 		$active = $this->raw_active_job();
 		if ( is_array( $active ) ) {
@@ -216,22 +188,17 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Starts a resumable migration from an official source-plugin export.
-	 *
-	 * @param string $source      Adapter slug.
-	 * @param string $export_file Local readable CSV/JSON file.
-	 * @param bool   $dry_run     Whether writes are simulated.
-	 * @return array{ok:bool,job?:array<string,mixed>,error?:string}
-	 */
+ * Starts a resumable migration from an official source-plugin export.
+ *
+ * @param string $export_file Local readable CSV/JSON file.
+ * @param bool   $dry_run     Whether writes are simulated.
+ * @return array{ok:bool,job?:array<string,mixed>,error?:string}
+ */
 	public function start_from_export( string $source, string $export_file, bool $dry_run ): array {
 		return $this->start( $source, $dry_run, $export_file );
 	}
 
-	/**
-	 * Returns the active job with counters rebuilt from durable queue events.
-	 *
-	 * @return array<string,mixed>|null
-	 */
+	/** @return array<string,mixed>|null */
 	public function active_job(): ?array {
 		if ( is_array( $this->active_job_cache ) ) {
 			return $this->active_job_cache;
@@ -247,12 +214,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Requests cancellation and processes it immediately when the lock is free.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return bool
-	 * @throws RuntimeException When the cancellation request cannot be persisted.
-	 */
+ * Requests cancellation and processes it immediately when the lock is free.
+ *
+ * @throws RuntimeException When the cancellation request cannot be persisted.
+ */
 	public function cancel( string $job_id ): bool {
 		$job = $this->raw_active_job();
 		if ( ! is_array( $job ) || ! hash_equals( (string) $job['id'], $job_id ) ) {
@@ -270,12 +235,9 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Processes one bounded unit of work and schedules the next checkpoint.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return array<string,mixed>|null Current job or null after completion.
-	 * @throws RuntimeException When queue storage or checkpoint persistence fails.
-	 */
+ * @return array<string,mixed>|null Current job or null after completion.
+ * @throws RuntimeException When queue storage or checkpoint persistence fails.
+ */
 	public function process( string $job_id ): ?array {
 		$job = $this->raw_active_job();
 		if ( ! is_array( $job ) || ! hash_equals( (string) $job['id'], $job_id ) ) {
@@ -369,15 +331,7 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/**
-	 * Stages one adapter page and advances its keyset cursor.
-	 *
-	 * @param array<string,mixed>       $job     Active job.
-	 * @param ERankly_Migration_Adapter $adapter Source adapter.
-	 * @param string                    $stream  settings|content|redirect.
-	 * @return void
-	 * @throws ERankly_Migration_Source_Changed_Exception When the immutable source fingerprint changes.
-	 */
+	/** @throws ERankly_Migration_Source_Changed_Exception When the immutable source fingerprint changes. */
 	private function process_discovery_page( array &$job, ERankly_Migration_Adapter $adapter, string $stream ): void {
 		if ( 'settings' === $stream ) {
 			$this->stage_global_settings( $job, $adapter->global_settings() );
@@ -427,13 +381,7 @@ final class ERankly_Migration_Job_Runner {
 		$job['cursor'] = array();
 	}
 
-	/**
-	 * Stages sanitized global settings without overwriting customized targets.
-	 *
-	 * @param array<string,mixed> $job      Active job.
-	 * @param array<string,mixed> $settings Adapter-normalized settings.
-	 * @return void
-	 */
+	/** Stages sanitized global settings without overwriting customized targets. */
 	private function stage_global_settings( array &$job, array $settings ): void {
 		if ( ! $settings ) {
 			return;
@@ -541,21 +489,13 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Merges one proposed source setting into the target at leaf granularity.
-	 *
-	 * Missing and default-valued leaves are safe migration targets. A genuinely
-	 * customized EasyRankly leaf is retained and reported without preventing
-	 * unrelated source leaves in the same settings map from being imported.
-	 *
-	 * @param mixed             $current         Current effective value.
-	 * @param mixed             $proposed        Sanitized source proposal.
-	 * @param mixed             $default         EasyRankly default value.
-	 * @param mixed             $stored          Explicitly stored value.
-	 * @param bool              $stored_exists   Whether this path is explicitly stored.
-	 * @param string            $path            Dot-delimited settings path.
-	 * @param array<int,string> $preserved_paths Customized leaves retained by reference.
-	 * @return mixed
-	 */
+ * Merges one proposed source setting into the target at leaf granularity. Missing and default-valued leaves are
+ * safe migration targets. A genuinely customized EasyRankly leaf is retained and reported without preventing
+ * unrelated source leaves in the same settings map from being imported.
+ *
+ * @param bool              $stored_exists   Whether this path is explicitly stored.
+ * @param array<int,string> $preserved_paths Customized leaves retained by reference.
+ */
 	private function reconcile_setting_value( mixed $current, mixed $proposed, mixed $default, mixed $stored, bool $stored_exists, string $path, array &$preserved_paths ): mixed {
 		if ( is_array( $current ) && is_array( $proposed ) ) {
 			$result = $current;
@@ -601,13 +541,7 @@ final class ERankly_Migration_Job_Runner {
 		return $current;
 	}
 
-	/**
-	 * Converts one content record into idempotent object and field events.
-	 *
-	 * @param array<string,mixed> $job    Active job.
-	 * @param array<string,mixed> $record Normalized adapter record.
-	 * @return void
-	 */
+	/** Converts one content record into idempotent object and field events. */
 	private function stage_content_record( array &$job, array $record ): void {
 		$object_type = sanitize_key( (string) ( $record['object_type'] ?? '' ) );
 		$object_id   = absint( $record['object_id'] ?? 0 );
@@ -711,14 +645,6 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/**
-	 * Stages one normalized redirect with ownership and identity checks.
-	 *
-	 * @param array<string,mixed>       $job     Active job.
-	 * @param ERankly_Migration_Adapter $adapter Source adapter.
-	 * @param array<string,mixed>       $row     Normalized redirect row.
-	 * @return void
-	 */
 	private function stage_redirect_record( array &$job, ERankly_Migration_Adapter $adapter, array $row ): void {
 		$reference = sanitize_text_field( (string) ( $row['source_reference'] ?? '' ) );
 		if ( '' === $reference ) {
@@ -812,13 +738,9 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Applies one bounded queue page and records each result durably.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @return void
-	 * @throws RuntimeException When staging cleanup cannot be completed.
-	 * @throws RuntimeException When an apply checkpoint cannot be persisted.
-	 */
+ * @throws RuntimeException When staging cleanup cannot be completed.
+ * @throws RuntimeException When an apply checkpoint cannot be persisted.
+ */
 	private function process_apply_page( array &$job ): void {
 		$limit = max( 10, min( 500, (int) apply_filters( 'erankly_migration_batch_size', ERANKLY_MIGRATION_BATCH_SIZE ) ) );
 		$rows  = $this->store->pending( (string) $job['id'], $limit );
@@ -875,14 +797,7 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/**
-	 * Applies one idempotent global setting under the shared settings mutex.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @param array<string,mixed> $row Queue row.
-	 * @param array<string,mixed> $payload Queue payload.
-	 * @return string written|preserved|failed.
-	 */
+	/** Applies one idempotent global setting under the shared settings mutex. */
 	private function apply_setting_item( array $job, array $row, array $payload ): string {
 		$key     = sanitize_key( (string) ( $payload['key'] ?? '' ) );
 		$value   = $payload['value'] ?? null;
@@ -921,14 +836,7 @@ final class ERankly_Migration_Job_Runner {
 		return $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
 	}
 
-	/**
-	 * Applies an idempotent metadata item.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @param array<string,mixed> $row Queue row.
-	 * @param array<string,mixed> $payload Queue payload.
-	 * @return string written|preserved|failed.
-	 */
+	/** Applies an idempotent metadata item. */
 	private function apply_meta_item( array $job, array $row, array $payload ): string {
 		$object_type = sanitize_key( (string) ( $payload['object_type'] ?? '' ) );
 		$object_id   = absint( $payload['object_id'] ?? 0 );
@@ -955,15 +863,7 @@ final class ERankly_Migration_Job_Runner {
 		return $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
 	}
 
-	/**
-	 * Applies an idempotent redirect item.
-	 *
-	 * @param array<string,mixed>               $job        Active job.
-	 * @param array<string,mixed>               $row        Queue row.
-	 * @param array<string,mixed>               $payload    Queue payload.
-	 * @param ERankly_Redirects_Repository|null $repository Redirect repository.
-	 * @return string created|updated|conflict|failed.
-	 */
+	/** Applies an idempotent redirect item. */
 	private function apply_redirect_item( array $job, array $row, array $payload, ?ERankly_Redirects_Repository $repository ): string {
 		if ( ! $repository || ! is_array( $payload['redirect'] ?? null ) || empty( $payload['rule_hash'] ) ) {
 			return 'failed';
@@ -1011,12 +911,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Finalizes and persists a successful/partial report.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @return void
-	 * @throws RuntimeException When staging cleanup cannot be completed.
-	 */
+ * Finalizes and persists a successful/partial report.
+ *
+ * @throws RuntimeException When staging cleanup cannot be completed.
+ */
 	private function finish_successfully( array $job ): void {
 		if ( ! empty( $job['final_report_ready'] ) && is_array( $job['report'] ?? null ) ) {
 			$report = $job['report'];
@@ -1057,13 +955,7 @@ final class ERankly_Migration_Job_Runner {
 		$this->release_export_adapter( $job );
 	}
 
-	/**
-	 * Persists a cancelled report and clears its staging rows.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @return void
-	 * @throws RuntimeException When staging cleanup cannot be completed.
-	 */
+	/** @throws RuntimeException When staging cleanup cannot be completed. */
 	private function finish_cancelled( array $job ): void {
 		if ( ! empty( $job['final_report_ready'] ) && is_array( $job['report'] ?? null ) ) {
 			$report = $job['report'];
@@ -1113,12 +1005,7 @@ final class ERankly_Migration_Job_Runner {
 		$this->release_export_adapter( $job );
 	}
 
-	/**
-	 * Releases a terminal export path from the shared adapter instance.
-	 *
-	 * @param array<string,mixed> $job Terminal job.
-	 * @return void
-	 */
+	/** Releases a terminal export path from the shared adapter instance. */
 	private function release_export_adapter( array $job ): void {
 		if ( 'official_export' !== (string) ( $job['source_mode'] ?? '' ) ) {
 			return;
@@ -1130,13 +1017,7 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/**
-	 * Deletes a managed source upload only after the terminal checkpoint is gone.
-	 *
-	 * @param array<string,mixed> $job    Terminal job.
-	 * @param array<string,mixed> $report Persisted terminal report.
-	 * @return void
-	 */
+	/** Deletes a managed source upload only after the terminal checkpoint is gone. */
 	private function finalize_source_file( array $job, array $report ): void {
 		if ( empty( $job['source_file_managed'] ) || ! class_exists( 'ERankly_Migration_Upload_Store' ) ) {
 			return;
@@ -1163,13 +1044,6 @@ final class ERankly_Migration_Job_Runner {
 		$this->manager->finish_report( $report );
 	}
 
-	/**
-	 * Collects bounded adapter and variable diagnostics from the current page.
-	 *
-	 * @param array<string,mixed>       $job     Active job.
-	 * @param ERankly_Migration_Adapter $adapter Source adapter.
-	 * @return void
-	 */
 	private function collect_warnings( array &$job, ERankly_Migration_Adapter $adapter ): void {
 		$warnings = $adapter->warnings();
 		if ( function_exists( 'erankly_import_variable_diagnostics' ) ) {
@@ -1189,15 +1063,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Adds a unique bounded warning to the job report.
-	 *
-	 * @param array<string,mixed> $job       Active job.
-	 * @param string              $code      Warning code.
-	 * @param string              $message   Human-readable warning.
-	 * @param string              $reference Source reference.
-	 * @param bool                $blocking  Whether the warning blocks go-live.
-	 * @return void
-	 */
+ * Adds a unique bounded warning to the job report.
+ *
+ * @param bool                $blocking  Whether the warning blocks go-live.
+ */
 	private function add_warning( array &$job, string $code, string $message, string $reference, bool $blocking = true ): void {
 		$report   = is_array( $job['report'] ?? null ) ? $job['report'] : array();
 		$warnings = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
@@ -1221,15 +1090,6 @@ final class ERankly_Migration_Job_Runner {
 		$job['report']      = $report;
 	}
 
-	/**
-	 * Adds a unique bounded record detail to the job report.
-	 *
-	 * @param array<string,mixed> $job       Active job.
-	 * @param string              $code      Detail code.
-	 * @param string              $reference Source reference.
-	 * @param string              $field     Target field.
-	 * @return void
-	 */
 	private function add_detail( array &$job, string $code, string $reference, string $field ): void {
 		$report  = is_array( $job['report'] ?? null ) ? $job['report'] : array();
 		$details = is_array( $report['details'] ?? null ) ? $report['details'] : array();
@@ -1253,11 +1113,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Removes internal deduplication keys before a report is persisted.
-	 *
-	 * @param array<int,array<string,mixed>> $diagnostics Stored diagnostics.
-	 * @return array<int,array<string,mixed>>
-	 */
+ * Removes internal deduplication keys before a report is persisted.
+ *
+ * @return array<int,array<string,mixed>>
+ */
 	private function clean_diagnostics( array $diagnostics ): array {
 		$clean = array();
 		foreach ( array_slice( $diagnostics, 0, self::DETAIL_LIMIT ) as $diagnostic ) {
@@ -1270,11 +1129,7 @@ final class ERankly_Migration_Job_Runner {
 		return $clean;
 	}
 
-	/**
-	 * Returns the raw active job option.
-	 *
-	 * @return array<string,mixed>|null
-	 */
+	/** @return array<string,mixed>|null */
 	private function raw_active_job(): ?array {
 		$job = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, null );
 		if ( is_array( $job ) && ! empty( $job['id'] ) && true === get_option( $this->cancel_key( (string) $job['id'] ), false ) ) {
@@ -1284,12 +1139,7 @@ final class ERankly_Migration_Job_Runner {
 		return is_array( $job ) && ! empty( $job['id'] ) ? $job : null;
 	}
 
-	/**
-	 * Adds live queue counters without mutating the stored checkpoint.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function with_counts( array $job ): array {
 		if ( erankly_table_exists( ERankly_Migration_Job_Store::table_name() ) ) {
 			$job['counts'] = $this->store->counts( (string) $job['id'], $this->manager );
@@ -1319,13 +1169,7 @@ final class ERankly_Migration_Job_Runner {
 		return false === $encoded ? '' : $encoded;
 	}
 
-	/**
-	 * Saves an active job as a non-autoloaded option.
-	 *
-	 * @param array<string,mixed> $job Active job.
-	 * @return void
-	 * @throws RuntimeException When the checkpoint cannot be persisted.
-	 */
+	/** @throws RuntimeException When the checkpoint cannot be persisted. */
 	private function save_job( array $job ): void {
 		update_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, $job, false );
 		$this->active_job_cache = null;
@@ -1335,13 +1179,6 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/**
-	 * Schedules the next single-event worker invocation.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param int    $delay  Delay in seconds.
-	 * @return bool
-	 */
 	private function schedule( string $job_id, int $delay = 1 ): bool {
 		$args = array( $job_id );
 		if ( false !== wp_next_scheduled( ERANKLY_MIGRATION_CRON_HOOK, $args ) ) {
@@ -1354,11 +1191,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Acquires an atomic, expiring option lock.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return string Lock token or an empty string.
-	 */
+ * Acquires an atomic, expiring option lock.
+ *
+ * @return string Lock token or an empty string.
+ */
 	private function acquire_lock( string $job_id ): string {
 		global $wpdb;
 
@@ -1397,13 +1233,7 @@ final class ERankly_Migration_Job_Runner {
 		return 1 === $updated ? $token : '';
 	}
 
-	/**
-	 * Releases a lock only when the caller still owns it.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param string $token  Lock ownership token.
-	 * @return void
-	 */
+	/** Releases a lock only when the caller still owns it. */
 	private function release_lock( string $job_id, string $token ): void {
 		global $wpdb;
 
@@ -1423,12 +1253,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
-	 * Deletes the active checkpoint only when it still belongs to this job.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return void
-	 * @throws RuntimeException When the owned checkpoint cannot be removed.
-	 */
+ * Deletes the active checkpoint only when it still belongs to this job.
+ *
+ * @throws RuntimeException When the owned checkpoint cannot be removed.
+ */
 	private function delete_active_job_if_owned( string $job_id ): void {
 		$active = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, null );
 		if ( ! is_array( $active ) || ! hash_equals( (string) ( $active['id'] ?? '' ), $job_id ) ) {
@@ -1442,22 +1270,11 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/**
-	 * Returns the bounded option name for one job lock.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return string
-	 */
+	/** Returns the bounded option name for one job lock. */
 	private function lock_key( string $job_id ): string {
 		return 'erankly_migration_lock_' . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}
 
-	/**
-	 * Returns the bounded option name for one durable cancellation request.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return string
-	 */
 	private function cancel_key( string $job_id ): string {
 		return 'erankly_migration_cancel_' . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}

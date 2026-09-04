@@ -70,13 +70,8 @@ require_once ERANKLY_PATH . 'includes/class-erankly-multilingual-provider-regist
 require_once ERANKLY_PATH . 'includes/seo-state.php';
 
 /**
- * Maps a legacy hot option to its compact runtime-state key.
- *
- * The legacy options remain mirrored for rollback compatibility, while the
- * autoloaded state avoids separate queries for values read during bootstrap.
- *
- * @param string $option Option name.
- * @return string
+ * Maps a legacy hot option to its compact runtime-state key. The legacy options remain mirrored for rollback
+ * compatibility, while the autoloaded state avoids separate queries for values read during bootstrap.
  */
 function erankly_runtime_state_key( string $option ): string {
 	$keys = array(
@@ -89,10 +84,9 @@ function erankly_runtime_state_key( string $option ): string {
 }
 
 /**
- * Returns the compact, autoloaded runtime state for a single-site install.
- *
- * Existing installations are migrated lazily once. Network options keep their
- * existing storage because WordPress has no equivalent autoload flag for them.
+ * Returns the compact, autoloaded runtime state for a single-site install. Existing installations are migrated
+ * lazily once. Network options keep their existing storage because WordPress has no equivalent autoload flag for
+ * them.
  *
  * @return array<string,mixed>
  */
@@ -128,13 +122,7 @@ function erankly_get_runtime_state(): array {
 	return $state;
 }
 
-/**
- * Updates one compact runtime value and mirrors its legacy option.
- *
- * @param string $option Legacy option name.
- * @param mixed  $value  Value to store.
- * @return void
- */
+/** Updates one compact runtime value and mirrors its legacy option. */
 function erankly_update_runtime_state( string $option, mixed $value ): void {
 	global $erankly_runtime_state_cache;
 
@@ -148,13 +136,7 @@ function erankly_update_runtime_state( string $option, mixed $value ): void {
 	$erankly_runtime_state_cache = $state;
 }
 
-/**
- * Gets a plugin option using network storage on Multisite.
- *
- * @param string $key           Option name.
- * @param mixed  $default_value Default value.
- * @return mixed
- */
+/** Gets a plugin option using network storage on Multisite. */
 function erankly_get_plugin_option( string $key, mixed $default_value = false ): mixed {
 	$runtime_key = erankly_runtime_state_key( $key );
 
@@ -170,9 +152,6 @@ function erankly_get_plugin_option( string $key, mixed $default_value = false ):
 /**
  * Updates a plugin option using network storage on Multisite.
  *
- * @param string $key   Option name.
- * @param mixed  $value Value to store.
- * @return void
  * @throws RuntimeException When the atomic settings update fails.
  */
 function erankly_update_plugin_option( string $key, mixed $value ): void {
@@ -210,11 +189,7 @@ if ( is_admin() ) {
 	require_once ERANKLY_PATH . 'includes/admin.php';
 }
 
-/**
- * Boots the plugin after all plugins are available for compatibility checks.
- *
- * @return void
- */
+/** Boots the plugin after all plugins are available for compatibility checks. */
 function erankly_bootstrap(): void {
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
@@ -326,56 +301,33 @@ function erankly_bootstrap(): void {
 		add_action( 'update_option_' . ERANKLY_OPTION, 'erankly_handle_settings_updated', 10, 2 );
 	}
 
-	/**
-	 * Fires after EasyRankly core has finished booting.
-	 *
-	 * Add-ons should load feature modules here so core helpers and settings are available.
-	 */
+	/** Fires after EasyRankly core has finished booting. Add-ons should load feature modules here so core helpers and settings are available. */
 	do_action( 'erankly_bootstrap' );
 }
 add_action( 'plugins_loaded', 'erankly_bootstrap', 5 );
 add_action( 'plugins_loaded', 'erankly_close_multilingual_provider_registry', 20 );
 
 /**
- * Lazily loads and advances one resumable third-party migration batch.
- *
- * Keeping the adapters out of ordinary frontend requests preserves the
- * plugin's modular bootstrap while still registering a WP-Cron callback early.
- *
- * @param string $job_id Migration UUID.
- * @return void
+ * Lazily loads and advances one resumable third-party migration batch. Keeping the adapters out of ordinary
+ * frontend requests preserves the plugin's modular bootstrap while still registering a WP-Cron callback early.
  */
 function erankly_process_migration_job( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	erankly_migration_job_runner()->process( $job_id );
 }
 
-/**
- * Advances one bounded, crash-safe conditional rollback page.
- *
- * @param string $job_id Migration UUID.
- */
 function erankly_process_migration_rollback( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	$result = erankly_migration_journal()->process_rollback( $job_id );
 	erankly_migration_record_rollback_result( $job_id, $result );
 }
 
-/**
- * Advances one bounded, background live-verification page.
- *
- * @param string $report_id Migration report UUID.
- */
+/** Advances one bounded, background live-verification page. */
 function erankly_process_migration_verification( string $report_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	ERankly_Migration_Verification_Job::process( $report_id );
 }
 
-/**
- * Advances one bounded EasyRankly JSON import batch.
- *
- * @param string $job_id Import UUID.
- */
 function erankly_process_import_job( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
@@ -383,10 +335,8 @@ function erankly_process_import_job( string $job_id ): void {
 }
 
 /**
- * Loads frontend-only modules after WordPress has resolved an HTML request.
- *
- * REST requests normally terminate before the wp hook, so they do not parse the
- * canonical, social, schema, or breadcrumb implementations.
+ * Loads frontend-only modules after WordPress has resolved an HTML request. REST requests normally terminate
+ * before the wp hook, so they do not parse the canonical, social, schema, or breadcrumb implementations.
  */
 function erankly_bootstrap_frontend_modules(): void {
 	erankly_load_content_helpers();
@@ -395,12 +345,7 @@ function erankly_bootstrap_frontend_modules(): void {
 	if ( (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
 		require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
 	} elseif ( ! function_exists( 'erankly_breadcrumbs' ) ) {
-		/**
-		 * Preserves the public template API while the breadcrumb module is off.
-		 *
-		 * @param array<string,mixed> $args Ignored arguments.
-		 * @return string
-		 */
+		/** Preserves the public template API while the breadcrumb module is off. */
 		function erankly_breadcrumbs( array $args = array() ): string {
 			unset( $args );
 			return '';
@@ -410,12 +355,7 @@ function erankly_bootstrap_frontend_modules(): void {
 	if ( ! function_exists( 'easyrankly_breadcrumbs' ) && function_exists( 'erankly_breadcrumbs' ) ) {
 		// Legacy public function kept for backward compatibility.
 		// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-		/**
-		 * Legacy alias for the public breadcrumbs template function.
-		 *
-		 * @param array<string,mixed> $args Arguments.
-		 * @return string
-		 */
+		/** Legacy alias for the public breadcrumbs template function. */
 		function easyrankly_breadcrumbs( array $args = array() ): string {
 			return erankly_breadcrumbs( $args );
 		}
@@ -443,13 +383,10 @@ function erankly_bootstrap_frontend_modules(): void {
 }
 
 /**
- * Rotates the network-wide generation used by per-site rewrite signatures.
+ * Rotates the network-wide generation used by per-site rewrite signatures. A fresh generation on every
+ * activation guarantees that sites skipped by a bounded network deactivation rebuild their rules after
+ * reactivation, even if another component flushed the rules while EasyRankly was inactive.
  *
- * A fresh generation on every activation guarantees that sites skipped by a
- * bounded network deactivation rebuild their rules after reactivation, even if
- * another component flushed the rules while EasyRankly was inactive.
- *
- * @return void
  * @throws RuntimeException When the generation cannot be persisted.
  */
 function erankly_rotate_rewrite_generation(): void {
@@ -462,12 +399,7 @@ function erankly_rotate_rewrite_generation(): void {
 	}
 }
 
-/**
- * Runs on plugin activation.
- *
- * @return void
- * @throws RuntimeException When atomic initialization fails.
- */
+/** @throws RuntimeException When atomic initialization fails. */
 function erankly_activate(): void {
 	erankly_load_default_helpers();
 	$is_new_install = false === erankly_get_plugin_option( ERANKLY_OPTION, false );
@@ -532,7 +464,6 @@ function erankly_get_network_site_ids_batch(
 /**
  * Counts sites in the current network.
  *
- * @return int
  * @throws RuntimeException When the site count cannot be read.
  */
 function erankly_get_current_network_site_count(): int {
@@ -553,11 +484,7 @@ function erankly_get_current_network_site_count(): int {
 	return (int) $count;
 }
 
-/**
- * Returns whether a network lifecycle sweep must run through WP-CLI.
- *
- * @return bool
- */
+/** Returns whether a network lifecycle sweep must run through WP-CLI. */
 function erankly_network_lifecycle_requires_cli(): bool {
 	$limit = (int) apply_filters( 'erankly_network_web_lifecycle_limit', ERANKLY_NETWORK_WEB_LIFECYCLE_LIMIT );
 
@@ -565,14 +492,10 @@ function erankly_network_lifecycle_requires_cli(): bool {
 }
 
 /**
- * Returns the rewrite configuration currently expected by this site.
- *
- * Every site stores the last signature it applied. An activation, plugin
- * upgrade, or network-wide sitemap setting change alters this value
- * automatically, so the next request to each site can rebuild its own rules
- * without scanning the network or coordinating a background job.
- *
- * @return string
+ * Returns the rewrite configuration currently expected by this site. Every site stores the last signature it
+ * applied. An activation, plugin upgrade, or network-wide sitemap setting change alters this value
+ * automatically, so the next request to each site can rebuild its own rules without scanning the network or
+ * coordinating a background job.
  */
 function erankly_get_rewrite_signature(): string {
 	$generation = (string) erankly_get_plugin_option( ERANKLY_REWRITE_GENERATION_OPTION, '0' );
@@ -581,12 +504,8 @@ function erankly_get_rewrite_signature(): string {
 }
 
 /**
- * Records the plugin version after an upgrade.
- *
- * Per-site rewrite updates are handled independently by
+ * Records the plugin version after an upgrade. Per-site rewrite updates are handled independently by
  * erankly_maybe_flush_rewrite_rules() through the lazy rewrite signature.
- *
- * @return void
  */
 function erankly_maybe_flush_after_upgrade(): void {
 	$stored = (string) erankly_get_plugin_option( ERANKLY_VERSION_OPTION, '' );
@@ -596,25 +515,11 @@ function erankly_maybe_flush_after_upgrade(): void {
 	}
 }
 
-/**
- * Adapter for the update_site_option_ hook, which passes args in a different order.
- *
- * @param string $option    Option name.
- * @param mixed  $value     New value.
- * @param mixed  $old_value Previous value.
- * @return void
- */
+/** Adapter for the update_site_option_ hook, which passes args in a different order. */
 function erankly_handle_network_settings_updated( string $option, mixed $value, mixed $old_value ): void {
 	erankly_handle_settings_updated( $old_value, $value );
 }
 
-/**
- * Handles settings updates that affect feature bootstrapping.
- *
- * @param mixed $old_value Previous option value.
- * @param mixed $value     New option value.
- * @return void
- */
 function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void {
 	erankly_clear_settings_cache();
 
@@ -633,11 +538,7 @@ function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void
 	}
 }
 
-/**
- * Lazily applies the current rewrite signature to this site.
- *
- * @return void
- */
+/** Lazily applies the current rewrite signature to this site. */
 function erankly_maybe_flush_rewrite_rules(): void {
 	$signature      = erankly_get_rewrite_signature();
 	$last_signature = (string) get_option( ERANKLY_REWRITE_SIGNATURE_OPTION, '' );
@@ -654,15 +555,11 @@ function erankly_maybe_flush_rewrite_rules(): void {
 }
 
 /**
- * Removes deactivation-only state from the current site.
+ * Removes deactivation-only state from the current site. Clears every EasyRankly WP-Cron hook so pending import,
+ * migration and rollback pages cannot fire after reactivation. Active job checkpoints are intentionally retained
+ * so an administrator can resume from the admin UI (see migration Phase 3/5 lifecycle docs). Reset and uninstall
+ * delete those checkpoints; deactivation must not.
  *
- * Clears every EasyRankly WP-Cron hook so pending import, migration and
- * rollback pages cannot fire after reactivation. Active job checkpoints are
- * intentionally retained so an administrator can resume from the admin UI
- * (see migration Phase 3/5 lifecycle docs). Reset and uninstall delete those
- * checkpoints; deactivation must not.
- *
- * @return void
  * @throws RuntimeException When a scheduled task cannot be removed.
  */
 function erankly_deactivate_current_site(): void {
@@ -692,12 +589,9 @@ function erankly_deactivate_current_site(): void {
 }
 
 /**
- * Cancels and verifies removal of the current network reset job.
+ * Cancels and verifies removal of the current network reset job. A stale active job must never survive
+ * deactivation: the Network Admin self-healing notice would otherwise schedule it again after reactivation.
  *
- * A stale active job must never survive deactivation: the Network Admin
- * self-healing notice would otherwise schedule it again after reactivation.
- *
- * @return void
  * @throws RuntimeException When the reset state cannot be removed.
  */
 function erankly_cancel_network_reset_job(): void {
@@ -710,12 +604,7 @@ function erankly_cancel_network_reset_job(): void {
 	}
 }
 
-/**
- * Runs on plugin deactivation.
- *
- * @param bool $network_deactivating Whether this is a network deactivation.
- * @return void
- */
+/** @param bool $network_deactivating Whether this is a network deactivation. */
 function erankly_deactivate( bool $network_deactivating = false ): void {
 	if ( is_multisite() && $network_deactivating ) {
 		if (
@@ -778,11 +667,6 @@ function erankly_deactivate( bool $network_deactivating = false ): void {
 }
 register_deactivation_hook( ERANKLY_FILE, 'erankly_deactivate' );
 
-/**
- * Registers the REST route for the admin user search autocomplete.
- *
- * @return void
- */
 function erankly_register_user_search_route(): void {
 	register_rest_route(
 		'erankly/v1',
@@ -803,14 +687,10 @@ function erankly_register_user_search_route(): void {
 }
 
 /**
- * Handles the user search REST request.
+ * Handles the user search REST request. Returns up to 20 users matching the query. Network-wide lookups (blog_id
+ * = 0) are reserved for users who can manage the whole network; a regular site admin is scoped to the members of
+ * their own site so they cannot enumerate every account on the network. On single-site the blog_id is ignored.
  *
- * Returns up to 20 users matching the query. Network-wide lookups (blog_id = 0)
- * are reserved for users who can manage the whole network; a regular site admin
- * is scoped to the members of their own site so they cannot enumerate every
- * account on the network. On single-site the blog_id is ignored.
- *
- * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response
  */
 function erankly_rest_user_search( WP_REST_Request $request ): WP_REST_Response {
@@ -864,17 +744,11 @@ function erankly_rest_user_search( WP_REST_Request $request ): WP_REST_Response 
 }
 
 /**
- * Registers the REST route that autosaves settings panels.
- *
- * One route serves every autosave-enabled panel (see
- * erankly_settings_autosave_panels() in admin/settings-page.php for the
- * per-panel whitelist registry); the `panel` slug is validated against that
- * registry inside the handler, not the route pattern, so this never needs
- * editing again as panels are added. The char class is just a safe charset
- * for a path segment, not an allowlist (the registry lookup is what actually
- * prevents an unknown or cross-panel request from touching anything).
- *
- * @return void
+ * Registers the REST route that autosaves settings panels. One route serves every autosave-enabled panel (see
+ * erankly_settings_autosave_panels() in admin/settings-page.php for the per-panel whitelist registry); the
+ * `panel` slug is validated against that registry inside the handler, not the route pattern, so this never needs
+ * editing again as panels are added. The char class is just a safe charset for a path segment, not an allowlist
+ * (the registry lookup is what actually prevents an unknown or cross-panel request from touching anything).
  */
 function erankly_register_settings_autosave_route(): void {
 	register_rest_route(
@@ -898,24 +772,17 @@ function erankly_register_settings_autosave_route(): void {
 }
 
 /**
- * Saves a partial payload from a settings panel autosave.
+ * Saves a partial payload from a settings panel autosave. Looks up the requested panel in
+ * erankly_settings_autosave_panels(), merges its whitelisted fields onto the currently stored settings (so
+ * panels that aren't part of this request are left untouched), optionally runs a panel-specific normalize hook,
+ * then runs the result through the same sanitizer the full options.php submission uses and persists it. Several
+ * of those admin-only helpers (erankly_use_site_editor_special_page_panels(),
+ * add_settings_error()/get_settings_errors()) aren't loaded on a bare REST request the way they are on wp-admin
+ * requests, so they're pulled in on demand here. On Multisite,
+ * erankly_get_settings()/erankly_update_plugin_option() already route through the network-wide site option
+ * regardless of which admin screen the request came from, so no Network Admin detection is needed here. The
+ * permission_callback is what keeps subsite admins out.
  *
- * Looks up the requested panel in erankly_settings_autosave_panels(), merges
- * its whitelisted fields onto the currently stored settings (so panels that
- * aren't part of this request are left untouched), optionally runs a
- * panel-specific normalize hook, then runs the result through the same
- * sanitizer the full options.php submission uses and persists it. Several of
- * those admin-only helpers (erankly_use_site_editor_special_page_panels(),
- * add_settings_error()/get_settings_errors()) aren't loaded on a bare REST
- * request the way they are on wp-admin requests, so they're pulled in on
- * demand here.
- *
- * On Multisite, erankly_get_settings()/erankly_update_plugin_option() already
- * route through the network-wide site option regardless of which admin
- * screen the request came from, so no Network Admin detection is needed
- * here. The permission_callback is what keeps subsite admins out.
- *
- * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
@@ -962,16 +829,12 @@ function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
 }
 
 /**
- * Registers the REST route that autosaves the per-site "Special pages and
- * archives" panel, the Multisite fallback for sites that can't use the Site
- * Editor panels (see erankly_use_site_editor_special_page_panels()). Kept
- * separate from erankly_register_settings_autosave_route(): this panel
- * doesn't merge into ERANKLY_OPTION/erankly_get_settings() the way every
- * other panel does. erankly_update_special_meta_map() already owns reading,
- * sanitizing and writing this data (a dedicated per-site option on
- * Multisite), so it doesn't fit the shared registry's shape.
- *
- * @return void
+ * Registers the REST route that autosaves the per-site "Special pages and archives" panel, the Multisite
+ * fallback for sites that can't use the Site Editor panels (see erankly_use_site_editor_special_page_panels()).
+ * Kept separate from erankly_register_settings_autosave_route(): this panel doesn't merge into
+ * ERANKLY_OPTION/erankly_get_settings() the way every other panel does. erankly_update_special_meta_map()
+ * already owns reading, sanitizing and writing this data (a dedicated per-site option on Multisite), so it
+ * doesn't fit the shared registry's shape.
  */
 function erankly_register_special_pages_autosave_route(): void {
 	register_rest_route(
@@ -996,16 +859,12 @@ function erankly_register_special_pages_autosave_route(): void {
 }
 
 /**
- * Saves the "Special pages and archives" autosave payload.
+ * Saves the "Special pages and archives" autosave payload. Uses erankly_update_special_meta_map()
+ * (includes/special-meta.php, always loaded), which already sanitizes its input and routes the write to the
+ * correct storage, so the whitelisted map is passed straight through with no merge step. Unlike
+ * erankly_rest_save_settings_panel(), there's no risk of this payload clobbering another panel's fields since
+ * this data isn't part of ERANKLY_OPTION on Multisite at all.
  *
- * Uses erankly_update_special_meta_map() (includes/special-meta.php, always
- * loaded), which already sanitizes its input and routes the write to the
- * correct storage, so the whitelisted map is passed straight through with no merge
- * step. Unlike erankly_rest_save_settings_panel(), there's no risk of this
- * payload clobbering another panel's fields since this data isn't part of
- * ERANKLY_OPTION on Multisite at all.
- *
- * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error
  */
 function erankly_rest_save_special_pages( WP_REST_Request $request ) {

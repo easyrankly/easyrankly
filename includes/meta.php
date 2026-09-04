@@ -1,9 +1,5 @@
 <?php
-/**
- * Metadata registration and computed SEO values.
- *
- * @package EasyRankly
- */
+/** Metadata registration and computed SEO values. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,10 +11,8 @@ require_once ERANKLY_PATH . 'includes/title-description.php';
 require_once ERANKLY_PATH . 'includes/hreflang.php';
 
 /**
- * Returns the registered EasyRankly meta keys mapped to their value type.
- *
- * Shared by meta registration and the import/export module so both work from a
- * single source of truth.
+ * Returns the registered EasyRankly meta keys mapped to their value type. Shared by meta registration and the
+ * import/export module so both work from a single source of truth.
  *
  * @return array<string,string>
  */
@@ -66,22 +60,16 @@ function erankly_get_meta_keys(): array {
 	);
 
 	/**
-	 * Filters the registered EasyRankly meta keys.
-	 *
-	 * Add-ons may register extra keys so import/export and REST meta share one list.
-	 *
-	 * @param array<string,string> $keys Meta key => value type.
-	 */
+ * Filters the registered EasyRankly meta keys. Add-ons may register extra keys so import/export and REST meta
+ * share one list.
+ *
+ * @param array<string,string> $keys Meta key => value type.
+ */
 	$keys = apply_filters( 'erankly_meta_keys', $keys );
 
 	return is_array( $keys ) ? $keys : array();
 }
 
-/**
- * Registers protected post meta keys.
- *
- * @return void
- */
 function erankly_register_meta(): void {
 	$meta = erankly_get_meta_keys();
 
@@ -167,13 +155,7 @@ function erankly_register_meta(): void {
 	}
 }
 
-/**
- * Builds the REST schema for complex registered metadata.
- *
- * @param string $key  Meta key.
- * @param string $type WordPress metadata type.
- * @return bool|array<string,mixed>
- */
+/** @return bool|array<string,mixed> */
 function erankly_get_registered_meta_rest_schema( string $key, string $type ): bool|array {
 	if ( 'array' !== $type && 'object' !== $type ) {
 		$schema = true;
@@ -193,23 +175,11 @@ function erankly_get_registered_meta_rest_schema( string $key, string $type ): b
 		$schema = array( 'schema' => $schema );
 	}
 
-	/**
-	 * Filters the REST schema used when registering a meta key.
-	 *
-	 * @param bool|array<string,mixed> $schema REST show_in_rest value.
-	 * @param string                   $key    Meta key.
-	 * @param string                   $type   WordPress metadata type.
-	 */
+	/** Filters the REST schema used when registering a meta key. */
 	return apply_filters( 'erankly_registered_meta_rest_schema', $schema, $key, $type );
 }
 
-/**
- * Sanitizes registered post meta.
- *
- * @param mixed  $value    Raw value.
- * @param string $meta_key Meta key.
- * @return mixed
- */
+/** Sanitizes registered post meta. */
 function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mixed {
 	switch ( $meta_key ) {
 		case '_erankly_title':
@@ -282,13 +252,7 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 	}
 }
 
-/**
- * Sanitizes an enum while treating an omitted value as inheritance/default.
- *
- * @param mixed             $value   Raw value.
- * @param array<int,string> $allowed Allowed values.
- * @return string
- */
+/** Sanitizes an enum while treating an omitted value as inheritance/default. */
 function erankly_sanitize_meta_enum( mixed $value, array $allowed ): string {
 	$value = sanitize_key( (string) $value );
 
@@ -298,7 +262,6 @@ function erankly_sanitize_meta_enum( mixed $value, array $allowed ): string {
 /**
  * Sanitizes taxonomy-to-primary-term mappings.
  *
- * @param mixed $value Raw mapping.
  * @return array<string,int>
  */
 function erankly_sanitize_primary_terms( mixed $value ): array {
@@ -319,7 +282,6 @@ function erankly_sanitize_primary_terms( mixed $value ): array {
 /**
  * Keeps plugin-specific editorial payloads losslessly enough for future reports.
  *
- * @param mixed $value Raw payload.
  * @return array<string,mixed>
  */
 function erankly_sanitize_legacy_editorial_data( mixed $value ): array {
@@ -333,7 +295,6 @@ function erankly_sanitize_legacy_editorial_data( mixed $value ): array {
 /**
  * Sanitizes schema type names used to suppress automatic graph nodes.
  *
- * @param mixed $value Raw values.
  * @return array<int,string>
  */
 function erankly_sanitize_schema_type_list( mixed $value ): array {
@@ -353,7 +314,6 @@ function erankly_sanitize_schema_type_list( mixed $value ): array {
 /**
  * Sanitizes repeatable schema blocks.
  *
- * @param mixed $value     Raw schema blocks.
  * @param bool  $is_global Whether to sanitize global targeting fields.
  * @return array<int,array<string,mixed>>
  */
@@ -423,12 +383,7 @@ function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false )
 	return $blocks;
 }
 
-/**
- * Sanitizes comma or newline-separated schema target IDs and slugs.
- *
- * @param mixed $value Raw target list.
- * @return string
- */
+/** Sanitizes comma or newline-separated schema target IDs and slugs. */
 function erankly_sanitize_schema_target_items( mixed $value ): string {
 	$items = preg_split( '/[\r\n,]+/', (string) $value );
 
@@ -451,21 +406,12 @@ function erankly_sanitize_schema_target_items( mixed $value ): string {
 	return implode( "\n", array_values( array_unique( array_filter( $clean ) ) ) );
 }
 
-/**
- * Returns whether a sanitized schema block contains useful content.
- *
- * @param array<string,mixed> $block Schema block.
- * @return bool
- */
+/** Returns whether a sanitized schema block contains useful content. */
 function erankly_schema_block_has_content( array $block ): bool {
 	return isset( $block['fields']['custom_json'] ) && '' !== trim( (string) $block['fields']['custom_json'] );
 }
 
-/**
- * Adds an admin settings error for invalid custom JSON-LD.
- *
- * @return void
- */
+/** Adds an admin settings error for invalid custom JSON-LD. */
 function erankly_add_schema_json_settings_error(): void {
 	static $added = false;
 
@@ -483,22 +429,14 @@ function erankly_add_schema_json_settings_error(): void {
 	);
 }
 
-/**
- * Returns whether custom JSON-LD is syntactically usable by EasyRankly.
- *
- * @param string $json Raw JSON-LD.
- * @return bool
- */
 function erankly_is_valid_custom_json_ld( string $json ): bool {
 	return ! empty( erankly_decode_custom_json_ld( $json ) );
 }
 
 /**
- * Decodes custom JSON-LD into graph entries.
+ * Decodes custom JSON-LD into graph entries. Supports one object, an array of objects, or an object containing
  *
- * Supports one object, an array of objects, or an object containing @graph.
- *
- * @param string $json Raw JSON-LD.
+ * @graph.
  * @return array<int,array<string,mixed>>
  */
 function erankly_decode_custom_json_ld( string $json ): array {
@@ -511,12 +449,7 @@ function erankly_decode_custom_json_ld( string $json ): array {
 	return erankly_normalize_custom_json_ld_data( $decoded );
 }
 
-/**
- * Normalizes decoded JSON-LD into graph entries.
- *
- * @param array<mixed> $decoded Decoded JSON data.
- * @return array<int,array<string,mixed>>
- */
+/** @return array<int,array<string,mixed>> */
 function erankly_normalize_custom_json_ld_data( array $decoded ): array {
 	if ( isset( $decoded['@graph'] ) && is_array( $decoded['@graph'] ) ) {
 		$decoded = $decoded['@graph'];

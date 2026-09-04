@@ -1,20 +1,11 @@
 <?php
-/**
- * Open Graph and Twitter card output.
- *
- * @package EasyRankly
- */
+/** Open Graph and Twitter card output. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns the automatic social title used for singular content in simplified mode.
- *
- * @param int $post_id Post ID.
- * @return string
- */
+/** Returns the automatic social title used for singular content in simplified mode. */
 function erankly_get_simplified_social_title( int $post_id ): string {
 	$title = erankly_get_post_meta_string( $post_id, 'title' );
 
@@ -27,12 +18,7 @@ function erankly_get_simplified_social_title( int $post_id ): string {
 	return erankly_normalize_seo_text( $title );
 }
 
-/**
- * Returns the automatic social description used for singular content in simplified mode.
- *
- * @param int $post_id Post ID.
- * @return string
- */
+/** Returns the automatic social description used for singular content in simplified mode. */
 function erankly_get_simplified_social_description( int $post_id ): string {
 	$description = erankly_get_post_meta_string( $post_id, 'description' );
 
@@ -49,11 +35,6 @@ function erankly_get_simplified_social_description( int $post_id ): string {
 	return erankly_normalize_seo_text( $description );
 }
 
-/**
- * Renders Open Graph and Twitter meta tags.
- *
- * @return void
- */
 function erankly_render_opengraph_tags(): void {
 	$title         = erankly_get_og_title();
 	$description   = erankly_get_og_description();
@@ -88,11 +69,7 @@ function erankly_render_opengraph_tags(): void {
 		'twitter:image:alt'   => '' !== $twitter_image ? $twitter_alt : '',
 	);
 
-	/**
-	 * Filters Open Graph and Twitter tags.
-	 *
-	 * @param array<string,string> $tags Tags keyed by property/name.
-	 */
+	/** @param array<string,string> $tags Tags keyed by property/name. */
 	$tags = apply_filters( 'erankly_opengraph_tags', array_filter( $tags ) );
 
 	foreach ( $tags as $property => $content ) {
@@ -112,16 +89,12 @@ function erankly_render_opengraph_tags(): void {
 }
 
 /**
- * Resolves a social title or description through the shared fallback chain.
- *
- * Order: explicit per-content meta, simplified-mode automatic value,
- * special-page template, global default template, then the caller-provided fallback.
+ * Resolves a social title or description through the shared fallback chain. Order: explicit per-content meta,
+ * simplified-mode automatic value, special-page template, global default template, then the caller-provided
+ * fallback.
  *
  * @param string $meta_key    Per-content meta key (without plugin prefix).
  * @param string $setting_key Global default setting key.
- * @param string $fallback    Final fallback value.
- * @param int    $limit       Character limit.
- * @return string
  */
 function erankly_resolve_social_text( string $meta_key, string $setting_key, string $fallback, int $limit ): string {
 	$is_title = str_contains( $meta_key, 'title' );
@@ -191,77 +164,32 @@ function erankly_resolve_social_text( string $meta_key, string $setting_key, str
 	return erankly_trim_text( $value, $limit );
 }
 
-/**
- * Returns the computed Open Graph title.
- *
- * @return string
- */
 function erankly_get_og_title(): string {
 	$title = erankly_resolve_social_text( 'og_title', 'default_og_title', erankly_get_title(), 60 );
 
-	/**
-	 * Filters the computed Open Graph title.
-	 *
-	 * @param string $title Computed Open Graph title.
-	 */
+	/** @param string $title Computed Open Graph title. */
 	return (string) apply_filters( 'erankly_og_title', $title );
 }
 
-/**
- * Returns the computed Open Graph description.
- *
- * @return string
- */
 function erankly_get_og_description(): string {
 	$description = erankly_resolve_social_text( 'og_description', 'default_og_description', erankly_get_description(), 200 );
 
-	/**
-	 * Filters the computed Open Graph description.
-	 *
-	 * @param string $description Computed Open Graph description.
-	 */
+	/** @param string $description Computed Open Graph description. */
 	return (string) apply_filters( 'erankly_og_description', $description );
 }
 
-/**
- * Returns the computed X/Twitter title.
- *
- * @param string $fallback Fallback title.
- * @return string
- */
 function erankly_get_twitter_title( string $fallback = '' ): string {
 	$title = erankly_resolve_social_text( 'twitter_title', 'default_twitter_title', $fallback, 70 );
 
-	/**
-	 * Filters the computed X/Twitter title.
-	 *
-	 * @param string $title Computed X/Twitter title.
-	 */
 	return (string) apply_filters( 'erankly_twitter_title', $title );
 }
 
-/**
- * Returns the computed X/Twitter description.
- *
- * @param string $fallback Fallback description.
- * @return string
- */
 function erankly_get_twitter_description( string $fallback = '' ): string {
 	$description = erankly_resolve_social_text( 'twitter_description', 'default_twitter_description', $fallback, 200 );
 
-	/**
-	 * Filters the computed X/Twitter description.
-	 *
-	 * @param string $description Computed X/Twitter description.
-	 */
 	return (string) apply_filters( 'erankly_twitter_description', $description );
 }
 
-/**
- * Returns the selected X/Twitter card type.
- *
- * @return string
- */
 function erankly_get_twitter_card_type(): string {
 	$card_type = '';
 
@@ -281,19 +209,9 @@ function erankly_get_twitter_card_type(): string {
 		$card_type = 'summary_large_image';
 	}
 
-	/**
-	 * Filters the X/Twitter card type.
-	 *
-	 * @param string $card_type X/Twitter card type.
-	 */
 	return (string) apply_filters( 'erankly_twitter_card_type', $card_type );
 }
 
-/**
- * Returns the configured X/Twitter site handle.
- *
- * @return string
- */
 function erankly_get_twitter_site(): string {
 	$site = trim( (string) erankly_get_setting( 'twitter_site', '' ) );
 
@@ -301,20 +219,9 @@ function erankly_get_twitter_site(): string {
 		$site = '@' . $site;
 	}
 
-	/**
-	 * Filters the X/Twitter site handle.
-	 *
-	 * @param string $site X/Twitter site handle.
-	 */
 	return (string) apply_filters( 'erankly_twitter_site', $site );
 }
 
-/**
- * Returns the best available X/Twitter image URL.
- *
- * @param string $fallback Fallback image URL.
- * @return string
- */
 function erankly_get_twitter_image( string $fallback = '' ): string {
 	$image = '';
 
@@ -357,21 +264,10 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 		$image = $fallback;
 	}
 
-	/**
-	 * Filters the X/Twitter image URL.
-	 *
-	 * @param string $image X/Twitter image URL.
-	 */
 	return (string) apply_filters( 'erankly_twitter_image', $image );
 }
 
-/**
- * Renders the oEmbed JSON discovery link.
- *
- * Always active on every public page.
- *
- * @return void
- */
+/** Renders the oEmbed JSON discovery link. Always active on every public page. */
 function erankly_render_oembed_link(): void {
 	// Suppress the native WP discovery (runs at priority 10, JSON + XML) so
 	// that our single JSON-only link does not appear twice on singular pages.
@@ -390,12 +286,8 @@ function erankly_render_oembed_link(): void {
 }
 
 /**
- * Returns the social sharing image configured for the current special page.
- *
- * Resolves the special-page social image URL, then the picked media library
- * attachment, or an empty string when none is set.
- *
- * @return string
+ * Returns the social sharing image configured for the current special page. Resolves the special-page social
+ * image URL, then the picked media library attachment, or an empty string when none is set.
  */
 function erankly_get_special_page_social_image(): string {
 	$special_key = erankly_current_special_page_key();
@@ -416,11 +308,6 @@ function erankly_get_special_page_social_image(): string {
 	return $custom_id > 0 ? erankly_get_image_url( $custom_id, 'full' ) : '';
 }
 
-/**
- * Returns the computed Open Graph image URL.
- *
- * @return string
- */
 function erankly_get_og_image(): string {
 	static $resolved = null;
 
@@ -486,25 +373,17 @@ function erankly_get_og_image(): string {
 		$image = erankly_get_organization_logo_url();
 	}
 
-	/**
-	 * Filters the Open Graph image URL.
-	 *
-	 * @param string $image Image URL.
-	 */
 	$resolved = (string) apply_filters( 'erankly_og_image', $image );
 
 	return $resolved;
 }
 
 /**
- * Returns a Media Library attachment alternative text by its resolved URL.
- *
- * This is deliberately a fallback: explicitly authored social metadata always
- * wins, while selected WordPress images inherit their existing accessibility
- * description without creating duplicate per-network values.
+ * Returns a Media Library attachment alternative text by its resolved URL. This is deliberately a fallback:
+ * explicitly authored social metadata always wins, while selected WordPress images inherit their existing
+ * accessibility description without creating duplicate per-network values.
  *
  * @param string $image URL of the resolved social image.
- * @return string
  */
 function erankly_get_social_image_attachment_alt( string $image ): string {
 	static $alts = array();
@@ -545,16 +424,13 @@ function erankly_get_social_image_attachment_alt( string $image ): string {
 }
 
 /**
- * Returns the alternative text for the X image.
- *
- * A shared social description is valid only if both networks resolve to the
- * same image. A distinct X image gets its own explicit or Media Library value
- * instead of inheriting a potentially inaccurate description.
+ * Returns the alternative text for the X image. A shared social description is valid only if both networks
+ * resolve to the same image. A distinct X image gets its own explicit or Media Library value instead of
+ * inheriting a potentially inaccurate description.
  *
  * @param string $twitter_image Resolved X image URL.
  * @param string $og_image      Resolved Open Graph image URL.
  * @param string $og_alt        Resolved shared Open Graph alternative text.
- * @return string
  */
 function erankly_get_twitter_image_alt( string $twitter_image, string $og_image, string $og_alt ): string {
 	return erankly_get_social_image_alt(
@@ -565,12 +441,8 @@ function erankly_get_twitter_image_alt( string $twitter_image, string $og_image,
 }
 
 /**
- * Returns alternative text for a social image.
- *
  * @param string $network  Either `og` or `twitter`.
- * @param string $fallback Fallback alternative text.
  * @param string $image    Resolved social image URL.
- * @return string
  */
 function erankly_get_social_image_alt( string $network, string $fallback = '', string $image = '' ): string {
 	$key = 'twitter' === $network ? 'twitter_image_alt' : 'og_image_alt';

@@ -1,142 +1,89 @@
 <?php
-/**
- * Shared contract and helpers for third-party SEO migrations.
- *
- * @package EasyRankly
- */
+/** Shared contract and helpers for third-party SEO migrations. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Base class implemented by every source plugin adapter.
- */
+/** Base class implemented by every source plugin adapter. */
 abstract class ERankly_Migration_Adapter {
-	/**
-	 * Optional official source-plugin export used instead of live database data.
-	 *
-	 * @var string
-	 */
+	/** Optional official source-plugin export used instead of live database data. */
 	private string $export_file = '';
 
-	/**
-	 * Collected non-fatal warnings.
-	 *
-	 * @var array<int,array<string,mixed>>
-	 */
+	/** @var array<int,array<string,mixed>> */
 	protected array $warnings = array();
 
-	/**
-	 * Returns the stable source identifier.
-	 *
-	 * @return string
-	 */
+	/** Returns the stable source identifier. */
 	abstract public function slug(): string;
 
-	/**
-	 * Returns the human-readable source name.
-	 *
-	 * @return string
-	 */
 	abstract public function label(): string;
 
-	/**
-	 * Returns the detected source version when available.
-	 *
-	 * @return string
-	 */
+	/** Returns the detected source version when available. */
 	abstract public function version(): string;
 
-	/**
-	 * Returns whether importable source data exists.
-	 *
-	 * @return bool
-	 */
 	abstract public function is_available(): bool;
 
-	/**
-	 * Yields normalized content records.
-	 *
-	 * @return iterable<int,array{object_type:string,object_id:int,meta:array<string,mixed>,source_reference:string}>
-	 */
+	/** @return iterable<int,array{object_type:string,object_id:int,meta:array<string,mixed>,source_reference:string}> */
 	abstract public function content_records(): iterable;
 
-	/**
-	 * Yields normalized redirect records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function redirect_records(): iterable {
 		return array();
 	}
 
 	/**
-	 * Returns normalized EasyRankly global settings discovered in the source.
-	 *
-	 * Values use EasyRankly setting keys and are sanitized by the job runner as
-	 * one complete snapshot before individual conflict decisions are staged.
-	 *
-	 * @return array<string,mixed>
-	 */
+ * Returns normalized EasyRankly global settings discovered in the source. Values use EasyRankly setting keys and
+ * are sanitized by the job runner as one complete snapshot before individual conflict decisions are staged.
+ *
+ * @return array<string,mixed>
+ */
 	public function global_settings(): array {
 		return array();
 	}
 
 	/**
-	 * Returns one resumable page of normalized content records.
-	 *
-	 * Concrete adapters override this with keyset cursors. The fallback keeps the
-	 * public contract usable for third-party adapters, but is intentionally based
-	 * on an offset and therefore should not be used for large production imports.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor from the previous page.
-	 * @param int                 $limit  Maximum normalized records to return.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * Returns one resumable page of normalized content records. Concrete adapters override this with keyset cursors.
+ * The fallback keeps the public contract usable for third-party adapters, but is intentionally based on an
+ * offset and therefore should not be used for large production imports.
+ *
+ * @param array<string,mixed> $cursor Resume cursor from the previous page.
+ * @param int                 $limit  Maximum normalized records to return.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function content_batch( array $cursor, int $limit ): array {
 		return $this->iterable_batch( $this->content_records(), $cursor, $limit );
 	}
 
 	/**
-	 * Returns one resumable page of normalized redirect records.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor from the previous page.
-	 * @param int                 $limit  Maximum normalized records to return.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param array<string,mixed> $cursor Resume cursor from the previous page.
+ * @param int                 $limit  Maximum normalized records to return.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function redirect_batch( array $cursor, int $limit ): array {
 		return $this->iterable_batch( $this->redirect_records(), $cursor, $limit );
 	}
 
 	/**
-	 * Describes the source surfaces covered by the adapter.
-	 *
-	 * @return array<int,string>
-	 */
+ * Describes the source surfaces covered by the adapter.
+ *
+ * @return array<int,string>
+ */
 	public function capabilities(): array {
 		return array( 'posts', 'terms', 'social', 'robots' );
 	}
 
-	/**
-	 * Returns non-fatal adapter warnings.
-	 *
-	 * @return array<int,array<string,mixed>>
-	 */
+	/** @return array<int,array<string,mixed>> */
 	public function warnings(): array {
 		return $this->warnings;
 	}
 
 	/**
-	 * Selects a previously validated official export file as the source.
-	 *
-	 * The resumable runner persists this path in its checkpoint and restores it
-	 * before every page. Upload ownership and cleanup intentionally belong to the
-	 * Phase 5 wizard; adapters only accept local, readable CSV/JSON files.
-	 *
-	 * @param string $path Local source export path, or an empty string for DB mode.
-	 * @return bool
-	 */
+ * Selects a previously validated official export file as the source. The resumable runner persists this path in
+ * its checkpoint and restores it before every page. Upload ownership and cleanup intentionally belong to the
+ * Phase 5 wizard; adapters only accept local, readable CSV/JSON files.
+ *
+ * @param string $path Local source export path, or an empty string for DB mode.
+ */
 	public function use_export_file( string $path ): bool {
 		if ( '' === $path ) {
 			$this->export_file = '';
@@ -161,60 +108,39 @@ abstract class ERankly_Migration_Adapter {
 		return true;
 	}
 
-	/** Returns whether an official export is the selected source. */
 	public function uses_export_file(): bool {
 		return '' !== $this->export_file;
 	}
 
-	/** Returns the selected local export path. */
 	public function export_file(): string {
 		return $this->export_file;
 	}
 
-	/**
-	 * Returns the detected Free/paid edition.
-	 *
-	 * @return string
-	 */
 	public function edition(): string {
 		return 'free';
 	}
 
-	/**
-	 * Returns detected source modules and add-ons.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	public function modules(): array {
 		return array();
 	}
 
-	/**
-	 * Returns per-module certification states.
-	 *
-	 * @return array<string,string>
-	 */
+	/** @return array<string,string> */
 	public function module_support(): array {
 		return array();
 	}
 
-	/**
-	 * Returns the storage definitions certified by this adapter.
-	 *
-	 * @return array<string,array<string,mixed>>
-	 */
+	/** @return array<string,array<string,mixed>> */
 	protected function storage_definitions(): array {
 		return array();
 	}
 
 	/**
-	 * Returns the certified inclusive version range.
-	 *
-	 * Empty detected versions remain importable when the storage signature is
-	 * known, which covers inactive plugins and historical database-only copies.
-	 *
-	 * @return array{min:string,max:string}
-	 */
+ * Returns the certified inclusive version range. Empty detected versions remain importable when the storage
+ * signature is known, which covers inactive plugins and historical database-only copies.
+ *
+ * @return array{min:string,max:string}
+ */
 	protected function supported_versions(): array {
 		return array(
 			'min' => '',
@@ -223,14 +149,11 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns edition and modules proven by an official export signature.
-	 *
-	 * Concrete adapters override this when the export format itself carries a
-	 * stronger edition signal than the currently installed source code.
-	 *
-	 * @param string $format Certified export format.
-	 * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
-	 */
+ * Returns edition and modules proven by an official export signature. Concrete adapters override this when the
+ * export format itself carries a stronger edition signal than the currently installed source code.
+ *
+ * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
+ */
 	protected function export_source_profile( string $format ): array {
 		unset( $format );
 
@@ -242,10 +165,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Detects the exact source profile before discovery starts.
-	 *
-	 * @return array<string,mixed>
-	 */
+ * Detects the exact source profile before discovery starts.
+ *
+ * @return array<string,mixed>
+ */
 	public function profile(): array {
 		if ( $this->uses_export_file() ) {
 			$inspection     = class_exists( 'ERankly_Migration_Export_Reader' )
@@ -322,11 +245,7 @@ abstract class ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Returns bounded source counts per certified storage surface.
-	 *
-	 * @return array{total:int,surfaces:array<string,int>}
-	 */
+	/** @return array{total:int,surfaces:array<string,int>} */
 	public function inventory(): array {
 		if ( $this->uses_export_file() ) {
 			$count = class_exists( 'ERankly_Migration_Export_Reader' ) ? ERankly_Migration_Export_Reader::count_records( $this->export_file ) : 0;
@@ -347,11 +266,7 @@ abstract class ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Fingerprints every source value consumed by the adapter.
-	 *
-	 * @return string SHA-256 fingerprint.
-	 */
+	/** Fingerprints every source value consumed by the adapter. */
 	public function fingerprint(): string {
 		if ( $this->uses_export_file() ) {
 			if ( ! is_file( $this->export_file ) || is_link( $this->export_file ) || ! is_readable( $this->export_file ) ) {
@@ -371,14 +286,11 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Adds a bounded diagnostic to the post-migration report.
-	 *
-	 * @param string $code      Machine-readable warning code.
-	 * @param string $message   Human-readable message.
-	 * @param string $reference Optional source record reference.
-	 * @param bool   $blocking  Whether this diagnostic must block go-live.
-	 * @return void
-	 */
+ * Adds a bounded diagnostic to the post-migration report.
+ *
+ * @param string $reference Optional source record reference.
+ * @param bool   $blocking  Whether this diagnostic must block go-live.
+ */
 	protected function add_warning( string $code, string $message, string $reference = '', bool $blocking = true ): void {
 		if ( count( $this->warnings ) >= 100 ) {
 			return;
@@ -393,17 +305,14 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Iterates objects that own one of the requested metadata keys.
-	 *
-	 * IDs are fetched in stable, bounded batches and WordPress primes the whole
-	 * batch's metadata cache before individual records are mapped. This avoids
-	 * loading a large site's complete metadata table into PHP memory.
-	 *
-	 * @param string            $object_type post|term|user.
-	 * @param array<int,string> $keys        Exact source meta keys.
-	 * @param array<int,string> $prefixes    Source meta key prefixes.
-	 * @return iterable<int,array{id:int,meta:array<string,mixed>}>
-	 */
+ * Iterates objects that own one of the requested metadata keys. IDs are fetched in stable, bounded batches and
+ * WordPress primes the whole batch's metadata cache before individual records are mapped. This avoids loading a
+ * large site's complete metadata table into PHP memory.
+ *
+ * @param array<int,string> $keys        Exact source meta keys.
+ * @param array<int,string> $prefixes    Source meta key prefixes.
+ * @return iterable<int,array{id:int,meta:array<string,mixed>}>
+ */
 	protected function meta_objects( string $object_type, array $keys, array $prefixes = array() ): iterable {
 		$cursor = 0;
 
@@ -419,19 +328,16 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Reads one keyset-paginated metadata object page.
-	 *
-	 * The returned cursor advances across missing/deleted objects too, preventing
-	 * a malformed source row from trapping a resumable worker on the same page.
-	 *
-	 * @param string            $object_type post|term|user.
-	 * @param array<int,string> $keys        Exact source meta keys.
-	 * @param array<int,string> $prefixes    Source meta key prefixes.
-	 * @param int               $after_id    Last source object ID already scanned.
-	 * @param int               $limit       Maximum source IDs to scan.
-	 * @return array{records:array<int,array{id:int,meta:array<string,mixed>}>,after_id:int,scanned:int,done:bool}
-	 * @throws RuntimeException When the source metadata query fails.
-	 */
+ * Reads one keyset-paginated metadata object page. The returned cursor advances across missing/deleted objects
+ * too, preventing a malformed source row from trapping a resumable worker on the same page.
+ *
+ * @param array<int,string> $keys        Exact source meta keys.
+ * @param array<int,string> $prefixes    Source meta key prefixes.
+ * @param int               $after_id    Last source object ID already scanned.
+ * @param int               $limit       Maximum source IDs to scan.
+ * @return array{records:array<int,array{id:int,meta:array<string,mixed>}>,after_id:int,scanned:int,done:bool}
+ * @throws RuntimeException When the source metadata query fails.
+ */
 	protected function meta_object_batch( string $object_type, array $keys, array $prefixes, int $after_id, int $limit ): array {
 		global $wpdb;
 
@@ -519,14 +425,11 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Reads one page from a whitelisted source-plugin table suffix.
-	 *
-	 * @param string $suffix   Trusted suffix supplied by an adapter.
-	 * @param int    $after_id Last source row ID already scanned.
-	 * @param int    $limit    Maximum rows.
-	 * @return array{records:array<int,array<string,mixed>>,after_id:int,scanned:int,done:bool}
-	 * @throws RuntimeException When the source table query fails.
-	 */
+ * @param string $suffix   Trusted suffix supplied by an adapter.
+ * @param int    $after_id Last source row ID already scanned.
+ * @return array{records:array<int,array<string,mixed>>,after_id:int,scanned:int,done:bool}
+ * @throws RuntimeException When the source table query fails.
+ */
 	protected function source_table_batch( string $suffix, int $after_id, int $limit ): array {
 		global $wpdb;
 
@@ -595,13 +498,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Offset fallback used only by adapters that have not implemented keysets.
-	 *
-	 * @param iterable            $records Source records.
-	 * @param array<string,mixed> $cursor  Offset cursor.
-	 * @param int                 $limit   Maximum returned records.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * Offset fallback used only by adapters that have not implemented keysets.
+ *
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	private function iterable_batch( iterable $records, array $cursor, int $limit ): array {
 		$offset  = max( 0, absint( $cursor['offset'] ?? 0 ) );
 		$limit   = max( 1, min( 500, $limit ) );
@@ -633,14 +533,7 @@ abstract class ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Checks whether at least one requested metadata row exists.
-	 *
-	 * @param string            $object_type post|term|user.
-	 * @param array<int,string> $keys        Exact keys.
-	 * @param array<int,string> $prefixes    Key prefixes.
-	 * @return bool
-	 */
+	/** Checks whether at least one requested metadata row exists. */
 	protected function has_meta( string $object_type, array $keys, array $prefixes = array() ): bool {
 		global $wpdb;
 
@@ -674,13 +567,6 @@ abstract class ERankly_Migration_Adapter {
 		return null !== $wpdb->get_var( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identifiers and values are prepared; only internal placeholder clauses are assembled dynamically.
 	}
 
-	/**
-	 * Checks whether a WordPress object still exists.
-	 *
-	 * @param string $object_type Object type.
-	 * @param int    $object_id   Object ID.
-	 * @return bool
-	 */
 	private function object_exists( string $object_type, int $object_id ): bool {
 		if ( 'post' === $object_type ) {
 			return null !== get_post( $object_id );
@@ -693,25 +579,13 @@ abstract class ERankly_Migration_Adapter {
 		return false !== get_user_by( 'id', $object_id );
 	}
 
-	/**
-	 * Returns the first scalar value for a source key.
-	 *
-	 * @param array<string,mixed> $meta Source metadata.
-	 * @param string              $key  Source key.
-	 * @return string
-	 */
 	protected function value( array $meta, string $key ): string {
 		$value = $meta[ $key ] ?? '';
 
 		return is_scalar( $value ) ? trim( (string) $value ) : '';
 	}
 
-	/**
-	 * Reads a source option as an array, accepting native arrays and JSON.
-	 *
-	 * @param string $name Option name.
-	 * @return array<string|int,mixed>
-	 */
+	/** @return array<string|int,mixed> */
 	protected function option_array( string $name ): array {
 		$value = get_option( $name, array() );
 		$value = maybe_unserialize( $value );
@@ -725,24 +599,12 @@ abstract class ERankly_Migration_Adapter {
 		return is_array( $value ) ? $value : array();
 	}
 
-	/**
-	 * Returns whether an option contains a non-empty source settings map.
-	 *
-	 * @param string $name Option name.
-	 * @return bool
-	 */
+	/** Returns whether an option contains a non-empty source settings map. */
 	protected function has_option_map( string $name ): bool {
 		return ! empty( $this->option_array( $name ) );
 	}
 
-	/**
-	 * Reads a dotted path from a nested source settings map.
-	 *
-	 * @param array<string|int,mixed> $source  Source map.
-	 * @param string|array<int,string> $path   Dotted or segmented path.
-	 * @param mixed                    $default Fallback value.
-	 * @return mixed
-	 */
+	/** @param string|array<int,string> $path   Dotted or segmented path. */
 	protected function nested_value( array $source, string|array $path, mixed $default = '' ): mixed {
 		$segments = is_array( $path ) ? $path : explode( '.', $path );
 		$value    = $source;
@@ -757,26 +619,16 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Checks whether a dotted path exists, including explicit false/zero values.
-	 *
-	 * @param array<string|int,mixed> $source Source map.
-	 * @param string|array<int,string> $path Dotted or segmented path.
-	 * @return bool
-	 */
+ * Checks whether a dotted path exists, including explicit false/zero values.
+ *
+ * @param string|array<int,string> $path Dotted or segmented path.
+ */
 	protected function has_nested_value( array $source, string|array $path ): bool {
 		$sentinel = new stdClass();
 
 		return $sentinel !== $this->nested_value( $source, $path, $sentinel );
 	}
 
-	/**
-	 * Returns the first existing value from alternative source paths.
-	 *
-	 * @param array<string|int,mixed> $source Source map.
-	 * @param array<int,string|array<int,string>> $paths Candidate paths.
-	 * @param mixed $default Fallback value.
-	 * @return mixed
-	 */
 	protected function first_nested_value( array $source, array $paths, mixed $default = '' ): mixed {
 		foreach ( $paths as $path ) {
 			if ( $this->has_nested_value( $source, $path ) ) {
@@ -788,11 +640,9 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Normalizes source robots values to EasyRankly global directives.
-	 *
-	 * @param mixed $value Source robots value or map.
-	 * @return array<string,int|string>
-	 */
+ * @param mixed $value Source robots value or map.
+ * @return array<string,int|string>
+ */
 	protected function global_robots( mixed $value ): array {
 		$tokens       = array();
 		$named_values = array();
@@ -906,15 +756,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns whether the source explicitly supplied a robots policy.
-	 *
-	 * Empty/missing source values must not turn EasyRankly's safe defaults into
-	 * index/follow. Explicit false values on named directives still count as a
-	 * policy because they intentionally opt out of that directive.
-	 *
-	 * @param mixed $value Source robots configuration.
-	 * @return bool
-	 */
+ * Returns whether the source explicitly supplied a robots policy. Empty/missing source values must not turn
+ * EasyRankly's safe defaults into index/follow. Explicit false values on named directives still count as a
+ * policy because they intentionally opt out of that directive.
+ */
 	protected function has_robot_configuration( mixed $value ): bool {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $key => $child ) {
@@ -941,16 +786,11 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Builds a complete post-type/taxonomy/special-page default row.
-	 *
-	 * @param string              $title       Converted title template.
-	 * @param string              $description Converted description template.
-	 * @param mixed               $robots      Source robots configuration.
-	 * @param bool|null           $in_sitemap  Explicit source sitemap inclusion.
-	 * @param string              $webpage_type Optional Schema.org WebPage subtype.
-	 * @param string              $article_type Optional Schema.org Article subtype.
-	 * @return array<string,string|int>
-	 */
+ * @param bool|null           $in_sitemap  Explicit source sitemap inclusion.
+ * @param string              $webpage_type Optional Schema.org WebPage subtype.
+ * @param string              $article_type Optional Schema.org Article subtype.
+ * @return array<string,string|int>
+ */
 	protected function global_meta_row( string $title, string $description, mixed $robots = null, ?bool $in_sitemap = null, string $webpage_type = '', string $article_type = '' ): array {
 		erankly_load_default_helpers();
 		$row = array(
@@ -973,17 +813,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Converts a template for a non-singular page context.
-	 *
-	 * Third-party plugins reuse author/date variables whose closest generic
-	 * EasyRankly equivalents are post-scoped. Archive defaults need dedicated
-	 * context tokens so they do not resolve to an empty string on the frontend.
-	 *
-	 * @param mixed  $value   Source template.
-	 * @param string $source  Source plugin slug.
-	 * @param string $context Special-page context.
-	 * @return string
-	 */
+ * Converts a template for a non-singular page context. Third-party plugins reuse author/date variables whose
+ * closest generic EasyRankly equivalents are post-scoped. Archive defaults need dedicated context tokens so they
+ * do not resolve to an empty string on the frontend.
+ */
 	protected function special_template( mixed $value, string $source, string $context ): string {
 		$converted = erankly_import_convert_variables( is_scalar( $value ) ? (string) $value : '', $source );
 		if ( 'author' === $context ) {
@@ -995,12 +828,7 @@ abstract class ERankly_Migration_Adapter {
 		return $converted;
 	}
 
-	/**
-	 * Joins valid social profile URLs for EasyRankly's newline storage.
-	 *
-	 * @param array<int,mixed> $values Candidate URLs.
-	 * @return string
-	 */
+	/** Joins valid social profile URLs for EasyRankly's newline storage. */
 	protected function social_profile_list( array $values ): string {
 		$urls = array();
 		foreach ( $values as $value ) {
@@ -1015,12 +843,7 @@ abstract class ERankly_Migration_Adapter {
 		return implode( "\n", $urls );
 	}
 
-	/**
-	 * Normalizes a source X/Twitter username or profile URL.
-	 *
-	 * @param mixed $value Source handle or URL.
-	 * @return string
-	 */
+	/** @param mixed $value Source handle or URL. */
 	protected function social_handle( mixed $value ): string {
 		erankly_load_default_helpers();
 
@@ -1029,13 +852,6 @@ abstract class ERankly_Migration_Adapter {
 			: '';
 	}
 
-	/**
-	 * Resolves a source Person identity to a local WordPress user when possible.
-	 *
-	 * @param mixed  $candidate_id Source user ID.
-	 * @param string $name         Source display name.
-	 * @return int
-	 */
 	protected function person_user_id( mixed $candidate_id, string $name = '' ): int {
 		$user_id = absint( $candidate_id );
 		if ( $user_id > 0 && get_userdata( $user_id ) ) {
@@ -1058,13 +874,7 @@ abstract class ERankly_Migration_Adapter {
 		return 0;
 	}
 
-	/**
-	 * Resolves a Person identity and records a blocking diagnostic when unsafe.
-	 *
-	 * @param mixed  $candidate_id Source user ID.
-	 * @param string $name         Source display name.
-	 * @return int
-	 */
+	/** Resolves a Person identity and records a blocking diagnostic when unsafe. */
 	protected function person_user_id_or_warning( mixed $candidate_id, string $name = '' ): int {
 		$user_id = $this->person_user_id( $candidate_id, $name );
 		if ( $user_id < 1 ) {
@@ -1090,15 +900,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns the current WordPress alternative text for an attachment.
-	 *
-	 * Source plugins normally resolve attachment alt text at render time instead
-	 * of copying it into their own metadata. Capturing it alongside a migrated
-	 * social-image ID preserves that behavior in EasyRankly.
-	 *
-	 * @param int $attachment_id Attachment ID.
-	 * @return string
-	 */
+ * Returns the current WordPress alternative text for an attachment. Source plugins normally resolve attachment
+ * alt text at render time instead of copying it into their own metadata. Capturing it alongside a migrated
+ * social-image ID preserves that behavior in EasyRankly.
+ */
 	protected function attachment_alt( int $attachment_id ): string {
 		if ( $attachment_id < 1 ) {
 			return '';
@@ -1108,36 +913,22 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Filters mapped EasyRankly metadata before it is queued for import.
-	 *
-	 * Add-ons can extend or adjust the final mapped metadata.
-	 *
-	 * @param array<string,mixed> $mapped Core-owned mapped meta.
-	 * @param string              $source Adapter slug.
-	 * @return array<string,mixed>
-	 */
+ * Filters mapped EasyRankly metadata before it is queued for import. Add-ons can extend or adjust the final
+ * mapped metadata.
+ *
+ * @return array<string,mixed>
+ */
 	protected function with_extension_meta( array $mapped ): array {
 		$filtered = apply_filters( 'erankly_migration_mapped_meta', $mapped, $this->slug() );
 
 		return is_array( $filtered ) ? $filtered : $mapped;
 	}
 
-	/**
-	 * Checks whether a source value represents an enabled flag.
-	 *
-	 * @param mixed $value Source value.
-	 * @return bool
-	 */
 	protected function enabled( mixed $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'yes', 'true', 'active', 'enabled' ), true );
 	}
 
-	/**
-	 * Converts JSON-LD entities into EasyRankly custom schema blocks.
-	 *
-	 * @param array<int,array<string,mixed>> $entities Schema entities.
-	 * @return array<int,array<string,mixed>>
-	 */
+	/** @return array<int,array<string,mixed>> */
 	protected function schema_blocks( array $entities ): array {
 		$blocks = array();
 
@@ -1163,11 +954,9 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Finds top-level JSON-LD entities in a plugin schema payload.
-	 *
-	 * @param mixed $payload Decoded or encoded schema payload.
-	 * @return array<int,array<string,mixed>>
-	 */
+ * @param mixed $payload Decoded or encoded schema payload.
+ * @return array<int,array<string,mixed>>
+ */
 	protected function extract_schema_entities( mixed $payload ): array {
 		if ( is_string( $payload ) ) {
 			$decoded = json_decode( $payload, true );
@@ -1200,13 +989,11 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Creates complete runtime templates for source plugins that store only a
-	 * selected page/article schema type rather than the rendered graph.
-	 *
-	 * @param string $page_type    Page type.
-	 * @param string $article_type Article type.
-	 * @return array{blocks:array<int,array<string,mixed>>,disabled:array<int,string>}
-	 */
+ * Creates complete runtime templates for source plugins that store only a selected page/article schema type
+ * rather than the rendered graph.
+ *
+ * @return array{blocks:array<int,array<string,mixed>>,disabled:array<int,string>}
+ */
 	protected function schema_type_templates( string $page_type, string $article_type ): array {
 		$entities = array();
 		$disabled = array();
@@ -1252,12 +1039,10 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Inspects one declared storage surface without reading source records.
-	 *
-	 * @param string              $name       Stable surface name.
-	 * @param array<string,mixed> $definition Surface definition.
-	 * @return array<string,mixed>
-	 */
+ * Inspects one declared storage surface without reading source records.
+ *
+ * @return array<string,mixed>
+ */
 	private function inspect_storage_surface( string $name, array $definition ): array {
 		$type   = sanitize_key( (string) ( $definition['type'] ?? '' ) );
 		$status = 'absent';
@@ -1307,12 +1092,6 @@ abstract class ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Counts records on one declared surface.
-	 *
-	 * @param array<string,mixed> $definition Surface definition.
-	 * @return int
-	 */
 	private function storage_surface_count( array $definition ): int {
 		global $wpdb;
 
@@ -1349,12 +1128,7 @@ abstract class ERankly_Migration_Adapter {
 		return 0;
 	}
 
-	/**
-	 * Returns a value-sensitive anchor for one declared source surface.
-	 *
-	 * @param array<string,mixed> $definition Surface definition.
-	 * @return array<string,mixed>|string
-	 */
+	/** @return array<string,mixed>|string */
 	private function storage_surface_fingerprint( array $definition ): array|string {
 		global $wpdb;
 
@@ -1424,11 +1198,7 @@ abstract class ERankly_Migration_Adapter {
 		return array();
 	}
 
-	/**
-	 * Detects database layers that do not provide MySQL checksum functions.
-	 *
-	 * @return bool
-	 */
+	/** Detects database layers that do not provide MySQL checksum functions. */
 	private function uses_portable_fingerprint(): bool {
 		global $wpdb;
 
@@ -1436,19 +1206,13 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Builds a deterministic SHA-256 fingerprint in bounded database pages.
-	 *
-	 * This path keeps WordPress Studio/SQLite compatible without loading a whole
-	 * source surface into memory. Length-prefixing every scalar prevents row and
-	 * column boundary collisions in the incremental hash.
-	 *
-	 * @param string              $table     Certified table name.
-	 * @param array<int,string>   $columns   Certified columns to hash.
-	 * @param string              $id_column Integer keyset-pagination column.
-	 * @param string              $where     Optional prepared predicate.
-	 * @param array<int,mixed>    $params    Predicate values.
-	 * @return array{row_count:int,max_id:int,checksum:string}
-	 */
+ * Builds a deterministic SHA-256 fingerprint in bounded database pages. This path keeps WordPress Studio/SQLite
+ * compatible without loading a whole source surface into memory. Length-prefixing every scalar prevents row and
+ * column boundary collisions in the incremental hash.
+ *
+ * @param array<int,string>   $columns   Certified columns to hash.
+ * @return array{row_count:int,max_id:int,checksum:string}
+ */
 	private function portable_row_fingerprint( string $table, array $columns, string $id_column, string $where = '', array $params = array() ): array {
 		global $wpdb;
 
@@ -1501,12 +1265,7 @@ abstract class ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Builds a prepared metadata-surface predicate.
-	 *
-	 * @param array<string,mixed> $definition Surface definition.
-	 * @return array{table:string,id_column:string,row_id_column:string,where:string,params:array<int,string>}|array{}
-	 */
+	/** @return array{table:string,id_column:string,row_id_column:string,where:string,params:array<int,string>}|array{} */
 	private function meta_surface_query( array $definition ): array {
 		global $wpdb;
 
@@ -1543,11 +1302,9 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns normalized columns for an existing source table.
-	 *
-	 * @param string $table Certified prefixed source table.
-	 * @return array<int,string>
-	 */
+ * @param string $table Certified prefixed source table.
+ * @return array<int,string>
+ */
 	private function table_columns( string $table ): array {
 		global $wpdb;
 
@@ -1555,12 +1312,7 @@ abstract class ERankly_Migration_Adapter {
 		return is_array( $columns ) ? array_values( array_filter( array_map( 'sanitize_key', $columns ) ) ) : array();
 	}
 
-	/**
-	 * Returns known/unversioned/unsupported for the detected source version.
-	 *
-	 * @param string $version Detected plugin version.
-	 * @return string
-	 */
+	/** Returns known/unversioned/unsupported for the detected source version. */
 	private function version_status( string $version ): string {
 		if ( '' === trim( $version ) ) {
 			return 'unversioned';
@@ -1576,12 +1328,7 @@ abstract class ERankly_Migration_Adapter {
 		return 'certified';
 	}
 
-	/**
-	 * Returns installed plugin headers keyed by basename.
-	 *
-	 * @param array<int,string> $basenames Exact plugin basenames.
-	 * @return array<string,array<string,mixed>>
-	 */
+	/** @return array<string,array<string,mixed>> */
 	protected function installed_plugins( array $basenames ): array {
 		if ( ! function_exists( 'get_plugins' ) && defined( 'ABSPATH' ) ) {
 			$plugin_api = ABSPATH . 'wp-admin/includes/plugin.php';
@@ -1604,14 +1351,7 @@ abstract class ERankly_Migration_Adapter {
 		return $found;
 	}
 
-	/**
-	 * Returns a plugin version from a constant or stored options.
-	 *
-	 * @param string            $constant Constant name.
-	 * @param array<int,string> $options  Candidate option names.
-	 * @param array<int,string> $plugins Candidate plugin basenames.
-	 * @return string
-	 */
+	/** Returns a plugin version from a constant or stored options. */
 	protected function detect_version( string $constant, array $options, array $plugins = array() ): string {
 		if ( defined( $constant ) ) {
 			return sanitize_text_field( (string) constant( $constant ) );

@@ -1,9 +1,5 @@
 <?php
-/**
- * Crash-safe staging storage for resumable third-party migrations.
- *
- * @package EasyRankly
- */
+/** Crash-safe staging storage for resumable third-party migrations. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,11 +10,6 @@ final class ERankly_Migration_Job_Store {
 	private const SCHEMA_VERSION        = '1.0';
 	private const SCHEMA_VERSION_OPTION = 'erankly_migration_queue_db_version';
 
-	/**
-	 * Returns the site-scoped queue table name.
-	 *
-	 * @return string
-	 */
 	public static function table_name(): string {
 		global $wpdb;
 
@@ -26,10 +17,10 @@ final class ERankly_Migration_Job_Store {
 	}
 
 	/**
-	 * Creates or upgrades the temporary migration queue table.
-	 *
-	 * @return bool True when storage is available.
-	 */
+ * Creates or upgrades the temporary migration queue table.
+ *
+ * @return bool True when storage is available.
+ */
 	public function ensure_schema(): bool {
 		global $wpdb;
 
@@ -72,26 +63,16 @@ final class ERankly_Migration_Job_Store {
 		return $available;
 	}
 
-	/**
-	 * Builds a globally unique retry key for one source occurrence.
-	 *
-	 * @param string $job_id           Migration UUID.
-	 * @param string $kind             object|setting|meta|redirect.
-	 * @param string $source_reference Stable adapter reference.
-	 * @param string $target_field     Target field or redirect identity.
-	 * @return string
-	 */
+	/** @param string $target_field     Target field or redirect identity. */
 	public function occurrence_key( string $job_id, string $kind, string $source_reference, string $target_field ): string {
 		return hash( 'sha256', $job_id . "\n" . $kind . "\n" . $source_reference . "\n" . $target_field );
 	}
 
 	/**
-	 * Returns whether a source occurrence was already staged by an earlier try.
-	 *
-	 * @param string $occurrence_key Retry key.
-	 * @return bool
-	 * @throws RuntimeException When the occurrence lookup fails.
-	 */
+ * Returns whether a source occurrence was already staged by an earlier try.
+ *
+ * @throws RuntimeException When the occurrence lookup fails.
+ */
 	public function occurrence_exists( string $occurrence_key ): bool {
 		global $wpdb;
 
@@ -106,12 +87,10 @@ final class ERankly_Migration_Job_Store {
 	}
 
 	/**
-	 * Stores one discovery occurrence exactly once.
-	 *
-	 * @param array<string,mixed> $event Queue row without generated columns.
-	 * @return bool True only when a new row was inserted.
-	 * @throws RuntimeException When a new queue event cannot be persisted.
-	 */
+ * @param array<string,mixed> $event Queue row without generated columns.
+ * @return bool True only when a new row was inserted.
+ * @throws RuntimeException When a new queue event cannot be persisted.
+ */
 	public function add_event( array $event ): bool {
 		global $wpdb;
 
@@ -158,15 +137,10 @@ final class ERankly_Migration_Job_Store {
 	}
 
 	/**
-	 * Returns the first proposal for a target identity in selected states.
-	 *
-	 * @param string            $job_id   Migration UUID.
-	 * @param string            $kind     meta|redirect.
-	 * @param string            $identity Target identity before hashing.
-	 * @param array<int,string> $statuses Allowed discovery states.
-	 * @return array<string,mixed>|null
-	 * @throws RuntimeException When the identity lookup fails.
-	 */
+ * @param string            $identity Target identity before hashing.
+ * @return array<string,mixed>|null
+ * @throws RuntimeException When the identity lookup fails.
+ */
 	public function first_identity( string $job_id, string $kind, string $identity, array $statuses ): ?array {
 		global $wpdb;
 
@@ -189,13 +163,9 @@ final class ERankly_Migration_Job_Store {
 	}
 
 	/**
-	 * Returns the next bounded set of writes.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param int    $limit  Maximum writes.
-	 * @return array<int,array<string,mixed>>
-	 * @throws RuntimeException When pending writes cannot be read.
-	 */
+ * @return array<int,array<string,mixed>>
+ * @throws RuntimeException When pending writes cannot be read.
+ */
 	public function pending( string $job_id, int $limit ): array {
 		global $wpdb;
 
@@ -210,13 +180,6 @@ final class ERankly_Migration_Job_Store {
 		return is_array( $rows ) ? array_values( array_filter( $rows, 'is_array' ) ) : array();
 	}
 
-	/**
-	 * Records the durable result of one attempted write.
-	 *
-	 * @param int    $id     Queue row ID.
-	 * @param string $status Apply outcome.
-	 * @return bool
-	 */
 	public function update_apply_status( int $id, string $status ): bool {
 		global $wpdb;
 
@@ -230,13 +193,11 @@ final class ERankly_Migration_Job_Store {
 	}
 
 	/**
-	 * Returns a bounded evidence page in durable event order.
-	 *
-	 * @param string $job_id  Migration UUID.
-	 * @param int    $after_id Last consumed queue ID.
-	 * @param int    $limit    Maximum rows.
-	 * @return array<int,array<string,mixed>>
-	 */
+ * Returns a bounded evidence page in durable event order.
+ *
+ * @param int    $after_id Last consumed queue ID.
+ * @return array<int,array<string,mixed>>
+ */
 	public function evidence_page( string $job_id, int $after_id, int $limit = 500 ): array {
 		global $wpdb;
 
@@ -255,13 +216,12 @@ final class ERankly_Migration_Job_Store {
 	}
 
 	/**
-	 * Rebuilds report counters from durable events instead of mutable PHP state.
-	 *
-	 * @param string                    $job_id  Migration UUID.
-	 * @param ERankly_Migration_Manager $manager Manager providing the counter map.
-	 * @return array<string,int>
-	 * @throws RuntimeException When progress counters cannot be rebuilt.
-	 */
+ * Rebuilds report counters from durable events instead of mutable PHP state.
+ *
+ * @param ERankly_Migration_Manager $manager Manager providing the counter map.
+ * @return array<string,int>
+ * @throws RuntimeException When progress counters cannot be rebuilt.
+ */
 	public function counts( string $job_id, ERankly_Migration_Manager $manager ): array {
 		global $wpdb;
 
@@ -386,12 +346,6 @@ final class ERankly_Migration_Job_Store {
 		return $counts;
 	}
 
-	/**
-	 * Deletes all staging rows belonging to a finished/cancelled job.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return bool
-	 */
 	public function delete_job( string $job_id ): bool {
 		global $wpdb;
 

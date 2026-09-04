@@ -1,17 +1,13 @@
 <?php
-/**
- * Admin bootstrap.
- *
- * @package EasyRankly
- */
+/** Admin bootstrap. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Determines whether the current WordPress version exposes the unified editor
- * slotfills needed by the Site Editor special-page panels.
+ * Determines whether the current WordPress version exposes the unified editor slotfills needed by the Site
+ * Editor special-page panels.
  *
  * @return bool True when the Site Editor panels can be used.
  */
@@ -22,8 +18,8 @@ function erankly_site_editor_special_page_panels_supported(): bool {
 }
 
 /**
- * Determines whether special-page SEO defaults should be edited in the Site
- * Editor instead of the classic EasyRankly settings fallback.
+ * Determines whether special-page SEO defaults should be edited in the Site Editor instead of the classic
+ * EasyRankly settings fallback.
  *
  * @return bool True when the contextual Site Editor panels are available.
  */
@@ -31,11 +27,6 @@ function erankly_use_site_editor_special_page_panels(): bool {
 	return wp_is_block_theme() && erankly_site_editor_special_page_panels_supported();
 }
 
-/**
- * Boots admin features.
- *
- * @return void
- */
 function erankly_admin_bootstrap(): void {
 	require_once ERANKLY_PATH . 'admin/setup-wizard-loader.php';
 
@@ -66,11 +57,6 @@ function erankly_admin_bootstrap(): void {
 	add_action( 'admin_enqueue_scripts', 'erankly_admin_enqueue_assets' );
 }
 
-/**
- * Loads modules used exclusively by the EasyRankly settings screen.
- *
- * @return void
- */
 function erankly_admin_load_settings_modules(): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'admin/settings-page.php';
@@ -78,31 +64,18 @@ function erankly_admin_load_settings_modules(): void {
 	require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';
 }
 
-/**
- * Loads the Import / Export controller and migration UI on demand.
- *
- * @return void
- */
+/** Loads the Import / Export controller and migration UI on demand. */
 function erankly_admin_load_import_export_module(): void {
 	require_once ERANKLY_PATH . 'includes/import-export.php';
 }
 
-/**
- * Loads destructive reset handlers and their renderer on demand.
- *
- * @return void
- */
 function erankly_admin_load_reset_module(): void {
 	require_once ERANKLY_PATH . 'includes/reset.php';
 }
 
 /**
- * Returns the requested top-level settings tab.
- *
- * This deliberately performs only request routing. Availability and
- * capability checks remain in erankly_render_settings_page().
- *
- * @return string
+ * Returns the requested top-level settings tab. This deliberately performs only request routing. Availability
+ * and capability checks remain in erankly_render_settings_page().
  */
 function erankly_admin_requested_settings_tab(): string {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
@@ -113,13 +86,8 @@ function erankly_admin_requested_settings_tab(): string {
 }
 
 /**
- * Resolves a requested settings tab to a panel that can exist in this context.
- *
- * Unknown slugs are preserved for extension tabs registered through the public
- * erankly_settings_tabs filter.
- *
- * @param string $requested_tab Requested tab slug.
- * @return string
+ * Resolves a requested settings tab to a panel that can exist in this context. Unknown slugs are preserved for
+ * extension tabs registered through the public erankly_settings_tabs filter.
  */
 function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 	$is_site_admin_on_network = is_multisite() && ! is_network_admin();
@@ -134,11 +102,7 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 			$site_tabs[] = 'redirects';
 		}
 
-		/**
-		 * Filters the per-site settings tabs available on Multisite.
-		 *
-		 * @param array<int,string> $site_tabs Tab slugs.
-		 */
+		/** Filters the per-site settings tabs available on Multisite. */
 		$site_tabs = apply_filters( 'erankly_admin_site_settings_tabs', $site_tabs );
 		$site_tabs = is_array( $site_tabs ) ? array_values( array_filter( $site_tabs, 'is_string' ) ) : array();
 
@@ -160,11 +124,6 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 	return $unavailable ? 'features' : $requested_tab;
 }
 
-/**
- * Registers the single-site settings menu without loading its renderer.
- *
- * @return void
- */
 function erankly_admin_register_settings_page(): void {
 	add_options_page(
 		__( 'EasyRankly', 'easyrankly' ),
@@ -175,11 +134,7 @@ function erankly_admin_register_settings_page(): void {
 	);
 }
 
-/**
- * Registers the Network Admin settings menu.
- *
- * @return void
- */
+/** Registers the Network Admin settings menu. */
 function erankly_admin_register_network_settings_page(): void {
 	add_submenu_page(
 		'settings.php',
@@ -192,15 +147,10 @@ function erankly_admin_register_network_settings_page(): void {
 }
 
 /**
- * Registers the per-site settings menu on Multisite.
- *
- * Classic themes and block themes before WordPress 6.6 expose the special-page
- * fallback. Block themes on WordPress 6.6+ register this page only when a
- * per-site module such as Redirects is enabled, or an add-on reports one via
- * `erankly_admin_site_settings_modules_enabled`. Import/Export stays
- * network-admin-only on Multisite.
- *
- * @return void
+ * Registers the per-site settings menu on Multisite. Classic themes and block themes before WordPress 6.6 expose
+ * the special-page fallback. Block themes on WordPress 6.6+ register this page only when a per-site module such
+ * as Redirects is enabled, or an add-on reports one via `erankly_admin_site_settings_modules_enabled`.
+ * Import/Export stays network-admin-only on Multisite.
  */
 function erankly_admin_register_site_settings_page(): void {
 	if (
@@ -214,11 +164,6 @@ function erankly_admin_register_site_settings_page(): void {
 	erankly_admin_register_settings_page();
 }
 
-/**
- * Loads and renders the settings screen on demand.
- *
- * @return void
- */
 function erankly_admin_render_settings_page(): void {
 	erankly_admin_load_settings_modules();
 
@@ -234,11 +179,7 @@ function erankly_admin_render_settings_page(): void {
 	erankly_render_settings_page();
 }
 
-/**
- * Loads the settings registration callback only for relevant requests.
- *
- * @return void
- */
+/** Loads the settings registration callback only for relevant requests. */
 function erankly_admin_maybe_register_settings(): void {
 	global $pagenow;
 
@@ -252,42 +193,25 @@ function erankly_admin_maybe_register_settings(): void {
 	erankly_register_settings();
 }
 
-/**
- * Loads and handles the Network Admin save action.
- *
- * @return void
- */
+/** Loads and handles the Network Admin save action. */
 function erankly_admin_save_network_settings(): void {
 	erankly_admin_load_settings_modules();
 	erankly_save_network_settings();
 }
 
-/**
- * Loads and handles the per-site special-page metadata save action.
- *
- * @return void
- */
 function erankly_admin_save_site_special_meta(): void {
 	erankly_admin_load_settings_modules();
 	erankly_save_site_special_meta();
 }
 
-/**
- * Loads post editor code only when WordPress registers meta boxes.
- *
- * @return void
- */
+/** Loads post editor code only when WordPress registers meta boxes. */
 function erankly_admin_register_meta_boxes(): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'admin/meta-box.php';
 	erankly_register_meta_box();
 }
 
-/**
- * Loads taxonomy editor code only on taxonomy screens.
- *
- * @return void
- */
+/** Loads taxonomy editor code only on taxonomy screens. */
 function erankly_admin_maybe_register_taxonomy_fields(): void {
 	global $pagenow;
 
@@ -300,24 +224,14 @@ function erankly_admin_maybe_register_taxonomy_fields(): void {
 	erankly_register_taxonomy_fields();
 }
 
-/**
- * Loads post meta saving code only when a post is actually saved.
- *
- * @param int     $post_id Post ID.
- * @param WP_Post $post    Post object.
- * @return void
- */
+/** Loads post meta saving code only when a post is actually saved. */
 function erankly_admin_save_meta_box( int $post_id, WP_Post $post ): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'admin/meta-box.php';
 	erankly_save_meta_box( $post_id, $post );
 }
 
-/**
- * Loads import/export code only for its settings request.
- *
- * @return void
- */
+/** Loads import/export code only for its settings request. */
 function erankly_admin_maybe_handle_import_export(): void {
 	$page       = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 	$tab        = erankly_admin_requested_settings_tab();
@@ -340,11 +254,7 @@ function erankly_admin_maybe_handle_import_export(): void {
 	erankly_import_export_handle_actions();
 }
 
-/**
- * Loads reset code only for its settings request.
- *
- * @return void
- */
+/** Loads reset code only for its settings request. */
 function erankly_admin_maybe_handle_reset(): void {
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 
@@ -365,12 +275,7 @@ function erankly_admin_maybe_handle_reset(): void {
 	erankly_reset_handle_actions();
 }
 
-/**
- * Adds plugin action links on single-site installs.
- *
- * @param array<int,string> $links Plugin links.
- * @return array<int,string>
- */
+/** @return array<int,string> */
 function erankly_plugin_action_links( array $links ): array {
 	return erankly_add_plugin_action_links( $links, admin_url( 'options-general.php?page=erankly' ) );
 }
@@ -378,7 +283,6 @@ function erankly_plugin_action_links( array $links ): array {
 /**
  * Adds plugin action links in the Network Admin plugins list.
  *
- * @param array<int,string> $links Plugin links.
  * @return array<int,string>
  */
 function erankly_network_plugin_action_links( array $links ): array {
@@ -386,9 +290,6 @@ function erankly_network_plugin_action_links( array $links ): array {
 }
 
 /**
- * Prepends the Settings and Setup wizard links to a plugin action links list.
- *
- * @param array<int,string> $links        Plugin links.
  * @param string            $settings_url Settings page URL for the current context.
  * @return array<int,string>
  */
@@ -410,12 +311,11 @@ function erankly_add_plugin_action_links( array $links, string $settings_url ): 
 }
 
 /**
- * Renders the shared expand/collapse toggle button for an expandable table
- * panel (see .erankly-panel-* in admin-core.css and bindExpandablePanel() in
- * admin.js). Used by the Redirects, Broken-Link, and Frequent 404 sections.
+ * Renders the shared expand/collapse toggle button for an expandable table panel (see .erankly-panel-* in
+ * admin-core.css and bindExpandablePanel() in admin.js). Used by the Redirects, Broken-Link, and Frequent 404
+ * sections.
  *
  * @param string $target_id ID of the [data-erankly-expandable] section it controls.
- * @return void
  */
 function erankly_admin_render_panel_expand_toggle( string $target_id ): void {
 	?>
@@ -437,11 +337,7 @@ function erankly_admin_render_panel_expand_toggle( string $target_id ): void {
 	<?php
 }
 
-/**
- * Enqueues shared design tokens and cross-surface components.
- *
- * @return void
- */
+/** Enqueues shared design tokens and cross-surface components. */
 function erankly_enqueue_shared_styles(): void {
 	wp_enqueue_style(
 		'erankly-shared',
@@ -452,13 +348,8 @@ function erankly_enqueue_shared_styles(): void {
 }
 
 /**
- * Enqueues the modular admin script bundle.
- *
- * Modules attach helpers to `window.ERanklyAdmin`; admin.js bootstraps them on
- * DOMContentLoaded. Returns the bootstrap handle for localize_script().
- *
- * @param array<int,string> $requested_modules Module identifiers.
- * @return string Script handle (`erankly-admin`).
+ * Enqueues the modular admin script bundle. Modules attach helpers to `window.ERanklyAdmin`; admin.js bootstraps
+ * them on DOMContentLoaded. Returns the bootstrap handle for localize_script().
  */
 function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 	$registry = array(
@@ -502,12 +393,7 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 	return 'erankly-admin';
 }
 
-/**
- * Returns the EasyRankly JavaScript modules needed by one admin surface.
- *
- * @param string $surface Surface identifier.
- * @return array<int,string>
- */
+/** @return array<int,string> */
 function erankly_admin_asset_modules( string $surface ): array {
 	$settings_modules = array(
 		'general'       => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
@@ -549,12 +435,7 @@ function erankly_admin_asset_modules( string $surface ): array {
 		$modules = $surfaces[ $surface ] ?? array();
 	}
 
-	/**
-	 * Filters the JS modules enqueued for one admin surface.
-	 *
-	 * @param array<int,string> $modules Module slugs.
-	 * @param string            $surface Surface identifier such as "settings:general".
-	 */
+	/** @param string            $surface Surface identifier such as "settings:general". */
 	$modules = apply_filters( 'erankly_admin_asset_modules', $modules, $surface );
 
 	return is_array( $modules ) ? array_values( array_filter( $modules, 'is_string' ) ) : array();

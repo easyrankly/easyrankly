@@ -1,20 +1,10 @@
 <?php
-/**
- * Migration guidance renderers.
- *
- * @package EasyRankly
- */
+/** Migration guidance renderers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Renders the authoritative, fail-closed go-live decision.
- *
- * @param array<string,mixed> $gate Go-live gate payload.
- * @return void
- */
 function erankly_migration_render_go_live_gate( array $gate ): void {
 	$state         = sanitize_key( (string) ( $gate['state'] ?? 'blocked' ) );
 	$scope         = sanitize_key( (string) ( $gate['proof_scope'] ?? 'none' ) );
@@ -113,12 +103,7 @@ function erankly_migration_render_go_live_gate( array $gate ): void {
 	<?php
 }
 
-/**
- * Formats one persisted UTC date for the current WordPress locale and timezone.
- *
- * @param string $value ISO-8601 or database date.
- * @return string
- */
+/** @param string $value ISO-8601 or database date. */
 function erankly_migration_format_datetime( string $value ): string {
 	$timestamp = strtotime( $value );
 	if ( false === $timestamp ) {
@@ -128,12 +113,7 @@ function erankly_migration_format_datetime( string $value ): string {
 	return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
 }
 
-/**
- * Returns the concise copy for one presenter state.
- *
- * @param array<string,mixed> $ui Presenter payload.
- * @return array{title:string,instruction:string,body:string}
- */
+/** @return array{title:string,instruction:string,body:string} */
 function erankly_migration_guided_copy( array $ui ): array {
 	$state        = sanitize_key( (string) ( $ui['state'] ?? 'blocked' ) );
 	$source_label = sanitize_text_field( (string) ( $ui['active_owner_label'] ?? $ui['source_label'] ?? __( 'the previous SEO plugin', 'easyrankly' ) ) );
@@ -195,12 +175,7 @@ function erankly_migration_guided_copy( array $ui ): array {
 	return $copy[ $state ] ?? $copy['blocked'];
 }
 
-/**
- * Renders the three-step migration progress indicator.
- *
- * @param array<string,mixed> $ui Presenter payload.
- * @return void
- */
+/** Renders the three-step migration progress indicator. */
 function erankly_migration_render_steps( array $ui ): void {
 	$state   = sanitize_key( (string) ( $ui['state'] ?? 'blocked' ) );
 	$visible = in_array( $state, array( 'preview_ready', 'preview_blocked', 'source_active', 'ready_to_verify', 'complete', 'contract_verified', 'verification_failed', 'blocked' ), true );
@@ -232,13 +207,7 @@ function erankly_migration_render_steps( array $ui ): void {
 	<?php
 }
 
-/**
- * Renders the only primary action for the current migration state.
- *
- * @param array<string,mixed> $ui     Presenter payload.
- * @param array<string,mixed> $report Persisted report.
- * @return void
- */
+/** Renders the only primary action for the current migration state. */
 function erankly_migration_render_guided_action( array $ui, array $report ): void {
 	$action      = sanitize_key( (string) ( $ui['primary_action'] ?? '' ) );
 	$report_id   = sanitize_text_field( (string) ( $report['id'] ?? '' ) );
@@ -295,14 +264,7 @@ function erankly_migration_render_guided_action( array $ui, array $report ): voi
 	<?php
 }
 
-/**
- * Renders only actionable blockers and live differences in the primary layer.
- *
- * @param array<string,mixed> $ui     Presenter payload.
- * @param array<string,mixed> $report Persisted report.
- * @param array<string,mixed> $gate   Go-live gate.
- * @return void
- */
+/** Renders only actionable blockers and live differences in the primary layer. */
 function erankly_migration_render_attention( array $ui, array $report, array $gate ): void {
 	$checks   = is_array( $gate['checks'] ?? null ) ? $gate['checks'] : array();
 	$warnings = is_array( $report['warnings'] ?? null ) ? array_values(

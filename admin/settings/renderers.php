@@ -1,20 +1,10 @@
 <?php
-/**
- * Settings field rendering functions.
- *
- * @package EasyRankly
- */
+/** Settings field rendering functions. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Renders advanced Organization identity fields.
- *
- * @param array<string,mixed> $settings Plugin settings.
- * @return void
- */
 function erankly_render_organization_details( array $settings ): void {
 	?>
 	<details class="erankly-settings-details">
@@ -63,12 +53,6 @@ function erankly_render_organization_details( array $settings ): void {
 	<?php
 }
 
-/**
- * Renders LocalBusiness settings.
- *
- * @param array<string,mixed> $settings Plugin settings.
- * @return void
- */
 function erankly_render_local_business_settings( array $settings ): void {
 	$types        = erankly_get_local_business_types();
 	$pages        = get_pages(
@@ -159,12 +143,6 @@ function erankly_render_local_business_settings( array $settings ): void {
 	<?php
 }
 
-/**
- * Renders weekly opening-hours controls.
- *
- * @param array<string,mixed> $hours Opening hours.
- * @return void
- */
 function erankly_render_opening_hours_fields( array $hours ): void {
 	$days = array(
 		'monday'    => __( 'Monday', 'easyrankly' ),
@@ -212,14 +190,6 @@ function erankly_render_opening_hours_fields( array $hours ): void {
 	<?php
 }
 
-/**
- * Renders global SEO defaults for post types or taxonomies.
- *
- * @param string                                 $setting_key Settings array key.
- * @param array<string,WP_Post_Type|WP_Taxonomy> $objects     Public objects.
- * @param array<string,mixed>                    $settings    Current settings.
- * @return void
- */
 function erankly_render_global_meta_defaults( string $setting_key, array $objects, array $settings ): void {
 	$values             = isset( $settings[ $setting_key ] ) && is_array( $settings[ $setting_key ] ) ? $settings[ $setting_key ] : array();
 	$linked_setting_key = $setting_key . '_linked';
@@ -339,13 +309,9 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 }
 
 /**
- * Renders default Open Graph / X (Twitter) templates with a linked toggle.
- *
- * Mirrors the post type defaults UI: when linked (the default), one template
- * drives both networks; when separate, each network keeps its own values.
- *
- * @param array<string,mixed> $settings Current settings.
- * @return void
+ * Renders default Open Graph / X (Twitter) templates with a linked toggle. Mirrors the post type defaults UI:
+ * when linked (the default), one template drives both networks; when separate, each network keeps its own
+ * values.
  */
 function erankly_render_social_meta_defaults( array $settings ): void {
 	$networks = array(
@@ -455,16 +421,12 @@ function erankly_render_social_meta_defaults( array $settings ): void {
 }
 
 /**
- * Renders global SEO defaults for special pages and archives.
- *
- * Special pages are singleton entities sharing the same metadata structure as
- * post types and taxonomies, but without the "linked" toggle. This settings
- * renderer is the fallback for classic themes and for block themes on WordPress
- * versions where the contextual Site Editor panels are unavailable.
+ * Renders global SEO defaults for special pages and archives. Special pages are singleton entities sharing the
+ * same metadata structure as post types and taxonomies, but without the "linked" toggle. This settings renderer
+ * is the fallback for classic themes and for block themes on WordPress versions where the contextual Site Editor
+ * panels are unavailable.
  *
  * @param array<string,string> $entities Map of entity key => admin label.
- * @param array<string,mixed>  $settings Current settings.
- * @return void
  */
 function erankly_render_special_page_defaults( array $entities, array $settings ): void {
 	if ( empty( $entities ) || erankly_use_site_editor_special_page_panels() ) {
@@ -478,14 +440,8 @@ function erankly_render_special_page_defaults( array $entities, array $settings 
 }
 
 /**
- * Renders one tab group for special page defaults.
- *
  * @param array<string,string> $entities    Map of entity key => admin label.
  * @param array<string,mixed>  $values      Current settings for the group.
- * @param string               $setting_key Settings array key.
- * @param string               $group_key   Unique group key.
- * @param string               $aria_label  Tablist label.
- * @return void
  */
 function erankly_render_special_page_defaults_group( array $entities, array $values, string $setting_key, string $group_key, string $aria_label ): void {
 	$tabs_id   = 'erankly-' . sanitize_key( $setting_key . '-' . $group_key ) . '-tabs';
@@ -561,18 +517,12 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 }
 
 /**
- * Renders the advanced-only social sharing defaults for one special page.
+ * Renders the advanced-only social sharing defaults for one special page. In simplified mode the panel is
+ * hidden, but the stored values are carried through as hidden inputs so saving in simplified mode never wipes
+ * them (mirrors how the visibility panel preserves nofollow/noarchive).
  *
- * In simplified mode the panel is hidden, but the stored values are carried
- * through as hidden inputs so saving in simplified mode never wipes them
- * (mirrors how the visibility panel preserves nofollow/noarchive).
- *
- * @param string              $setting_key Settings array key.
- * @param string              $key         Entity key.
  * @param array<string,mixed> $row         Current values for this entity.
- * @param string              $id_prefix   Field id prefix.
  * @param bool                $is_simple   Whether simplified mode is active.
- * @return void
  */
 function erankly_render_special_page_social_defaults( string $setting_key, string $key, array $row, string $id_prefix, bool $is_simple ): void {
 	$name           = ERANKLY_OPTION . '[' . $setting_key . '][' . $key . ']';
@@ -643,22 +593,7 @@ function erankly_render_special_page_social_defaults( string $setting_key, strin
 	<?php
 }
 
-/**
- * Renders global visibility defaults.
- *
- * @param string $setting_key     Settings array key.
- * @param string $entity_key      Entity key.
- * @param bool   $noindex              Noindex default.
- * @param bool   $nofollow             Nofollow default.
- * @param bool   $noarchive            Noarchive default.
- * @param bool   $disable_sitemap      Disable sitemap default.
- * @param bool   $show_disable_sitemap Whether the entity can appear in a sitemap.
- *                                     When false the "Disable sitemap" control is
- *                                     hidden (e.g. special pages other than the
- *                                     author archive, the only one the XML sitemap
- *                                     consumes this flag for).
- * @return void
- */
+/** @param bool   $show_disable_sitemap Whether the entity can appear in a sitemap. */
 function erankly_render_global_visibility_defaults( string $setting_key, string $entity_key, bool $noindex, bool $nofollow, bool $noarchive, bool $disable_sitemap, bool $show_disable_sitemap = true ): void {
 	$name_prefix = ERANKLY_OPTION . '[' . $setting_key . '][' . $entity_key . ']';
 	$is_simple   = (bool) erankly_get_setting( 'simplified_mode', 1 );
@@ -688,17 +623,11 @@ function erankly_render_global_visibility_defaults( string $setting_key, string 
 }
 
 /**
- * Carries imported advanced robot defaults through settings saves.
+ * Carries imported advanced robot defaults through settings saves. These fields are intentionally hidden from
+ * the compact global-default UI; per-object editors still expose the same controls. Keeping explicit positive
+ * and negative values prevents a later settings save from erasing an inherited third-party robots policy.
  *
- * These fields are intentionally hidden from the compact global-default UI;
- * per-object editors still expose the same controls. Keeping explicit positive
- * and negative values prevents a later settings save from erasing an inherited
- * third-party robots policy.
- *
- * @param string              $setting_key Settings array key.
- * @param string              $entity_key  Entity key.
  * @param array<string,mixed> $row         Stored global metadata row.
- * @return void
  */
 function erankly_render_global_advanced_robot_preservation( string $setting_key, string $entity_key, array $row ): void {
 	$name_prefix = ERANKLY_OPTION . '[' . $setting_key . '][' . $entity_key . ']';

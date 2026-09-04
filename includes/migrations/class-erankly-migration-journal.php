@@ -1,9 +1,5 @@
 <?php
-/**
- * Conditional rollback journal for third-party SEO migrations.
- *
- * @package EasyRankly
- */
+/** Conditional rollback journal for third-party SEO migrations. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -17,14 +13,12 @@ final class ERankly_Migration_Journal {
 	private const ROLLBACK_LOCK_PREFIX   = 'erankly_migration_rollback_lock_';
 	private const ROLLBACK_LOCK_TTL      = 300;
 
-	/** Returns the site-scoped journal table name. */
 	public static function table_name(): string {
 		global $wpdb;
 
 		return $wpdb->prefix . 'erankly_migration_changes';
 	}
 
-	/** Creates or upgrades the persistent journal table. */
 	public function ensure_schema(): bool {
 		global $wpdb;
 
@@ -71,13 +65,10 @@ final class ERankly_Migration_Journal {
 	}
 
 	/**
-	 * Creates an idempotent pending journal entry before a metadata write.
-	 *
-	 * @param string              $job_id Migration UUID.
-	 * @param int                 $queue_id Queue row ID.
-	 * @param array<string,mixed> $payload Validated queue payload.
-	 * @return string Event key, or an empty string on failure.
-	 */
+ * Creates an idempotent pending journal entry before a metadata write.
+ *
+ * @return string Event key, or an empty string on failure.
+ */
 	public function prepare_meta( string $job_id, int $queue_id, array $payload ): string {
 		$object_type = sanitize_key( (string) ( $payload['object_type'] ?? '' ) );
 		$object_id   = absint( $payload['object_id'] ?? 0 );
@@ -107,13 +98,10 @@ final class ERankly_Migration_Journal {
 	}
 
 	/**
-	 * Creates an idempotent pending journal entry before a global setting write.
-	 *
-	 * @param string              $job_id  Migration UUID.
-	 * @param int                 $queue_id Queue row ID.
-	 * @param array<string,mixed> $payload Validated queue payload.
-	 * @return string Event key, or an empty string on failure.
-	 */
+ * Creates an idempotent pending journal entry before a global setting write.
+ *
+ * @return string Event key, or an empty string on failure.
+ */
 	public function prepare_setting( string $job_id, int $queue_id, array $payload ): string {
 		$key     = sanitize_key( (string) ( $payload['key'] ?? '' ) );
 		$special = ! empty( $payload['special'] ) && 'global_special_meta' === $key;
@@ -149,14 +137,11 @@ final class ERankly_Migration_Journal {
 	}
 
 	/**
-	 * Creates an idempotent pending journal entry before a redirect write.
-	 *
-	 * @param string                   $job_id Migration UUID.
-	 * @param int                      $queue_id Queue row ID.
-	 * @param array<string,mixed>      $redirect Intended redirect.
-	 * @param array<string,mixed>|null $existing Existing redirect for an update.
-	 * @return string Event key, or an empty string on failure.
-	 */
+ * Creates an idempotent pending journal entry before a redirect write.
+ *
+ * @param array<string,mixed>|null $existing Existing redirect for an update.
+ * @return string Event key, or an empty string on failure.
+ */
 	public function prepare_redirect( string $job_id, int $queue_id, array $redirect, ?array $existing ): string {
 		return $this->prepare(
 			$job_id,
@@ -176,12 +161,12 @@ final class ERankly_Migration_Journal {
 	}
 
 	/**
-	 * Marks a prepared event as applied and records a generated target ID.
-	 *
-	 * @param string $event_key Stable journal event key.
-	 * @param int    $target_id Generated redirect ID, when applicable.
-	 * @return bool Whether the durable checkpoint was saved.
-	 */
+ * Marks a prepared event as applied and records a generated target ID.
+ *
+ * @param string $event_key Stable journal event key.
+ * @param int    $target_id Generated redirect ID, when applicable.
+ * @return bool Whether the durable checkpoint was saved.
+ */
 	public function mark_applied( string $event_key, int $target_id = 0 ): bool {
 		global $wpdb;
 
@@ -201,12 +186,7 @@ final class ERankly_Migration_Journal {
 		);
 	}
 
-	/**
-	 * Returns rollback availability and retention data for a report.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	public function summary( string $job_id ): array {
 		global $wpdb;
 		if ( ! erankly_table_exists( self::table_name() ) ) {
@@ -248,11 +228,10 @@ final class ERankly_Migration_Journal {
 	}
 
 	/**
-	 * Rolls back only values that still equal the value written by this migration.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return array<string,int|string>
-	 */
+ * Rolls back only values that still equal the value written by this migration.
+ *
+ * @return array<string,int|string>
+ */
 	public function rollback( string $job_id ): array {
 		$job_id = sanitize_text_field( $job_id );
 		if ( '' === $job_id ) {
@@ -293,12 +272,7 @@ final class ERankly_Migration_Journal {
 		return $this->process_rollback( $job_id );
 	}
 
-	/**
-	 * Processes one bounded rollback page and persists its descending cursor.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @return array<string,int|string>
-	 */
+	/** @return array<string,int|string> */
 	public function process_rollback( string $job_id ): array {
 		global $wpdb;
 
@@ -424,22 +398,13 @@ final class ERankly_Migration_Journal {
 		return $result;
 	}
 
-	/**
-	 * Returns the durable rollback checkpoint, when present.
-	 *
-	 * @param string $job_id Migration UUID.
-	 */
 	public function rollback_checkpoint( string $job_id ): ?array {
 		$value = get_option( $this->rollback_option_key( $job_id ), null );
 
 		return is_array( $value ) ? $value : null;
 	}
 
-	/**
-	 * Removes a terminal rollback checkpoint after its report is durable.
-	 *
-	 * @param string $job_id Migration UUID.
-	 */
+	/** Removes a terminal rollback checkpoint after its report is durable. */
 	public function clear_rollback_checkpoint( string $job_id ): void {
 		delete_option( $this->rollback_option_key( $job_id ) );
 		delete_option( $this->rollback_lock_key( $job_id ) );
@@ -457,22 +422,10 @@ final class ERankly_Migration_Journal {
 		);
 	}
 
-	/**
-	 * Persists a cumulative rollback checkpoint without autoloading it.
-	 *
-	 * @param string              $job_id     Migration UUID.
-	 * @param array<string,mixed> $checkpoint Cumulative rollback state.
-	 */
 	private function save_rollback_checkpoint( string $job_id, array $checkpoint ): void {
 		update_option( $this->rollback_option_key( $job_id ), $checkpoint, false );
 	}
 
-	/**
-	 * Schedules the next rollback page without creating duplicate events.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param int    $delay  Delay in seconds.
-	 */
 	private function schedule_rollback( string $job_id, int $delay = 1 ): void {
 		if ( ! defined( 'ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK' ) || ! function_exists( 'wp_schedule_single_event' ) ) {
 			return;
@@ -484,11 +437,7 @@ final class ERankly_Migration_Journal {
 		wp_schedule_single_event( time() + max( 1, $delay ), ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, $args, true );
 	}
 
-	/**
-	 * Acquires a short-lived per-job lock and recovers stale locks.
-	 *
-	 * @param string $job_id Migration UUID.
-	 */
+	/** Acquires a short-lived per-job lock and recovers stale locks. */
 	private function acquire_rollback_lock( string $job_id ): string {
 		global $wpdb;
 
@@ -521,12 +470,7 @@ final class ERankly_Migration_Journal {
 		return '';
 	}
 
-	/**
-	 * Releases only the lock token owned by the current request.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param string $token  Lock owner token.
-	 */
+	/** Releases only the lock token owned by the current request. */
 	private function release_rollback_lock( string $job_id, string $token ): void {
 		global $wpdb;
 
@@ -546,12 +490,7 @@ final class ERankly_Migration_Journal {
 		wp_cache_delete( $key, 'options' );
 	}
 
-	/**
-	 * Renews a rollback lease using an atomic token-and-value comparison.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param string $token  Owned lock token.
-	 */
+	/** Renews a rollback lease using an atomic token-and-value comparison. */
 	private function renew_rollback_lock( string $job_id, string $token ): bool {
 		global $wpdb;
 
@@ -578,12 +517,6 @@ final class ERankly_Migration_Journal {
 		return 1 === $updated;
 	}
 
-	/**
-	 * Returns whether this worker still owns an unexpired rollback lease.
-	 *
-	 * @param string $job_id Migration UUID.
-	 * @param string $token  Candidate lock token.
-	 */
 	private function owns_rollback_lock( string $job_id, string $token ): bool {
 		$existing = get_option( $this->rollback_lock_key( $job_id ), array() );
 
@@ -592,39 +525,19 @@ final class ERankly_Migration_Journal {
 			&& hash_equals( (string) ( $existing['token'] ?? '' ), $token );
 	}
 
-	/**
-	 * Returns a bounded per-job checkpoint option name.
-	 *
-	 * @param string $job_id Migration UUID.
-	 */
 	private function rollback_option_key( string $job_id ): string {
 		return self::ROLLBACK_OPTION_PREFIX . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}
 
-	/**
-	 * Returns a bounded per-job lock option name.
-	 *
-	 * @param string $job_id Migration UUID.
-	 */
+	/** Returns a bounded per-job lock option name. */
 	private function rollback_lock_key( string $job_id ): string {
 		return self::ROLLBACK_LOCK_PREFIX . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}
 
 	/**
-	 * Persists a generic pre-write journal row.
-	 *
-	 * @param string $job_id     Migration UUID.
-	 * @param int    $queue_id   Queue row ID.
-	 * @param string $kind       setting|meta|redirect.
-	 * @param string $action     Reversible action name.
-	 * @param string $object_type post|term|user, or empty for redirects.
-	 * @param int    $object_id  Metadata object ID.
-	 * @param string $field      Target field.
-	 * @param int    $target_id  Existing redirect ID.
-	 * @param mixed  $previous   Pre-write value envelope.
-	 * @param mixed  $written    Intended migration value.
-	 * @return string Event key, or empty string.
-	 */
+ * @param string $object_type post|term|user, or empty for redirects.
+ * @return string Event key, or empty string.
+ */
 	private function prepare( string $job_id, int $queue_id, string $kind, string $action, string $object_type, int $object_id, string $field, int $target_id, mixed $previous, mixed $written ): string {
 		global $wpdb;
 
@@ -671,12 +584,7 @@ final class ERankly_Migration_Journal {
 		return false === $result ? '' : $event_key;
 	}
 
-	/**
-	 * Conditionally restores one metadata value.
-	 *
-	 * @param array<string,mixed> $row Journal row.
-	 * @return string rolled_back|preserved|failed.
-	 */
+	/** Conditionally restores one metadata value. */
 	private function rollback_meta( array $row ): string {
 		$type    = sanitize_key( (string) ( $row['object_type'] ?? '' ) );
 		$id      = absint( $row['object_id'] ?? 0 );
@@ -701,12 +609,7 @@ final class ERankly_Migration_Journal {
 		return delete_metadata( $type, $id, $key ) ? 'rolled_back' : 'failed';
 	}
 
-	/**
-	 * Conditionally restores one EasyRankly global setting.
-	 *
-	 * @param array<string,mixed> $row Journal row.
-	 * @return string rolled_back|preserved|failed.
-	 */
+	/** Conditionally restores one EasyRankly global setting. */
 	private function rollback_setting( array $row ): string {
 		$key     = sanitize_key( (string) ( $row['target_field'] ?? '' ) );
 		$written = json_decode( (string) ( $row['written_value'] ?? '' ), true );
@@ -743,13 +646,7 @@ final class ERankly_Migration_Journal {
 		return ! is_wp_error( $result ) && $result ? 'rolled_back' : 'failed';
 	}
 
-	/**
-	 * Conditionally restores one redirect.
-	 *
-	 * @param array<string,mixed>               $row Journal row.
-	 * @param ERankly_Redirects_Repository|null $repository Redirect repository.
-	 * @return string rolled_back|preserved|failed.
-	 */
+	/** Conditionally restores one redirect. */
 	private function rollback_redirect( array $row, ?ERankly_Redirects_Repository $repository ): string {
 		if ( ! $repository ) {
 			return 'failed';
@@ -781,13 +678,7 @@ final class ERankly_Migration_Journal {
 		return $old && $repository->update( $id, $old ) ? 'rolled_back' : 'failed';
 	}
 
-	/**
-	 * Persists one per-record rollback result.
-	 *
-	 * @param int    $id    Journal row ID.
-	 * @param string $state rolled_back|preserved|failed.
-	 * @throws RuntimeException When the durable state cannot be persisted.
-	 */
+	/** @throws RuntimeException When the durable state cannot be persisted. */
 	private function set_rollback_state( int $id, string $state ): void {
 		global $wpdb;
 
@@ -805,12 +696,7 @@ final class ERankly_Migration_Journal {
 		}
 	}
 
-	/**
-	 * Stable comparison for scalar, list and associative metadata.
-	 *
-	 * @param mixed $value Value to normalize.
-	 * @return string Canonical JSON.
-	 */
+	/** Stable comparison for scalar, list and associative metadata. */
 	private function canonical_json( mixed $value ): string {
 		if ( is_array( $value ) ) {
 			if ( ! erankly_array_is_list( $value ) ) {

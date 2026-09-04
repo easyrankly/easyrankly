@@ -1,21 +1,11 @@
 <?php
-/**
- * Schema and LocalBusiness sanitization helpers.
- *
- * Loaded only for full defaults, settings and rendered schema content.
- *
- * @package EasyRankly
- */
+/** Schema and LocalBusiness sanitization helpers. Loaded only for full defaults, settings and rendered schema content. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns supported LocalBusiness schema types.
- *
- * @return array<string,string>
- */
+/** @return array<string,string> */
 function erankly_get_local_business_types(): array {
 	$types = array(
 		'LocalBusiness'     => __( 'Local business', 'easyrankly' ),
@@ -40,11 +30,6 @@ function erankly_get_local_business_types(): array {
 		'LodgingBusiness'   => __( 'Lodging business', 'easyrankly' ),
 	);
 
-	/**
-	 * Filters supported LocalBusiness schema types.
-	 *
-	 * @param array<string,string> $types LocalBusiness types.
-	 */
 	$types = apply_filters( 'erankly_local_business_types', $types );
 
 	if ( ! is_array( $types ) ) {
@@ -62,22 +47,11 @@ function erankly_get_local_business_types(): array {
 	return $valid_types;
 }
 
-/**
- * Returns whether a LocalBusiness type supports food-specific properties.
- *
- * @param string $type Schema.org type.
- * @return bool
- */
 function erankly_is_food_business_type( string $type ): bool {
 	return in_array( $type, array( 'Restaurant', 'CafeOrCoffeeShop', 'BarOrPub', 'Bakery', 'FoodEstablishment' ), true );
 }
 
-/**
- * Sanitizes a relative site path.
- *
- * @param mixed $value Raw path.
- * @return string
- */
+/** Sanitizes a relative site path. */
 function erankly_sanitize_relative_path( mixed $value ): string {
 	$value = trim( (string) $value );
 
@@ -96,12 +70,7 @@ function erankly_sanitize_relative_path( mixed $value ): string {
 	return '/' === $path ? '/' : trailingslashit( $path );
 }
 
-/**
- * Sanitizes a business telephone number.
- *
- * @param mixed $value Raw telephone number.
- * @return string
- */
+/** Sanitizes a business telephone number. */
 function erankly_sanitize_phone( mixed $value ): string {
 	$value  = erankly_sanitize_text( $value );
 	$value  = preg_replace( '/[^0-9+().\-\s]/', '', $value );
@@ -114,26 +83,14 @@ function erankly_sanitize_phone( mixed $value ): string {
 	return trim( $value );
 }
 
-/**
- * Sanitizes an ISO 3166-1 alpha-2 country code.
- *
- * @param mixed $value Raw country code.
- * @return string
- */
+/** Sanitizes an ISO 3166-1 alpha-2 country code. */
 function erankly_sanitize_country_code( mixed $value ): string {
 	$value = strtoupper( erankly_sanitize_text( $value ) );
 
 	return 1 === preg_match( '/^[A-Z]{2}$/', $value ) ? $value : '';
 }
 
-/**
- * Sanitizes a geographic coordinate.
- *
- * @param mixed $value   Raw coordinate.
- * @param float $minimum Minimum value.
- * @param float $maximum Maximum value.
- * @return string
- */
+/** Sanitizes a geographic coordinate. */
 function erankly_sanitize_coordinate( mixed $value, float $minimum, float $maximum ): string {
 	$value = trim( (string) $value );
 
@@ -150,12 +107,7 @@ function erankly_sanitize_coordinate( mixed $value, float $minimum, float $maxim
 	return rtrim( rtrim( number_format( $number, 6, '.', '' ), '0' ), '.' );
 }
 
-/**
- * Sanitizes a 24-hour time value.
- *
- * @param mixed $value Raw time.
- * @return string
- */
+/** Sanitizes a 24-hour time value. */
 function erankly_sanitize_time( mixed $value ): string {
 	$value = erankly_sanitize_text( $value );
 
@@ -192,7 +144,6 @@ function erankly_default_opening_hours(): array {
 /**
  * Sanitizes weekly LocalBusiness opening hours.
  *
- * @param mixed $value Raw hours.
  * @return array<string,array{closed:int,intervals:array<int,array{opens:string,closes:string}>}>
  */
 function erankly_sanitize_opening_hours( mixed $value ): array {

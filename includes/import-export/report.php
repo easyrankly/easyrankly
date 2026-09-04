@@ -1,19 +1,11 @@
 <?php
-/**
- * Migration report renderers.
- *
- * @package EasyRankly
- */
+/** Migration report renderers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Renders the selected post-migration report and recent report history.
- *
- * @return void
- */
+/** Renders the selected post-migration report and recent report history. */
 function erankly_migration_render_report(): void {
 	$report_id = isset( $_GET['report_id'] ) ? sanitize_text_field( wp_unslash( $_GET['report_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report selection.
 	$active    = erankly_migration_job_runner()->active_job();
@@ -343,12 +335,7 @@ function erankly_migration_render_report(): void {
 	<?php
 }
 
-/**
- * Renders live counters and recovery controls for a resumable migration.
- *
- * @param array<string,mixed> $job Active migration job.
- * @return void
- */
+/** Renders live counters and recovery controls for a resumable migration. */
 function erankly_migration_render_active_job( array $job ): void {
 	$counts     = is_array( $job['counts'] ?? null ) ? $job['counts'] : array();
 	$status     = sanitize_key( (string) ( $job['status'] ?? 'queued' ) );
@@ -443,12 +430,6 @@ function erankly_migration_render_active_job( array $job ): void {
 	<?php
 }
 
-/**
- * Returns whether importable data from a third-party plugin exists.
- *
- * @param string $source Source plugin slug.
- * @return bool
- */
 function erankly_third_party_data_exists( string $source ): bool {
 	$adapter = erankly_migration_manager()->adapter( $source );
 

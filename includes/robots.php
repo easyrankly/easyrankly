@@ -1,21 +1,13 @@
 <?php
-/**
- * Robots meta and robots.txt.
- *
- * @package EasyRankly
- */
+/** Robots meta and robots.txt. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Returns whether singular content or comments are on a paginated request.
- *
- * This is intentionally separate from is_paged(), which represents archive
- * pagination. AIOSEO applies its global pagination policy to both scopes.
- *
- * @return bool
+ * Returns whether singular content or comments are on a paginated request. This is intentionally separate from
+ * is_paged(), which represents archive pagination. AIOSEO applies its global pagination policy to both scopes.
  */
 function erankly_is_paginated_content_request(): bool {
 	$page  = (int) get_query_var( 'page', 0 );
@@ -32,7 +24,6 @@ function erankly_is_paginated_content_request(): bool {
 /**
  * Filters native WordPress robots meta output.
  *
- * @param array<string,bool|string> $robots Robots directives.
  * @return array<string,bool|string>
  */
 function erankly_filter_wp_robots( array $robots ): array {
@@ -202,19 +193,11 @@ function erankly_filter_wp_robots( array $robots ): array {
 		$robots['follow'] = true;
 	}
 
-	/**
-	 * Filters robots directives before WordPress renders the meta tag.
-	 *
-	 * @param array<string,bool|string> $robots Robots directives.
-	 */
+	/** Filters robots directives before WordPress renders the meta tag. */
 	return apply_filters( 'erankly_robots', $robots );
 }
 
-/**
- * Sends the feed-level robots policy through the HTTP header used by AIOSEO.
- *
- * @return void
- */
+/** Sends the feed-level robots policy through the HTTP header used by AIOSEO. */
 function erankly_send_feed_robots_header(): void {
 	if ( ! is_feed() || ! (bool) erankly_get_setting( 'noindex_feeds', 0 ) || headers_sent() ) {
 		return;
@@ -223,12 +206,7 @@ function erankly_send_feed_robots_header(): void {
 	header( 'X-Robots-Tag: noindex, follow', true );
 }
 
-/**
- * Applies imported post-type, taxonomy and special-page advanced robot rows.
- *
- * @param array<string,bool|string> $robots Current directives.
- * @return array<string,bool|string>
- */
+/** @return array<string,bool|string> */
 function erankly_apply_current_global_entity_robots( array $robots ): array {
 	$contexts = array();
 
@@ -266,8 +244,6 @@ function erankly_apply_current_global_entity_robots( array $robots ): array {
 /**
  * Applies one sanitized global entity robot row.
  *
- * @param array<string,bool|string> $robots Current directives.
- * @param array<string,mixed>       $row    Global entity row.
  * @return array<string,bool|string>
  */
 function erankly_apply_global_entity_robot_row( array $robots, array $row ): array {
@@ -340,7 +316,6 @@ function erankly_apply_global_entity_robot_row( array $robots, array $row ): arr
 /**
  * Applies tri-state per-object directives after global defaults.
  *
- * @param array<string,bool|string> $robots Current directives.
  * @return array<string,bool|string>
  */
 function erankly_apply_current_object_robots_overrides( array $robots ): array {
@@ -435,9 +410,7 @@ function erankly_apply_current_object_robots_overrides( array $robots ): array {
 /**
  * Filters virtual robots.txt content.
  *
- * @param string $output    Robots.txt output.
  * @param bool   $is_public Whether the site discourages search engines.
- * @return string
  */
 function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 	if ( erankly_detect_external_seo_head_owner() && ! (bool) apply_filters( 'erankly_enable_robots_txt_with_external_seo', false ) ) {
@@ -489,30 +462,21 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 
 	$lines = array_values( array_unique( $lines ) );
 
-	/**
-	 * Filters robots.txt lines.
-	 *
-	 * @param array<int,string> $lines     Robots lines.
-	 * @param bool              $is_public Whether the site is public.
-	 */
+	/** @param bool              $is_public Whether the site is public. */
 	$lines = apply_filters( 'erankly_robots_txt_lines', $lines, $is_public );
 
 	return implode( "\n", array_map( 'trim', (array) $lines ) ) . "\n";
 }
 
 /**
- * Forces robots.txt handling when the core rewrite rule is missing.
- *
- * On some Multisite networks (notably staging clones or sub-sites created
- * outside wp_initialize_site) the stored rewrite rules can lack the core
- * `robots\.txt$` rule. A request for /robots.txt is then treated as a regular
- * page, canonical-redirected to /robots.txt/, and never reaches do_robots().
- * Detecting the raw request path here and forcing the `robots` query var makes
- * the virtual robots.txt behave exactly like /?robots=1, independently of the
- * rewrite-rule flush state of the current site.
+ * Forces robots.txt handling when the core rewrite rule is missing. On some Multisite networks (notably staging
+ * clones or sub-sites created outside wp_initialize_site) the stored rewrite rules can lack the core
+ * `robots\.txt$` rule. A request for /robots.txt is then treated as a regular page, canonical-redirected to
+ * /robots.txt/, and never reaches do_robots(). Detecting the raw request path here and forcing the `robots`
+ * query var makes the virtual robots.txt behave exactly like /?robots=1, independently of the rewrite-rule flush
+ * state of the current site.
  *
  * @param WP $wp Current WordPress environment instance.
- * @return void
  */
 function erankly_force_robots_txt_request( WP $wp ): void {
 	// Core already routed the request to the robots handler: nothing to do.
@@ -529,11 +493,6 @@ function erankly_force_robots_txt_request( WP $wp ): void {
 	$wp->query_vars = array( 'robots' => '1' );
 }
 
-/**
- * Registers rewrite rules and query vars for virtual files.
- *
- * @return void
- */
 function erankly_register_rewrites(): void {
 	if ( ! erankly_should_serve_sitemaps() ) {
 		return;
@@ -555,11 +514,6 @@ function erankly_register_rewrites(): void {
 	);
 }
 
-/**
- * Renders virtual sitemap files.
- *
- * @return void
- */
 function erankly_maybe_render_virtual_files(): void {
 	$sitemap = get_query_var( 'erankly_sitemap' );
 

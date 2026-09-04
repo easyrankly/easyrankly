@@ -1,9 +1,5 @@
 <?php
-/**
- * Neutral per-object SEO eligibility contract for multilingual providers.
- *
- * @package EasyRankly
- */
+/** Neutral per-object SEO eligibility contract for multilingual providers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,12 +22,6 @@ function erankly_empty_object_seo_state(): array {
 	);
 }
 
-/**
- * Normalizes a URL for self-canonical comparison.
- *
- * @param string $url URL.
- * @return string
- */
 function erankly_normalize_canonical_comparison_url( string $url ): string {
 	$url = esc_url_raw( trim( $url ) );
 
@@ -54,14 +44,7 @@ function erankly_normalize_canonical_comparison_url( string $url ): string {
 	return $scheme . '://' . $host . $port . $path . $query;
 }
 
-/**
- * Resolves effective noindex state without mutating the global main query.
- *
- * @param string $kind       Object kind.
- * @param int    $object_id  Object ID.
- * @param string $subtype    Post type, taxonomy, or special-page key.
- * @return bool
- */
+/** @param string $subtype    Post type, taxonomy, or special-page key. */
 function erankly_object_seo_state_is_noindex( string $kind, int $object_id, string $subtype ): bool {
 	if ( in_array( $kind, array( 'post', 'posts_page' ), true ) ) {
 		$post = get_post( $object_id );
@@ -109,14 +92,10 @@ function erankly_object_seo_state_is_noindex( string $kind, int $object_id, stri
 }
 
 /**
- * Returns publication, visibility, indexability and canonical state.
+ * Returns publication, visibility, indexability and canonical state. Required input keys are kind, object_id,
+ * object_subtype, blog_id and url. Stable reason codes are: invalid_context, inaccessible_blog, not_found,
+ * not_published, not_public, noindex, canonical_missing and canonical_not_self.
  *
- * Required input keys are kind, object_id, object_subtype, blog_id and url.
- * Stable reason codes are: invalid_context, inaccessible_blog, not_found,
- * not_published, not_public, noindex, canonical_missing and
- * canonical_not_self.
- *
- * @param array<string,mixed> $context Provider object context.
  * @return array{exists:bool,published:bool,public:bool,indexable:bool,canonical_url:string,canonical_is_self:bool,reason_codes:array<int,string>}
  */
 function erankly_get_object_seo_state( array $context ): array {

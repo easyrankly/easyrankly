@@ -1,9 +1,5 @@
 <?php
-/**
- * Shared helpers.
- *
- * @package EasyRankly
- */
+/** Shared helpers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -35,7 +31,6 @@ function erankly_load_schema_sanitizers(): void {
 	require_once ERANKLY_PATH . 'includes/helpers/sanitization-schema.php';
 }
 
-/** Loads video extraction helpers for VideoObject and video-sitemap work. */
 function erankly_load_video_helpers(): void {
 	require_once ERANKLY_PATH . 'includes/helpers/video.php';
 }

@@ -1,21 +1,12 @@
 <?php
-/**
- * Plugin activation logic.
- *
- * @package EasyRankly
- */
+/** Plugin activation logic. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Creates the custom redirects table.
- */
 final class ERankly_Redirects_Activator {
-	/**
-	 * Activation callback.
-	 */
+	/** Activation callback. */
 	public static function activate(): void {
 		global $wpdb;
 

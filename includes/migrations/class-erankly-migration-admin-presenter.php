@@ -1,29 +1,21 @@
 <?php
-/**
- * User-facing migration state presenter.
- *
- * @package EasyRankly
- */
+/** User-facing migration state presenter. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Converts the authoritative migration evidence into one deterministic admin
- * interaction state. It never grants authority that is absent from the
- * persisted go-live gate.
+ * Converts the authoritative migration evidence into one deterministic admin interaction state. It never grants
+ * authority that is absent from the persisted go-live gate.
  */
 final class ERankly_Migration_Admin_Presenter {
 	/**
-	 * Builds the compact state consumed by the migration report UI.
-	 *
-	 * @param array<string,mixed> $report             Persisted migration report.
-	 * @param array<string,mixed> $gate               Authoritative go-live decision.
-	 * @param array<string,mixed> $rollback           Current rollback summary.
-	 * @param bool                $source_owns_output Whether another SEO plugin owns frontend output.
-	 * @return array<string,mixed>
-	 */
+ * Builds the compact state consumed by the migration report UI.
+ *
+ * @param bool                $source_owns_output Whether another SEO plugin owns frontend output.
+ * @return array<string,mixed>
+ */
 	public function present( array $report, array $gate, array $rollback, bool $source_owns_output ): array {
 		$mode         = sanitize_key( (string) ( $report['mode'] ?? 'import' ) );
 		$gate_state   = sanitize_key( (string) ( $gate['state'] ?? 'blocked' ) );
@@ -116,11 +108,10 @@ final class ERankly_Migration_Admin_Presenter {
 	}
 
 	/**
-	 * Counts checks by their stable gate status.
-	 *
-	 * @param array<int,array<string,mixed>> $checks Gate checks.
-	 * @return array<string,int>
-	 */
+ * Counts checks by their stable gate status.
+ *
+ * @return array<string,int>
+ */
 	private function check_totals( array $checks ): array {
 		$totals = array(
 			'pass'           => 0,
@@ -139,14 +130,6 @@ final class ERankly_Migration_Admin_Presenter {
 		return $totals;
 	}
 
-	/**
-	 * Returns the number shown to users as requiring attention.
-	 *
-	 * @param array<string,mixed>            $counts Migration counters.
-	 * @param array<int,array<string,mixed>> $checks Gate checks.
-	 * @param array<string,mixed>            $report Persisted report.
-	 * @return int
-	 */
 	private function problem_count( array $counts, array $checks, array $report ): int {
 		$problem_count = 0;
 		foreach ( $checks as $check ) {

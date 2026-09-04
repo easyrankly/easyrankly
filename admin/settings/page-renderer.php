@@ -1,19 +1,10 @@
 <?php
-/**
- * Settings page renderer.
- *
- * @package EasyRankly
- */
+/** Settings page renderer. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Renders settings page.
- *
- * @return void
- */
 function erankly_render_settings_page(): void {
 	$required_cap = is_network_admin() ? 'manage_network_options' : 'manage_options';
 
@@ -106,15 +97,12 @@ function erankly_render_settings_page(): void {
 	}
 
 	/**
-	 * Filters the third-party tabs added to the EasyRankly settings screen.
-	 *
-	 * Each entry is keyed by a tab slug and provides a label and an optional capability.
-	 * The tab body is printed by the `erankly_render_settings_tab_{$slug}` action.
-	 *
-	 * @since 2.0.0 Descriptor schema and screen context frozen for extensions.
-	 *
-	 * @param array<string,array<string,string>> $tabs Registered extension tabs.
-	 */
+ * Filters the third-party tabs added to the EasyRankly settings screen. Each entry is keyed by a tab slug and
+ * provides a label and an optional capability. The tab body is printed by the
+ * `erankly_render_settings_tab_{$slug}` action.
+ *
+ * @since 2.0.0 Descriptor schema and screen context frozen for extensions.
+ */
 	$extra_tabs = erankly_normalize_settings_tabs(
 		apply_filters( 'erankly_settings_tabs', array(), $screen_context ),
 		$screen_context
@@ -419,15 +407,11 @@ function erankly_render_settings_page(): void {
 			<div class="erankly-tab-panel<?php echo $extra_panel === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-<?php echo esc_attr( $extra_slug ); ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-<?php echo esc_attr( $extra_slug ); ?>" data-erankly-settings-panel="<?php echo esc_attr( $extra_panel ); ?>" data-erankly-standalone-panel <?php echo $extra_panel === $active_panel ? '' : 'hidden'; ?>>
 				<?php
 				/**
-				 * Renders the body of a third-party settings tab.
-				 *
-				 * The dynamic portion of the hook name is the tab slug registered through the
-				 * `erankly_settings_tabs` filter.
-				 *
-				 * @since 2.0.0 Screen context frozen for extension renderers.
-				 *
-				 * @param array<string,mixed> $screen_context Current screen context.
-				 */
+ * Renders the body of a third-party settings tab. The dynamic portion of the hook name is the tab slug
+ * registered through the `erankly_settings_tabs` filter.
+ *
+ * @since 2.0.0 Screen context frozen for extension renderers.
+ */
 				do_action( 'erankly_render_settings_tab_' . $extra_slug, $screen_context );
 				?>
 			</div>

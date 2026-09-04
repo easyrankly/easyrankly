@@ -1,9 +1,5 @@
 <?php
-/**
- * Fail-closed migration go-live decision engine.
- *
- * @package EasyRankly
- */
+/** Fail-closed migration go-live decision engine. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -13,13 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class ERankly_Migration_Go_Live_Gate {
 	private const CONTRACT_VERSION = 1;
 
-	/**
-	 * Evaluates a terminal report using the current rollback state.
-	 *
-	 * @param array<string,mixed> $report Terminal migration report.
-	 * @param array<string,mixed> $rollback Current rollback-journal summary.
-	 * @return array<string,mixed> Machine-readable go-live decision.
-	 */
 	public function evaluate( array $report, array $rollback = array() ): array {
 		$mode = sanitize_key( (string) ( $report['mode'] ?? '' ) );
 		if ( 'import' !== $mode ) {
@@ -159,14 +148,12 @@ final class ERankly_Migration_Go_Live_Gate {
 	}
 
 	/**
-	 * Returns one stable check row.
-	 *
-	 * @param string $code Check code.
-	 * @param string $status pass|fail|pending|not_applicable.
-	 * @param int    $count Number of affected records.
-	 * @param bool   $blocking Whether failure blocks the decision.
-	 * @return array<string,mixed>
-	 */
+ * Returns one stable check row.
+ *
+ * @param int    $count Number of affected records.
+ * @param bool   $blocking Whether failure blocks the decision.
+ * @return array<string,mixed>
+ */
 	private function check( string $code, string $status, int $count, bool $blocking ): array {
 		return array(
 			'code'     => sanitize_key( $code ),
@@ -176,25 +163,16 @@ final class ERankly_Migration_Go_Live_Gate {
 		);
 	}
 
-	/**
-	 * Returns terminal accounting for one area/outcome.
-	 *
-	 * @param array<string,mixed> $accounting Evidence accounting ledger.
-	 * @param string              $area Accounting area.
-	 * @param string              $outcome Terminal outcome.
-	 * @return int
-	 */
 	private function terminal_total( array $accounting, string $area, string $outcome ): int {
 		return (int) ( $accounting[ $area ]['terminal'][ $outcome ] ?? 0 );
 	}
 
 	/**
-	 * Returns failing blocking check codes, excluding optional codes.
-	 *
-	 * @param array<int,array<string,mixed>> $checks Gate checks.
-	 * @param array<int,string>              $exclude Check codes to exclude.
-	 * @return array<int,string>
-	 */
+ * Returns failing blocking check codes, excluding optional codes.
+ *
+ * @param array<int,string>              $exclude Check codes to exclude.
+ * @return array<int,string>
+ */
 	private function blockers( array $checks, array $exclude = array() ): array {
 		$blockers = array();
 		foreach ( $checks as $check ) {
@@ -207,13 +185,7 @@ final class ERankly_Migration_Go_Live_Gate {
 		return array_values( array_unique( $blockers ) );
 	}
 
-	/**
-	 * Finds one check by code.
-	 *
-	 * @param array<int,array<string,mixed>> $checks Gate checks.
-	 * @param string                         $code Check code.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function find_check( array $checks, string $code ): array {
 		foreach ( $checks as $check ) {
 			if ( (string) ( $check['code'] ?? '' ) === $code ) {
@@ -225,18 +197,11 @@ final class ERankly_Migration_Go_Live_Gate {
 	}
 
 	/**
-	 * Builds and hashes the final decision.
-	 *
-	 * @param string                         $state Gate state.
-	 * @param string                         $verdict pass|fail|pending|not_applicable.
-	 * @param string                         $scope Proof scope.
-	 * @param bool                           $ready Whether controlled cutover is authorized.
-	 * @param bool                           $go_live Whether go-live passed.
-	 * @param bool                           $rollback_required Whether rollback is required.
-	 * @param array<int,array<string,mixed>> $checks Gate checks.
-	 * @param array<int,string>              $next_actions Remediation or monitoring actions.
-	 * @return array<string,mixed>
-	 */
+ * @param bool                           $ready Whether controlled cutover is authorized.
+ * @param bool                           $rollback_required Whether rollback is required.
+ * @param array<int,string>              $next_actions Remediation or monitoring actions.
+ * @return array<string,mixed>
+ */
 	private function decision( string $state, string $verdict, string $scope, bool $ready, bool $go_live, bool $rollback_required, array $checks, array $next_actions ): array {
 		$blockers                   = $this->blockers( $checks );
 		$payload                    = array(

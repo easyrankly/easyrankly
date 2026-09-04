@@ -1,23 +1,15 @@
 <?php
-/**
- * Shared helpers: post, term and global entity metadata.
- *
- * Part of the helpers.php loader; always loaded early on every request.
- *
- * @package EasyRankly
- */
+/** Shared helpers: post, term and global entity metadata. Part of the helpers.php loader; always loaded early on every request. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Returns valid image URLs embedded in post content, in document order.
+ * Returns valid image URLs embedded in post content, in document order. Images inside code examples are ignored.
+ * The raw block markup fallback covers image URLs stored in Gutenberg attributes when no rendered img tag is
+ * present.
  *
- * Images inside code examples are ignored. The raw block markup fallback covers
- * image URLs stored in Gutenberg attributes when no rendered img tag is present.
- *
- * @param int $post_id Post ID.
  * @return array<int,string>
  */
 function erankly_get_post_content_image_urls( int $post_id ): array {
@@ -54,61 +46,31 @@ function erankly_get_post_content_image_urls( int $post_id ): array {
 	return array_values( array_unique( $images ) );
 }
 
-/**
- * Returns a post meta string.
- *
- * @param int    $post_id Post ID.
- * @param string $key     Meta key without plugin prefix.
- * @return string
- */
+/** @param string $key     Meta key without plugin prefix. */
 function erankly_get_post_meta_string( int $post_id, string $key ): string {
 	$value = get_post_meta( $post_id, '_erankly_' . $key, true );
 
 	return is_string( $value ) ? trim( $value ) : '';
 }
 
-/**
- * Returns a post meta boolean.
- *
- * @param int    $post_id Post ID.
- * @param string $key     Meta key without plugin prefix.
- * @return bool
- */
+/** @param string $key     Meta key without plugin prefix. */
 function erankly_get_post_meta_bool( int $post_id, string $key ): bool {
 	return '1' === (string) get_post_meta( $post_id, '_erankly_' . $key, true );
 }
 
-/**
- * Returns a term meta string.
- *
- * @param int    $term_id Term ID.
- * @param string $key     Meta key without plugin prefix.
- * @return string
- */
+/** @param string $key     Meta key without plugin prefix. */
 function erankly_get_term_meta_string( int $term_id, string $key ): string {
 	$value = get_term_meta( $term_id, '_erankly_' . $key, true );
 
 	return is_string( $value ) ? trim( $value ) : '';
 }
 
-/**
- * Returns a term meta boolean.
- *
- * @param int    $term_id Term ID.
- * @param string $key     Meta key without plugin prefix.
- * @return bool
- */
+/** @param string $key     Meta key without plugin prefix. */
 function erankly_get_term_meta_bool( int $term_id, string $key ): bool {
 	return '1' === (string) get_term_meta( $term_id, '_erankly_' . $key, true );
 }
 
-/**
- * Returns the selected primary term when it still belongs to the post.
- *
- * @param int    $post_id  Post ID.
- * @param string $taxonomy Taxonomy name.
- * @return WP_Term|null
- */
+/** @return WP_Term|null */
 function erankly_get_primary_term( int $post_id, string $taxonomy ): ?WP_Term {
 	$primary_terms = get_post_meta( $post_id, '_erankly_primary_terms', true );
 	$term_id       = is_array( $primary_terms ) && isset( $primary_terms[ $taxonomy ] ) ? absint( $primary_terms[ $taxonomy ] ) : 0;
@@ -123,16 +85,12 @@ function erankly_get_primary_term( int $post_id, string $taxonomy ): ?WP_Term {
 }
 
 /**
- * Returns the explicit robots directive for a post or term.
- *
- * Legacy boolean metadata is used only when the tri-state field has never been
- * stored, which keeps upgrades lossless while allowing an explicit positive
+ * Returns the explicit robots directive for a post or term. Legacy boolean metadata is used only when the
+ * tri-state field has never been stored, which keeps upgrades lossless while allowing an explicit positive
  * directive to override a restrictive global default.
  *
  * @param string $object_type `post`, `term`, or `user`.
- * @param int    $object_id   Object ID.
  * @param string $axis        index, follow, archive, snippet, or image.
- * @return string
  */
 function erankly_get_object_robots_directive( string $object_type, int $object_id, string $axis ): string {
 	$key = '_erankly_' . $axis . '_directive';
@@ -169,57 +127,27 @@ function erankly_get_object_robots_directive( string $object_type, int $object_i
 	return '1' === (string) $legacy_val ? $legacy[ $axis ] : 'inherit';
 }
 
-/**
- * Returns a global metadata template for a post type.
- *
- * @param string $post_type Post type name.
- * @param string $field     Template field.
- * @return string
- */
 function erankly_get_global_post_type_meta( string $post_type, string $field ): string {
 	return erankly_get_global_entity_meta( 'global_post_type_meta', $post_type, $field );
 }
 
-/**
- * Returns a global metadata template for a taxonomy.
- *
- * @param string $taxonomy Taxonomy name.
- * @param string $field    Template field.
- * @return string
- */
 function erankly_get_global_taxonomy_meta( string $taxonomy, string $field ): string {
 	return erankly_get_global_entity_meta( 'global_taxonomy_meta', $taxonomy, $field );
 }
 
-/**
- * Returns a global robots/sitemap directive for a post type.
- *
- * @param string $post_type Post type name.
- * @param string $field     Directive field.
- * @return bool
- */
 function erankly_get_global_post_type_directive( string $post_type, string $field ): bool {
 	return erankly_get_global_entity_directive( 'global_post_type_meta', $post_type, $field );
 }
 
-/**
- * Returns a global robots/sitemap directive for a taxonomy.
- *
- * @param string $taxonomy Taxonomy name.
- * @param string $field    Directive field.
- * @return bool
- */
 function erankly_get_global_taxonomy_directive( string $taxonomy, string $field ): bool {
 	return erankly_get_global_entity_directive( 'global_taxonomy_meta', $taxonomy, $field );
 }
 
 /**
- * Returns the special page metadata stored for the current site.
- *
- * On Multisite this lives in a per-site option so a homepage title or description
- * set on one network site never applies to other (possibly different-language)
- * sites. Falls back to the shared defaults so a site that has never saved keeps
- * the expected behaviour (search results and the 404 page noindexed).
+ * Returns the special page metadata stored for the current site. On Multisite this lives in a per-site option so
+ * a homepage title or description set on one network site never applies to other (possibly different-language)
+ * sites. Falls back to the shared defaults so a site that has never saved keeps the expected behaviour (search
+ * results and the 404 page noindexed).
  *
  * @return array<string,array<string,string|int>>
  */
@@ -233,24 +161,16 @@ function erankly_get_site_special_meta(): array {
 
 	$context = function_exists( 'erankly_get_multilingual_context' ) ? erankly_get_multilingual_context() : array();
 
-	/**
-	 * Filters the final special-page metadata map for the current site/context.
-	 *
-	 * @param array<string,mixed> $stored  Special metadata.
-	 * @param array<string,mixed> $context Multilingual provider context.
-	 */
 	$filtered = apply_filters( 'erankly_site_special_meta', $stored, $context );
 
 	return is_array( $filtered ) ? $filtered : $stored;
 }
 
 /**
- * Returns the stored metadata map for a global entity group.
+ * Returns the stored metadata map for a global entity group. Special page metadata is per site on Multisite;
+ * post type and taxonomy defaults stay network-wide. On single-site every group lives in the shared settings
+ * array.
  *
- * Special page metadata is per site on Multisite; post type and taxonomy defaults
- * stay network-wide. On single-site every group lives in the shared settings array.
- *
- * @param string $setting_key Settings array key.
  * @return array<string,mixed>
  */
 function erankly_get_global_entity_meta_map( string $setting_key ): array {
@@ -263,26 +183,15 @@ function erankly_get_global_entity_meta_map( string $setting_key ): array {
 
 	$context = function_exists( 'erankly_get_multilingual_context' ) ? erankly_get_multilingual_context() : array();
 
-	/**
-	 * Filters a final global entity metadata map for the current context.
-	 *
-	 * @param array<string,mixed> $stored      Metadata map.
-	 * @param string              $setting_key Settings key.
-	 * @param array<string,mixed> $context     Multilingual provider context.
-	 */
 	$filtered = apply_filters( 'erankly_global_entity_meta_map', $stored, $setting_key, $context );
 
 	return is_array( $filtered ) ? $filtered : $stored;
 }
 
 /**
- * Returns the complete metadata row for one global entity.
+ * Returns the complete metadata row for one global entity. Linked groups fall back to the first available row,
+ * matching the title and visibility lookup behavior while preserving optional advanced robot fields.
  *
- * Linked groups fall back to the first available row, matching the title and
- * visibility lookup behavior while preserving optional advanced robot fields.
- *
- * @param string $setting_key Settings array key.
- * @param string $entity      Entity name.
  * @return array<string,mixed>
  */
 function erankly_get_global_entity_meta_row( string $setting_key, string $entity ): array {
@@ -306,12 +215,8 @@ function erankly_get_global_entity_meta_row( string $setting_key, string $entity
 }
 
 /**
- * Determines whether a global entity group shares one template across all entities.
- *
- * Special pages are always configured individually, so they are never "linked".
- *
- * @param string $setting_key Settings array key.
- * @return bool
+ * Determines whether a global entity group shares one template across all entities. Special pages are always
+ * configured individually, so they are never "linked".
  */
 function erankly_global_entity_meta_is_linked( string $setting_key ): bool {
 	if ( 'global_special_meta' === $setting_key ) {
@@ -321,14 +226,6 @@ function erankly_global_entity_meta_is_linked( string $setting_key ): bool {
 	return (bool) erankly_get_setting( $setting_key . '_linked', 1 );
 }
 
-/**
- * Returns a global metadata template field for a keyed entity.
- *
- * @param string $setting_key Settings array key.
- * @param string $entity      Entity name.
- * @param string $field       Template field.
- * @return string
- */
 function erankly_get_global_entity_meta( string $setting_key, string $entity, string $field ): string {
 	$templates = erankly_get_global_entity_meta_map( $setting_key );
 
@@ -357,14 +254,6 @@ function erankly_get_global_entity_meta( string $setting_key, string $entity, st
 	return '';
 }
 
-/**
- * Returns a boolean global directive for a keyed entity.
- *
- * @param string $setting_key Settings array key.
- * @param string $entity      Entity name.
- * @param string $field       Directive field.
- * @return bool
- */
 function erankly_get_global_entity_directive( string $setting_key, string $entity, string $field ): bool {
 	if ( ! in_array( $field, array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' ), true ) ) {
 		return false;

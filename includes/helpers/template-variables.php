@@ -1,24 +1,11 @@
 <?php
-/**
- * Shared helpers: dynamic template variables.
- *
- * Part of the helpers.php loader; always loaded early on every request.
- *
- * @package EasyRankly
- */
+/** Shared helpers: dynamic template variables. Part of the helpers.php loader; always loaded early on every request. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Replaces dynamic template variables in a text value.
- *
- * @param string            $value   Raw text value.
- * @param int               $post_id Optional post ID.
- * @param array<int,string> $exclude Variables that should not resolve for this call.
- * @return string
- */
+/** @param array<int,string> $exclude Variables that should not resolve for this call. */
 function erankly_replace_variables( string $value, int $post_id = 0, array $exclude = array() ): string {
 	if ( '' === $value || ! str_contains( $value, '{{' ) ) {
 		return $value;
@@ -45,13 +32,6 @@ function erankly_replace_variables( string $value, int $post_id = 0, array $excl
 	);
 }
 
-/**
- * Replaces dynamic variables inside a JSON-LD string.
- *
- * @param string $value   Raw JSON-LD.
- * @param int    $post_id Optional post ID.
- * @return string
- */
 function erankly_replace_json_ld_variables( string $value, int $post_id = 0 ): string {
 	if ( '' === $value || ! str_contains( $value, '{{' ) ) {
 		return $value;
@@ -77,13 +57,6 @@ function erankly_replace_json_ld_variables( string $value, int $post_id = 0 ): s
 	);
 }
 
-/**
- * Returns the value for a supported dynamic variable.
- *
- * @param string $key     Variable key.
- * @param int    $post_id Optional post ID.
- * @return string
- */
 function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 	static $resolving = array();
 	static $cache     = array();
@@ -333,12 +306,6 @@ function erankly_get_variable_value( string $key, int $post_id = 0 ): string {
 	return $cache[ $cache_key ];
 }
 
-/**
- * Returns comma-separated category names for a post.
- *
- * @param int $post_id Post ID.
- * @return string
- */
 function erankly_get_post_category_names( int $post_id ): string {
 	if ( $post_id <= 0 ) {
 		return '';
@@ -355,12 +322,6 @@ function erankly_get_post_category_names( int $post_id ): string {
 	return implode( ', ', array_map( 'sanitize_text_field', $names ) );
 }
 
-/**
- * Returns comma-separated tag names for a post.
- *
- * @param int $post_id Post ID.
- * @return string
- */
 function erankly_get_post_tag_names( int $post_id ): string {
 	if ( $post_id <= 0 ) {
 		return '';
@@ -378,11 +339,9 @@ function erankly_get_post_tag_names( int $post_id ): string {
 }
 
 /**
- * Resolves a variable's example value for admin field previews, given an
- * explicit post/term instead of the global queried object. Admin screens
- * (Settings defaults, classic meta boxes) don't have one to fall back on.
+ * Resolves a variable's example value for admin field previews, given an explicit post/term instead of the
+ * global queried object. Admin screens (Settings defaults, classic meta boxes) don't have one to fall back on.
  *
- * @param string       $key  Variable key.
  * @param WP_Post|null $post Sample or currently-edited post, if any.
  * @param WP_Term|null $term Sample or currently-edited term, if any.
  * @return string Empty string when this key has no example value here.
@@ -588,12 +547,10 @@ function erankly_get_variable_preview_value( string $key, ?WP_Post $post = null,
 }
 
 /**
- * Builds the example-values map for an admin {{variable}} field preview,
- * skipping any key that has no example (its {{token}} then stays literal
- * in the field, e.g. when a post type has no published posts yet).
- *
- * Site-level keys resolve even without a sample post or term, so identity
- * fields on Settings can preview values such as {{site_description}}.
+ * Builds the example-values map for an admin {{variable}} field preview, skipping any key that has no example
+ * (its {{token}} then stays literal in the field, e.g. when a post type has no published posts yet). Site-level
+ * keys resolve even without a sample post or term, so identity fields on Settings can preview values such as
+ * {{site_description}}.
  *
  * @param WP_Post|null $post Sample or currently-edited post, if any.
  * @param WP_Term|null $term Sample or currently-edited term, if any.
@@ -683,11 +640,9 @@ function erankly_get_admin_variable_examples( ?WP_Post $post = null, ?WP_Term $t
 }
 
 /**
- * Returns the most recently published post of a type, to stand in as the
- * "{{post_title}}"-style example on global default-template admin fields
- * that aren't tied to any single post.
+ * Returns the most recently published post of a type, to stand in as the "{{post_title}}"-style example on
+ * global default-template admin fields that aren't tied to any single post.
  *
- * @param string $post_type Post type slug.
  * @return WP_Post|null
  */
 function erankly_get_sample_post_for_type( string $post_type ): ?WP_Post {
@@ -706,11 +661,9 @@ function erankly_get_sample_post_for_type( string $post_type ): ?WP_Post {
 }
 
 /**
- * Returns the first term of a taxonomy, to stand in as the "{{term_name}}"
- * example on global default-template admin fields that aren't tied to any
- * single term.
+ * Returns the first term of a taxonomy, to stand in as the "{{term_name}}" example on global default-template
+ * admin fields that aren't tied to any single term.
  *
- * @param string $taxonomy Taxonomy slug.
  * @return WP_Term|null
  */
 function erankly_get_sample_term_for_taxonomy( string $taxonomy ): ?WP_Term {

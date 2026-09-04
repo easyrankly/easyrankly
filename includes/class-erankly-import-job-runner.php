@@ -1,9 +1,5 @@
 <?php
-/**
- * Crash-safe, batched EasyRankly JSON import worker.
- *
- * @package EasyRankly
- */
+/** Crash-safe, batched EasyRankly JSON import worker. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -18,13 +14,9 @@ final class ERankly_Import_Job_Runner {
 	private const STAGES        = array( 'settings', 'redirects', 'user_meta', 'post_meta', 'term_meta' );
 
 	/**
-	 * Stores a validated PHP upload in private storage and creates a checkpoint.
-	 *
-	 * @param array<string,mixed> $file     Normalized $_FILES entry.
-	 * @param array<string,mixed> $data     Already validated decoded payload.
-	 * @param int                 $maximum  Maximum accepted bytes.
-	 * @return array<string,mixed>
-	 */
+ * @param array<string,mixed> $data     Already validated decoded payload.
+ * @return array<string,mixed>
+ */
 	public static function start( array $file, array $data, int $maximum ): array {
 		$active = self::active_job();
 		if ( is_array( $active ) ) {
@@ -99,7 +91,6 @@ final class ERankly_Import_Job_Runner {
 		);
 	}
 
-	/** Returns and self-heals scheduling for the current import checkpoint. */
 	public static function active_job(): ?array {
 		$job = get_option( defined( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION' ) ? ERANKLY_IMPORT_ACTIVE_JOB_OPTION : 'erankly_import_active_job_v1', null );
 		if ( is_array( $job ) && ! empty( $job['id'] ) ) {
@@ -110,13 +101,7 @@ final class ERankly_Import_Job_Runner {
 		return null;
 	}
 
-	/**
-	 * Applies one bounded page from an in-memory payload for compatibility APIs.
-	 *
-	 * @param array<string,mixed> $data       Decoded EasyRankly payload.
-	 * @param array<string,mixed> $checkpoint Optional stage/offset/counts checkpoint.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	public static function apply_payload_batch( array $data, array $checkpoint = array() ): array {
 		$job = array(
 			'stage'  => sanitize_key( (string) ( $checkpoint['stage'] ?? 'settings' ) ),
@@ -143,12 +128,9 @@ final class ERankly_Import_Job_Runner {
 	}
 
 	/**
-	 * Processes one data batch and writes the next durable stage/offset.
-	 *
-	 * @param string $job_id Import UUID.
-	 * @return array<string,mixed>|null
-	 * @throws RuntimeException When the private source cannot be verified or decoded.
-	 */
+ * @return array<string,mixed>|null
+ * @throws RuntimeException When the private source cannot be verified or decoded.
+ */
 	public static function process( string $job_id ): ?array {
 		$job = get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, null );
 		if ( ! is_array( $job ) || ! hash_equals( (string) ( $job['id'] ?? '' ), $job_id ) ) {
@@ -207,12 +189,9 @@ final class ERankly_Import_Job_Runner {
 	}
 
 	/**
-	 * Converts a validated backup once into a private, seekable NDJSON spool.
-	 *
-	 * @param string              $path Managed destination replacing the upload.
-	 * @param array<string,mixed> $data Validated decoded backup.
-	 * @return array<string,mixed>
-	 */
+ * @param string              $path Managed destination replacing the upload.
+ * @return array<string,mixed>
+ */
 	private static function stage_spool( string $path, array $data ): array {
 		$spool_path = $path . '.spool';
 		$handle     = fopen( $spool_path, 'xb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Exclusive private spool creation prevents partial readers.
@@ -276,12 +255,9 @@ final class ERankly_Import_Job_Runner {
 	}
 
 	/**
-	 * Writes one complete JSON line or fails without publishing a partial spool.
-	 *
-	 * @param resource $handle Open private spool handle.
-	 * @param mixed    $value  JSON-serializable value.
-	 * @throws RuntimeException When JSON encoding or the complete write fails.
-	 */
+ * @param resource $handle Open private spool handle.
+ * @throws RuntimeException When JSON encoding or the complete write fails.
+ */
 	private static function write_spool_line( $handle, mixed $value ): void {
 		$json = wp_json_encode( $value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 		if ( ! is_string( $json ) ) {
@@ -299,13 +275,7 @@ final class ERankly_Import_Job_Runner {
 		}
 	}
 
-	/**
-	 * Applies one bounded page directly from the durable spool byte cursor.
-	 *
-	 * @param string              $path Managed spool path.
-	 * @param array<string,mixed> $job  Mutable checkpoint.
-	 * @throws RuntimeException When the spool marker, cursor or row is invalid.
-	 */
+	/** @throws RuntimeException When the spool marker, cursor or row is invalid. */
 	private static function apply_next_spool_batch( string $path, array &$job ): void {
 		$offsets = is_array( $job['stage_offsets'] ?? null ) ? $job['stage_offsets'] : array();
 		$ends    = is_array( $job['stage_ends'] ?? null ) ? $job['stage_ends'] : array();
@@ -370,11 +340,10 @@ final class ERankly_Import_Job_Runner {
 	}
 
 	/**
-	 * Applies one bounded stage page, skipping empty terminal stages.
-	 *
-	 * @param array<string,mixed> $data Decoded import data.
-	 * @param array<string,mixed> $job  Mutable cursor and counters.
-	 */
+ * Applies one bounded stage page, skipping empty terminal stages.
+ *
+ * @param array<string,mixed> $job  Mutable cursor and counters.
+ */
 	private static function apply_next_payload_batch( array $data, array &$job ): void {
 		$limit = max( 10, min( 500, (int) apply_filters( 'erankly_import_batch_size', defined( 'ERANKLY_IMPORT_BATCH_SIZE' ) ? ERANKLY_IMPORT_BATCH_SIZE : 100 ) ) );
 		while ( 'complete' !== (string) $job['stage'] ) {
@@ -406,12 +375,7 @@ final class ERankly_Import_Job_Runner {
 		}
 	}
 
-	/**
-	 * Applies settings once, loading the canonical sanitizer in cron context.
-	 *
-	 * @param array<string,mixed> $data   Decoded import data.
-	 * @param array<string,int>   $counts Cumulative counters.
-	 */
+	/** Applies settings once, loading the canonical sanitizer in cron context. */
 	private static function apply_settings( array $data, array &$counts ): void {
 		if ( isset( $data['settings'] ) && is_array( $data['settings'] ) ) {
 			if ( ! function_exists( 'erankly_sanitize_settings' ) ) {
@@ -427,22 +391,10 @@ final class ERankly_Import_Job_Runner {
 			$counts['settings'] = 1;
 		}
 
-		/**
-		 * Fires after a native EasyRankly export has restored core settings.
-		 *
-		 * Add-ons may read extra payload keys they own.
-		 *
-		 * @param array<string,mixed> $data Decoded export payload.
-		 */
+		/** Fires after a native EasyRankly export has restored core settings. Add-ons may read extra payload keys they own. */
 		do_action( 'erankly_imported_payload', $data );
 	}
 
-	/**
-	 * Applies a bounded redirect page with one cache invalidation.
-	 *
-	 * @param array<int,mixed>  $records Redirect rows.
-	 * @param array<string,int> $counts  Cumulative counters.
-	 */
 	private static function apply_redirects( array $records, array &$counts ): void {
 		erankly_ensure_redirect_classes_available();
 		if ( ! class_exists( 'ERankly_Redirects_Repository' ) || ! class_exists( 'ERankly_Redirects_Normalizer' ) ) {
@@ -465,13 +417,7 @@ final class ERankly_Import_Job_Runner {
 		}
 	}
 
-	/**
-	 * Applies metadata after resolving every object ID in one grouped query.
-	 *
-	 * @param string            $stage   user_meta|post_meta|term_meta.
-	 * @param array<int,mixed>  $records Metadata rows.
-	 * @param array<string,int> $counts  Cumulative counters.
-	 */
+	/** Applies metadata after resolving every object ID in one grouped query. */
 	private static function apply_meta( string $stage, array $records, array &$counts ): void {
 		global $wpdb;
 
@@ -516,11 +462,6 @@ final class ERankly_Import_Job_Runner {
 		}
 	}
 
-	/**
-	 * Advances to the next declared stream and resets its offset.
-	 *
-	 * @param array<string,mixed> $job Mutable checkpoint.
-	 */
 	private static function advance_stage( array &$job ): void {
 		$index         = array_search( (string) $job['stage'], self::STAGES, true );
 		$job['stage']  = false === $index || $index >= count( self::STAGES ) - 1 ? 'complete' : self::STAGES[ $index + 1 ];
@@ -530,12 +471,7 @@ final class ERankly_Import_Job_Runner {
 		}
 	}
 
-	/**
-	 * Finalizes evidence, removes the private file and clears the active job.
-	 *
-	 * @param array<string,mixed> $job    Terminal job.
-	 * @param string              $status complete|failed.
-	 */
+	/** Finalizes evidence, removes the private file and clears the active job. */
 	private static function finish( array $job, string $status ): void {
 		$job['status']       = $status;
 		$job['completed_at'] = gmdate( 'c' );
@@ -546,7 +482,6 @@ final class ERankly_Import_Job_Runner {
 		wp_clear_scheduled_hook( ERANKLY_IMPORT_CRON_HOOK, array( (string) $job['id'] ) );
 	}
 
-	/** Returns zeroed cumulative import counters. */
 	private static function empty_counts(): array {
 		return array(
 			'settings'  => 0,
@@ -557,12 +492,6 @@ final class ERankly_Import_Job_Runner {
 		);
 	}
 
-	/**
-	 * Schedules the next import page idempotently.
-	 *
-	 * @param string $job_id Import UUID.
-	 * @param int    $delay  Delay in seconds.
-	 */
 	private static function schedule( string $job_id, int $delay = 1 ): void {
 		if ( ! defined( 'ERANKLY_IMPORT_CRON_HOOK' ) || ! function_exists( 'wp_schedule_single_event' ) ) {
 			return;
@@ -574,11 +503,7 @@ final class ERankly_Import_Job_Runner {
 		wp_schedule_single_event( time() + max( 1, $delay ), ERANKLY_IMPORT_CRON_HOOK, $args, true );
 	}
 
-	/**
-	 * Acquires a recoverable per-job lock.
-	 *
-	 * @param string $job_id Import UUID.
-	 */
+	/** Acquires a recoverable per-job lock. */
 	private static function acquire_lock( string $job_id ): string {
 		global $wpdb;
 
@@ -611,12 +536,7 @@ final class ERankly_Import_Job_Runner {
 		return '';
 	}
 
-	/**
-	 * Releases only the current request's lock token.
-	 *
-	 * @param string $job_id Import UUID.
-	 * @param string $token  Owned lock token.
-	 */
+	/** Releases only the current request's lock token. */
 	private static function release_lock( string $job_id, string $token ): void {
 		global $wpdb;
 
@@ -636,12 +556,7 @@ final class ERankly_Import_Job_Runner {
 		wp_cache_delete( $key, 'options' );
 	}
 
-	/**
-	 * Renews a lease only while its token still owns the stored lock.
-	 *
-	 * @param string $job_id Import UUID.
-	 * @param string $token  Owned lock token.
-	 */
+	/** Renews a lease only while its token still owns the stored lock. */
 	private static function renew_lock( string $job_id, string $token ): bool {
 		global $wpdb;
 
@@ -668,12 +583,6 @@ final class ERankly_Import_Job_Runner {
 		return 1 === $updated;
 	}
 
-	/**
-	 * Returns whether the supplied token still owns the current lease.
-	 *
-	 * @param string $job_id Import UUID.
-	 * @param string $token  Candidate lock token.
-	 */
 	private static function owns_lock( string $job_id, string $token ): bool {
 		$existing = get_option( self::lock_key( $job_id ), array() );
 
@@ -682,20 +591,12 @@ final class ERankly_Import_Job_Runner {
 			&& hash_equals( (string) ( $existing['token'] ?? '' ), $token );
 	}
 
-	/**
-	 * Returns the bounded lock option key.
-	 *
-	 * @param string $job_id Import UUID.
-	 */
+	/** Returns the bounded lock option key. */
 	private static function lock_key( string $job_id ): string {
 		return self::LOCK_PREFIX . substr( hash( 'sha256', $job_id ), 0, 24 );
 	}
 
-	/**
-	 * Verifies that a path is one of this site's managed import files.
-	 *
-	 * @param string $path Candidate path.
-	 */
+	/** Verifies that a path is one of this site's managed import files. */
 	private static function owns( string $path ): bool {
 		$directory = ERankly_Migration_Upload_Store::directory( false );
 		$path      = wp_normalize_path( $path );
@@ -705,16 +606,11 @@ final class ERankly_Import_Job_Runner {
 			&& 1 === preg_match( '/^' . self::FILE_PREFIX . '[a-f0-9]{32}\.json(?:\.spool)?$/', basename( $path ) );
 	}
 
-	/**
-	 * Deletes only a verified managed import file.
-	 *
-	 * @param string $path Candidate managed path.
-	 */
+	/** Deletes only a verified managed import file. */
 	private static function delete_file( string $path ): bool {
 		return self::owns( $path ) && ( ! file_exists( $path ) || ( is_file( $path ) && ! is_link( $path ) && unlink( $path ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Guarded private OS-temp file.
 	}
 
-	/** Removes abandoned managed import files during reset/uninstall. */
 	public static function purge_all(): bool {
 		$directory = ERankly_Migration_Upload_Store::directory( false );
 		if ( '' === $directory || ! is_dir( $directory ) ) {

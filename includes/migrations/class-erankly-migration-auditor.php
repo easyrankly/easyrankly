@@ -1,9 +1,5 @@
 <?php
-/**
- * Deterministic post-import evidence builder.
- *
- * @package EasyRankly
- */
+/** Deterministic post-import evidence builder. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -14,16 +10,7 @@ final class ERankly_Migration_Auditor {
 	private const EXCEPTION_SAMPLE_LIMIT = 100;
 	private const SAMPLE_LIMIT           = 20;
 
-	/**
-	 * Builds terminal accounting, semantic comparisons and redirect diagnostics.
-	 *
-	 * @param string                           $job_id Migration UUID.
-	 * @param array<string,mixed>              $report Terminal report.
-	 * @param ERankly_Migration_Job_Store      $store Queue store.
-	 * @param ERankly_Migration_Journal        $journal Rollback journal.
-	 * @param ERankly_Migration_Evidence_Store $evidence_store Complete exception ledger.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	public function build( string $job_id, array &$report, ERankly_Migration_Job_Store $store, ERankly_Migration_Journal $journal, ERankly_Migration_Evidence_Store $evidence_store ): array {
 		$mode         = sanitize_key( (string) ( $report['mode'] ?? '' ) );
 		$accounting   = array(
@@ -154,11 +141,7 @@ final class ERankly_Migration_Auditor {
 		);
 	}
 
-	/**
-	 * Returns a zeroed exclusive-outcome ledger.
-	 *
-	 * @return array{discovered:int,classified:int,balanced:bool,terminal:array<string,int>}
-	 */
+	/** @return array{discovered:int,classified:int,balanced:bool,terminal:array<string,int>} */
 	private function empty_accounting(): array {
 		return array(
 			'discovered' => 0,
@@ -179,13 +162,6 @@ final class ERankly_Migration_Auditor {
 		);
 	}
 
-	/**
-	 * Returns one exclusive metadata outcome.
-	 *
-	 * @param array<string,mixed> $row Queue row.
-	 * @param string              $mode preview|import.
-	 * @return string Terminal outcome.
-	 */
 	private function meta_terminal( array $row, string $mode ): string {
 		$discovery = sanitize_key( (string) ( $row['discovery_status'] ?? '' ) );
 		$apply     = sanitize_key( (string) ( $row['apply_status'] ?? '' ) );
@@ -211,13 +187,6 @@ final class ERankly_Migration_Auditor {
 		return 'failed';
 	}
 
-	/**
-	 * Returns one exclusive redirect outcome.
-	 *
-	 * @param array<string,mixed> $row Queue row.
-	 * @param string              $mode preview|import.
-	 * @return string Terminal outcome.
-	 */
 	private function redirect_terminal( array $row, string $mode ): string {
 		$discovery = sanitize_key( (string) ( $row['discovery_status'] ?? '' ) );
 		$apply     = sanitize_key( (string) ( $row['apply_status'] ?? '' ) );
@@ -244,14 +213,10 @@ final class ERankly_Migration_Auditor {
 	}
 
 	/**
-	 * Adds a normalized before/after comparison without persisting raw SEO values.
-	 *
-	 * @param array<string,mixed> $semantic Aggregated comparison, passed by reference.
-	 * @param array<string,mixed> $row Queue row.
-	 * @param array<string,mixed> $payload Queue payload.
-	 * @param string              $terminal Exclusive outcome.
-	 * @param string              $mode preview|import.
-	 */
+ * Adds a normalized before/after comparison without persisting raw SEO values.
+ *
+ * @param array<string,mixed> $semantic Aggregated comparison, passed by reference.
+ */
 	private function add_semantic_result( array &$semantic, array $row, array $payload, string $terminal, string $mode ): void {
 		$key    = sanitize_key( (string) ( $payload['key'] ?? $row['target_field'] ?? '' ) );
 		$domain = $this->semantic_domain( $key );
@@ -295,12 +260,7 @@ final class ERankly_Migration_Auditor {
 		}
 	}
 
-	/**
-	 * Maps one EasyRankly field to the user-visible semantic area it affects.
-	 *
-	 * @param string $key EasyRankly metadata key.
-	 * @return string Semantic domain or empty string.
-	 */
+	/** @return string Semantic domain or empty string. */
 	private function semantic_domain( string $key ): string {
 		if ( str_contains( $key, 'title' ) ) {
 			return 'title';
@@ -321,13 +281,6 @@ final class ERankly_Migration_Auditor {
 		return '';
 	}
 
-	/**
-	 * Builds static loop/chain/collision/regex and stored response diagnostics.
-	 *
-	 * @param array<int,array<string,mixed>> $items Redirect evidence items.
-	 * @param string                         $mode preview|import.
-	 * @return array<string,mixed> Redirect audit.
-	 */
 	private function audit_redirects( array $items, string $mode ): array {
 		$sources    = array();
 		$loops      = array();
@@ -411,12 +364,6 @@ final class ERankly_Migration_Auditor {
 		);
 	}
 
-	/**
-	 * Returns report warnings related to variables/placeholders.
-	 *
-	 * @param array<string,mixed> $report Terminal report.
-	 * @return array<int,array<string,string>> Variable diagnostics.
-	 */
 	private function variable_diagnostics( array $report ): array {
 		$result = array();
 		foreach ( is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array() as $warning ) {
@@ -432,14 +379,6 @@ final class ERankly_Migration_Auditor {
 		return $result;
 	}
 
-	/**
-	 * Builds a value-free exception row suitable for JSON and CSV export.
-	 *
-	 * @param array<string,mixed> $row Queue row.
-	 * @param array<string,mixed> $payload Queue payload.
-	 * @param string              $terminal Exclusive outcome.
-	 * @return array<string,mixed> Exception row.
-	 */
 	private function exception( array $row, array $payload, string $terminal ): array {
 		$type = sanitize_key( (string) ( $payload['object_type'] ?? $row['object_type'] ?? '' ) );
 		$id   = absint( $payload['object_id'] ?? 0 );
@@ -456,22 +395,15 @@ final class ERankly_Migration_Auditor {
 	}
 
 	/**
-	 * Whether an exclusive outcome must appear in the exception export.
-	 *
-	 * @param string $terminal Exclusive outcome.
-	 * @return bool Whether this is an exception.
-	 */
+ * Whether an exclusive outcome must appear in the exception export.
+ *
+ * @return bool Whether this is an exception.
+ */
 	private function is_exception( string $terminal ): bool {
 		return in_array( $terminal, array( 'preserved', 'conflict', 'invalid', 'unsupported', 'failed' ), true );
 	}
 
-	/**
-	 * Returns an edit link for a migrated object.
-	 *
-	 * @param string $type post|term|user.
-	 * @param int    $id Object ID.
-	 * @return string Admin edit URL.
-	 */
+	/** Returns an edit link for a migrated object. */
 	private function edit_url( string $type, int $id ): string {
 		if ( $id < 1 ) {
 			return '';
@@ -494,13 +426,6 @@ final class ERankly_Migration_Auditor {
 		return '';
 	}
 
-	/**
-	 * Returns the public URL for a representative semantic probe.
-	 *
-	 * @param string $type post|term|user.
-	 * @param int    $id Object ID.
-	 * @return string Public URL.
-	 */
 	private function public_url( string $type, int $id ): string {
 		if ( $id < 1 ) {
 			return '';
@@ -519,32 +444,24 @@ final class ERankly_Migration_Auditor {
 	}
 
 	/**
-	 * Conservative catastrophic-backtracking heuristic for imported regex rules.
-	 *
-	 * @param string $pattern Imported regex pattern.
-	 * @return bool Whether review is required.
-	 */
+ * Conservative catastrophic-backtracking heuristic for imported regex rules.
+ *
+ * @return bool Whether review is required.
+ */
 	private function dangerous_regex( string $pattern ): bool {
 		return 1 === preg_match( '/(?:\.\*){2,}|\([^)]*[+*][^)]*\)[+*]|\[[^]]*\][+*][+*]/', $pattern );
 	}
 
-	/**
-	 * Normalizes a redirect path for graph analysis.
-	 *
-	 * @param string $path Raw path.
-	 * @return string Normalized path.
-	 */
 	private function path( string $path ): string {
 		$path = '/' . ltrim( $path, '/' );
 		return '/' === $path ? $path : untrailingslashit( $path );
 	}
 
 	/**
-	 * Returns an internal target path, or an empty string for external targets.
-	 *
-	 * @param string $target Redirect target.
-	 * @return string Internal path or empty string.
-	 */
+ * Returns an internal target path, or an empty string for external targets.
+ *
+ * @return string Internal path or empty string.
+ */
 	private function internal_target_path( string $target ): string {
 		$parts = wp_parse_url( $target );
 		if ( false === $parts ) {
@@ -558,12 +475,7 @@ final class ERankly_Migration_Auditor {
 		return $this->path( (string) ( $parts['path'] ?? $target ) );
 	}
 
-	/**
-	 * Stable comparison encoding.
-	 *
-	 * @param mixed $value Value to normalize.
-	 * @return string Canonical JSON.
-	 */
+	/** Stable comparison encoding. */
 	private function canonical_json( mixed $value ): string {
 		if ( is_array( $value ) ) {
 			if ( ! erankly_array_is_list( $value ) ) {

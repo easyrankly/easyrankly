@@ -1,11 +1,7 @@
 <?php
 /**
- * Atomic EasyRankly settings writer.
- *
- * This runtime is provider-neutral. It serializes whole-settings writes from
+ * Atomic EasyRankly settings writer. This runtime is provider-neutral. It serializes whole-settings writes from
  * core and extensions without owning any extension data or lifecycle.
- *
- * @package EasyRankly
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -16,36 +12,21 @@ if ( ! defined( 'ERANKLY_SETTINGS_LOCK_OPTION' ) ) {
 	define( 'ERANKLY_SETTINGS_LOCK_OPTION', 'erankly_settings_lock_v1' );
 }
 
-/**
- * Reads the settings lock in the current site or network scope.
- *
- * @return mixed
- */
+/** Reads the settings lock in the current site or network scope. */
 function erankly_get_settings_lock(): mixed {
 	return is_multisite()
 		? get_network_option( get_current_network_id(), ERANKLY_SETTINGS_LOCK_OPTION, false )
 		: get_option( ERANKLY_SETTINGS_LOCK_OPTION, false );
 }
 
-/**
- * Adds the settings lock atomically.
- *
- * @param array<string,mixed> $value Lock payload.
- * @return bool
- */
+/** Adds the settings lock atomically. */
 function erankly_add_settings_lock( array $value ): bool {
 	return is_multisite()
 		? add_network_option( get_current_network_id(), ERANKLY_SETTINGS_LOCK_OPTION, $value )
 		: add_option( ERANKLY_SETTINGS_LOCK_OPTION, $value, '', false );
 }
 
-/**
- * Replaces the settings lock only when its serialized snapshot still matches.
- *
- * @param array<string,mixed> $expected Expected payload.
- * @param array<string,mixed> $next     Replacement payload.
- * @return bool
- */
+/** Replaces the settings lock only when its serialized snapshot still matches. */
 function erankly_compare_update_settings_lock( array $expected, array $next ): bool {
 	global $wpdb;
 
@@ -81,12 +62,7 @@ function erankly_compare_update_settings_lock( array $expected, array $next ): b
 	return 1 === $updated;
 }
 
-/**
- * Deletes the settings lock only when its serialized snapshot still matches.
- *
- * @param array<string,mixed> $expected Expected payload.
- * @return bool
- */
+/** Deletes the settings lock only when its serialized snapshot still matches. */
 function erankly_compare_delete_settings_lock( array $expected ): bool {
 	global $wpdb;
 
@@ -120,8 +96,6 @@ function erankly_compare_delete_settings_lock( array $expected ): bool {
 }
 
 /**
- * Acquires the provider-neutral settings mutex.
- *
  * @param int $ttl Lease duration in seconds.
  * @return string|WP_Error Opaque token or retryable error.
  */
@@ -155,12 +129,7 @@ function erankly_acquire_settings_lock( int $ttl = 30 ): string|WP_Error {
 	);
 }
 
-/**
- * Returns whether a settings lock token is current and unexpired.
- *
- * @param string $token Lock token.
- * @return bool
- */
+/** Returns whether a settings lock token is current and unexpired. */
 function erankly_settings_lock_is_valid( string $token ): bool {
 	$current = erankly_get_settings_lock();
 
@@ -172,9 +141,7 @@ function erankly_settings_lock_is_valid( string $token ): bool {
 /**
  * Renews a held settings lock.
  *
- * @param string $token Lock token.
  * @param int    $ttl   Lease duration in seconds.
- * @return bool
  */
 function erankly_renew_settings_lock( string $token, int $ttl = 30 ): bool {
 	$current = erankly_get_settings_lock();
@@ -189,12 +156,7 @@ function erankly_renew_settings_lock( string $token, int $ttl = 30 ): bool {
 	return erankly_compare_update_settings_lock( $current, $next );
 }
 
-/**
- * Releases a settings lock held by the caller.
- *
- * @param string $token Lock token.
- * @return bool
- */
+/** Releases a settings lock held by the caller. */
 function erankly_release_settings_lock( string $token ): bool {
 	$current = erankly_get_settings_lock();
 
@@ -282,11 +244,8 @@ function erankly_update_plugin_settings( array $changes, string $lock_token = ''
 /**
  * Interlocks direct Settings API writers with the shared settings mutex.
  *
- * @param mixed  $value      Proposed value.
  * @param mixed  $old_value  Previous value supplied by WordPress.
- * @param string $option     Option name.
  * @param int    $network_id Network ID when WordPress supplies it.
- * @return mixed
  */
 function erankly_interlock_settings_pre_update( mixed $value, mixed $old_value, string $option = ERANKLY_OPTION, int $network_id = 0 ): mixed {
 	unset( $option, $network_id );
@@ -315,11 +274,7 @@ function erankly_interlock_settings_pre_update( mixed $value, mixed $old_value, 
 	return ! empty( $context['replace'] ) ? $value : array_replace( $current, $value );
 }
 
-/**
- * Releases a lock acquired for a direct Settings API update.
- *
- * @return void
- */
+/** Releases a lock acquired for a direct Settings API update. */
 function erankly_release_direct_settings_lock(): void {
 	$context = $GLOBALS['erankly_settings_write_context'] ?? null;
 

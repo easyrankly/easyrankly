@@ -1,19 +1,10 @@
 <?php
-/**
- * Block and Site Editor assets.
- *
- * @package EasyRankly
- */
+/** Block and Site Editor assets. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Enqueues the core accordion FAQ schema block extension.
- *
- * @return void
- */
 function erankly_enqueue_accordion_faq_schema_assets(): void {
 	wp_enqueue_script(
 		'erankly-accordion-faq-schema',
@@ -32,11 +23,6 @@ function erankly_enqueue_accordion_faq_schema_assets(): void {
 	wp_set_script_translations( 'erankly-accordion-faq-schema', 'easyrankly', ERANKLY_PATH . 'languages' );
 }
 
-/**
- * Enqueues the native document setting panels for the block editor.
- *
- * @return void
- */
 function erankly_admin_enqueue_block_editor_assets(): void {
 	$post = get_post();
 
@@ -95,10 +81,10 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 	);
 
 	/**
-	 * Fires after EasyRankly has enqueued its admin assets for this screen.
-	 *
-	 * @param array<string,mixed> $context Screen flags for add-ons.
-	 */
+ * Fires after EasyRankly has enqueued its admin assets for this screen.
+ *
+ * @param array<string,mixed> $context Screen flags for add-ons.
+ */
 	do_action(
 		'erankly_admin_enqueue_assets',
 		array(
@@ -116,12 +102,8 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 }
 
 /**
- * Enqueues the editor stylesheet and the shared editor component bundle.
- *
- * Shared by the post editor and the Site Editor so both load the same
- * presentational controls and field builders.
- *
- * @return void
+ * Enqueues the editor stylesheet and the shared editor component bundle. Shared by the post editor and the Site
+ * Editor so both load the same presentational controls and field builders.
  */
 function erankly_enqueue_editor_shared_assets(): void {
 	erankly_enqueue_shared_styles();
@@ -170,15 +152,10 @@ function erankly_enqueue_editor_shared_assets(): void {
 }
 
 /**
- * Enqueues the Site Editor special-page panels.
- *
- * Adds EasyRankly SEO default panels to the template inspector when a block
- * theme template maps to a WordPress special-page context. Values bind to the
- * native root/site Core Data entity, so the Site Editor saves them together
- * with template changes. Requires WordPress 6.6+ for the unified editor
- * slotfills.
- *
- * @return void
+ * Enqueues the Site Editor special-page panels. Adds EasyRankly SEO default panels to the template inspector
+ * when a block theme template maps to a WordPress special-page context. Values bind to the native root/site Core
+ * Data entity, so the Site Editor saves them together with template changes. Requires WordPress 6.6+ for the
+ * unified editor slotfills.
  */
 function erankly_admin_enqueue_site_editor_assets(): void {
 	if ( ! erankly_site_editor_special_page_panels_supported() ) {

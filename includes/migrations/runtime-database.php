@@ -1,20 +1,11 @@
 <?php
-/**
- * Database helpers shared by migration UI and background workers.
- *
- * @package EasyRankly
- */
+/** Database helpers shared by migration UI and background workers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Returns whether a custom database table exists.
- *
- * @param string $table Fully-qualified table name (including prefix).
- * @return bool
- */
+/** @param string $table Fully-qualified table name (including prefix). */
 function erankly_table_exists( string $table ): bool {
 	global $wpdb;
 

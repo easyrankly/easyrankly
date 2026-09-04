@@ -1,15 +1,10 @@
 <?php
-/**
- * Frontend head rendering and attachment redirects.
- *
- * @package EasyRankly
- */
+/** Frontend head rendering and attachment redirects. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Renders the minimal SEO head. */
 function erankly_render_head(): void {
 	static $rendered = false;
 

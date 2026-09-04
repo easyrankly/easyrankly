@@ -1,9 +1,5 @@
 <?php
-/**
- * EasyRankly public multilingual provider API v1.
- *
- * @package EasyRankly
- */
+/** EasyRankly public multilingual provider API v1. */
 
 // phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound, Universal.Files.SeparateFunctionsFromOO.Mixed -- The v1 public contract is loaded atomically before third-party plugins can register.
 
@@ -11,9 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Public provider contract frozen for extension API major 1.
- */
+/** Public provider contract frozen for extension API major 1. */
 interface ERankly_Multilingual_Provider_Interface {
 	/** Returns the stable provider identifier. */
 	public function get_id(): string;
@@ -23,71 +17,40 @@ interface ERankly_Multilingual_Provider_Interface {
 	public function get_api_version(): int;
 	/** Returns the provider selection priority. */
 	public function get_priority(): int;
-	/** Returns the supported site topology. */
+
 	public function get_topology(): string;
 	/** Performs a read-only readiness check. */
 	public function preflight(): bool|WP_Error;
-	/** Returns whether provider features are enabled. */
+
 	public function is_enabled(): bool;
-	/** Registers the selected provider hooks once. */
+
 	public function register_hooks(): void;
-	/** Returns the current multilingual request context. */
+
 	public function get_context(): array;
-	/**
-	 * Returns alternate URLs for the supplied context.
-	 *
-	 * @param array<string,mixed> $context   Request context.
-	 * @param bool                $navigable Whether only navigable alternates are requested.
-	 */
+	/** @param bool                $navigable Whether only navigable alternates are requested. */
 	public function get_alternates( array $context, bool $navigable ): array;
-	/**
-	 * Localizes one URL for the supplied context.
-	 *
-	 * @param string              $url     Source URL.
-	 * @param array<string,mixed> $context Request context.
-	 */
+	/** Localizes one URL for the supplied context. */
 	public function localize_url( string $url, array $context ): string;
 }
 
-/**
- * Deterministic, fail-closed registry for multilingual providers.
- */
+/** Deterministic, fail-closed registry for multilingual providers. */
 final class ERankly_Multilingual_Provider_Registry {
-	/** Request-wide registry singleton.
-	 *
-	 * @var self|null
-	 */
+	/** @var self|null */
 	private static ?self $instance = null;
 
-	/** Registered providers keyed by stable ID.
-	 *
-	 * @var array<string,ERankly_Multilingual_Provider_Interface>
-	 */
+	/** @var array<string,ERankly_Multilingual_Provider_Interface> */
 	private array $providers = array();
 
-	/** Selected provider, if the handshake succeeded.
-	 *
-	 * @var ERankly_Multilingual_Provider_Interface|null
-	 */
+	/** @var ERankly_Multilingual_Provider_Interface|null */
 	private ?ERankly_Multilingual_Provider_Interface $selected = null;
-	/** Whether registration is closed.
-	 *
-	 * @var bool
-	 */
+
 	private bool $closed = false;
-	/** Whether the selected provider completed boot.
-	 *
-	 * @var bool
-	 */
+
 	private bool $booted = false;
 
-	/** Request diagnostics.
-	 *
-	 * @var array<int,array{code:string,message:string,data:array<string,mixed>}>
-	 */
+	/** @var array<int,array{code:string,message:string,data:array<string,mixed>}> */
 	private array $diagnostics = array();
 
-	/** Returns the request-wide registry. */
 	public static function instance(): self {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -96,12 +59,7 @@ final class ERankly_Multilingual_Provider_Registry {
 		return self::$instance;
 	}
 
-	/**
-	 * Registers one provider while the handshake is open.
-	 *
-	 * @param ERankly_Multilingual_Provider_Interface $provider Provider.
-	 * @return bool|WP_Error
-	 */
+	/** @return bool|WP_Error */
 	public function register( ERankly_Multilingual_Provider_Interface $provider ): bool|WP_Error {
 		if ( $this->closed ) {
 			return $this->reject(
@@ -154,10 +112,10 @@ final class ERankly_Multilingual_Provider_Registry {
 	}
 
 	/**
-	 * Closes registration, resolves conflicts and boots one provider at most.
-	 *
-	 * @return ERankly_Multilingual_Provider_Interface|null
-	 */
+ * Closes registration, resolves conflicts and boots one provider at most.
+ *
+ * @return ERankly_Multilingual_Provider_Interface|null
+ */
 	public function close_and_boot(): ?ERankly_Multilingual_Provider_Interface {
 		if ( $this->closed ) {
 			return $this->selected;
@@ -244,39 +202,25 @@ final class ERankly_Multilingual_Provider_Registry {
 		return $this->closed;
 	}
 
-	/** Returns all registered providers.
-	 *
-	 * @return array<string,ERankly_Multilingual_Provider_Interface>
-	 */
+	/** @return array<string,ERankly_Multilingual_Provider_Interface> */
 	public function providers(): array {
 		return $this->providers;
 	}
 
-	/** Returns request diagnostics.
-	 *
-	 * @return array<int,array{code:string,message:string,data:array<string,mixed>}>
-	 */
+	/** @return array<int,array{code:string,message:string,data:array<string,mixed>}> */
 	public function diagnostics(): array {
 		return $this->diagnostics;
 	}
 
-	/**
-	 * Records a diagnostic without exposing exception details or content.
-	 *
-	 * @param string              $code    Stable diagnostic code.
-	 * @param string              $message Localized diagnostic message.
-	 * @param array<string,mixed> $data    Non-sensitive diagnostic metadata.
-	 */
 	public function add_diagnostic( string $code, string $message, array $data = array() ): void {
 		$this->diagnostic( $code, $message, $data );
 	}
 
 	/**
-	 * Runs and normalizes read-only provider preflight.
-	 *
-	 * @param ERankly_Multilingual_Provider_Interface $provider Provider.
-	 * @return true|WP_Error
-	 */
+ * Runs and normalizes read-only provider preflight.
+ *
+ * @return true|WP_Error
+ */
 	private function run_preflight( ERankly_Multilingual_Provider_Interface $provider ): bool|WP_Error {
 		try {
 			$result = $provider->preflight();
@@ -316,12 +260,10 @@ final class ERankly_Multilingual_Provider_Registry {
 	}
 
 	/**
-	 * Rejects a provider and records the public rejection action.
-	 *
-	 * @param ERankly_Multilingual_Provider_Interface $provider Provider.
-	 * @param WP_Error                                $error    Rejection.
-	 * @return WP_Error
-	 */
+ * Rejects a provider and records the public rejection action.
+ *
+ * @return WP_Error
+ */
 	private function reject( ERankly_Multilingual_Provider_Interface $provider, WP_Error $error ): WP_Error {
 		$this->diagnostic(
 			$error->get_error_code(),
@@ -333,13 +275,6 @@ final class ERankly_Multilingual_Provider_Registry {
 		return $error;
 	}
 
-	/**
-	 * Adds one de-duplicated request diagnostic.
-	 *
-	 * @param string              $code    Stable diagnostic code.
-	 * @param string              $message Localized diagnostic message.
-	 * @param array<string,mixed> $data    Non-sensitive diagnostic metadata.
-	 */
 	private function diagnostic( string $code, string $message, array $data = array() ): void {
 		$signature = $code . ':' . (string) ( $data['provider_id'] ?? '' );
 		foreach ( $this->diagnostics as $diagnostic ) {
@@ -356,22 +291,15 @@ final class ERankly_Multilingual_Provider_Registry {
 	}
 }
 
-/** Returns the extension API major exposed by this core. */
 function erankly_get_extension_api_version(): int {
 	return ERANKLY_EXTENSION_API_VERSION;
 }
 
-/**
- * Registers a public multilingual provider.
- *
- * @param ERankly_Multilingual_Provider_Interface $provider Provider.
- * @return bool|WP_Error
- */
+/** @return bool|WP_Error */
 function erankly_register_multilingual_provider( ERankly_Multilingual_Provider_Interface $provider ): bool|WP_Error {
 	return ERankly_Multilingual_Provider_Registry::instance()->register( $provider );
 }
 
-/** Returns the selected and booted multilingual provider. */
 function erankly_get_multilingual_provider(): ?ERankly_Multilingual_Provider_Interface {
 	return ERankly_Multilingual_Provider_Registry::instance()->selected();
 }
@@ -381,19 +309,12 @@ function erankly_close_multilingual_provider_registry(): ?ERankly_Multilingual_P
 	return ERankly_Multilingual_Provider_Registry::instance()->close_and_boot();
 }
 
-/** Returns request diagnostics.
- *
- * @return array<int,array{code:string,message:string,data:array<string,mixed>}>
- */
+/** @return array<int,array{code:string,message:string,data:array<string,mixed>}> */
 function erankly_get_multilingual_diagnostics(): array {
 	return ERankly_Multilingual_Provider_Registry::instance()->diagnostics();
 }
 
-/**
- * Returns the selected provider context once per request.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_get_multilingual_context(): array {
 	static $resolved = false;
 	static $context  = array();
@@ -509,7 +430,6 @@ function erankly_get_hreflang_output_owner(): string {
 	return $owner;
 }
 
-/** Renders provider diagnostics in the appropriate administration scope. */
 function erankly_render_multilingual_provider_notices(): void {
 	if ( ! current_user_can( is_network_admin() ? 'manage_network_options' : 'manage_options' ) ) {
 		return;
@@ -523,12 +443,7 @@ function erankly_render_multilingual_provider_notices(): void {
 	}
 }
 
-/**
- * Adds provider state to WordPress Site Health debug information.
- *
- * @param array<string,mixed> $info Debug sections.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_add_multilingual_debug_information( array $info ): array {
 	$provider = erankly_get_multilingual_provider();
 	$codes    = array_values( array_unique( array_column( erankly_get_multilingual_diagnostics(), 'code' ) ) );

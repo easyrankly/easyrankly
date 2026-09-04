@@ -1,19 +1,10 @@
 <?php
-/**
- * Settings page.
- *
- * @package EasyRankly
- */
+/** Settings page. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Registers settings.
- *
- * @return void
- */
 function erankly_register_settings(): void {
 	erankly_load_default_helpers();
 
@@ -31,7 +22,6 @@ function erankly_register_settings(): void {
 /**
  * Sanitizes settings.
  *
- * @param mixed $input Raw input.
  * @return array<string,mixed>
  */
 function erankly_sanitize_settings( mixed $input ): array {
@@ -155,14 +145,9 @@ function erankly_sanitize_settings( mixed $input ): array {
 	$stored = is_array( $stored ) ? $stored : array();
 
 	/**
-	 * Filters already-stored extension keys that core must preserve unchanged.
-	 *
-	 * Only keys absent from the current core defaults are eligible. New request
-	 * input can never create an unknown key through this path.
-	 *
-	 * @param array<string,mixed> $extension_settings Existing extension settings.
-	 * @param array<string,mixed> $input              Current submitted settings.
-	 */
+ * Filters already-stored extension keys that core must preserve unchanged. Only keys absent from the current
+ * core defaults are eligible. New request input can never create an unknown key through this path.
+ */
 	$extension_settings = apply_filters(
 		'erankly_preserved_extension_settings',
 		array_diff_key( $stored, $defaults ),
@@ -173,12 +158,7 @@ function erankly_sanitize_settings( mixed $input ): array {
 	return array_replace( $extension_settings, $settings );
 }
 
-/**
- * Sanitizes max-snippet and max-video-preview values.
- *
- * @param mixed $value Raw value.
- * @return string
- */
+/** Sanitizes max-snippet and max-video-preview values. */
 function erankly_sanitize_robots_preview_value( mixed $value ): string {
 	$value = trim( (string) $value );
 
@@ -191,12 +171,10 @@ function erankly_sanitize_robots_preview_value( mixed $value ): string {
 	return $number < -1 ? '' : (string) $number;
 }
 
-
 /**
- * Settings keys owned by the General panel. Used to scope the autosave REST
- * route (registered in easyrankly.php) so it can only ever touch these
- * fields, never the ones that live on other panels (Features, Social,
- * Schema, Sitemap, Advanced).
+ * Settings keys owned by the General panel. Used to scope the autosave REST route (registered in easyrankly.php)
+ * so it can only ever touch these fields, never the ones that live on other panels (Features, Social, Schema,
+ * Sitemap, Advanced).
  *
  * @return array<int,string>
  */
@@ -228,13 +206,10 @@ function erankly_general_panel_setting_keys(): array {
 }
 
 /**
- * Registry of settings panels that autosave via REST (see
- * erankly_rest_save_settings_panel() in easyrankly.php). Each entry lists the
- * top-level erankly_settings[...] keys that panel owns, and an optional
- * 'normalize' callback, a callable( array $merged, array $changes ): array,
- * run on the merged array before sanitizing, for panels whose sanitizer
- * branches on isset() in a way that only makes sense for a full-page
- * submission.
+ * Registry of settings panels that autosave via REST (see erankly_rest_save_settings_panel() in easyrankly.php).
+ * Each entry lists the top-level erankly_settings[...] keys that panel owns, and an optional 'normalize'
+ * callback, a callable( array $merged, array $changes ): array, run on the merged array before sanitizing, for
+ * panels whose sanitizer branches on isset() in a way that only makes sense for a full-page submission.
  *
  * @return array<string,array{keys:array<int,string>,normalize?:callable}>
  */
@@ -315,21 +290,12 @@ function erankly_settings_autosave_panels(): array {
 		),
 	);
 
-	/**
-	 * Filters the settings-panel autosave registry.
-	 *
-	 * @param array<string,array{keys:array<int,string>,normalize?:callable}> $panels Panel registry.
-	 */
 	$panels = apply_filters( 'erankly_settings_autosave_panels', $panels );
 
 	return is_array( $panels ) ? $panels : array();
 }
 
-/**
- * Saves settings submitted from the Network Admin settings page.
- *
- * @return void
- */
+/** Saves settings submitted from the Network Admin settings page. */
 function erankly_save_network_settings(): void {
 	check_admin_referer( 'erankly_network_settings' );
 
@@ -366,12 +332,9 @@ function erankly_save_network_settings(): void {
 }
 
 /**
- * Saves special-page metadata submitted from a subsite's "General" tab on Multisite.
- *
- * Special pages are stored per site (ERANKLY_SPECIAL_META_OPTION) rather than in
- * the network-wide settings, so each site keeps its own homepage / archive metadata.
- *
- * @return void
+ * Saves special-page metadata submitted from a subsite's "General" tab on Multisite. Special pages are stored
+ * per site (ERANKLY_SPECIAL_META_OPTION) rather than in the network-wide settings, so each site keeps its own
+ * homepage / archive metadata.
  */
 function erankly_save_site_special_meta(): void {
 	check_admin_referer( 'erankly_site_special_meta' );
@@ -405,16 +368,12 @@ function erankly_save_site_special_meta(): void {
 	exit;
 }
 
-
 /**
- * Normalises tabs registered through the `erankly_settings_tabs` filter.
- *
- * Add-ons register a settings tab by returning an entry keyed by a tab slug:
- * array( 'my-addon' => array( 'label' => 'My Add-on', 'capability' => 'manage_options' ) ).
- * The body of each tab is printed by the matching `erankly_render_settings_tab_{$slug}`
+ * Normalises tabs registered through the `erankly_settings_tabs` filter. Add-ons register a settings tab by
+ * returning an entry keyed by a tab slug: array( 'my-addon' => array( 'label' => 'My Add-on', 'capability' =>
+ * 'manage_options' ) ). The body of each tab is printed by the matching `erankly_render_settings_tab_{$slug}`
  * action. Malformed, wrong-scope and unauthorized entries are dropped.
  *
- * @param mixed               $tabs           Raw filter output.
  * @param array<string,mixed> $screen_context Current settings screen context.
  * @return array<string,array{label:string,capability:string,scope:string,position:int}>
  */
@@ -464,10 +423,6 @@ function erankly_normalize_settings_tabs( mixed $tabs, array $screen_context ): 
 }
 
 /**
- * Builds inner-tab routing entries for a linked/defaults tab group.
- *
- * @param string                                 $setting_key Settings array key.
- * @param array<string,WP_Post_Type|WP_Taxonomy> $objects     Public objects.
  * @param bool                                   $disabled    Whether the internal tabs are currently disabled.
  * @return array<int,array{subtab:string,disabled:bool}>
  */
@@ -484,12 +439,7 @@ function erankly_get_global_meta_nav_subtabs( string $setting_key, array $object
 	return $items;
 }
 
-/**
- * Builds inner-tab routing entries for special-page defaults.
- *
- * @param array<string,string> $entities Special-page entity labels.
- * @return array<int,array{subtab:string,disabled:bool}>
- */
+/** @return array<int,array{subtab:string,disabled:bool}> */
 function erankly_get_special_page_nav_subtabs( array $entities ): array {
 	$items = array();
 
@@ -503,12 +453,7 @@ function erankly_get_special_page_nav_subtabs( array $entities ): array {
 	return $items;
 }
 
-/**
- * Builds inner-tab routing entries for social defaults.
- *
- * @param array<string,mixed> $settings Current settings.
- * @return array<int,array{subtab:string,disabled:bool}>
- */
+/** @return array<int,array{subtab:string,disabled:bool}> */
 function erankly_get_social_nav_subtabs( array $settings ): array {
 	$og_title            = isset( $settings['default_og_title'] ) ? (string) $settings['default_og_title'] : '';
 	$og_description      = isset( $settings['default_og_description'] ) ? (string) $settings['default_og_description'] : '';
@@ -529,12 +474,6 @@ function erankly_get_social_nav_subtabs( array $settings ): array {
 	return $items;
 }
 
-/**
- * Returns a real, no-JavaScript URL for a top-level settings tab.
- *
- * @param string $tab Tab slug.
- * @return string
- */
 function erankly_settings_tab_url( string $tab ): string {
 	$base = is_network_admin()
 		? network_admin_url( 'settings.php' )
@@ -549,15 +488,7 @@ function erankly_settings_tab_url( string $tab ): string {
 	);
 }
 
-/**
- * Prints one server-routed settings navigation link.
- *
- * @param string $slug         Tab slug.
- * @param string $label        Visible label.
- * @param string $active_panel Active panel ID.
- * @param bool   $hidden       Whether the link is currently unavailable.
- * @return void
- */
+/** @param bool   $hidden       Whether the link is currently unavailable. */
 function erankly_render_settings_nav_link( string $slug, string $label, string $active_panel, bool $hidden = false ): void {
 	$panel     = 'settings-' . $slug;
 	$is_active = $panel === $active_panel;

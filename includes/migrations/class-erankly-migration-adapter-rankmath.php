@@ -1,9 +1,5 @@
 <?php
-/**
- * Rank Math SEO and Rank Math PRO migration adapter.
- *
- * @package EasyRankly
- */
+/** Rank Math SEO and Rank Math PRO migration adapter. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -11,39 +7,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Rank Math Free/PRO adapter. */
 final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter {
-	/**
-	 * Normalizes keyed values from the rank_math_modules option.
-	 *
-	 * @param mixed $value Source option value.
-	 * @return bool
-	 */
+
 	private static function enabled_module_value( mixed $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'yes', 'true', 'active', 'enabled' ), true );
 	}
 
-	/**
-	 * Returns the adapter slug.
-	 *
-	 * @return string
-	 */
 	public function slug(): string {
 		return 'rankmath';
 	}
 
-	/**
-	 * Returns the source label.
-	 *
-	 * @return string
-	 */
 	public function label(): string {
 		return 'Rank Math';
 	}
 
-	/**
-	 * Returns the detected source version.
-	 *
-	 * @return string
-	 */
+	/** Returns the detected source version. */
 	public function version(): string {
 		return $this->detect_version(
 			'RANK_MATH_VERSION',
@@ -52,12 +29,10 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 	}
 
-	/** Returns Free or PRO from installed code. */
 	public function edition(): string {
 		return defined( 'RANK_MATH_PRO_VERSION' ) || ! empty( $this->installed_plugins( array( 'seo-by-rank-math-pro/rank-math-pro.php' ) ) ) ? 'pro' : 'free';
 	}
 
-	/** Returns enabled Rank Math modules plus the PRO product profile. */
 	public function modules(): array {
 		$stored  = get_option( 'rank_math_modules', array() );
 		$modules = array();
@@ -78,7 +53,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return array_values( array_unique( $modules ) );
 	}
 
-	/** Returns certification state for detected Rank Math modules. */
 	public function module_support(): array {
 		$mapped  = array( 'pro', 'schema', 'rich-snippet', 'redirections', 'advanced-robots', 'image-seo' );
 		$support = array();
@@ -99,12 +73,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Returns the product/module profile proven by Rank Math's export format.
-	 *
-	 * @param string $format Certified export format.
-	 * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
-	 */
+	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
 	protected function export_source_profile( string $format ): array {
 		if ( 'rankmath-metadata-csv' === $format ) {
 			return array(
@@ -177,16 +146,11 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Returns the supported source capabilities.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	public function capabilities(): array {
 		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'advanced robots', 'schema', 'primary terms', 'redirections', 'multi-source and regex redirects' );
 	}
 
-	/** Returns normalized Rank Math global settings. */
 	public function global_settings(): array {
 		if ( $this->uses_export_file() ) {
 			return array();
@@ -401,11 +365,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return $settings;
 	}
 
-	/**
-	 * Determines whether Rank Math data is available.
-	 *
-	 * @return bool
-	 */
 	public function is_available(): bool {
 		if ( $this->uses_export_file() ) {
 			return 'supported' === (string) $this->profile()['storage_status'];
@@ -420,11 +379,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 			|| $this->has_option_map( 'rank-math-options-sitemap' );
 	}
 
-	/**
-	 * Yields normalized content records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function content_records(): iterable {
 		foreach ( array( 'post', 'term', 'user' ) as $object_type ) {
 			$prefixes = 'post' === $object_type ? array( 'rank_math_schema_', 'rank_math_primary_' ) : array( 'rank_math_schema_' );
@@ -445,12 +400,9 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	}
 
 	/**
-	 * Returns one keyset-paginated Rank Math metadata page.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source objects to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source objects to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function content_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -509,11 +461,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		}
 	}
 
-	/**
-	 * Yields normalized redirect records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function redirect_records(): iterable {
 		global $wpdb;
 
@@ -572,14 +520,13 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	}
 
 	/**
-	 * Returns a bounded redirect page, including a cursor within multi-source
-	 * rules so one unusually large Rank Math row cannot monopolize a worker.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum normalized redirect records.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 * @throws RuntimeException When the Rank Math redirect query fails.
-	 */
+ * Returns a bounded redirect page, including a cursor within multi-source rules so one unusually large Rank Math
+ * row cannot monopolize a worker.
+ *
+ * @param int                 $limit  Maximum normalized redirect records.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ * @throws RuntimeException When the Rank Math redirect query fails.
+ */
 	public function redirect_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -689,13 +636,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Maps Rank Math metadata.
-	 *
-	 * @param array<string,mixed> $meta        Source metadata.
-	 * @param string              $object_type post|term|user.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function map_meta( array $meta, string $object_type ): array {
 		$get                                  = fn( string $key ): string => $this->value( $meta, $key );
 		$title                                = erankly_import_convert_variables( $get( 'rank_math_title' ), 'rankmath' );
@@ -814,12 +755,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return $this->with_extension_meta( $mapped );
 	}
 
-	/**
-	 * Normalizes a Rank Math Twitter card value.
-	 *
-	 * @param string $value Source card value.
-	 * @return string
-	 */
 	private function twitter_card( string $value ): string {
 		if ( '' === $value ) {
 			return '';
@@ -828,12 +763,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return false !== strpos( strtolower( $value ), 'large' ) ? 'summary_large_image' : 'summary';
 	}
 
-	/**
-	 * Converts Rank Math variables throughout a schema value.
-	 *
-	 * @param mixed $value Schema value.
-	 * @return mixed
-	 */
 	private function convert_schema_variables( mixed $value ): mixed {
 		if ( is_string( $value ) ) {
 			return erankly_import_convert_variables( $value, 'rankmath' );
@@ -850,11 +779,7 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		return $value;
 	}
 
-	/**
-	 * Returns the exact Rank Math metadata keys to scan.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	private function keys(): array {
 		return array(
 			'rank_math_title',
@@ -876,11 +801,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 	}
 
-	/**
-	 * Determines whether the Rank Math redirect table contains data.
-	 *
-	 * @return bool
-	 */
 	private function redirect_table_has_rows(): bool {
 		global $wpdb;
 

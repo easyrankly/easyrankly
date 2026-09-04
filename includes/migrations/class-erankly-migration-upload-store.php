@@ -1,9 +1,5 @@
 <?php
-/**
- * Private lifecycle for official migration-export uploads.
- *
- * @package EasyRankly
- */
+/** Private lifecycle for official migration-export uploads. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,11 +11,6 @@ final class ERankly_Migration_Upload_Store {
 	private const IMPORT_FILE_PREFIX = 'erankly-import-';
 	private const SOURCES            = array( 'yoast', 'rankmath', 'aioseo', 'seopress' );
 
-	/**
-	 * Returns the enforced upload/read ceiling for one official export type.
-	 *
-	 * @param string $extension csv or json.
-	 */
 	public static function export_max_bytes( string $extension = 'csv' ): int {
 		$maximum   = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
 		$extension = sanitize_key( $extension );
@@ -31,12 +22,10 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Stages one genuine PHP upload and identifies its source signature.
-	 *
-	 * @param array<string,mixed> $file             One normalized $_FILES entry.
-	 * @param string              $requested_source auto or a supported adapter slug.
-	 * @return array<string,mixed>
-	 */
+ * @param array<string,mixed> $file             One normalized $_FILES entry.
+ * @param string              $requested_source auto or a supported adapter slug.
+ * @return array<string,mixed>
+ */
 	public static function store_http_upload( array $file, string $requested_source = 'auto' ): array {
 		$requested_source = sanitize_key( $requested_source );
 		if ( 'auto' !== $requested_source && ! in_array( $requested_source, self::SOURCES, true ) ) {
@@ -76,12 +65,9 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Stores a validated complete EasyRankly JSON import in private storage.
-	 *
-	 * @param array<string,mixed> $file    One normalized $_FILES entry.
-	 * @param int                 $maximum Maximum accepted bytes.
-	 * @return array<string,mixed>
-	 */
+ * @param array<string,mixed> $file    One normalized $_FILES entry.
+ * @return array<string,mixed>
+ */
 	public static function store_import_http_upload( array $file, int $maximum ): array {
 		return self::store_wordpress_upload(
 			$file,
@@ -92,25 +78,21 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Stages a trusted local fixture or integration-owned source file.
-	 *
-	 * This is intentionally separate from the HTTP entry point. Admin requests
-	 * must always use store_http_upload(), which enforces is_uploaded_file().
-	 *
-	 * @param string $path             Trusted local source path.
-	 * @param string $requested_source auto or a supported adapter slug.
-	 * @return array<string,mixed>
-	 */
+ * Stages a trusted local fixture or integration-owned source file. This is intentionally separate from the HTTP
+ * entry point. Admin requests must always use store_http_upload(), which enforces is_uploaded_file().
+ *
+ * @param string $path             Trusted local source path.
+ * @param string $requested_source auto or a supported adapter slug.
+ * @return array<string,mixed>
+ */
 	public static function stage_trusted_file( string $path, string $requested_source = 'auto' ): array {
 		return self::stage( $path, basename( $path ), $requested_source );
 	}
 
 	/**
-	 * Returns the private directory, creating it when requested.
-	 *
-	 * @param bool $create Whether to create the directory.
-	 * @return string Empty when no non-public writable directory is available.
-	 */
+ * @param bool $create Whether to create the directory.
+ * @return string Empty when no non-public writable directory is available.
+ */
 	public static function directory( bool $create = true ): string {
 		$site_id = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
 		$token   = substr( hash( 'sha256', wp_normalize_path( ABSPATH ) . '|' . (string) $site_id ), 0, 20 );
@@ -146,12 +128,6 @@ final class ERankly_Migration_Upload_Store {
 		return $real;
 	}
 
-	/**
-	 * Returns whether a path belongs to this site's managed private directory.
-	 *
-	 * @param string $path Candidate path.
-	 * @return bool
-	 */
 	public static function owns( string $path ): bool {
 		$directory = self::directory( false );
 		$path      = wp_normalize_path( $path );
@@ -165,12 +141,6 @@ final class ERankly_Migration_Upload_Store {
 			&& 1 === preg_match( '/^(?:' . $source_pattern . '|' . $import_pattern . ')$/', $basename );
 	}
 
-	/**
-	 * Deletes one managed file without accepting arbitrary server paths.
-	 *
-	 * @param string $path Managed path.
-	 * @return bool
-	 */
 	public static function delete( string $path ): bool {
 		if ( ! self::owns( $path ) ) {
 			return false;
@@ -198,10 +168,10 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Removes abandoned managed uploads while preserving the active job source.
-	 *
-	 * @return int Number of files removed.
-	 */
+ * Removes abandoned managed uploads while preserving the active job source.
+ *
+ * @return int Number of files removed.
+ */
 	public static function prune_stale(): int {
 		$directory = self::directory( false );
 		if ( '' === $directory ) {
@@ -242,14 +212,12 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Removes every managed upload for the current site during reset/uninstall.
-	 *
-	 * Files outside the managed directory and filenames outside the random
-	 * managed pattern are never touched.
-	 *
-	 * @param bool $remove_directory Whether to remove the empty private directory.
-	 * @return bool Whether every managed file and requested directory was removed.
-	 */
+ * Removes every managed upload for the current site during reset/uninstall. Files outside the managed directory
+ * and filenames outside the random managed pattern are never touched.
+ *
+ * @param bool $remove_directory Whether to remove the empty private directory.
+ * @return bool Whether every managed file and requested directory was removed.
+ */
 	public static function purge_all( bool $remove_directory = false ): bool {
 		$directory = self::directory( false );
 		if ( '' === $directory ) {
@@ -284,13 +252,12 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Copies, detects and validates one trusted source file.
-	 *
-	 * @param string $source_path     Temporary/trusted source path.
-	 * @param string $original_name   Original filename used only for extension validation.
-	 * @param string $requested_source auto or a supported adapter slug.
-	 * @return array<string,mixed>
-	 */
+ * Copies, detects and validates one trusted source file.
+ *
+ * @param string $original_name   Original filename used only for extension validation.
+ * @param string $requested_source auto or a supported adapter slug.
+ * @return array<string,mixed>
+ */
 	private static function stage( string $source_path, string $original_name, string $requested_source ): array {
 		$requested_source = sanitize_key( $requested_source );
 		if ( 'auto' !== $requested_source && ! in_array( $requested_source, self::SOURCES, true ) ) {
@@ -352,18 +319,14 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Moves one genuine PHP upload through the WordPress uploader into private storage.
-	 *
-	 * The upload_dir filter exists only for this synchronous call. The returned path
-	 * is then checked against the private directory and random managed filename so
-	 * another upload filter cannot redirect retained data into a public location.
-	 *
-	 * @param array<string,mixed>  $file        One normalized $_FILES entry.
-	 * @param string               $file_prefix Managed random filename prefix.
-	 * @param array<string,string> $mimes       Allowed extension-to-MIME map.
-	 * @param int                  $maximum     Maximum accepted bytes.
-	 * @return array<string,mixed>
-	 */
+ * Moves one genuine PHP upload through the WordPress uploader into private storage. The upload_dir filter exists
+ * only for this synchronous call. The returned path is then checked against the private directory and random
+ * managed filename so another upload filter cannot redirect retained data into a public location.
+ *
+ * @param array<string,mixed>  $file        One normalized $_FILES entry.
+ * @param string               $file_prefix Managed random filename prefix.
+ * @return array<string,mixed>
+ */
 	private static function store_wordpress_upload( array $file, string $file_prefix, array $mimes, int $maximum ): array {
 		$error = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
 		if ( UPLOAD_ERR_OK !== $error ) {
@@ -477,7 +440,6 @@ final class ERankly_Migration_Upload_Store {
 		);
 	}
 
-	/** Returns a cryptographically random managed filename token. */
 	private static function random_token(): string {
 		try {
 			return bin2hex( random_bytes( 16 ) );
@@ -486,14 +448,7 @@ final class ERankly_Migration_Upload_Store {
 		}
 	}
 
-	/**
-	 * Checks a freshly staged path against the exact private upload contract.
-	 *
-	 * @param string            $path         Candidate file.
-	 * @param string            $directory    Expected private directory.
-	 * @param string            $file_prefix  Expected filename prefix.
-	 * @param array<int,string> $extensions  Allowed extensions.
-	 */
+	/** Checks a freshly staged path against the exact private upload contract. */
 	private static function is_staged_path( string $path, string $directory, string $file_prefix, array $extensions ): bool {
 		$path       = wp_normalize_path( $path );
 		$directory  = untrailingslashit( wp_normalize_path( $directory ) );
@@ -507,26 +462,18 @@ final class ERankly_Migration_Upload_Store {
 			&& ! is_link( $path );
 	}
 
-	/**
-	 * Deletes only a path satisfying the freshly staged private upload contract.
-	 *
-	 * @param string            $path        Candidate file.
-	 * @param string            $directory   Expected private directory.
-	 * @param string            $file_prefix Expected filename prefix.
-	 * @param array<int,string> $extensions Allowed extensions.
-	 */
+	/** Deletes only a path satisfying the freshly staged private upload contract. */
 	private static function delete_staged_path( string $path, string $directory, string $file_prefix, array $extensions ): bool {
 		return self::is_staged_path( $path, $directory, $file_prefix, $extensions )
 			&& unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Exact private directory and managed random filename were verified above.
 	}
 
 	/**
-	 * Identifies a certified source signature and rejects mismatches.
-	 *
-	 * @param string $path             Managed export path.
-	 * @param string $requested_source auto or a supported adapter slug.
-	 * @return array<string,mixed>
-	 */
+ * Identifies a certified source signature and rejects mismatches.
+ *
+ * @param string $requested_source auto or a supported adapter slug.
+ * @return array<string,mixed>
+ */
 	private static function detect_source( string $path, string $requested_source ): array {
 		$matches = array();
 		foreach ( self::SOURCES as $source ) {
@@ -559,12 +506,7 @@ final class ERankly_Migration_Upload_Store {
 		);
 	}
 
-	/**
-	 * Rejects private paths inside the public WordPress/content trees.
-	 *
-	 * @param string $path Candidate directory.
-	 * @return bool
-	 */
+	/** Rejects private paths inside the public WordPress/content trees. */
 	private static function is_public_path( string $path ): bool {
 		$path  = untrailingslashit( wp_normalize_path( $path ) );
 		$roots = array( ABSPATH );
@@ -583,11 +525,10 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
-	 * Returns a stable failure payload.
-	 *
-	 * @param string $error Machine-readable error code.
-	 * @return array{ok:false,error:string}
-	 */
+ * Returns a stable failure payload.
+ *
+ * @return array{ok:false,error:string}
+ */
 	private static function failure( string $error ): array {
 		return array(
 			'ok'    => false,

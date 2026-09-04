@@ -1,20 +1,10 @@
 <?php
-/**
- * Breadcrumbs.
- *
- * @package EasyRankly
- */
+/** Breadcrumbs. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Renders or returns breadcrumbs.
- *
- * @param array<string,mixed> $args Arguments.
- * @return string
- */
 function erankly_breadcrumbs( array $args = array() ): string {
 	if ( ! (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
 		return '';
@@ -61,12 +51,6 @@ function erankly_breadcrumbs( array $args = array() ): string {
 	$html .= '</ol>';
 	$html .= '</nav>';
 
-	/**
-	 * Filters breadcrumbs HTML.
-	 *
-	 * @param string                  $html  Breadcrumbs HTML.
-	 * @param array<int,array<string,string>> $items Breadcrumb items.
-	 */
 	$html = (string) apply_filters( 'erankly_breadcrumbs_html', $html, $items );
 
 	$allowed_html        = wp_kses_allowed_html( 'post' );
@@ -95,24 +79,13 @@ function erankly_breadcrumbs( array $args = array() ): string {
 if ( ! function_exists( 'easyrankly_breadcrumbs' ) ) {
 	// Legacy public function kept for backward compatibility.
 	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	/**
-	 * Legacy alias for the public breadcrumbs template function.
-	 *
-	 * @param array<string,mixed> $args Arguments.
-	 * @return string
-	 */
+	/** Legacy alias for the public breadcrumbs template function. */
 	function easyrankly_breadcrumbs( array $args = array() ): string {
 		return erankly_breadcrumbs( $args );
 	}
 	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 }
 
-/**
- * Returns the breadcrumb label for a post.
- *
- * @param int $post_id Post ID.
- * @return string
- */
 function erankly_get_post_breadcrumb_name( int $post_id ): string {
 	$name = erankly_get_post_meta_string( $post_id, 'breadcrumb_name' );
 
@@ -129,11 +102,7 @@ function erankly_get_post_breadcrumb_name( int $post_id ): string {
 	return (string) apply_filters( 'erankly_post_breadcrumb_name', $name, $post_id );
 }
 
-/**
- * Returns breadcrumb items.
- *
- * @return array<int,array<string,string>>
- */
+/** @return array<int,array<string,string>> */
 function erankly_get_breadcrumb_items(): array {
 	static $resolved = null;
 
@@ -262,21 +231,12 @@ function erankly_get_breadcrumb_items(): array {
 		);
 	}
 
-	/**
-	 * Filters breadcrumb items.
-	 *
-	 * @param array<int,array<string,string>> $items Breadcrumb items.
-	 */
 	$resolved = apply_filters( 'erankly_breadcrumb_items', $items );
 
 	return is_array( $resolved ) ? $resolved : array();
 }
 
-/**
- * Returns BreadcrumbList schema.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_schema_breadcrumb_list(): array {
 	$items = erankly_get_breadcrumb_items();
 

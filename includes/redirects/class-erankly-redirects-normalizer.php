@@ -1,66 +1,56 @@
 <?php
-/**
- * URL and redirect normalization helpers.
- *
- * @package EasyRankly
- */
+/** URL and redirect normalization helpers. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Normalizes redirect source paths and validates targets.
- */
+/** Normalizes redirect source paths and validates targets. */
 final class ERankly_Redirects_Normalizer {
-	/**
-	 * Per-pattern PCRE limits used to contain backtracking-heavy redirects.
-	 *
-	 * @var string
-	 */
+	/** Per-pattern PCRE limits used to contain backtracking-heavy redirects. */
 	private const PCRE_LIMITS = '(*LIMIT_MATCH=100000)(*LIMIT_DEPTH=100000)';
 
 	/**
-	 * Valid redirect status codes.
-	 *
-	 * @var int[]
-	 */
+ * Valid redirect status codes.
+ *
+ * @var int[]
+ */
 	public const VALID_STATUS_CODES = array( 301, 302, 307, 308, 410, 451 );
 
 	/**
-	 * Supported source-matching strategies.
-	 *
-	 * @var string[]
-	 */
+ * Supported source-matching strategies.
+ *
+ * @var string[]
+ */
 	public const VALID_MATCH_TYPES = array( 'exact', 'wildcard', 'regex', 'contains', 'starts_with', 'ends_with' );
 
 	/**
-	 * Supported query-string strategies.
-	 *
-	 * @var string[]
-	 */
+ * Supported query-string strategies.
+ *
+ * @var string[]
+ */
 	public const VALID_QUERY_MODES = array( 'ignore', 'preserve', 'exact' );
 
 	/**
-	 * Supported trailing-slash strategies.
-	 *
-	 * @var string[]
-	 */
+ * Supported trailing-slash strategies.
+ *
+ * @var string[]
+ */
 	public const VALID_TRAILING_SLASH_MODES = array( 'ignore', 'exact' );
 
 	/**
-	 * Status codes that terminate the request with a status header only.
-	 * they carry no Location and therefore need no target URL.
-	 *
-	 * @var int[]
-	 */
+ * Status codes that terminate the request with a status header only. they carry no Location and therefore need
+ * no target URL.
+ *
+ * @var int[]
+ */
 	public const STATUS_ONLY_CODES = array( 410, 451 );
 
 	/**
-	 * Human-readable labels for each supported status code.
-	 *
-	 * @var array<int,string>
-	 */
+ * Human-readable labels for each supported status code.
+ *
+ * @var array<int,string>
+ */
 	public const STATUS_CODE_LABELS = array(
 		301 => '301: Moved Permanently',
 		302 => '302: Found (Temporary)',
@@ -70,34 +60,19 @@ final class ERankly_Redirects_Normalizer {
 		451 => '451: Unavailable For Legal Reasons',
 	);
 
-	/**
-	 * Return the human-readable label for a status code.
-	 *
-	 * @param int $code HTTP status code.
-	 * @return string
-	 */
 	public static function status_code_label( int $code ): string {
 		return self::STATUS_CODE_LABELS[ $code ] ?? (string) $code;
 	}
 
-	/**
-	 * Normalize an exact source path.
-	 *
-	 * @param string $path Raw path or URL.
-	 * @return string
-	 */
+	/** @param string $path Raw path or URL. */
 	public static function normalize_path( string $path ): string {
 		return self::normalize_match_path( $path, false, 'ignore' );
 	}
 
 	/**
-	 * Normalizes a path according to rule-specific matching semantics.
-	 *
-	 * @param string $path             Raw path or URL.
-	 * @param bool   $case_sensitive   Preserve case when true.
-	 * @param string $trailing_slash   `ignore` or `exact`.
-	 * @return string
-	 */
+ * @param string $path             Raw path or URL.
+ * @param bool   $case_sensitive   Preserve case when true.
+ */
 	public static function normalize_match_path( string $path, bool $case_sensitive = false, string $trailing_slash = 'ignore' ): string {
 		$path = trim( $path );
 		$path = self::extract_path( $path );
@@ -113,28 +88,18 @@ final class ERankly_Redirects_Normalizer {
 	}
 
 	/**
-	 * Normalizes a request path for capture replacement without lowercasing.
-	 *
-	 * Case-insensitive rules still match via pattern flags, but backreferences
-	 * should preserve the original request casing.
-	 *
-	 * @param string $path             Raw path or URL.
-	 * @param bool   $case_sensitive   Unused; kept for call-site symmetry.
-	 * @param string $trailing_slash   `ignore` or `exact`.
-	 * @return string
-	 */
+ * Normalizes a request path for capture replacement without lowercasing. Case-insensitive rules still match via
+ * pattern flags, but backreferences should preserve the original request casing.
+ *
+ * @param string $path             Raw path or URL.
+ * @param bool   $case_sensitive   Unused; kept for call-site symmetry.
+ */
 	public static function normalize_match_path_for_capture( string $path, bool $case_sensitive = false, string $trailing_slash = 'ignore' ): string {
 		unset( $case_sensitive );
 
 		return self::normalize_match_path( $path, true, $trailing_slash );
 	}
 
-	/**
-	 * Returns the request query string without the leading question mark.
-	 *
-	 * @param string $uri Request URI.
-	 * @return string
-	 */
 	public static function extract_query( string $uri ): string {
 		$query = wp_parse_url( $uri, PHP_URL_QUERY );
 
@@ -142,20 +107,16 @@ final class ERankly_Redirects_Normalizer {
 	}
 
 	/**
-	 * Normalize source data before persistence.
-	 *
-	 * Regex patterns are trimmed and made path-like, but the expression body is
-	 * otherwise preserved so character classes and modifiers remain meaningful.
-	 * Wildcard patterns are lowercased and stripped of the query string while
-	 * the literal '*' markers are kept intact.
-	 *
-	 * @param string $source_path Raw source path, regex, or wildcard.
-	 * @param bool   $is_regex    Whether this source is a manual regex.
-	 * @param bool   $is_wildcard Whether this source uses wildcard (*) syntax.
-	 * @param bool   $case_sensitive Whether matching preserves letter case.
-	 * @param string $trailing_slash How literal paths treat a trailing slash.
-	 * @return string
-	 */
+ * Normalize source data before persistence. Regex patterns are trimmed and made path-like, but the expression
+ * body is otherwise preserved so character classes and modifiers remain meaningful. Wildcard patterns are
+ * lowercased and stripped of the query string while the literal '*' markers are kept intact.
+ *
+ * @param string $source_path Raw source path, regex, or wildcard.
+ * @param bool   $is_regex    Whether this source is a manual regex.
+ * @param bool   $is_wildcard Whether this source uses wildcard (*) syntax.
+ * @param bool   $case_sensitive Whether matching preserves letter case.
+ * @param string $trailing_slash How literal paths treat a trailing slash.
+ */
 	public static function normalize_source( string $source_path, bool $is_regex, bool $is_wildcard = false, bool $case_sensitive = false, string $trailing_slash = 'ignore' ): string {
 		if ( $is_regex ) {
 			// Do NOT call wp_unslash() here. The caller has already unslashed the raw POST
@@ -186,16 +147,13 @@ final class ERankly_Redirects_Normalizer {
 	}
 
 	/**
-	 * Build a preg pattern from a wildcard source path.
-	 *
-	 * Each '*' becomes a '(.*)' capture group so a trailing '*' also matches
-	 * the exact prefix (e.g. `/foo*` matches `/foo`). The resulting pattern
-	 * anchors to the full path and is case-insensitive by default.
-	 *
-	 * @param string $source         Normalized wildcard source (may contain '*').
-	 * @param bool   $case_sensitive Whether matching preserves letter case.
-	 * @return string
-	 */
+ * Build a preg pattern from a wildcard source path. Each '*' becomes a '(.*)' capture group so a trailing '*'
+ * also matches the exact prefix (e.g. `/foo*` matches `/foo`). The resulting pattern anchors to the full path
+ * and is case-insensitive by default.
+ *
+ * @param string $source         Normalized wildcard source (may contain '*').
+ * @param bool   $case_sensitive Whether matching preserves letter case.
+ */
 	public static function build_wildcard_pattern( string $source, bool $case_sensitive = false ): string {
 		$parts   = explode( '*', $source );
 		$escaped = array_map( static fn( string $p ): string => preg_quote( $p, '#' ), $parts );
@@ -204,17 +162,13 @@ final class ERankly_Redirects_Normalizer {
 	}
 
 	/**
-	 * Apply wildcard back-references to a target URL.
-	 *
-	 * Each '*' in the target is replaced by the corresponding capture group
-	 * from the wildcard source pattern ($1, $2, …).
-	 *
-	 * @param string $source         Normalized wildcard source.
-	 * @param string $path           Current normalized request path.
-	 * @param string $target_url     Stored target URL (may contain '*').
-	 * @param bool   $case_sensitive Whether matching preserves letter case.
-	 * @return string
-	 */
+ * Apply wildcard back-references to a target URL. Each '*' in the target is replaced by the corresponding
+ * capture group from the wildcard source pattern ($1, $2, …).
+ *
+ * @param string $path           Current normalized request path.
+ * @param string $target_url     Stored target URL (may contain '*').
+ * @param bool   $case_sensitive Whether matching preserves letter case.
+ */
 	public static function apply_wildcard_target( string $source, string $path, string $target_url, bool $case_sensitive = false ): string {
 		$pattern = self::build_wildcard_pattern( $source, $case_sensitive );
 		$i       = 0;
@@ -235,36 +189,18 @@ final class ERankly_Redirects_Normalizer {
 		return is_string( $result ) ? $result : $target_url;
 	}
 
-	/**
-	 * Check whether a wildcard source path is valid.
-	 *
-	 * Must contain at least one '*', start with '/' or '*', and have no whitespace.
-	 *
-	 * @param string $source_path Normalized wildcard source.
-	 * @return bool
-	 */
+	/** Check whether a wildcard source path is valid. Must contain at least one '*', start with '/' or '*', and have no whitespace. */
 	public static function is_valid_wildcard_source( string $source_path ): bool {
 		return str_contains( $source_path, '*' )
 			&& preg_match( '/\s/', $source_path ) === 0
 			&& ( str_starts_with( $source_path, '/' ) || str_starts_with( $source_path, '*' ) );
 	}
 
-	/**
-	 * Create the unique source hash.
-	 *
-	 * @param string $source_path Normalized source.
-	 * @return string
-	 */
 	public static function source_hash( string $source_path ): string {
 		return md5( $source_path );
 	}
 
-	/**
-	 * Creates a stable identity hash including every matching semantic.
-	 *
-	 * @param array<string,mixed> $data Redirect data.
-	 * @return string
-	 */
+	/** Creates a stable identity hash including every matching semantic. */
 	public static function rule_hash( array $data ): string {
 		$identity = array(
 			'match_type'     => (string) ( $data['match_type'] ?? 'exact' ),
@@ -283,13 +219,6 @@ final class ERankly_Redirects_Normalizer {
 		return md5( (string) wp_json_encode( $identity ) );
 	}
 
-	/**
-	 * Adds the original query string to a redirect target when requested.
-	 *
-	 * @param string $target_url Target URL.
-	 * @param string $query      Raw query string.
-	 * @return string
-	 */
 	public static function preserve_query( string $target_url, string $query ): string {
 		if ( '' === $query ) {
 			return $target_url;
@@ -304,12 +233,7 @@ final class ERankly_Redirects_Normalizer {
 		return $target_url . ( str_contains( $target_url, '?' ) ? '&' : '?' ) . $query . $fragment;
 	}
 
-	/**
-	 * Validate and normalize a target URL for storage.
-	 *
-	 * @param string $target_url Raw target URL.
-	 * @return string Empty string when invalid.
-	 */
+	/** @return string Empty string when invalid. */
 	public static function normalize_target_url( string $target_url ): string {
 		$target_url = trim( wp_unslash( $target_url ) );
 
@@ -334,42 +258,19 @@ final class ERankly_Redirects_Normalizer {
 		return $target_url;
 	}
 
-	/**
-	 * Check whether a status code is supported.
-	 *
-	 * @param int $status_code Status code.
-	 * @return bool
-	 */
 	public static function is_valid_status_code( int $status_code ): bool {
 		return in_array( $status_code, self::VALID_STATUS_CODES, true );
 	}
 
-	/**
-	 * Check whether a status code terminates the request without a Location target.
-	 *
-	 * @param int $status_code HTTP status code.
-	 * @return bool
-	 */
 	public static function is_status_only_code( int $status_code ): bool {
 		return in_array( $status_code, self::STATUS_ONLY_CODES, true );
 	}
 
-	/**
-	 * Check whether a non-regex source is a valid internal path.
-	 *
-	 * @param string $source_path Normalized source path.
-	 * @return bool
-	 */
+	/** Check whether a non-regex source is a valid internal path. */
 	public static function is_valid_internal_path( string $source_path ): bool {
 		return preg_match( '#^/[^\s]*$#', $source_path ) === 1 && ! str_starts_with( $source_path, '//' );
 	}
 
-	/**
-	 * Validate an absolute external URL.
-	 *
-	 * @param string $url URL.
-	 * @return bool
-	 */
 	public static function is_safe_absolute_url( string $url ): bool {
 		$parts = wp_parse_url( $url );
 
@@ -388,33 +289,17 @@ final class ERankly_Redirects_Normalizer {
 		return true;
 	}
 
-	/**
-	 * Check if a URL is internal and path-relative.
-	 *
-	 * @param string $url URL.
-	 * @return bool
-	 */
+	/** Check if a URL is internal and path-relative. */
 	public static function is_internal_url( string $url ): bool {
 		return str_starts_with( $url, '/' ) && ! str_starts_with( $url, '//' );
 	}
 
-	/**
-	 * Convert a stored regex body into a preg pattern.
-	 *
-	 * @param string $regex          Stored regex body.
-	 * @param bool   $case_sensitive Whether matching preserves letter case.
-	 * @return string
-	 */
+	/** @param bool   $case_sensitive Whether matching preserves letter case. */
 	public static function build_regex_pattern( string $regex, bool $case_sensitive = false ): string {
 		return '#' . self::PCRE_LIMITS . '(?:' . str_replace( '#', '\#', $regex ) . ')#' . ( $case_sensitive ? '' : 'i' );
 	}
 
-	/**
-	 * Test whether a stored regex is valid.
-	 *
-	 * @param string $regex Stored regex body.
-	 * @return bool
-	 */
+	/** Test whether a stored regex is valid. */
 	public static function is_valid_regex( string $regex ): bool {
 		if ( '' === trim( $regex ) ) {
 			return false;
@@ -448,14 +333,10 @@ final class ERankly_Redirects_Normalizer {
 	}
 
 	/**
-	 * Apply regex backreferences to a target URL.
-	 *
-	 * @param string $regex          Stored regex body.
-	 * @param string $path           Current normalized path.
-	 * @param string $target_url     Stored target URL.
-	 * @param bool   $case_sensitive Whether matching preserves letter case.
-	 * @return string
-	 */
+ * Apply regex backreferences to a target URL.
+ *
+ * @param bool   $case_sensitive Whether matching preserves letter case.
+ */
 	public static function apply_regex_target( string $regex, string $path, string $target_url, bool $case_sensitive = false ): string {
 		$pattern = self::build_regex_pattern( $regex, $case_sensitive );
 		$result  = preg_replace( $pattern, $target_url, $path, 1 );
@@ -463,12 +344,7 @@ final class ERankly_Redirects_Normalizer {
 		return is_string( $result ) ? $result : $target_url;
 	}
 
-	/**
-	 * Return target path when a target points at the current site.
-	 *
-	 * @param string $target_url Target URL.
-	 * @return string|null
-	 */
+	/** @return string|null */
 	public static function target_to_local_path( string $target_url ): ?string {
 		if ( self::is_internal_url( $target_url ) ) {
 			return self::normalize_path( $target_url );
@@ -484,12 +360,7 @@ final class ERankly_Redirects_Normalizer {
 		return self::normalize_path( $target_url );
 	}
 
-	/**
-	 * Extract only path from a path or absolute URL.
-	 *
-	 * @param string $value Path or URL.
-	 * @return string
-	 */
+	/** Extract only path from a path or absolute URL. */
 	private static function extract_path( string $value ): string {
 		$value = self::strip_query_string( $value );
 		$path  = wp_parse_url( $value, PHP_URL_PATH );
@@ -497,12 +368,6 @@ final class ERankly_Redirects_Normalizer {
 		return is_string( $path ) && '' !== $path ? $path : $value;
 	}
 
-	/**
-	 * Remove query string and fragment.
-	 *
-	 * @param string $value URL-ish value.
-	 * @return string
-	 */
 	private static function strip_query_string( string $value ): string {
 		$value = preg_replace( '/[?#].*$/', '', $value );
 

@@ -1,9 +1,5 @@
 <?php
-/**
- * Same-origin HTML, robots, sitemap and redirect migration verifier.
- *
- * @package EasyRankly
- */
+/** Same-origin HTML, robots, sitemap and redirect migration verifier. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,17 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Captures the old-plugin baseline and compares it after controlled cutover. */
 final class ERankly_Migration_Live_Verifier {
 	private const PROFILE_VERSION = 2;
-	/**
-	 * Requests issued by this verifier instance.
-	 *
-	 * @var int
-	 */
+	/** Requests issued by this verifier instance. */
 	private int $request_count = 0;
-	/**
-	 * Monotonic request-budget start timestamp.
-	 *
-	 * @var float
-	 */
+
 	private float $started_at;
 
 	/** Starts a fresh, request-scoped network budget. */
@@ -30,13 +18,7 @@ final class ERankly_Migration_Live_Verifier {
 		$this->started_at = microtime( true );
 	}
 
-	/**
-	 * Captures representative responses while the source plugin is still active.
-	 *
-	 * @param array<string,mixed> $evidence Terminal migration evidence.
-	 * @param string              $source Source adapter slug.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	public function capture_baseline( array $evidence, string $source = '' ): array {
 		$source_owns_output = (bool) apply_filters( 'erankly_migration_source_owns_output', erankly_detect_external_seo_head_owner(), sanitize_key( $source ) );
 		$limit              = max( 1, min( 10, (int) apply_filters( 'erankly_migration_live_sample_limit', 3 ) ) );
@@ -117,12 +99,7 @@ final class ERankly_Migration_Live_Verifier {
 		);
 	}
 
-	/**
-	 * Runs the post-cutover comparison against a persisted report baseline.
-	 *
-	 * @param array<string,mixed> $report Migration report.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	public function verify( array $report ): array {
 		$checkpoint = array();
 		do {
@@ -134,12 +111,9 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Runs a bounded group of post-cutover comparison targets.
-	 *
-	 * @param array<string,mixed> $report     Migration report.
-	 * @param array<string,mixed> $checkpoint Durable task cursor and partial result.
-	 * @return array{done:bool,checkpoint:array<string,mixed>,result:array<string,mixed>}
-	 */
+ * @param array<string,mixed> $checkpoint Durable task cursor and partial result.
+ * @return array{done:bool,checkpoint:array<string,mixed>,result:array<string,mixed>}
+ */
 	public function verify_batch( array $report, array $checkpoint = array() ): array {
 		$baseline = is_array( $report['html_baseline'] ?? null ) ? $report['html_baseline'] : array();
 		if ( ! in_array( (string) ( $baseline['state'] ?? '' ), array( 'captured', 'partial' ), true ) ) {
@@ -263,11 +237,7 @@ final class ERankly_Migration_Live_Verifier {
 		);
 	}
 
-	/**
-	 * Builds a stable empty/partial live-verification payload.
-	 *
-	 * @param string $state Verification state.
-	 */
+	/** Builds a stable empty/partial live-verification payload. */
 	private function empty_verification( string $state ): array {
 		return array(
 			'verified_at'      => gmdate( 'c' ),
@@ -283,12 +253,7 @@ final class ERankly_Migration_Live_Verifier {
 		);
 	}
 
-	/**
-	 * Probes one HTML document and stores semantic hashes, never the raw document.
-	 *
-	 * @param string $url Same-origin page URL.
-	 * @return array<string,mixed> Page probe.
-	 */
+	/** Probes one HTML document and stores semantic hashes, never the raw document. */
 	private function page_probe( string $url ): array {
 		$response = $this->request( $url );
 		if ( is_wp_error( $response ) ) {
@@ -310,12 +275,7 @@ final class ERankly_Migration_Live_Verifier {
 		);
 	}
 
-	/**
-	 * Probes an HTTP response without following its redirect chain.
-	 *
-	 * @param string $url Same-origin URL.
-	 * @return array<string,mixed> Response probe.
-	 */
+	/** Probes an HTTP response without following its redirect chain. */
 	private function response_probe( string $url ): array {
 		$response = $this->request( $url );
 		if ( is_wp_error( $response ) ) {
@@ -333,17 +293,13 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Verifies sampled redirect responses and the health of same-origin targets.
-	 *
-	 * External targets are not requested; their response code and Location header
-	 * are still checked at the source URL. Same-origin targets must resolve directly
-	 * to a successful response so a migrated rule cannot hide a redirect chain or 404.
-	 *
-	 * @param array<string,mixed>                     $evidence         Terminal migration evidence.
-	 * @param int                                     $limit            Maximum redirect rules to sample.
-	 * @param array<string,array<string,mixed>>        $source_responses Previously captured source responses keyed by path.
-	 * @return array<string,mixed> Redirect contract result.
-	 */
+ * Verifies sampled redirect responses and the health of same-origin targets. External targets are not requested;
+ * their response code and Location header are still checked at the source URL. Same-origin targets must resolve
+ * directly to a successful response so a migrated rule cannot hide a redirect chain or 404.
+ *
+ * @param int                                     $limit            Maximum redirect rules to sample.
+ * @param array<string,array<string,mixed>>        $source_responses Previously captured source responses keyed by path.
+ */
 	private function redirect_contract( array $evidence, int $limit, array $source_responses = array() ): array {
 		$audit  = is_array( $evidence['redirect_audit'] ?? null ) ? $evidence['redirect_audit'] : array();
 		$probes = array_slice( is_array( $audit['storage_probes'] ?? null ) ? $audit['storage_probes'] : array(), 0, max( 1, $limit ) );
@@ -423,12 +379,6 @@ final class ERankly_Migration_Live_Verifier {
 		return $result;
 	}
 
-	/**
-	 * Captures normalized robots.txt semantics.
-	 *
-	 * @param string $url Same-origin surface URL.
-	 * @return array<string,mixed> Surface probe.
-	 */
 	private function robots_probe( string $url ): array {
 		$response = $this->request( $url );
 		if ( is_wp_error( $response ) ) {
@@ -479,15 +429,10 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Captures a provider-independent sitemap inventory.
-	 *
-	 * Only hashes and counts are persisted. Child sitemap URLs may change when
-	 * providers change, so the comparison follows indexes to their final URL
-	 * inventory instead of treating the provider's index filenames as content.
-	 *
-	 * @param string $url Root sitemap URL.
-	 * @return array<string,mixed> Sitemap probe.
-	 */
+ * Captures a provider-independent sitemap inventory. Only hashes and counts are persisted. Child sitemap URLs
+ * may change when providers change, so the comparison follows indexes to their final URL inventory instead of
+ * treating the provider's index filenames as content.
+ */
 	private function sitemap_probe( string $url ): array {
 		$visited          = array();
 		$inventory        = array();
@@ -530,19 +475,10 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Recursively follows one same-origin sitemap index.
-	 *
-	 * @param string             $url Root or child sitemap URL.
-	 * @param int                $depth Current recursion depth.
-	 * @param array<string,bool> $visited Visited sitemap URLs.
-	 * @param array<int,string>  $inventory Final content URLs.
-	 * @param array<int,string>  $top_level Root index entries.
-	 * @param array<int,string>  $errors Stable error codes.
-	 * @param int                $root_status_code Root response status.
-	 * @param int                $document_limit Maximum sitemap documents.
-	 * @param int                $url_limit Maximum final URLs.
-	 * @return void
-	 */
+ * Recursively follows one same-origin sitemap index.
+ *
+ * @param string             $url Root or child sitemap URL.
+ */
 	private function crawl_sitemap( string $url, int $depth, array &$visited, array &$inventory, array &$top_level, array &$errors, int &$root_status_code, int $document_limit, int $url_limit ): void {
 		$url = esc_url_raw( $url );
 		if ( '' === $url || ! $this->is_same_origin( $url ) ) {
@@ -617,12 +553,6 @@ final class ERankly_Migration_Live_Verifier {
 		return '' !== $url && $this->is_same_origin( $url ) ? $url : home_url( '/wp-sitemap.xml' );
 	}
 
-	/**
-	 * Extracts title, canonical, robots, social and JSON-LD semantics.
-	 *
-	 * @param string $html HTML document.
-	 * @return array<string,mixed> Normalized head semantics.
-	 */
 	private function parse_head( string $html ): array {
 		$result = array();
 		if ( preg_match( '/<title\b[^>]*>(.*?)<\/title>/is', $html, $match ) ) {
@@ -661,12 +591,6 @@ final class ERankly_Migration_Live_Verifier {
 		return $result;
 	}
 
-	/**
-	 * Builds a value-free field-level page profile.
-	 *
-	 * @param array<string,mixed> $semantics Parsed head semantics.
-	 * @return array<string,mixed> Hashed semantic profile.
-	 */
 	private function page_profile( array $semantics ): array {
 		$field_hashes = array();
 		foreach ( $semantics as $key => $value ) {
@@ -688,13 +612,7 @@ final class ERankly_Migration_Live_Verifier {
 		);
 	}
 
-	/**
-	 * Compares a page without treating provider-specific markup as a regression.
-	 *
-	 * @param array<string,mixed> $before Baseline probe.
-	 * @param array<string,mixed> $after Current probe.
-	 * @return array{status:string,scope:string,reasons:array<int,string>}
-	 */
+	/** @return array{status:string,scope:string,reasons:array<int,string>} */
 	private function compare_page( array $before, array $after ): array {
 		if ( 'ok' !== (string) ( $before['request_state'] ?? '' ) || 'ok' !== (string) ( $after['request_state'] ?? '' ) ) {
 			return $this->comparison( 'request_failed', 'page', array( 'page_request_failed' ) );
@@ -733,13 +651,6 @@ final class ERankly_Migration_Live_Verifier {
 		return $this->comparison( 'expected_difference', 'legacy_field_coverage', array( 'legacy_provider_markup_changed' ) );
 	}
 
-	/**
-	 * Returns blocking field-level differences between two modern profiles.
-	 *
-	 * @param array<string,mixed> $before Baseline profile.
-	 * @param array<string,mixed> $after Current profile.
-	 * @return array<int,string> Stable reason codes.
-	 */
 	private function page_profile_mismatches( array $before, array $after ): array {
 		$reasons       = array();
 		$before_hashes = is_array( $before['field_hashes'] ?? null ) ? $before['field_hashes'] : array();
@@ -777,12 +688,6 @@ final class ERankly_Migration_Live_Verifier {
 		return array_values( array_unique( $reasons ) );
 	}
 
-	/**
-	 * Builds effective index/follow and restrictive robots directives.
-	 *
-	 * @param string $value Robots meta content.
-	 * @return array<string,mixed> Normalized directives.
-	 */
 	private function robots_directive_profile( string $value ): array {
 		$profile = array(
 			'index'        => 'index',
@@ -819,13 +724,6 @@ final class ERankly_Migration_Live_Verifier {
 		return $profile;
 	}
 
-	/**
-	 * Returns robots changes that can alter indexing, following or previews.
-	 *
-	 * @param array<string,mixed> $before Baseline directives.
-	 * @param array<string,mixed> $after Current directives.
-	 * @return array<int,string> Stable reason codes.
-	 */
 	private function robots_profile_mismatches( array $before, array $after ): array {
 		$reasons = array();
 		foreach ( array( 'index', 'follow' ) as $directive ) {
@@ -852,23 +750,15 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Whether a newly added preview directive only expands search previews.
-	 *
-	 * @param string $key Directive name.
-	 * @param string $value Directive value.
-	 * @return bool Whether the change is permissive.
-	 */
+ * Whether a newly added preview directive only expands search previews.
+ *
+ * @return bool Whether the change is permissive.
+ */
 	private function is_permissive_preview_directive( string $key, string $value ): bool {
 		return ( 'max-image-preview' === $key && 'large' === $value )
 			|| ( in_array( $key, array( 'max-snippet', 'max-video-preview' ), true ) && '-1' === $value );
 	}
 
-	/**
-	 * Returns schema types whose loss would change the page's content meaning.
-	 *
-	 * @param array<mixed> $graphs Parsed JSON-LD graphs.
-	 * @return array<int,string> Critical schema types.
-	 */
 	private function schema_content_types( array $graphs ): array {
 		$found    = array();
 		$critical = array(
@@ -920,11 +810,10 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Whether a field must survive a provider transition.
-	 *
-	 * @param string $field Parsed head field.
-	 * @return bool Whether the field is migration-critical.
-	 */
+ * Whether a field must survive a provider transition.
+ *
+ * @return bool Whether the field is migration-critical.
+ */
 	private function is_critical_page_field( string $field ): bool {
 		return in_array(
 			strtolower( $field ),
@@ -952,23 +841,15 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Whether a field is editorial decoration emitted only by some providers.
-	 *
-	 * @param string $field Parsed head field.
-	 * @return bool Whether the field is provider-only.
-	 */
+ * Whether a field is editorial decoration emitted only by some providers.
+ *
+ * @return bool Whether the field is provider-only.
+ */
 	private function is_provider_only_field( string $field ): bool {
 		return 1 === preg_match( '/^twitter:(?:label|data)\d+$/', strtolower( $field ) );
 	}
 
-	/**
-	 * Compares robots.txt or sitemap while allowing a known provider endpoint change.
-	 *
-	 * @param string              $name robots|sitemap.
-	 * @param array<string,mixed> $before Baseline probe.
-	 * @param array<string,mixed> $after Current probe.
-	 * @return array{status:string,scope:string,reasons:array<int,string>}
-	 */
+	/** @return array{status:string,scope:string,reasons:array<int,string>} */
 	private function compare_surface( string $name, array $before, array $after ): array {
 		if ( 'ok' !== (string) ( $before['request_state'] ?? '' ) || 'ok' !== (string) ( $after['request_state'] ?? '' ) ) {
 			return $this->comparison( 'request_failed', sanitize_key( $name ), array( sanitize_key( $name ) . '_request_failed' ) );
@@ -980,13 +861,7 @@ final class ERankly_Migration_Live_Verifier {
 		return $this->compare_sitemap_surface( $before, $after );
 	}
 
-	/**
-	 * Compares robots rules separately from provider-specific sitemap URLs.
-	 *
-	 * @param array<string,mixed> $before Baseline robots probe.
-	 * @param array<string,mixed> $after Current robots probe.
-	 * @return array{status:string,scope:string,reasons:array<int,string>}
-	 */
+	/** @return array{status:string,scope:string,reasons:array<int,string>} */
 	private function compare_robots_surface( array $before, array $after ): array {
 		if ( ! empty( $before['rules_hash'] ) ) {
 			if ( ! hash_equals( (string) $before['rules_hash'], (string) ( $after['rules_hash'] ?? '' ) ) ) {
@@ -1017,12 +892,10 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Compares final sitemap content inventory instead of index filenames.
-	 *
-	 * @param array<string,mixed> $before Baseline sitemap probe.
-	 * @param array<string,mixed> $after Current sitemap probe.
-	 * @return array{status:string,scope:string,reasons:array<int,string>}
-	 */
+ * Compares final sitemap content inventory instead of index filenames.
+ *
+ * @return array{status:string,scope:string,reasons:array<int,string>}
+ */
 	private function compare_sitemap_surface( array $before, array $after ): array {
 		$before_inventory = (string) ( $before['inventory_hash'] ?? '' );
 		$after_inventory  = (string) ( $after['inventory_hash'] ?? '' );
@@ -1047,13 +920,10 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Builds one sanitized comparison result.
-	 *
-	 * @param string            $status Comparison status.
-	 * @param string            $scope Evidence scope.
-	 * @param array<int,string> $reasons Stable reason codes.
-	 * @return array{status:string,scope:string,reasons:array<int,string>}
-	 */
+ * Builds one sanitized comparison result.
+ *
+ * @return array{status:string,scope:string,reasons:array<int,string>}
+ */
 	private function comparison( string $status, string $scope, array $reasons = array() ): array {
 		return array(
 			'status'  => sanitize_key( $status ),
@@ -1062,12 +932,7 @@ final class ERankly_Migration_Live_Verifier {
 		);
 	}
 
-	/**
-	 * Same-origin GET with an explicit zero redirect budget.
-	 *
-	 * @param string $url URL to request.
-	 * @return array<string,mixed>|WP_Error HTTP response.
-	 */
+	/** Same-origin GET with an explicit zero redirect budget. */
 	private function request( string $url ): array|WP_Error {
 		if ( '' === $url || ! $this->is_same_origin( $url ) ) {
 			return new WP_Error( 'migration_probe_rejected', 'The migration probe URL is not same-origin.' );
@@ -1114,14 +979,6 @@ final class ERankly_Migration_Live_Verifier {
 		return $response;
 	}
 
-	/**
-	 * Compares two request probes by a semantic key.
-	 *
-	 * @param array<string,mixed> $before Baseline probe.
-	 * @param array<string,mixed> $after Post-cutover probe.
-	 * @param string              $key Semantic hash key.
-	 * @return string match|mismatch|request_failed.
-	 */
 	private function compare_probe( array $before, array $after, string $key ): string {
 		if ( 'ok' !== (string) ( $before['request_state'] ?? '' ) || 'ok' !== (string) ( $after['request_state'] ?? '' ) ) {
 			return 'request_failed';
@@ -1130,15 +987,7 @@ final class ERankly_Migration_Live_Verifier {
 		return hash_equals( (string) ( $before[ $key ] ?? '' ), (string) ( $after[ $key ] ?? '' ) ) ? 'match' : 'mismatch';
 	}
 
-	/**
-	 * Tallies one comparison.
-	 *
-	 * @param string $status Comparison status.
-	 * @param int    $matched Match counter.
-	 * @param int    $expected Expected provider-change counter.
-	 * @param int    $mismatch Mismatch counter.
-	 * @param int    $failed Request-failure counter.
-	 */
+	/** Tallies one comparison. */
 	private function tally( string $status, int &$matched, int &$expected, int &$mismatch, int &$failed ): void {
 		if ( 'match' === $status ) {
 			++$matched;
@@ -1152,11 +1001,10 @@ final class ERankly_Migration_Live_Verifier {
 	}
 
 	/**
-	 * Accepts only the exact WordPress home origin.
-	 *
-	 * @param string $url Candidate URL.
-	 * @return bool Whether the URL is same-origin.
-	 */
+ * Accepts only the exact WordPress home origin.
+ *
+ * @return bool Whether the URL is same-origin.
+ */
 	private function is_same_origin( string $url ): bool {
 		$url_parts  = wp_parse_url( $url );
 		$home_parts = wp_parse_url( home_url( '/' ) );
@@ -1168,12 +1016,7 @@ final class ERankly_Migration_Live_Verifier {
 			&& (int) ( $url_parts['port'] ?? 0 ) === (int) ( $home_parts['port'] ?? 0 );
 	}
 
-	/**
-	 * Resolves a source path against home_url without accepting another host.
-	 *
-	 * @param string $path Redirect source path.
-	 * @return string Same-origin URL or empty string.
-	 */
+	/** @return string Same-origin URL or empty string. */
 	private function same_origin_url( string $path ): string {
 		if ( '' === $path ) {
 			return '';
@@ -1183,33 +1026,16 @@ final class ERankly_Migration_Live_Verifier {
 		return $this->is_same_origin( $url ) ? $url : '';
 	}
 
-	/**
-	 * Normalizes URL comparison noise.
-	 *
-	 * @param string $url URL value.
-	 * @return string Normalized URL.
-	 */
 	private function normalize_url( string $url ): string {
 		$url = trim( html_entity_decode( $url, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 		return '' === $url ? '' : untrailingslashit( $url );
 	}
 
-	/**
-	 * Normalizes text extracted from markup.
-	 *
-	 * @param string $text Markup text.
-	 * @return string Normalized text.
-	 */
 	private function text( string $text ): string {
 		return trim( preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( $text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
 	}
 
-	/**
-	 * Returns a stable hash for a scalar or JSON-like value.
-	 *
-	 * @param mixed $value Value to hash.
-	 * @return string SHA-256 hash.
-	 */
+	/** Returns a stable hash for a scalar or JSON-like value. */
 	private function hash_value( mixed $value ): string {
 		if ( is_array( $value ) ) {
 			$value = $this->sort_recursive( $value );
@@ -1219,12 +1045,7 @@ final class ERankly_Migration_Live_Verifier {
 		return hash( 'sha256', false === $encoded ? '' : $encoded );
 	}
 
-	/**
-	 * Recursively sorts associative JSON objects before hashing.
-	 *
-	 * @param array<mixed> $value JSON-like array.
-	 * @return array<mixed> Sorted array.
-	 */
+	/** Recursively sorts associative JSON objects before hashing. */
 	private function sort_recursive( array $value ): array {
 		if ( ! erankly_array_is_list( $value ) ) {
 			ksort( $value );

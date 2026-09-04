@@ -1,53 +1,29 @@
 <?php
-/**
- * Admin page.
- *
- * @package EasyRankly
- */
+/** Admin page. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Tools page for redirect management.
- */
+/** Tools page for redirect management. */
 final class ERankly_Redirects_Admin {
-	/**
-	 * Admin menu slug.
-	 */
+
 	private const SLUG = 'erankly';
 
-	/**
-	 * Redirect repository.
-	 *
-	 * @var ERankly_Redirects_Repository
-	 */
 	private ERankly_Redirects_Repository $repository;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param ERankly_Redirects_Repository $repository Redirect repository.
-	 */
 	public function __construct( ERankly_Redirects_Repository $repository ) {
 		$this->repository = $repository;
 	}
 
 	/**
-	 * Register admin hooks.
-	 *
-	 * The menu entry and asset loading are handled by the EasyRankly settings
-	 * page; this class only processes redirect actions and renders the panel
-	 * content inside the "Redirects" settings tab.
-	 */
+ * Register admin hooks. The menu entry and asset loading are handled by the EasyRankly settings page; this class
+ * only processes redirect actions and renders the panel content inside the "Redirects" settings tab.
+ */
 	public function register_hooks(): void {
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 	}
 
-	/**
-	 * Handle create/update/delete/toggle actions.
-	 */
 	public function handle_actions(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -81,13 +57,11 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Render the redirect management UI inside the EasyRankly settings page.
-	 *
-	 * No <div class="wrap"> or <h1> wrapper is emitted because this content is
-	 * rendered within the existing settings page markup. The panel shows the
-	 * add/edit form and the redirect table; global redirect settings live on the
-	 * main Settings tab and import/export lives on the Import / Export tab.
-	 */
+ * Render the redirect management UI inside the EasyRankly settings page. No <div class="wrap"> or <h1> wrapper
+ * is emitted because this content is rendered within the existing settings page markup. The panel shows the
+ * add/edit form and the redirect table; global redirect settings live on the main Settings tab and import/export
+ * lives on the Import / Export tab.
+ */
 	public function render_panel(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -144,9 +118,6 @@ final class ERankly_Redirects_Admin {
 		<?php
 	}
 
-	/**
-	 * Render admin notices.
-	 */
 	private function render_notices(): void {
 		$notice = isset( $_GET['erankly_redirects_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_redirects_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice display after redirect.
 		$error  = isset( $_GET['erankly_redirects_error'] ) ? sanitize_key( wp_unslash( $_GET['erankly_redirects_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice display after redirect.
@@ -182,15 +153,12 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Read pre-fill parameters for a NEW redirect handed off from a deep link.
-	 *
-	 * The values only seed the Add form for display and review; the actual save
-	 * still runs through handle_save_redirect()/prepare_redirect_data() with its
-	 * own nonce and full normalization/validation. Returns null when no pre-fill
-	 * parameters are present.
-	 *
-	 * @return array<string,mixed>|null
-	 */
+ * Read pre-fill parameters for a NEW redirect handed off from a deep link. The values only seed the Add form for
+ * display and review; the actual save still runs through handle_save_redirect()/prepare_redirect_data() with its
+ * own nonce and full normalization/validation. Returns null when no pre-fill parameters are present.
+ *
+ * @return array<string,mixed>|null
+ */
 	private function read_prefill(): ?array {
 		$source_present = isset( $_GET['erankly_redirects_prefill_source'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only form pre-fill from a deep link; the save is nonce-protected.
 		$target_present = isset( $_GET['erankly_redirects_prefill_target'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only form pre-fill from a deep link; the save is nonce-protected.
@@ -219,12 +187,9 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Render create/edit redirect form.
-	 *
-	 * @param array<string,mixed>|null $redirect Redirect row (Edit mode).
-	 * @param array<string,mixed>|null $prefill  Seed values for a NEW redirect (Add mode).
-	 *                                           Ignored when $redirect is set.
-	 */
+ * @param array<string,mixed>|null $redirect Redirect row (Edit mode).
+ * @param array<string,mixed>|null $prefill  Seed values for a NEW redirect (Add mode).
+ */
 	private function render_redirect_form( ?array $redirect, ?array $prefill = null ): void {
 		// $redirect drives Edit mode; $prefill only seeds the fields of a NEW redirect while the form
 		// stays in Add mode ( $id = 0 ). The save still runs through prepare_redirect_data() validation.
@@ -298,13 +263,9 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Render redirects table.
-	 *
-	 * @param array<int,array<string,mixed>> $redirects Redirect rows.
-	 * @param string                         $orderby   Active sort column.
-	 * @param string                         $order     Active sort direction, `asc` or `desc`.
-	 * @param string                         $search    Current search term, preserved in sort links.
-	 */
+ * @param string                         $order     Active sort direction, `asc` or `desc`.
+ * @param string                         $search    Current search term, preserved in sort links.
+ */
 	private function render_redirect_table( array $redirects, string $orderby, string $order, string $search ): void {
 		?>
 		<table class="widefat fixed striped erankly-panel-table erankly-redirects-table">
@@ -375,14 +336,11 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Render a sortable `<th>` header cell, WP_List_Table style.
-	 *
-	 * @param string $column        Column key. Must match a key in ERankly_Redirects_Repository::SORTABLE_COLUMNS.
-	 * @param string $label         Visible column label.
-	 * @param string $active_column Column currently sorted by.
-	 * @param string $active_order  Current sort direction, `asc` or `desc`.
-	 * @param string $search        Current search term, preserved in the sort link.
-	 */
+ * @param string $column        Column key. Must match a key in ERankly_Redirects_Repository::SORTABLE_COLUMNS.
+ * @param string $active_column Column currently sorted by.
+ * @param string $active_order  Current sort direction, `asc` or `desc`.
+ * @param string $search        Current search term, preserved in the sort link.
+ */
 	private function render_sortable_column_header( string $column, string $label, string $active_column, string $active_order, string $search ): void {
 		$is_active  = $active_column === $column;
 		$next_order = ( $is_active && 'asc' === $active_order ) ? 'desc' : 'asc';
@@ -411,14 +369,9 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Render pagination links.
-	 *
-	 * @param int    $current_page Current page.
-	 * @param int    $total_pages Total pages.
-	 * @param string $search Search term.
-	 * @param string $orderby Active sort column, preserved across pages.
-	 * @param string $order Active sort direction, preserved across pages.
-	 */
+ * @param string $orderby Active sort column, preserved across pages.
+ * @param string $order Active sort direction, preserved across pages.
+ */
 	private function render_pagination( int $current_page, int $total_pages, string $search, string $orderby = '', string $order = 'desc' ): void {
 		if ( $total_pages <= 1 ) {
 			return;
@@ -454,9 +407,6 @@ final class ERankly_Redirects_Admin {
 		}
 	}
 
-	/**
-	 * Save redirect action.
-	 */
 	private function handle_save_redirect(): void {
 		// check_admin_referer() dies on failure, so no error branch is needed.
 		check_admin_referer( 'erankly_redirects_save_redirect' );
@@ -479,9 +429,6 @@ final class ERankly_Redirects_Admin {
 		$this->redirect_after_action( $created_id > 0 ? array( 'erankly_redirects_notice' => 'created' ) : array( 'erankly_redirects_error' => 'save' ) );
 	}
 
-	/**
-	 * Delete redirect action.
-	 */
 	private function handle_delete_redirect(): void {
 		$id = isset( $_GET['redirect_id'] ) ? absint( $_GET['redirect_id'] ) : 0;
 
@@ -495,9 +442,6 @@ final class ERankly_Redirects_Admin {
 		$this->redirect_after_action( $success ? array( 'erankly_redirects_notice' => 'deleted' ) : array( 'erankly_redirects_error' => 'delete' ) );
 	}
 
-	/**
-	 * Toggle redirect active state.
-	 */
 	private function handle_toggle_redirect(): void {
 		$id = isset( $_GET['redirect_id'] ) ? absint( $_GET['redirect_id'] ) : 0;
 
@@ -512,14 +456,11 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
-	 * Validate and normalize redirect input from the Add/Edit form.
-	 *
-	 * Only source, target, status code, note, and active state are accepted.
-	 * Matching is always exact-path.
-	 *
-	 * @param array<string,mixed> $input Raw input.
-	 * @return array{0:array<string,mixed>,1:array<int,string>}
-	 */
+ * Validate and normalize redirect input from the Add/Edit form. Only source, target, status code, note, and
+ * active state are accepted. Matching is always exact-path.
+ *
+ * @return array{0:array<string,mixed>,1:array<int,string>}
+ */
 	private function prepare_redirect_data( array $input ): array {
 		$source_raw     = isset( $input['source_path'] ) ? sanitize_text_field( wp_unslash( $input['source_path'] ) ) : '';
 		$target_raw     = isset( $input['target_url'] ) ? trim( (string) wp_unslash( $input['target_url'] ) ) : '';
@@ -563,30 +504,16 @@ final class ERankly_Redirects_Admin {
 		);
 	}
 
-	/**
-	 * Redirect to admin page with an error code.
-	 *
-	 * @param string $error Error code.
-	 */
 	private function redirect_with_error( string $error ): void {
 		$this->redirect_after_action( array( 'erankly_redirects_error' => $error ) );
 	}
 
-	/**
-	 * Redirect to admin page after an action.
-	 *
-	 * @param array<string,mixed> $args Query args.
-	 */
+	/** Redirect to admin page after an action. */
 	private function redirect_after_action( array $args ): void {
 		wp_safe_redirect( add_query_arg( $args, $this->admin_url() ) );
 		exit;
 	}
 
-	/**
-	 * Get plugin admin URL.
-	 *
-	 * @return string
-	 */
 	private function admin_url(): string {
 		return add_query_arg(
 			array(

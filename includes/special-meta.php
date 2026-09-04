@@ -1,11 +1,7 @@
 <?php
 /**
- * Special-page SEO settings integration.
- *
- * Exposes the per-context defaults through the native WordPress Site Settings
- * entity while preserving the existing storage model.
- *
- * @package EasyRankly
+ * Special-page SEO settings integration. Exposes the per-context defaults through the native WordPress Site
+ * Settings entity while preserving the existing storage model.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,13 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers the special-page map in the native wp/v2/settings endpoint.
- *
- * Core Data exposes settings from this endpoint as the root/site entity. Editing
- * this property therefore participates in the Site Editor's native dirty-state
- * and save flow without attaching SEO data to wp_template records.
- *
- * @return void
+ * Registers the special-page map in the native wp/v2/settings endpoint. Core Data exposes settings from this
+ * endpoint as the root/site entity. Editing this property therefore participates in the Site Editor's native
+ * dirty-state and save flow without attaching SEO data to wp_template records.
  */
 function erankly_register_special_meta_setting(): void {
 	static $registered = false;
@@ -50,11 +42,7 @@ function erankly_register_special_meta_setting(): void {
 	add_filter( 'rest_pre_update_setting', 'erankly_rest_pre_update_special_meta_setting', 10, 4 );
 }
 
-/**
- * Returns the REST schema for the full special-page map.
- *
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_get_special_meta_rest_schema(): array {
 	$properties = array();
 
@@ -90,10 +78,8 @@ function erankly_get_special_meta_rest_schema(): array {
 }
 
 /**
- * Normalizes the stored map for the REST API and Core Data.
- *
- * Every supported context is present so edits can update one nested row without
- * reconstructing missing defaults in JavaScript.
+ * Normalizes the stored map for the REST API and Core Data. Every supported context is present so edits can
+ * update one nested row without reconstructing missing defaults in JavaScript.
  *
  * @return array<string,array<string,mixed>>
  */
@@ -104,8 +90,6 @@ function erankly_get_special_meta_rest_value(): array {
 }
 
 /**
- * Normalizes a special-page map to the complete REST field set.
- *
  * @param array<string,mixed> $map Stored or default map.
  * @return array<string,array<string,mixed>>
  */
@@ -120,14 +104,7 @@ function erankly_normalize_special_meta_map( array $map ): array {
 	return $value;
 }
 
-/**
- * Returns the virtual settings value from the plugin's existing storage.
- *
- * @param mixed               $result Preempted value, or null.
- * @param string              $name   REST setting name.
- * @param array<string,mixed> $args   Registered setting arguments.
- * @return mixed
- */
+/** @param mixed               $result Preempted value, or null. */
 function erankly_rest_pre_get_special_meta_setting( mixed $result, string $name, array $args ): mixed {
 	unset( $args );
 
@@ -138,15 +115,7 @@ function erankly_rest_pre_get_special_meta_setting( mixed $result, string $name,
 	return erankly_get_special_meta_rest_value();
 }
 
-/**
- * Writes the virtual settings property to the plugin's existing storage.
- *
- * @param bool                $updated Whether another callback handled the update.
- * @param string              $name    REST setting name.
- * @param mixed               $value   Submitted setting value.
- * @param array<string,mixed> $args    Registered setting arguments.
- * @return bool
- */
+/** @param bool                $updated Whether another callback handled the update. */
 function erankly_rest_pre_update_special_meta_setting( bool $updated, string $name, mixed $value, array $args ): bool {
 	unset( $args );
 
@@ -162,7 +131,6 @@ function erankly_rest_pre_update_special_meta_setting( bool $updated, string $na
 /**
  * Sanitizes the full special-page map.
  *
- * @param mixed $value Raw map.
  * @return array<string,array<string,string|int>>
  */
 function erankly_sanitize_special_meta_map( mixed $value ): array {
@@ -174,12 +142,7 @@ function erankly_sanitize_special_meta_map( mixed $value ): array {
 	);
 }
 
-/**
- * Normalizes a stored special-page row to the full typed field set.
- *
- * @param array<string,mixed> $row Stored row.
- * @return array<string,mixed>
- */
+/** @return array<string,mixed> */
 function erankly_special_meta_row_defaults( array $row ): array {
 	return array(
 		'title'               => (string) ( $row['title'] ?? '' ),
@@ -198,12 +161,9 @@ function erankly_special_meta_row_defaults( array $row ): array {
 }
 
 /**
- * Writes the full special-page metadata map to its storage.
+ * Writes the full special-page metadata map to its storage. Per site on Multisite (a dedicated site option);
+ * nested in the shared settings array on single site, so both contexts read it back through the same getter.
  *
- * Per site on Multisite (a dedicated site option); nested in the shared settings
- * array on single site, so both contexts read it back through the same getter.
- *
- * @param array<string,mixed> $map Raw special-page map.
  * @return array<string,array<string,string|int>> Sanitized map that was stored.
  */
 function erankly_update_special_meta_map( array $map ): array {

@@ -1,30 +1,17 @@
 <?php
-/**
- * Specialist sitemaps provider.
- *
- * @package EasyRankly
- */
+/** Specialist sitemaps provider. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Injects specialist sitemaps into the core wp-sitemap.xml index.
- */
 final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
-	/**
-	 * Constructor.
-	 */
+
 	public function __construct() {
 		$this->name = 'erankly';
 	}
 
-	/**
-	 * Returns the URLs to include in the index.
-	 *
-	 * @return array<int,array<string,string>>
-	 */
+	/** @return array<int,array<string,string>> */
 	public function get_sitemap_entries(): array {
 		$entries = array();
 
@@ -67,34 +54,21 @@ final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
-	 * Required by WP_Sitemaps_Provider but unused here because we render
-	 * specialist XML formats directly via template_redirect.
-	 *
-	 * @param int    $page_num       Page number.
-	 * @param string $object_subtype Subtype.
-	 * @return array<int,array<string,string>>
-	 */
+ * Required by WP_Sitemaps_Provider but unused here because we render specialist XML formats directly via
+ * template_redirect.
+ *
+ * @return array<int,array<string,string>>
+ */
 	public function get_url_list( $page_num, $object_subtype = '' ): array {
 		return array();
 	}
 
-	/**
-	 * Gets the max number of pages. Unused.
-	 *
-	 * @param string $object_subtype Subtype.
-	 * @return int
-	 */
+	/** Gets the max number of pages. Unused. */
 	public function get_max_num_pages( $object_subtype = '' ): int {
 		return 0;
 	}
 
-	/**
-	 * Gets the URL for a specialist sitemap.
-	 *
-	 * @param string $type Sitemap type (e.g. image, video, news).
-	 * @param int    $page Page number.
-	 * @return string
-	 */
+	/** @param string $type Sitemap type (e.g. image, video, news). */
 	private function get_specialist_sitemap_url( string $type, int $page ): string {
 		global $wp_rewrite;
 

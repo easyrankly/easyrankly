@@ -1,37 +1,19 @@
 <?php
-/**
- * Frontend redirect runner.
- *
- * @package EasyRankly
- */
+/** Frontend redirect runner. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Performs frontend redirect matching.
- */
 final class ERankly_Redirects_Runner {
-	/**
-	 * Redirect repository.
-	 *
-	 * @var ERankly_Redirects_Repository
-	 */
+
 	private ERankly_Redirects_Repository $repository;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param ERankly_Redirects_Repository $repository Redirect repository.
-	 */
 	public function __construct( ERankly_Redirects_Repository $repository ) {
 		$this->repository = $repository;
 	}
 
-	/**
-	 * Register frontend hook.
-	 */
+	/** Register frontend hook. */
 	public function register_hooks(): void {
 		// Core identifies and serves REST requests at priority 10. Running after
 		// that callback makes REST_REQUEST reliable while still preceding query
@@ -39,9 +21,7 @@ final class ERankly_Redirects_Runner {
 		add_action( 'parse_request', array( $this, 'maybe_redirect' ), 11 );
 	}
 
-	/**
-	 * Try to redirect the current frontend request.
-	 */
+	/** Try to redirect the current frontend request. */
 	public function maybe_redirect(): void {
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
 			? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
@@ -159,14 +139,12 @@ final class ERankly_Redirects_Runner {
 	}
 
 	/**
-	 * Determines whether WordPress or another core endpoint owns the request.
-	 *
-	 * Explicit path and query checks complement REST_REQUEST so a changed hook
-	 * priority or custom REST prefix cannot expose core endpoints to broad rules.
-	 *
-	 * @param string $request_uri Current request URI.
-	 * @return bool True when redirect matching must not run.
-	 */
+ * Determines whether WordPress or another core endpoint owns the request. Explicit path and query checks
+ * complement REST_REQUEST so a changed hook priority or custom REST prefix cannot expose core endpoints to broad
+ * rules.
+ *
+ * @return bool True when redirect matching must not run.
+ */
 	private function should_skip_request( string $request_uri ): bool {
 		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 			return true;
@@ -197,11 +175,7 @@ final class ERankly_Redirects_Runner {
 			&& ( $request_path === $rest_path || str_starts_with( $request_path, $rest_path . '/' ) );
 	}
 
-	/**
-	 * Send a status-only response (410/451) with no Location header.
-	 *
-	 * @param int $status_code HTTP status code.
-	 */
+	/** Send a status-only response (410/451) with no Location header. */
 	private function send_status_only_response( int $status_code ): void {
 		nocache_headers();
 
@@ -219,12 +193,6 @@ final class ERankly_Redirects_Runner {
 		wp_die( esc_html( $message ), esc_html( $title ), array( 'response' => absint( $status_code ) ) );
 	}
 
-	/**
-	 * Check whether a redirect should apply to the current visitor.
-	 *
-	 * @param array<string,mixed> $redirect Redirect row.
-	 * @return bool
-	 */
 	private function passes_visibility( array $redirect ): bool {
 		$visibility = isset( $redirect['visibility'] ) ? (string) $redirect['visibility'] : 'all';
 
@@ -255,13 +223,7 @@ final class ERankly_Redirects_Runner {
 		return false;
 	}
 
-	/**
-	 * Evaluates portable request conditions stored with imported redirect rules.
-	 * Unknown condition keys fail closed so a migration never broadens a rule.
-	 *
-	 * @param array<string,mixed> $redirect Redirect row.
-	 * @return bool
-	 */
+	/** Evaluates portable request conditions stored with imported redirect rules. Unknown condition keys fail closed so a migration never broadens a rule. */
 	private function passes_conditions( array $redirect ): bool {
 		if ( empty( $redirect['conditions'] ) ) {
 			return true;
@@ -298,14 +260,9 @@ final class ERankly_Redirects_Runner {
 	}
 
 	/**
-	 * Find an advanced redirect match.
-	 *
-	 * @param string                         $request_uri   Current request URI.
-	 * @param string                         $current_query Current request query string.
-	 * @param array<int,array<string,mixed>> $redirects     Advanced redirect rules.
-	 * @param string                         $now           Request-local current time.
-	 * @return array<string,mixed>|null
-	 */
+ * @param string                         $current_query Current request query string.
+ * @return array<string,mixed>|null
+ */
 	private function find_advanced_match( string $request_uri, string $current_query, array $redirects, string $now ): ?array {
 		// Realistic paths are short; a multi-kilobyte path is only ever a vector for
 		// driving up pattern-matching cost, so refuse to run regexes against it.
@@ -373,13 +330,6 @@ final class ERankly_Redirects_Runner {
 		return $match;
 	}
 
-	/**
-	 * Checks optional rule start/end timestamps in the site timezone.
-	 *
-	 * @param array<string,mixed> $redirect Redirect rule.
-	 * @param string              $now      Request-local current time.
-	 * @return bool
-	 */
 	private function is_rule_in_schedule( array $redirect, string $now ): bool {
 		$start = ! empty( $redirect['start_at'] ) ? (string) $redirect['start_at'] : '';
 		$end   = ! empty( $redirect['end_at'] ) ? (string) $redirect['end_at'] : '';
@@ -387,13 +337,7 @@ final class ERankly_Redirects_Runner {
 		return ( '' === $start || $now >= $start ) && ( '' === $end || $now <= $end );
 	}
 
-	/**
-	 * Prevent redirects that resolve to the same local path or a redirect cycle.
-	 *
-	 * @param string $current_path Current normalized path.
-	 * @param string $target_url Target URL.
-	 * @return bool
-	 */
+	/** Prevent redirects that resolve to the same local path or a redirect cycle. */
 	private function is_loop( string $current_path, string $target_url ): bool {
 		$visited = array( $current_path => true );
 		$next    = $target_url;
@@ -432,11 +376,7 @@ final class ERankly_Redirects_Runner {
 		return true;
 	}
 
-	/**
-	 * Allow wp_safe_redirect() to redirect to a validated external target host.
-	 *
-	 * @param string $target_url Target URL.
-	 */
+	/** Allow wp_safe_redirect() to redirect to a validated external target host. */
 	private function allow_safe_external_host_for_target( string $target_url ): void {
 		if ( ERankly_Redirects_Normalizer::is_internal_url( $target_url ) ) {
 			return;

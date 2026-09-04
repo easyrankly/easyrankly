@@ -1,9 +1,5 @@
 <?php
-/**
- * Yoast SEO and Yoast SEO Premium migration adapter.
- *
- * @package EasyRankly
- */
+/** Yoast SEO and Yoast SEO Premium migration adapter. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -11,29 +7,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Yoast Free/Premium adapter. */
 final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
-	/**
-	 * Returns the source slug.
-	 *
-	 * @return string
-	 */
+
 	public function slug(): string {
 		return 'yoast';
 	}
 
-	/**
-	 * Returns the source label.
-	 *
-	 * @return string
-	 */
 	public function label(): string {
 		return 'Yoast SEO';
 	}
 
-	/**
-	 * Returns the detected version.
-	 *
-	 * @return string
-	 */
+	/** Returns the detected version. */
 	public function version(): string {
 		$version = $this->detect_version(
 			'WPSEO_VERSION',
@@ -48,7 +31,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return is_array( $options ) && isset( $options['version'] ) && is_scalar( $options['version'] ) ? sanitize_text_field( (string) $options['version'] ) : '';
 	}
 
-	/** Returns Free or Premium from code and certified paid storage. */
 	public function edition(): string {
 		$premium = defined( 'WPSEO_PREMIUM_VERSION' )
 			|| ! empty( $this->installed_plugins( array( 'wordpress-seo-premium/wp-seo-premium.php' ) ) )
@@ -60,7 +42,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return $premium ? 'premium' : 'free';
 	}
 
-	/** Returns separate Yoast product/add-on profiles. */
 	public function modules(): array {
 		$plugins = $this->installed_plugins(
 			array(
@@ -91,7 +72,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return array_values( array_unique( $modules ) );
 	}
 
-	/** Returns certification state for each detected Yoast product. */
 	public function module_support(): array {
 		$support = array();
 		foreach ( $this->modules() as $module ) {
@@ -108,12 +88,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Returns the Premium product proven by Yoast's redirect export signature.
-	 *
-	 * @param string $format Certified export format.
-	 * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
-	 */
+	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
 	protected function export_source_profile( string $format ): array {
 		if ( 'yoast-redirects-csv' === $format ) {
 			return array(
@@ -187,16 +162,11 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Returns supported source capabilities.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	public function capabilities(): array {
 		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'default schema types', 'posts', 'terms', 'authors', 'social', 'robots', 'schema', 'primary terms', 'Premium redirects' );
 	}
 
-	/** Returns normalized Yoast global settings. */
 	public function global_settings(): array {
 		if ( $this->uses_export_file() ) {
 			return array();
@@ -423,11 +393,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return $settings;
 	}
 
-	/**
-	 * Checks whether Yoast data exists.
-	 *
-	 * @return bool
-	 */
 	public function is_available(): bool {
 		if ( $this->uses_export_file() ) {
 			return 'supported' === (string) $this->profile()['storage_status'];
@@ -445,11 +410,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 			|| $this->has_option_map( 'wpseo_social' );
 	}
 
-	/**
-	 * Yields normalized content records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function content_records(): iterable {
 		foreach ( $this->meta_objects( 'post', $this->post_keys(), array( '_yoast_wpseo_primary_', '_yoast_wpseo_schema_' ) ) as $record ) {
 			$mapped = $this->map_meta( $record['meta'], false );
@@ -518,12 +479,9 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns a keyset-paginated content page for the background worker.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source objects to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source objects to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function content_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -611,11 +569,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		}
 	}
 
-	/**
-	 * Yields normalized Premium redirect records.
-	 *
-	 * @return iterable<int,array<string,mixed>>
-	 */
+	/** @return iterable<int,array<string,mixed>> */
 	public function redirect_records(): iterable {
 		$base = get_option( 'wpseo-premium-redirects-base' );
 		if ( is_array( $base ) ) {
@@ -674,12 +628,9 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Returns one resumable Yoast Premium redirect page.
-	 *
-	 * @param array<string,mixed> $cursor Resume cursor.
-	 * @param int                 $limit  Maximum source records to scan.
-	 * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
-	 */
+ * @param int                 $limit  Maximum source records to scan.
+ * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
+ */
 	public function redirect_batch( array $cursor, int $limit ): array {
 		if ( $this->uses_export_file() ) {
 			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
@@ -738,12 +689,12 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Pages the monolithic legacy taxonomy option deterministically.
-	 *
-	 * @param int $offset Number of option entries already scanned.
-	 * @param int $limit  Maximum entries to scan.
-	 * @return array{records:array<int,array<string,mixed>>,offset:int,done:bool}
-	 */
+ * Pages the monolithic legacy taxonomy option deterministically.
+ *
+ * @param int $offset Number of option entries already scanned.
+ * @param int $limit  Maximum entries to scan.
+ * @return array{records:array<int,array<string,mixed>>,offset:int,done:bool}
+ */
 	private function taxonomy_option_batch( int $offset, int $limit ): array {
 		$taxonomy_meta = get_option( 'wpseo_taxonomy_meta' );
 		$taxonomy_meta = is_array( $taxonomy_meta ) ? $taxonomy_meta : array();
@@ -793,13 +744,11 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Pages one Yoast Premium redirect option.
-	 *
-	 * @param string $stage  Option stage.
-	 * @param int    $offset Number of entries already scanned.
-	 * @param int    $limit  Maximum entries.
-	 * @return array{records:array<int,array<string,mixed>>,offset:int,done:bool}
-	 */
+ * Pages one Yoast Premium redirect option.
+ *
+ * @param int    $offset Number of entries already scanned.
+ * @return array{records:array<int,array<string,mixed>>,offset:int,done:bool}
+ */
 	private function redirect_option_batch( string $stage, int $offset, int $limit ): array {
 		$option = array(
 			'premium_base' => 'wpseo-premium-redirects-base',
@@ -864,12 +813,11 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	}
 
 	/**
-	 * Maps a Yoast post or legacy taxonomy option record.
-	 *
-	 * @param array<string,mixed> $meta    Source metadata.
-	 * @param bool                $is_term Whether legacy short taxonomy keys are used.
-	 * @return array<string,mixed>
-	 */
+ * Maps a Yoast post or legacy taxonomy option record.
+ *
+ * @param bool                $is_term Whether legacy short taxonomy keys are used.
+ * @return array<string,mixed>
+ */
 	private function map_meta( array $meta, bool $is_term ): array {
 		$prefix                               = $is_term ? 'wpseo_' : '_yoast_wpseo_';
 		$get                                  = fn( string $key ): string => $this->value( $meta, $prefix . $key );
@@ -948,12 +896,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return $this->with_extension_meta( $mapped );
 	}
 
-	/**
-	 * Maps Yoast author archive metadata.
-	 *
-	 * @param array<string,mixed> $meta Source user metadata.
-	 * @return array<string,mixed>
-	 */
+	/** @return array<string,mixed> */
 	private function map_user_meta( array $meta ): array {
 		$description = $this->value( $meta, 'wpseo_metadesc' );
 		$description = '' !== $description ? $description : $this->value( $meta, 'wpseo_desc' );
@@ -969,11 +912,7 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return $mapped;
 	}
 
-	/**
-	 * Returns Yoast post meta keys.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	private function post_keys(): array {
 		return array(
 			'_yoast_wpseo_title',
@@ -1000,25 +939,16 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
-	 * Returns Yoast author meta keys.
-	 *
-	 * @return array<int,string>
-	 */
+	/** @return array<int,string> */
 	private function user_keys(): array {
 		return array( 'wpseo_title', 'wpseo_desc', 'wpseo_metadesc', 'wpseo_noindex_author' );
 	}
 
 	/**
-	 * Builds a normalized Yoast redirect row.
-	 *
-	 * @param string $origin    Source URL or pattern.
-	 * @param string $target    Target URL.
-	 * @param int    $type      HTTP status code.
-	 * @param bool   $is_regex  Whether the source is a regex.
-	 * @param string $reference Source record reference.
-	 * @return array<string,mixed>
-	 */
+ * @param string $origin    Source URL or pattern.
+ * @param bool   $is_regex  Whether the source is a regex.
+ * @return array<string,mixed>
+ */
 	private function redirect_from_values( string $origin, string $target, int $type, bool $is_regex, string $reference ): array {
 		$query = $is_regex ? '' : (string) wp_parse_url( $origin, PHP_URL_QUERY );
 

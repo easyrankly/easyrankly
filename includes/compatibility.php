@@ -1,9 +1,5 @@
 <?php
-/**
- * Compatibility guards.
- *
- * @package EasyRankly
- */
+/** Compatibility guards. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,10 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once ERANKLY_PATH . 'includes/compatibility-legacy.php';
 
 /**
- * Returns the active plugins that can own frontend SEO output.
- *
- * The structured result lets migration screens name the source that must be
- * deactivated without changing the long-standing boolean compatibility API.
+ * Returns the active plugins that can own frontend SEO output. The structured result lets migration screens name
+ * the source that must be deactivated without changing the long-standing boolean compatibility API.
  *
  * @return array<int,array{slug:string,label:string}>
  */
@@ -69,37 +63,17 @@ function erankly_external_seo_head_owners(): array {
 	return $owners;
 }
 
-/**
- * Detects SEO plugins that normally own head output.
- *
- * @return bool
- */
 function erankly_detect_external_seo_head_owner(): bool {
 	return array() !== erankly_external_seo_head_owners();
 }
 
-/**
- * Determines whether EasyRankly should render frontend head output.
- *
- * @return bool
- */
 function erankly_should_output_head(): bool {
 	$should_output = erankly_is_frontend_html_request() && ! erankly_detect_external_seo_head_owner();
 
-	/**
-	 * Filters whether EasyRankly renders head metadata.
-	 *
-	 * @param bool $should_output True to render metadata.
-	 */
+	/** @param bool $should_output True to render metadata. */
 	return (bool) apply_filters( 'erankly_enable_head_output', $should_output );
 }
 
-/**
- * Returns a language-aware URL where a custom stack exposes one.
- *
- * @param string $url URL.
- * @return string
- */
 function erankly_localize_url( string $url ): string {
 	$provider    = erankly_get_multilingual_provider();
 	$context     = erankly_get_multilingual_context();
@@ -113,56 +87,30 @@ function erankly_localize_url( string $url ): string {
 		}
 	}
 
-	/**
-	 * Allows a custom multilingual stack to localize SEO URLs.
-	 *
-	 * @param string              $url         URL.
-	 * @param array<string,mixed> $context     Selected provider context.
-	 * @param string              $provider_id Selected provider ID.
-	 */
 	return (string) apply_filters( 'erankly_localized_url', $url, $context, $provider_id );
 }
 
-/** Returns whether WooCommerce APIs are available. */
 function erankly_is_woocommerce_active(): bool {
 	return function_exists( 'wc_get_product' );
 }
 
-/** Returns whether WooCommerce owns Product structured data. */
 function erankly_woocommerce_structured_data_enabled(): bool {
 	$enabled = erankly_is_woocommerce_active() && class_exists( 'WC_Structured_Data' );
 
-	/**
-	 * Filters whether WooCommerce Product JSON-LD is active.
-	 *
-	 * @param bool $enabled Whether WooCommerce Product JSON-LD is active.
-	 */
+	/** @param bool $enabled Whether WooCommerce Product JSON-LD is active. */
 	return (bool) apply_filters( 'erankly_woocommerce_structured_data_enabled', $enabled );
 }
 
-/**
- * Returns whether EasyRankly should render Product schema.
- *
- * @param int $post_id Product post ID.
- * @return bool
- */
 function erankly_should_render_woocommerce_product_schema( int $post_id ): bool {
 	$should_render = ! erankly_woocommerce_structured_data_enabled();
 
-	/**
-	 * Filters whether EasyRankly should render Product schema.
-	 *
-	 * @param bool $should_render Whether EasyRankly should render Product schema.
-	 * @param int  $post_id       Product post ID.
-	 */
+	/** @param bool $should_render Whether EasyRankly should render Product schema. */
 	return (bool) apply_filters( 'erankly_render_woocommerce_product_schema', $should_render, $post_id );
 }
 
 /**
- * Preserves the public product-data API while loading its implementation only
- * when WooCommerce is active.
+ * Preserves the public product-data API while loading its implementation only when WooCommerce is active.
  *
- * @param int $post_id Product post ID.
  * @return array<string,mixed>
  */
 function erankly_get_woocommerce_product_data( int $post_id ): array {
@@ -176,11 +124,9 @@ function erankly_get_woocommerce_product_data( int $post_id ): array {
 }
 
 /**
- * Determines whether EasyRankly's sitemaps should be suppressed.
- *
- * When a known SEO plugin that ships its own sitemap system is active the
- * virtual video/news sitemaps served by EasyRankly must not run concurrently.
- * Site admins can override with the {@see 'erankly_enable_sitemaps_with_external_seo'} filter.
+ * Determines whether EasyRankly's sitemaps should be suppressed. When a known SEO plugin that ships its own
+ * sitemap system is active the virtual video/news sitemaps served by EasyRankly must not run concurrently. Site
+ * admins can override with the {@see 'erankly_enable_sitemaps_with_external_seo'} filter.
  *
  * @return bool True when EasyRankly should suppress its own sitemap output.
  */
@@ -188,20 +134,17 @@ function erankly_should_suppress_sitemaps(): bool {
 	$suppress = erankly_detect_external_seo_head_owner();
 
 	/**
-	 * Filters whether EasyRankly suppresses its own sitemap output when an external SEO plugin is active.
-	 *
-	 * Return false to allow EasyRankly's video/news sitemaps to run alongside another SEO plugin.
-	 *
-	 * @param bool $suppress True to suppress EasyRankly sitemaps.
-	 */
+ * Filters whether EasyRankly suppresses its own sitemap output when an external SEO plugin is active. Return
+ * false to allow EasyRankly's video/news sitemaps to run alongside another SEO plugin.
+ *
+ * @param bool $suppress True to suppress EasyRankly sitemaps.
+ */
 	return (bool) apply_filters( 'erankly_enable_sitemaps_with_external_seo', $suppress );
 }
 
 /**
- * Determines whether EasyRankly should register and serve its sitemap output.
- *
- * Keeping this decision in one function prevents persisted rewrite rules from
- * outliving the renderer when another SEO plugin takes ownership.
+ * Determines whether EasyRankly should register and serve its sitemap output. Keeping this decision in one
+ * function prevents persisted rewrite rules from outliving the renderer when another SEO plugin takes ownership.
  *
  * @return bool True when EasyRankly sitemap routes and renderers should run.
  */
@@ -209,12 +152,7 @@ function erankly_should_serve_sitemaps(): bool {
 	return erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps();
 }
 
-/**
- * Renders an admin notice when EasyRankly's head/sitemap output is disabled
- * because another SEO plugin is active.
- *
- * @return void
- */
+/** Renders an admin notice when EasyRankly's head/sitemap output is disabled because another SEO plugin is active. */
 function erankly_compatibility_notice_external_seo(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;

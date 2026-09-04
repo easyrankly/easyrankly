@@ -1,22 +1,10 @@
 <?php
-/**
- * Hreflang alternate links.
- *
- * Loaded by meta.php (always required), so these functions are globally
- * available wherever the head metadata is built.
- *
- * @package EasyRankly
- */
+/** Hreflang alternate links. Loaded by meta.php (always required), so these functions are globally available wherever the head metadata is built. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Renders hreflang alternate links.
- *
- * @return void
- */
 function erankly_render_hreflang_alternates(): void {
 	$provider = erankly_get_multilingual_provider();
 
@@ -34,38 +22,24 @@ function erankly_render_hreflang_alternates(): void {
 	}
 }
 
-/**
- * Returns validated hreflang alternates for the current request.
- *
- * @return array<string,string>
- */
+/** @return array<string,string> */
 function erankly_get_hreflang_alternates(): array {
 	$provider    = erankly_get_multilingual_provider();
 	$context     = erankly_get_multilingual_context();
 	$provider_id = $provider instanceof ERankly_Multilingual_Provider_Interface ? $provider->get_id() : '';
 	$alternates  = erankly_get_provider_alternates( false );
 
-	/**
-	 * Filters hreflang alternate URLs.
-	 *
-	 * Expected shape: array( 'it-IT' => 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
-	 *
-	 * @param array<string,string> $alternates Hreflang alternates.
-	 * @param array<string,mixed>  $context    Selected provider context.
-	 * @param string               $provider_id Selected provider ID.
-	 */
+	/** Filters hreflang alternate URLs. Expected shape: array( 'it-IT' => 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ). */
 	$alternates = apply_filters( 'erankly_hreflang_alternates', $alternates, $context, $provider_id );
 
 	return erankly_clean_hreflang_alternates( $alternates );
 }
 
 /**
- * Returns the language alternates a visitor can navigate to for the current request.
- *
- * Same shape as erankly_get_hreflang_alternates(), but built for human
- * navigation rather than search-engine signalling: published translations are
- * included even when they are noindex. Used by visitor-facing language
- * navigation. Never use this set for hreflang output.
+ * Returns the language alternates a visitor can navigate to for the current request. Same shape as
+ * erankly_get_hreflang_alternates(), but built for human navigation rather than search-engine signalling:
+ * published translations are included even when they are noindex. Used by visitor-facing language navigation.
+ * Never use this set for hreflang output.
  *
  * @return array<string,string>
  */
@@ -76,25 +50,14 @@ function erankly_get_navigable_hreflang_alternates(): array {
 	$alternates  = erankly_get_provider_alternates( true );
 
 	/**
-	 * Filters the visitor-navigable language alternates.
-	 *
-	 * Expected shape: array( 'it-IT' => 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
-	 *
-	 * @param array<string,string> $alternates Navigable alternates.
-	 * @param array<string,mixed>  $context    Selected provider context.
-	 * @param string               $provider_id Selected provider ID.
-	 */
+ * Filters the visitor-navigable language alternates. Expected shape: array( 'it-IT' =>
+ * 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
+ */
 	$alternates = apply_filters( 'erankly_navigable_hreflang_alternates', $alternates, $context, $provider_id );
 
 	return erankly_clean_hreflang_alternates( $alternates );
 }
 
-/**
- * Returns whether a hreflang tag is syntactically valid.
- *
- * @param string $hreflang Hreflang tag.
- * @return bool
- */
 function erankly_is_valid_hreflang_tag( string $hreflang ): bool {
 	$hreflang = strtolower( trim( $hreflang ) );
 
@@ -106,8 +69,6 @@ function erankly_is_valid_hreflang_tag( string $hreflang ): bool {
 }
 
 /**
- * Validates and sanitises a raw hreflang => URL map.
- *
  * @param mixed $alternates Raw alternates (any filter output).
  * @return array<string,string>
  */

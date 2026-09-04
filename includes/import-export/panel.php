@@ -1,9 +1,5 @@
 <?php
-/**
- * Import / Export settings panel.
- *
- * @package EasyRankly
- */
+/** Import / Export settings panel. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,11 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Renders the focused second upload required after an official-export preview.
  *
- * @param array<string,mixed> $report     Reviewed preview report.
- * @param string              $action_url Form action.
  * @param int                 $csv_upload_max  Maximum CSV upload size.
  * @param int                 $json_upload_max Maximum JSON upload size.
- * @return void
  */
 function erankly_migration_render_reviewed_export_upload( array $report, string $action_url, int $csv_upload_max, int $json_upload_max ): void {
 	$source_label = sanitize_text_field( (string) ( $report['source_label'] ?? $report['source'] ?? '' ) );
@@ -62,11 +55,6 @@ function erankly_migration_render_reviewed_export_upload( array $report, string 
 	<?php
 }
 
-/**
- * Renders the Import / Export settings tab.
- *
- * @return void
- */
 function erankly_import_export_render_panel(): void {
 	// On Multisite the settings option is a network option; mirror the write-access gate.
 	$required_cap = is_multisite() ? 'manage_network_options' : 'manage_options';
@@ -279,11 +267,6 @@ function erankly_import_export_render_panel(): void {
 	<?php
 }
 
-/**
- * Renders the import/export admin notice for the current request.
- *
- * @return void
- */
 function erankly_import_export_render_notice(): void {
 	$notice = isset( $_GET['erankly_io_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_io_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
