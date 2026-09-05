@@ -81,11 +81,6 @@ final class ERankly_Redirects_Admin {
 
 		?>
 			<?php $this->render_notices(); ?>
-			<?php if ( erankly_get_setting( 'redirect_exclude_admins', 1 ) ) : ?>
-				<div class="notice notice-info inline">
-					<p><?php esc_html_e( 'Redirects are intentionally bypassed while you are signed in as an administrator. Test them in a signed-out browser, or turn off “Do not apply any redirect to administrators” under Settings.', 'easyrankly' ); ?></p>
-				</div>
-			<?php endif; ?>
 
 			<div class="erankly-settings-section">
 				<h3 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h3>
@@ -119,6 +114,21 @@ final class ERankly_Redirects_Admin {
 	}
 
 	private function render_notices(): void {
+		$migration_report = get_option( 'erankly_redirects_v3_migration_report', array() );
+		if ( is_array( $migration_report ) && ( ! empty( $migration_report['transformed'] ) || ! empty( $migration_report['disabled'] ) ) ) {
+			printf(
+				'<div class="notice notice-warning inline"><p>%s</p></div>',
+				esc_html(
+					sprintf(
+						/* translators: 1: transformed legacy redirects, 2: disabled conditional redirects. */
+						__( 'Redirect upgrade completed: %1$d legacy matching rules were converted and %2$d conditional, scheduled, or duplicate rules were disabled for manual review.', 'easyrankly' ),
+						count( $migration_report['transformed'] ?? array() ),
+						count( $migration_report['disabled'] ?? array() )
+					)
+				)
+			);
+		}
+
 		$notice = isset( $_GET['erankly_redirects_notice'] ) ? sanitize_key( wp_unslash( $_GET['erankly_redirects_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice display after redirect.
 		$error  = isset( $_GET['erankly_redirects_error'] ) ? sanitize_key( wp_unslash( $_GET['erankly_redirects_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only notice display after redirect.
 
@@ -198,6 +208,11 @@ final class ERankly_Redirects_Admin {
 		$source_path = $source ? (string) ( $source['source_path'] ?? '' ) : '';
 		$target_url  = $source ? (string) ( $source['target_url'] ?? '' ) : '';
 		$status_code = $source ? (int) ( $source['status_code'] ?? 301 ) : 301;
+		$match_type  = $source && in_array( (string) ( $source['match_type'] ?? '' ), ERankly_Redirects_Normalizer::VALID_MATCH_TYPES, true ) ? (string) $source['match_type'] : 'exact';
+		$query_mode  = $source && in_array( (string) ( $source['query_mode'] ?? '' ), ERankly_Redirects_Normalizer::VALID_QUERY_MODES, true ) ? (string) $source['query_mode'] : 'ignore';
+		$source_query = $source ? (string) ( $source['source_query'] ?? '' ) : '';
+		$case_sensitive = $source ? ! empty( $source['case_sensitive'] ) : false;
+		$trailing_slash = $source && 'exact' === (string) ( $source['trailing_slash'] ?? '' ) ? 'exact' : 'ignore';
 		$is_active   = $source ? (bool) ( $source['is_active'] ?? true ) : true;
 		$note        = $source ? (string) ( $source['note'] ?? '' ) : '';
 		$code_labels = array(
@@ -212,7 +227,11 @@ final class ERankly_Redirects_Admin {
 		// choice so an unrelated edit cannot downgrade it.
 		$permanent_code = 308 === $status_code ? 308 : 301;
 		$temporary_code = 307 === $status_code ? 307 : 302;
-		$status_codes   = array( $permanent_code, $temporary_code, 410, 451 );
+		$status_codes   = array( $permanent_code, $temporary_code, 410 );
+		if ( $source && ! in_array( $status_code, $status_codes, true ) ) {
+			$status_codes[] = $status_code;
+		}
+		$advanced_open = 'exact' !== $match_type || 'ignore' !== $query_mode || $case_sensitive || 'exact' === $trailing_slash;
 
 		?>
 		<form method="post" action="<?php echo esc_url( $this->admin_url() ); ?>" class="erankly-redirects-form">
@@ -224,6 +243,51 @@ final class ERankly_Redirects_Admin {
 				<span><?php esc_html_e( 'Source URL', 'easyrankly' ); ?></span>
 				<input type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required placeholder="/old-page">
 			</label>
+
+			<details class="erankly-settings-details erankly-redirects-advanced"<?php echo $advanced_open ? ' open' : ''; ?>>
+				<summary><?php esc_html_e( 'Advanced matching', 'easyrankly' ); ?></summary>
+				<div class="erankly-settings-details-content">
+					<p class="description"><?php esc_html_e( 'Use these controls only when one exact source path is not enough. Exact rules take precedence over wildcard rules, which take precedence over regular expressions.', 'easyrankly' ); ?></p>
+					<div class="erankly-field">
+						<label for="erankly-redirects-match-type"><?php esc_html_e( 'Match type', 'easyrankly' ); ?></label>
+						<select name="match_type" id="erankly-redirects-match-type">
+							<option value="exact" <?php selected( $match_type, 'exact' ); ?>><?php esc_html_e( 'Exact URL', 'easyrankly' ); ?></option>
+							<option value="wildcard" <?php selected( $match_type, 'wildcard' ); ?>><?php esc_html_e( 'Wildcard pattern', 'easyrankly' ); ?></option>
+							<option value="regex" <?php selected( $match_type, 'regex' ); ?>><?php esc_html_e( 'Regular expression', 'easyrankly' ); ?></option>
+						</select>
+						<p class="description" id="erankly-redirects-match-help"></p>
+					</div>
+
+					<div class="erankly-field">
+						<label for="erankly-redirects-query-mode"><?php esc_html_e( 'Query parameters', 'easyrankly' ); ?></label>
+						<select name="query_mode" id="erankly-redirects-query-mode">
+							<option value="ignore" <?php selected( $query_mode, 'ignore' ); ?>><?php esc_html_e( 'Ignore and discard', 'easyrankly' ); ?></option>
+							<option value="preserve" <?php selected( $query_mode, 'preserve' ); ?>><?php esc_html_e( 'Ignore and preserve', 'easyrankly' ); ?></option>
+							<option value="exact" <?php selected( $query_mode, 'exact' ); ?>><?php esc_html_e( 'Match exactly', 'easyrankly' ); ?></option>
+						</select>
+					</div>
+
+					<div class="erankly-field" id="erankly-redirects-source-query-field">
+						<label for="erankly-redirects-source-query"><?php esc_html_e( 'Required query string', 'easyrankly' ); ?></label>
+						<input type="text" name="source_query" id="erankly-redirects-source-query" value="<?php echo esc_attr( $source_query ); ?>" placeholder="product=123&amp;view=compact">
+						<p class="description"><?php esc_html_e( 'Enter the query string without the leading question mark. Parameter order is significant.', 'easyrankly' ); ?></p>
+					</div>
+
+					<div class="erankly-field erankly-checkboxes">
+						<label><input type="checkbox" class="erankly-toggle" name="case_sensitive" value="1" <?php checked( $case_sensitive ); ?>> <?php esc_html_e( 'Case-sensitive matching', 'easyrankly' ); ?></label>
+						<label><input type="checkbox" class="erankly-toggle" name="trailing_slash" value="exact" <?php checked( $trailing_slash, 'exact' ); ?>> <?php esc_html_e( 'Treat the trailing slash as significant', 'easyrankly' ); ?></label>
+					</div>
+
+					<div class="erankly-field erankly-redirects-test">
+						<label for="erankly-redirects-test-url"><?php esc_html_e( 'Test URL', 'easyrankly' ); ?></label>
+						<div class="erankly-redirects-test-controls">
+							<input type="text" id="erankly-redirects-test-url" placeholder="/old-page?product=123">
+							<button type="button" class="button" id="erankly-redirects-test-button"><?php esc_html_e( 'Test rule', 'easyrankly' ); ?></button>
+						</div>
+						<p class="description" id="erankly-redirects-test-result" aria-live="polite"></p>
+					</div>
+				</div>
+			</details>
 
 			<div id="erankly-redirects-target-field">
 				<label>
@@ -456,8 +520,7 @@ final class ERankly_Redirects_Admin {
 	}
 
 	/**
- * Validate and normalize redirect input from the Add/Edit form. Only source, target, status code, note, and
- * active state are accepted. Matching is always exact-path.
+	 * Validate and normalize redirect input from the Add/Edit form.
  *
  * @return array{0:array<string,mixed>,1:array<int,string>}
  */
@@ -465,9 +528,16 @@ final class ERankly_Redirects_Admin {
 		$source_raw     = isset( $input['source_path'] ) ? sanitize_text_field( wp_unslash( $input['source_path'] ) ) : '';
 		$target_raw     = isset( $input['target_url'] ) ? trim( (string) wp_unslash( $input['target_url'] ) ) : '';
 		$status_code    = isset( $input['status_code'] ) ? absint( $input['status_code'] ) : 301;
+		$match_type     = isset( $input['match_type'] ) ? sanitize_key( (string) $input['match_type'] ) : 'exact';
+		$match_type     = in_array( $match_type, ERankly_Redirects_Normalizer::VALID_MATCH_TYPES, true ) ? $match_type : '';
+		$query_mode     = isset( $input['query_mode'] ) ? sanitize_key( (string) $input['query_mode'] ) : 'ignore';
+		$query_mode     = in_array( $query_mode, ERankly_Redirects_Normalizer::VALID_QUERY_MODES, true ) ? $query_mode : '';
+		$source_query   = isset( $input['source_query'] ) ? ltrim( sanitize_text_field( wp_unslash( $input['source_query'] ) ), '?' ) : '';
+		$case_sensitive = ! empty( $input['case_sensitive'] ) ? 1 : 0;
+		$trailing_slash = isset( $input['trailing_slash'] ) && 'exact' === $input['trailing_slash'] ? 'exact' : 'ignore';
 		$is_active      = ! empty( $input['is_active'] ) ? 1 : 0;
 		$note           = isset( $input['note'] ) ? sanitize_textarea_field( wp_unslash( $input['note'] ) ) : '';
-		$source_path    = ERankly_Redirects_Normalizer::normalize_source( $source_raw, false, false, false, 'ignore' );
+		$source_path    = '' === $match_type ? '' : ERankly_Redirects_Normalizer::normalize_source( $source_raw, 'regex' === $match_type, 'wildcard' === $match_type, (bool) $case_sensitive, $trailing_slash );
 		$is_status_only = ERankly_Redirects_Normalizer::is_status_only_code( $status_code );
 		$target_url     = $is_status_only ? '' : ERankly_Redirects_Normalizer::normalize_target_url( $target_raw );
 		$errors         = array();
@@ -479,6 +549,9 @@ final class ERankly_Redirects_Admin {
 		if ( strlen( $source_path ) > 512 ) {
 			$errors[] = 'source_too_long';
 		}
+		if ( strlen( $source_query ) > 512 ) {
+			$errors[] = 'source_query_too_long';
+		}
 
 		if ( ! $is_status_only && '' === $target_url ) {
 			$errors[] = 'target_required';
@@ -488,8 +561,15 @@ final class ERankly_Redirects_Admin {
 			$errors[] = 'status_code';
 		}
 
-		if ( ! ERankly_Redirects_Normalizer::is_valid_internal_path( $source_path ) ) {
+		if ( 'wildcard' === $match_type && ! ERankly_Redirects_Normalizer::is_valid_wildcard_source( $source_path ) ) {
+			$errors[] = 'source_wildcard';
+		} elseif ( 'regex' === $match_type && ! ERankly_Redirects_Normalizer::is_valid_regex( $source_path ) ) {
+			$errors[] = 'source_regex';
+		} elseif ( 'exact' === $match_type && ! ERankly_Redirects_Normalizer::is_valid_internal_path( $source_path ) ) {
 			$errors[] = 'source_path';
+		}
+		if ( '' === $match_type || '' === $query_mode ) {
+			$errors[] = 'matching_mode';
 		}
 
 		return array(
@@ -497,6 +577,11 @@ final class ERankly_Redirects_Admin {
 				'source_path' => $source_path,
 				'target_url'  => $target_url,
 				'status_code' => $status_code,
+				'match_type' => $match_type,
+				'source_query' => 'exact' === $query_mode ? $source_query : '',
+				'query_mode' => $query_mode,
+				'case_sensitive' => $case_sensitive,
+				'trailing_slash' => $trailing_slash,
 				'is_active'   => $is_active,
 				'note'        => $note,
 			),

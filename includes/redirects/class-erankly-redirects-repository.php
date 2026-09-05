@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class ERankly_Redirects_Repository {
 	/** Non-autoloaded option containing frontend-ready active rules. */
 	private const RUNTIME_RULES_OPTION         = 'erankly_redirects_runtime_rules';
-	private const RUNTIME_RULES_VERSION        = 4;
+	private const RUNTIME_RULES_VERSION        = 5;
 	private const RUNTIME_GLOBAL_OPTION        = 'erankly_redirects_runtime_rules_global';
 	private const RUNTIME_ALL_OPTION           = 'erankly_redirects_runtime_rules_all';
 	private const RUNTIME_PREFIX_INDEX_OPTION  = 'erankly_redirects_runtime_rules_prefix_index';
@@ -91,17 +91,16 @@ final class ERankly_Redirects_Repository {
 				$this->runtime_rules = $manifest;
 			} else {
 				$sql  = $wpdb->prepare(
-					'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, visibility, required_role, conditions, start_at, end_at
+					'SELECT id, source_path, source_hash, source_query, target_url, status_code, match_type, case_sensitive, trailing_slash, query_mode
 					FROM %i
 					WHERE is_active = 1 AND (
-						match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s OR visibility <> %s OR conditions IS NOT NULL OR start_at IS NOT NULL OR end_at IS NOT NULL
+						match_type <> %s OR case_sensitive = 1 OR trailing_slash <> %s OR query_mode <> %s
 					)
-					ORDER BY priority ASC, id ASC',
+					ORDER BY id ASC',
 					$this->table_name,
 					'exact',
 					'ignore',
-					'ignore',
-					'all'
+					'ignore'
 				);
 				$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rebuilds compact runtime buckets after explicit invalidation.
 
@@ -137,10 +136,7 @@ final class ERankly_Redirects_Repository {
 			is_array( $local['query'][ $query_key ] ?? null ) ? $local['query'][ $query_key ] : array()
 		);
 
-		usort(
-			$candidates,
-			static fn( array $left, array $right ): int => array( (int) ( $left['priority'] ?? 10 ), (int) ( $left['id'] ?? 0 ) ) <=> array( (int) ( $right['priority'] ?? 10 ), (int) ( $right['id'] ?? 0 ) )
-		);
+		usort( $candidates, array( 'ERankly_Redirects_Normalizer', 'compare_rules' ) );
 
 		return $candidates;
 	}
@@ -162,7 +158,7 @@ final class ERankly_Redirects_Repository {
 		);
 
 		foreach ( $rows as $row ) {
-			$match_type                  = (string) ( $row['match_type'] ?? ( ! empty( $row['is_wildcard'] ) ? 'wildcard' : ( ! empty( $row['is_regex'] ) ? 'regex' : 'exact' ) ) );
+			$match_type                  = (string) ( $row['match_type'] ?? 'exact' );
 			$case_sensitive              = ! empty( $row['case_sensitive'] );
 			$trailing_slash              = (string) ( $row['trailing_slash'] ?? 'ignore' );
 			$row['_runtime_source_path'] = ERankly_Redirects_Normalizer::normalize_match_path( (string) ( $row['source_path'] ?? '' ), $case_sensitive, $trailing_slash );
@@ -175,12 +171,10 @@ final class ERankly_Redirects_Repository {
 			$prefix = '';
 			if ( 'exact' === $match_type ) {
 				$prefix = $this->runtime_prefix_key( (string) ( $row['source_path'] ?? '' ) );
-			} elseif ( in_array( $match_type, array( 'starts_with', 'wildcard' ), true ) ) {
+			} elseif ( 'wildcard' === $match_type ) {
 				$source = (string) ( $row['source_path'] ?? '' );
-				if ( 'wildcard' === $match_type ) {
-					$wildcard = strpos( $source, '*' );
-					$source   = false === $wildcard ? $source : substr( $source, 0, $wildcard );
-				}
+				$wildcard = strpos( $source, '*' );
+				$source   = false === $wildcard ? $source : substr( $source, 0, $wildcard );
 				// A partial first segment (for example /shop*) can also match
 				// /shopping and therefore cannot be placed in an exact segment bucket.
 				$trimmed = trim( $source, '/' );
@@ -333,13 +327,12 @@ final class ERankly_Redirects_Repository {
 		global $wpdb;
 
 		$sql = $wpdb->prepare(
-			'SELECT * FROM %i WHERE source_hash = %s AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s AND visibility = %s AND conditions IS NULL AND start_at IS NULL AND end_at IS NULL ORDER BY priority ASC, id ASC LIMIT 1',
+			'SELECT * FROM %i WHERE source_hash = %s AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s ORDER BY id ASC LIMIT 1',
 			$this->table_name,
 			$source_hash,
 			'exact',
 			'ignore',
-			'ignore',
-			'all'
+			'ignore'
 		);
 
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
@@ -370,11 +363,11 @@ final class ERankly_Redirects_Repository {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
 			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a dynamic list of literal %s tokens; values are bound via prepare below.
 			$sql = $wpdb->prepare(
-				"SELECT source_hash FROM %i WHERE source_hash IN ($placeholders) AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s AND visibility = %s AND conditions IS NULL AND start_at IS NULL AND end_at IS NULL",
+				"SELECT source_hash FROM %i WHERE source_hash IN ($placeholders) AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s",
 				array_merge(
 					array( $this->table_name ),
 					$chunk,
-					array( 'exact', 'ignore', 'ignore', 'all' )
+					array( 'exact', 'ignore', 'ignore' )
 				)
 			);
 			// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -514,7 +507,7 @@ final class ERankly_Redirects_Repository {
 		global $wpdb;
 
 		$sql = $wpdb->prepare(
-			'SELECT id AS _cursor, source_path, source_query, target_url, status_code, match_type, is_regex, is_wildcard, case_sensitive, trailing_slash, query_mode, priority, is_active, visibility, required_role, conditions, start_at, end_at, source_plugin, source_reference, migration_id, note FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d',
+			'SELECT id AS _cursor, source_path, source_query, target_url, status_code, match_type, case_sensitive, trailing_slash, query_mode, is_active, note FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d',
 			$this->table_name,
 			max( 0, $after_id ),
 			max( 1, min( 1000, $limit ) )
@@ -555,7 +548,12 @@ final class ERankly_Redirects_Repository {
 	public function update( int $id, array $data ): bool {
 		global $wpdb;
 
-		$old                = $this->find_by_id( $id );
+		$old = $this->find_by_id( $id );
+		if ( $old ) {
+			// Partial editors must not erase matching semantics or migration
+			// provenance they do not own.
+			$data = array_merge( $old, $data );
+		}
 		$data               = $this->normalize_data( $data );
 		$data['updated_at'] = current_time( 'mysql' );
 		$result             = $wpdb->update( $this->table_name, $data, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table mutation.
@@ -634,41 +632,24 @@ final class ERankly_Redirects_Repository {
 	private function normalize_data( array $data ): array {
 		$match_type = isset( $data['match_type'] ) && in_array( $data['match_type'], ERankly_Redirects_Normalizer::VALID_MATCH_TYPES, true )
 			? (string) $data['match_type']
-			: ( ! empty( $data['is_wildcard'] ) ? 'wildcard' : ( ! empty( $data['is_regex'] ) ? 'regex' : 'exact' ) );
+			: 'exact';
 		$defaults   = array(
 			'source_path'      => '',
 			'source_query'     => '',
 			'target_url'       => '',
 			'status_code'      => 301,
 			'match_type'       => $match_type,
-			'is_regex'         => 'regex' === $match_type ? 1 : 0,
-			'is_wildcard'      => 'wildcard' === $match_type ? 1 : 0,
 			'case_sensitive'   => 0,
 			'trailing_slash'   => 'ignore',
 			'query_mode'       => 'ignore',
-			'priority'         => 10,
 			'is_active'        => 1,
-			'visibility'       => 'all',
-			'required_role'    => '',
-			'conditions'       => null,
-			'start_at'         => null,
-			'end_at'           => null,
 			'source_plugin'    => '',
 			'source_reference' => '',
 			'migration_id'     => '',
 			'note'             => null,
 		);
 		$data       = array_intersect_key( array_merge( $defaults, $data ), $defaults );
-		if ( is_array( $data['conditions'] ) ) {
-			$data['conditions'] = wp_json_encode( $data['conditions'] );
-		} elseif ( ! is_string( $data['conditions'] ) || '' === trim( $data['conditions'] ) ) {
-			$data['conditions'] = null;
-		}
-		$data['start_at']    = empty( $data['start_at'] ) ? null : (string) $data['start_at'];
-		$data['end_at']      = empty( $data['end_at'] ) ? null : (string) $data['end_at'];
 		$data['match_type']  = $match_type;
-		$data['is_regex']    = 'regex' === $match_type ? 1 : 0;
-		$data['is_wildcard'] = 'wildcard' === $match_type ? 1 : 0;
 		$data['source_hash'] = ERankly_Redirects_Normalizer::source_hash( ERankly_Redirects_Normalizer::normalize_path( (string) $data['source_path'] ) );
 		$data['rule_hash']   = ERankly_Redirects_Normalizer::rule_hash( $data );
 

@@ -12,6 +12,19 @@
 	width: 100%;
 }
 
+.erankly-redirects-advanced {
+	margin-bottom: var(--erankly-space-field);
+}
+
+.erankly-redirects-test-controls {
+	display: flex;
+	gap: var(--erankly-space-2);
+}
+
+.erankly-redirects-test-controls .button {
+	flex: 0 0 auto;
+}
+
 .erankly-redirects-form textarea {
 	min-height: 56px;
 	resize: vertical;
@@ -107,5 +120,10 @@
 	.erankly-redirects-search input[type="search"] {
 		min-width: 0;
 		width: 100%;
+	}
+
+	.erankly-redirects-test-controls {
+		align-items: stretch;
+		flex-direction: column;
 	}
 }

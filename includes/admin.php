@@ -28,11 +28,8 @@ function erankly_use_site_editor_special_page_panels(): bool {
 }
 
 function erankly_admin_bootstrap(): void {
-	require_once ERANKLY_PATH . 'admin/setup-wizard-loader.php';
-
 	if ( is_multisite() ) {
 		add_action( 'network_admin_menu', 'erankly_admin_register_network_settings_page' );
-		add_action( 'network_admin_menu', 'erankly_setup_wizard_register_page' );
 		add_action( 'network_admin_edit_erankly_network_save', 'erankly_admin_save_network_settings' );
 		add_filter( 'network_admin_plugin_action_links_' . plugin_basename( ERANKLY_FILE ), 'erankly_network_plugin_action_links' );
 		add_action( 'admin_menu', 'erankly_admin_register_site_settings_page' );
@@ -41,14 +38,10 @@ function erankly_admin_bootstrap(): void {
 		add_action( 'admin_post_erankly_save_site_special_meta', 'erankly_admin_save_site_special_meta' );
 	} else {
 		add_action( 'admin_menu', 'erankly_admin_register_settings_page' );
-		add_action( 'admin_menu', 'erankly_setup_wizard_register_page' );
 		add_action( 'admin_init', 'erankly_admin_maybe_register_settings' );
 		add_filter( 'plugin_action_links_' . plugin_basename( ERANKLY_FILE ), 'erankly_plugin_action_links' );
 	}
 
-	add_action( 'admin_init', 'erankly_setup_wizard_maybe_redirect' );
-	add_action( 'admin_post_erankly_setup_save', 'erankly_setup_wizard_save' );
-	add_action( 'admin_post_erankly_setup_skip', 'erankly_setup_wizard_skip' );
 	add_action( 'add_meta_boxes', 'erankly_admin_register_meta_boxes' );
 	add_action( 'admin_init', 'erankly_admin_maybe_register_taxonomy_fields' );
 	add_action( 'admin_init', 'erankly_admin_maybe_handle_import_export' );
@@ -299,13 +292,8 @@ function erankly_add_plugin_action_links( array $links, string $settings_url ): 
 		esc_url( $settings_url ),
 		esc_html__( 'Settings', 'easyrankly' )
 	);
-	$setup_link    = sprintf(
-		'<a href="%s">%s</a>',
-		esc_url( erankly_setup_wizard_url( 'configure' ) ),
-		esc_html__( 'Setup wizard', 'easyrankly' )
-	);
 
-	array_unshift( $links, $settings_link, $setup_link );
+	array_unshift( $links, $settings_link );
 
 	return $links;
 }
@@ -427,9 +415,8 @@ function erankly_admin_asset_modules( string $surface ): array {
 		);
 	} else {
 		$surfaces = array(
-			'setup'          => array( 'widgets' ),
-			'classic-editor' => array( 'media', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
-			'taxonomy'       => array( 'media', 'tabs', 'fields', 'variables', 'schema', 'panels' ),
+			'classic-editor' => array( 'media', 'fields', 'variables', 'schema', 'panels' ),
+			'taxonomy'       => array( 'media', 'fields', 'variables', 'schema', 'panels' ),
 		);
 
 		$modules = $surfaces[ $surface ] ?? array();

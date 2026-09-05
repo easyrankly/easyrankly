@@ -387,7 +387,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		}
 		if ( in_array( 'redirects', $this->modules(), true ) ) {
 			$settings['enable_redirects']        = 1;
-			$settings['redirect_exclude_admins'] = 0;
 		}
 
 		return $settings;

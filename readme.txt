@@ -21,16 +21,16 @@ Here's what it does:
 * **Structured data that search engines understand.** A modular JSON-LD schema graph covering your Organization or Person, optional local business details, articles, breadcrumbs, FAQs, and WooCommerce product compatibility, plus reusable custom schema blocks you can target to specific pages.
 * **Sitemaps, when you want them.** An optional XML sitemap index with sitemaps for your content (including images), taxonomies, and authors.
 * **Control over what gets indexed.** Simple noindex, nofollow, noarchive, and sitemap-exclusion controls, per page or across your site.
-* **Smart redirects built in.** An optional redirect manager with a streamlined rule editor for exact-path redirects, including permanent, temporary, and gone (410/451) responses.
+* **Smart redirects built in.** An optional redirect manager with a streamlined editor for exact, wildcard, and regular-expression rules, essential query-string controls, permanent and temporary redirects, and gone (410) responses.
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
 
-All of it lives in a redesigned, responsive admin interface with consistent form patterns, accessible label and control relationships, keyboard-friendly tabs and dialogs, and a short setup wizard to get you configured in minutes.
+All of it lives in a redesigned, responsive admin interface with consistent form patterns, accessible label and control relationships, and keyboard-friendly tabs and dialogs.
 
 == Installation ==
 
 1. Upload the `easyrankly` folder to `/wp-content/plugins/`.
 2. Activate EasyRankly from the Plugins screen.
-3. Complete the short setup wizard, or configure the plugin later under Settings > EasyRankly.
+3. Configure the plugin under Settings > EasyRankly.
 
 == Frequently Asked Questions ==
 
@@ -50,7 +50,7 @@ Each site refreshes its own rewrite rules when needed, and network resets run in
 
 = Does EasyRankly collect any personal data or phone home? =
 
-EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses or the referrer, user-agent, language, or cookie values read temporarily when evaluating redirect conditions. Migration verification may make bounded same-origin requests to your own site; it does not phone home.
+EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses, referrers, user agents, languages, or cookie values. Migration verification may make bounded same-origin requests to your own site; it does not phone home.
 
 = How do I display breadcrumbs? =
 
@@ -79,11 +79,11 @@ EasyRankly uses WordPress's avatar API when searching for a user in its administ
 = 2.0.0 =
 EasyRankly 2.0.0 marks the transition from the initial foundation introduced with version 1.0.0 to a more mature, capable, and extensible SEO platform. This release revisits every major area of the plugin, with a renewed focus on delivering essential SEO tools through a fast, modular, and developer-friendly core.
 
-The entire experience has been redesigned around a new setup wizard, clearer URL-addressable settings, native controls for the block editor, improved classic-editor and taxonomy panels, and contextual Site Editor integration for block themes. Accessibility has also been strengthened throughout, with more explicit labels, better semantic relationships, and keyboard-safe navigation and dialogs.
+The entire experience has been redesigned around clearer URL-addressable settings, native controls for the block editor, improved classic-editor and taxonomy panels, and contextual Site Editor integration for block themes. Accessibility has also been strengthened throughout, with more explicit labels, better semantic relationships, and keyboard-safe navigation and dialogs.
 
 Metadata and structured data now offer substantially greater control. Primary taxonomy terms, advanced robots directives, dedicated Open Graph and X images, richer schema modes, FAQ and HowTo extraction, Event and VideoObject markup, and expanded WooCommerce support make it possible to describe and optimize content with far greater precision.
 
-Redirect management and migration tools have evolved with the same attention to reliability. Redirects now support additional matching strategies, response codes, scheduling, audience targeting, and fine-grained URL controls, backed by a compiled runtime with per-pattern safety limits. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, live-output verification, and a seven-day conditional rollback journal.
+Redirect management and migration tools have evolved with the same attention to reliability. Redirects now focus on exact, wildcard, and regular-expression matching, essential query-string behavior, automatic rule precedence, response codes, and per-pattern safety limits. Audience targeting, request conditions, scheduling, and manual priority were removed from the public model; incompatible imported rules are skipped or disabled for review instead of being broadened silently. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, live-output verification, and a seven-day conditional rollback journal.
 
 Behind the scenes, contextual module loading keeps inactive features from adding unnecessary overhead, while bounded background processing, stronger Multisite support, and dedicated WP-CLI workflows provide a more dependable foundation for sites of every size. EasyRankly 2.0.0 supports WordPress 6.2 and later with PHP 8.0 or newer.
 

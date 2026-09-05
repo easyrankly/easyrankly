@@ -254,8 +254,6 @@
 .erankly-field > .erankly-field-label,
 .erankly-field > legend,
 .erankly-schema-field > label,
-.erankly-setup-section > label:not(.erankly-setup-choice),
-.erankly-setup-field-label,
 .erankly-redirects-form label > span {
 	display: block;
 	margin: 0 0 var(--erankly-space-label);
@@ -265,8 +263,6 @@
 .erankly-field > .erankly-field-label,
 .erankly-field > legend,
 .erankly-schema-field > label,
-.erankly-setup-section > label:not(.erankly-setup-choice),
-.erankly-setup-field-label,
 .erankly-redirects-form label > span {
 	font-weight: 600;
 }
@@ -356,9 +352,9 @@
 }
 
 /*
- * Shared autocomplete used by Person references (settings + setup wizard)
- * and multilingual links. Lives here so every classic admin surface,
- * including the setup wizard, gets the same control chrome.
+ * Shared autocomplete used by Person references (settings)
+ * and multilingual links. Lives here so every classic admin
+ * surface gets the same control chrome.
  */
 [data-erankly-user-search-wrap],
 .erankly-user-search-wrap {

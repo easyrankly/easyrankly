@@ -14,13 +14,12 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	}
 
 	$is_settings     = 'settings_page_erankly' === $hook_suffix;
-	$is_setup        = isset( $_GET['page'] ) && 'erankly-setup' === sanitize_key( wp_unslash( $_GET['page'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
 	$is_editor       = in_array( $screen->post_type, array_keys( erankly_get_public_post_types() ), true );
 	$is_taxonomy     = in_array( $screen->taxonomy, array_keys( erankly_get_public_taxonomies() ), true );
 	$is_block_editor = $is_editor && $screen->is_block_editor();
 	$is_site_editor  = 'site-editor' === $screen->base;
 
-	if ( ! $is_settings && ! $is_setup && ! $is_editor && ! $is_taxonomy && ! $is_site_editor ) {
+	if ( ! $is_settings && ! $is_editor && ! $is_taxonomy && ! $is_site_editor ) {
 		return;
 	}
 
@@ -39,9 +38,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	$settings_tab = $is_settings ? erankly_admin_resolve_settings_tab( erankly_admin_requested_settings_tab() ) : '';
 	$surface      = $is_settings ? 'settings:' . $settings_tab : '';
 
-	if ( $is_setup ) {
-		$surface = 'setup';
-	} elseif ( $is_taxonomy ) {
+	if ( $is_taxonomy ) {
 		$surface = 'taxonomy';
 	} elseif ( $is_editor ) {
 		$surface = 'classic-editor';
@@ -61,11 +58,9 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 	// Fields, tabs, schema builders and other admin components are shared by
 	// settings, the classic editor, and taxonomy screens. Keep one canonical
 	// implementation instead of duplicating it in classic-editor.css.
-	// Autocomplete chrome lives in admin-core.css so the setup wizard can
-	// reuse the Person reference control without this heavier sheet.
-	if ( ! $is_setup ) {
-		wp_enqueue_style( 'erankly-admin-settings', ERANKLY_URL . 'assets/css/admin-settings.css', array( 'erankly-admin' ), ERANKLY_VERSION );
-	}
+	// Autocomplete chrome lives in admin-core.css so Person reference controls
+	// reuse it without this heavier sheet.
+	wp_enqueue_style( 'erankly-admin-settings', ERANKLY_URL . 'assets/css/admin-settings.css', array( 'erankly-admin' ), ERANKLY_VERSION );
 
 	if ( $is_settings ) {
 		if ( 'import-export' === $settings_tab ) {
@@ -75,18 +70,16 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 		if ( 'settings' === $settings_tab ) {
 			wp_enqueue_style( 'erankly-reset', ERANKLY_URL . 'assets/css/reset.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 		}
-	} elseif ( $is_setup ) {
-		wp_enqueue_style( 'erankly-setup', ERANKLY_URL . 'assets/css/setup.css', array( 'erankly-admin' ), ERANKLY_VERSION );
 	} else {
 		wp_enqueue_style( 'erankly-classic-editor', ERANKLY_URL . 'assets/css/classic-editor.css', array( 'erankly-admin-settings' ), ERANKLY_VERSION );
 	}
 
 	erankly_admin_enqueue_scripts( $asset_modules );
 
-	// The wizard's "Person reference user" field reuses the searchable
-	// user-search widget from the General settings panel (see bindUserSearch()
-	// in admin.js), so it needs the same restUrl/nonce localized here.
-	if ( $is_setup || ( $is_settings && 'general' === $settings_tab ) ) {
+	// The General settings panel's "Person reference user" field uses the
+	// searchable user-search widget (see bindUserSearch() in admin.js), so it
+	// needs the restUrl/nonce localized here.
+	if ( $is_settings && 'general' === $settings_tab ) {
 		wp_localize_script(
 			'erankly-admin',
 			'eranklyUserSearch',
@@ -101,17 +94,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				),
 			)
 		);
-	}
-
-	if ( $is_setup ) {
-		wp_enqueue_script(
-			'erankly-setup',
-			ERANKLY_URL . 'assets/js/setup-wizard.js',
-			array( 'erankly-admin' ),
-			ERANKLY_VERSION,
-			true
-		);
-		return;
 	}
 
 	if ( in_array( 'media', $asset_modules, true ) ) {
@@ -234,6 +216,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			array(
 				'restUrlToggle' => esc_url_raw( rest_url( 'erankly/v1/redirects/toggle' ) ),
 				'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
+				'restUrlTest'   => esc_url_raw( rest_url( 'erankly/v1/redirects/test' ) ),
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
 				'deleteConfirm' => __( 'Delete this redirect?', 'easyrankly' ),
 				'enableLabel'   => __( 'Enable', 'easyrankly' ),
@@ -242,6 +225,13 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'activeNo'      => __( 'No', 'easyrankly' ),
 				'toggleError'   => __( 'The redirect status could not be changed.', 'easyrankly' ),
 				'deleteError'   => __( 'The redirect could not be deleted.', 'easyrankly' ),
+				'testMatched'   => __( 'Matches. Destination: %s', 'easyrankly' ),
+				'testMatchedStatus' => __( 'Matches. This response has no destination.', 'easyrankly' ),
+				'testNoMatch'   => __( 'This URL does not match the rule.', 'easyrankly' ),
+				'testError'     => __( 'The rule could not be tested.', 'easyrankly' ),
+				'exactHelp'     => __( 'Matches one path. By default, letter case and a final slash are ignored.', 'easyrankly' ),
+				'wildcardHelp'  => __( 'Use * to capture variable path segments. Use * in the target to insert each captured value.', 'easyrankly' ),
+				'regexHelp'     => __( 'Use a PCRE path expression and $1, $2… in the target for captured values.', 'easyrankly' ),
 			)
 		);
 	}
@@ -257,7 +247,6 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			'hook_suffix'     => $hook_suffix,
 			'screen'          => $screen,
 			'is_settings'     => $is_settings,
-			'is_setup'        => $is_setup,
 			'is_editor'       => $is_editor,
 			'is_taxonomy'     => $is_taxonomy,
 			'is_block_editor' => false,

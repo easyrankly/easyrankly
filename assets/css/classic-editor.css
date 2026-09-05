@@ -1,26 +1,18 @@
 /**
  * EasyRankly classic editor and taxonomy overrides.
  *
- * Shared fields, tabs, media controls and schema builders live in
- * admin-settings.css, which is loaded before this file. Autocomplete styles
- * live in admin-core.css so the setup wizard can reuse them.
+ * Shared fields, media controls and schema builders live in
+ * admin-settings.css, which is loaded before this file. Autocomplete
+ * styles live in admin-core.css.
  */
 
 /*
- * Match the postbox side inset (12px) above the tabs pillow, and keep the
- * same field rhythm below it before Meta title / panel content.
+ * Match the postbox side inset (12px), and keep the same field rhythm
+ * below it before Meta title / panel content.
  */
 #erankly.postbox .inside {
 	margin-top: 0;
 	padding-top: var(--erankly-space-3);
-}
-
-.erankly-meta-box > .erankly-tabs {
-	margin-bottom: var(--erankly-space-field);
-}
-
-.erankly-term-meta-box > .erankly-tabs {
-	margin-top: var(--erankly-space-3);
 }
 
 /* Match the 40px single-line control standard used in the block editor. */

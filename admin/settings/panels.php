@@ -394,12 +394,6 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[resolve_placeholders]" value="1" <?php checked( ! empty( $settings['resolve_placeholders'] ) ); ?>> <?php esc_html_e( 'Show resolved values for variables', 'easyrankly' ); ?></label>
 						<p class="description"><?php esc_html_e( 'Shows resolved values instead of {{variables}}. Click to edit.', 'easyrankly' ); ?></p>
 					</div>
-					<?php if ( $redirects_enabled ) : ?>
-					<div class="erankly-field erankly-checkboxes">
-						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[redirect_exclude_admins]" value="1" <?php checked( ! empty( $settings['redirect_exclude_admins'] ) ); ?>> <?php esc_html_e( 'Do not apply any redirect to administrators', 'easyrankly' ); ?></label>
-						<p class="description"><?php esc_html_e( 'Exempts users with the "manage_options" capability (typically Administrators) from all redirects.', 'easyrankly' ); ?></p>
-					</div>
-					<?php endif; ?>
 					</div>
 				</div>
 

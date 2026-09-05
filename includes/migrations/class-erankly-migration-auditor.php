@@ -25,6 +25,7 @@ final class ERankly_Migration_Auditor {
 		$live_targets = array();
 		$last_id      = 0;
 		$transformed  = 0;
+		$redirects_transformed = 0;
 
 		do {
 			$rows = $store->evidence_page( $job_id, $last_id, 500 );
@@ -88,6 +89,10 @@ final class ERankly_Migration_Auditor {
 					$terminal = $this->redirect_terminal( $row, $mode );
 					++$accounting['redirects']['discovered'];
 					++$accounting['redirects']['terminal'][ $terminal ];
+					if ( ! empty( $payload['transformed'] ) ) {
+						++$transformed;
+						++$redirects_transformed;
+					}
 					if ( is_array( $payload['redirect'] ?? null ) ) {
 						$redirects[] = array(
 							'row'       => $row,
@@ -116,7 +121,8 @@ final class ERankly_Migration_Auditor {
 		$balanced = ! in_array( false, array_column( $accounting, 'balanced' ), true );
 
 		if ( isset( $report['counts'] ) && is_array( $report['counts'] ) ) {
-			$report['counts']['fields_transformed'] = $transformed;
+			$report['counts']['fields_transformed'] = max( 0, $transformed - $redirects_transformed );
+			$report['counts']['redirects_transformed'] = $redirects_transformed;
 		}
 
 		return array(
@@ -283,6 +289,7 @@ final class ERankly_Migration_Auditor {
 
 	private function audit_redirects( array $items, string $mode ): array {
 		$sources    = array();
+		$identities = array();
 		$loops      = array();
 		$chains     = array();
 		$dangerous  = array();
@@ -306,20 +313,30 @@ final class ERankly_Migration_Auditor {
 			$rule   = $item['redirect'];
 			$source = $this->path( (string) ( $rule['source_path'] ?? '' ) );
 			$target = $this->internal_target_path( (string) ( $rule['target_url'] ?? '' ) );
-			if ( isset( $sources[ $source ] ) ) {
+			$is_exact = 'exact' === (string) ( $rule['match_type'] ?? 'exact' );
+			$identity = (string) ( $item['rule_hash'] ?? '' );
+			if ( '' !== $identity && isset( $identities[ $identity ] ) ) {
 				$collisions[] = $source;
 			}
-			$sources[ $source ] = $target;
-			if ( '' !== $source && $source === $target ) {
-				$loops[] = $source;
+			$identities[ $identity ] = true;
+			if ( $is_exact ) {
+				$sources[ $source ] = $target;
+				if ( '' !== $source && $source === $target ) {
+					$loops[] = $source;
+				}
 			}
 			if ( 'regex' === (string) ( $rule['match_type'] ?? '' ) && $this->dangerous_regex( (string) ( $rule['source_path'] ?? '' ) ) ) {
 				$dangerous[] = sanitize_text_field( (string) ( $item['row']['source_reference'] ?? $source ) );
 			}
 
+			$probe_path = $source;
+			if ( $is_exact && 'exact' === (string) ( $rule['query_mode'] ?? '' ) && '' !== (string) ( $rule['source_query'] ?? '' ) ) {
+				$probe_path .= '?' . ltrim( (string) $rule['source_query'], '?' );
+			}
 			$probe = array(
 				'reference'         => sanitize_text_field( (string) ( $item['row']['source_reference'] ?? '' ) ),
-				'source_path'       => $source,
+				'source_path'       => $probe_path,
+				'live_probe'        => $is_exact,
 				'expected_status'   => absint( $rule['status_code'] ?? 0 ),
 				'expected_location' => esc_url_raw( (string) ( $rule['target_url'] ?? '' ) ),
 				'storage_status'    => 'preview' === $mode ? 'not_applicable' : 'not_verified',

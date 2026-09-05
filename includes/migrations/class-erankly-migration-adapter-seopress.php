@@ -141,7 +141,7 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 
 	/** @return array<int,string> */
 	public function capabilities(): array {
-		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'attachment redirects', 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex, query and login redirect conditions' );
+		return array( 'global titles and descriptions', 'global robots and sitemap rules', 'site identity', 'attachment redirects', 'posts', 'terms', 'social', 'robots', 'primary category', 'target keywords', 'PRO schemas', 'PRO redirects', 'regex and query matching' );
 	}
 
 	public function global_settings(): array {
@@ -343,7 +343,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		}
 		if ( in_array( 'redirects', $this->modules(), true ) ) {
 			$settings['enable_redirects']        = 1;
-			$settings['redirect_exclude_admins'] = 0;
 		}
 
 		return $settings;

@@ -674,6 +674,24 @@ final class ERankly_Migration_Job_Runner {
 
 		$row['source_plugin'] = $adapter->slug();
 		$row['migration_id']  = (string) $job['id'];
+		$legacy_match         = in_array( (string) ( $row['match_type'] ?? '' ), array( 'contains', 'starts_with', 'ends_with' ), true );
+		$unsupported_reason   = erankly_import_redirect_unsupported_reason( $row );
+		if ( '' !== $unsupported_reason ) {
+			if ( $this->store->add_event(
+				array(
+					'job_id'           => (string) $job['id'],
+					'item_kind'        => 'redirect',
+					'source_reference' => $reference,
+					'target_field'     => 'rule',
+					'identity'         => 'unsupported:' . $reference,
+					'discovery_status' => 'unsupported',
+					'apply_status'     => 'none',
+				)
+			) ) {
+				$this->add_detail( $job, 'unsupported_redirect_' . $unsupported_reason, $reference, '' );
+			}
+			return;
+		}
 		$redirect             = erankly_import_prepare_redirect( $row );
 		if ( null === $redirect ) {
 			if ( $this->store->add_event(
@@ -729,11 +747,14 @@ final class ERankly_Migration_Job_Runner {
 				'payload'          => array(
 					'rule_hash' => $rule_hash,
 					'redirect'  => $redirect,
+					'transformed' => $legacy_match,
 				),
 			)
 		);
 		if ( $inserted && 'conflict' === $status ) {
 			$this->add_detail( $job, 'redirect_conflict_preserved', $reference, '' );
+		} elseif ( $inserted && $legacy_match ) {
+			$this->add_detail( $job, 'redirect_match_safely_transformed', $reference, '' );
 		}
 	}
 

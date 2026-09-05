@@ -194,22 +194,13 @@
 .erankly-term-meta-box input[type="search"],
 .erankly-term-meta-box input[type="password"],
 .erankly-term-meta-box textarea,
-.erankly-term-meta-box select,
-.erankly-setup input[type="text"],
-.erankly-setup input[type="url"],
-.erankly-setup input[type="email"],
-.erankly-setup input[type="number"],
-.erankly-setup input[type="search"],
-.erankly-setup input[type="password"],
-.erankly-setup textarea,
-.erankly-setup select {
+.erankly-term-meta-box select {
 	border-radius: var(--erankly-radius-control);
 }
 
 .erankly-settings .button,
 .erankly-meta-box .button,
-.erankly-term-meta-box .button,
-.erankly-setup .button {
+.erankly-term-meta-box .button {
 	border-radius: var(--erankly-radius-control);
 }
 

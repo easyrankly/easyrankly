@@ -343,7 +343,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		}
 		if ( in_array( 'redirections', $this->modules(), true ) ) {
 			$settings['enable_redirects']        = 1;
-			$settings['redirect_exclude_admins'] = $this->enabled( $general['redirections_debug'] ?? false ) ? 1 : 0;
 
 			$fallback = sanitize_key( (string) ( $general['redirections_fallback'] ?? 'default' ) );
 			if ( ! in_array( $fallback, array( '', 'default' ), true ) ) {

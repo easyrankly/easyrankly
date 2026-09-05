@@ -161,7 +161,7 @@ function erankly_migration_render_report(): void {
 						<td><?php echo esc_html( (string) ( $counts['redirects_found'] ?? 0 ) ); ?></td>
 						<td><?php echo esc_html( (string) ( 'preview' === (string) $report['mode'] ? ( ( $counts['redirects_ready_create'] ?? 0 ) + ( $counts['redirects_ready_update'] ?? 0 ) ) : ( ( $counts['redirects_created'] ?? 0 ) + ( $counts['redirects_updated'] ?? 0 ) ) ) ); ?></td>
 						<td><?php echo esc_html( (string) ( ( $counts['redirects_unchanged'] ?? 0 ) + ( $counts['redirects_duplicate'] ?? 0 ) ) ); ?></td>
-						<td><?php echo esc_html( (string) ( ( $counts['redirects_conflicts'] ?? 0 ) + ( $counts['redirects_invalid'] ?? 0 ) + ( $counts['redirects_failed'] ?? 0 ) ) ); ?></td>
+						<td><?php echo esc_html( (string) ( ( $counts['redirects_conflicts'] ?? 0 ) + ( $counts['redirects_invalid'] ?? 0 ) + ( $counts['redirects_unsupported'] ?? 0 ) + ( $counts['redirects_failed'] ?? 0 ) ) ); ?></td>
 					</tr>
 				</tbody>
 			</table>

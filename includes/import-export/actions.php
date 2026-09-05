@@ -10,7 +10,7 @@ require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-admin-p
 require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 
 /** Export file format version. Bumped when the JSON structure changes. */
-define( 'ERANKLY_EXPORT_FORMAT', '2.0' );
+define( 'ERANKLY_EXPORT_FORMAT', '3.0' );
 
 /** Default maximum size for a complete EasyRankly JSON import. */
 define( 'ERANKLY_IMPORT_DEFAULT_MAX_BYTES', 10 * 1024 * 1024 );
@@ -398,7 +398,8 @@ function erankly_import_export_handle_import(): void {
 	$started = ERankly_Import_Job_Runner::start( $file, $data, $maximum );
 	unset( $data );
 	if ( empty( $started['ok'] ) ) {
-		$notice = 'import_already_running' === (string) ( $started['error'] ?? '' ) ? 'import-running' : 'import-error';
+		$error  = (string) ( $started['error'] ?? '' );
+		$notice = 'import_already_running' === $error ? 'import-running' : ( 'unsupported_format' === $error ? 'unsupported-format' : 'import-error' );
 		erankly_import_export_redirect( array( 'erankly_io_notice' => $notice ) );
 	}
 	$job       = is_array( $started['job'] ?? null ) ? $started['job'] : array();
@@ -418,6 +419,8 @@ function erankly_import_export_handle_import(): void {
 			'erankly_io_notice' => 'imported',
 			'er_settings'       => (int) ( $counts['settings'] ?? 0 ),
 			'er_redirects'      => (int) ( $counts['redirects'] ?? 0 ),
+			'er_redirects_transformed' => (int) ( $counts['redirects_transformed'] ?? 0 ),
+			'er_redirects_skipped' => (int) ( ( $counts['redirects_unsupported'] ?? 0 ) + ( $counts['redirects_invalid'] ?? 0 ) ),
 			'er_post_meta'      => (int) ( $counts['post_meta'] ?? 0 ),
 			'er_term_meta'      => (int) ( $counts['term_meta'] ?? 0 ),
 			'er_user_meta'      => (int) ( $counts['user_meta'] ?? 0 ),

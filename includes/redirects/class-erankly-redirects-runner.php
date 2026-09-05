@@ -30,65 +30,30 @@ final class ERankly_Redirects_Runner {
 		if ( '' === $request_uri || $this->should_skip_request( $request_uri ) ) {
 			return;
 		}
+		// Redirect behavior is intentionally fixed for administrators so the
+		// setting cannot accidentally lock a site owner out of a route.
+		if ( current_user_can( 'manage_options' ) ) {
+			return;
+		}
 
 		$current_path  = ERankly_Redirects_Normalizer::normalize_path( $request_uri );
 		$current_query = ERankly_Redirects_Normalizer::extract_query( $request_uri );
 		$source_hash   = ERankly_Redirects_Normalizer::source_hash( $current_path );
 		$exact_rule    = $this->repository->get_exact_rule_cached( $source_hash );
 		$patterns      = $this->repository->get_pattern_rules( $current_path, $current_query );
-		$now           = current_time( 'mysql' );
-		$advanced_rule = empty( $patterns ) ? null : $this->find_advanced_match( $request_uri, $current_query, $patterns, $now );
+		$advanced_rule = empty( $patterns ) ? null : $this->find_advanced_match( $request_uri, $patterns );
 		$redirect      = $exact_rule;
 		$target_url    = '';
-		$matched_path  = $current_path;
 
 		if ( $advanced_rule ) {
-			$advanced_priority = (int) ( $advanced_rule['priority'] ?? 10 );
-			$exact_priority    = $exact_rule ? (int) ( $exact_rule['priority'] ?? 10 ) : PHP_INT_MAX;
-			$advanced_id       = (int) ( $advanced_rule['id'] ?? 0 );
-			$exact_id          = $exact_rule ? (int) ( $exact_rule['id'] ?? 0 ) : PHP_INT_MAX;
-
-			if ( ! $exact_rule || $advanced_priority < $exact_priority || ( $advanced_priority === $exact_priority && $advanced_id < $exact_id ) ) {
+			if ( ! $exact_rule || ERankly_Redirects_Normalizer::compare_rules( $advanced_rule, $exact_rule ) < 0 ) {
 				$redirect = $advanced_rule;
 			}
 		}
 
 		if ( $redirect ) {
-			if ( $advanced_rule && (int) $advanced_rule['id'] === (int) $redirect['id'] ) {
-				$case_sensitive = ! empty( $redirect['case_sensitive'] );
-				$trailing_slash = (string) ( $redirect['trailing_slash'] ?? 'ignore' );
-				$matched_path   = ERankly_Redirects_Normalizer::normalize_match_path(
-					$request_uri,
-					$case_sensitive,
-					$trailing_slash
-				);
-				$capture_path   = ERankly_Redirects_Normalizer::normalize_match_path_for_capture(
-					$request_uri,
-					$case_sensitive,
-					$trailing_slash
-				);
-				$match_type     = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : 'regex' ) );
-
-				if ( 'wildcard' === $match_type ) {
-					$target_url = ERankly_Redirects_Normalizer::apply_wildcard_target(
-						(string) $redirect['source_path'],
-						$capture_path,
-						(string) $redirect['target_url'],
-						$case_sensitive
-					);
-				} elseif ( 'regex' === $match_type ) {
-					$target_url = ERankly_Redirects_Normalizer::apply_regex_target(
-						(string) $redirect['source_path'],
-						$capture_path,
-						(string) $redirect['target_url'],
-						$case_sensitive
-					);
-				} else {
-					$target_url = (string) $redirect['target_url'];
-				}
-			} else {
-				$target_url = (string) $redirect['target_url'];
-			}
+			$evaluation = ERankly_Redirects_Normalizer::evaluate_rule( $redirect, $request_uri );
+			$target_url = (string) $evaluation['target_url'];
 		}
 
 		if ( ! $redirect ) {
@@ -101,31 +66,11 @@ final class ERankly_Redirects_Runner {
 			return;
 		}
 
-		// Global setting: never redirect administrators.
-		if ( erankly_get_setting( 'redirect_exclude_admins', 1 ) && current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		// Per-redirect visibility condition.
-		if ( ! $this->passes_visibility( $redirect ) ) {
-			return;
-		}
-
-		if ( ! $this->passes_conditions( $redirect ) ) {
-			return;
-		}
-
 		if ( ERankly_Redirects_Normalizer::is_status_only_code( $status_code ) ) {
 			$this->repository->increment_hit( (int) $redirect['id'] );
 			$this->send_status_only_response( $status_code );
 			exit;
 		}
-
-		if ( 'preserve' === (string) ( $redirect['query_mode'] ?? 'ignore' ) ) {
-			$target_url = ERankly_Redirects_Normalizer::preserve_query( $target_url, $current_query );
-		}
-
-		$target_url = ERankly_Redirects_Normalizer::normalize_target_url( $target_url );
 
 		if ( '' === $target_url || $this->is_loop( $current_path, $target_url ) ) {
 			return;
@@ -193,77 +138,10 @@ final class ERankly_Redirects_Runner {
 		wp_die( esc_html( $message ), esc_html( $title ), array( 'response' => absint( $status_code ) ) );
 	}
 
-	private function passes_visibility( array $redirect ): bool {
-		$visibility = isset( $redirect['visibility'] ) ? (string) $redirect['visibility'] : 'all';
-
-		if ( 'all' === $visibility ) {
-			return true;
-		}
-
-		if ( 'logged_out' === $visibility ) {
-			return ! is_user_logged_in();
-		}
-
-		if ( 'logged_in' === $visibility ) {
-			if ( ! is_user_logged_in() ) {
-				return false;
-			}
-
-			$required_role = isset( $redirect['required_role'] ) ? (string) $redirect['required_role'] : '';
-
-			if ( '' === $required_role ) {
-				return true;
-			}
-
-			$user = wp_get_current_user();
-
-			return in_array( $required_role, (array) $user->roles, true );
-		}
-
-		return false;
-	}
-
-	/** Evaluates portable request conditions stored with imported redirect rules. Unknown condition keys fail closed so a migration never broadens a rule. */
-	private function passes_conditions( array $redirect ): bool {
-		if ( empty( $redirect['conditions'] ) ) {
-			return true;
-		}
-
-		$conditions = is_string( $redirect['conditions'] ) ? json_decode( $redirect['conditions'], true ) : $redirect['conditions'];
-		if ( ! is_array( $conditions ) ) {
-			return false;
-		}
-
-		foreach ( $conditions as $key => $expected ) {
-			$key      = sanitize_key( (string) $key );
-			$expected = is_scalar( $expected ) ? (string) $expected : '';
-
-			if ( 'referrer_contains' === $key ) {
-				$actual = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
-			} elseif ( 'user_agent_contains' === $key ) {
-				$actual = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-			} elseif ( 'language' === $key ) {
-				$actual = isset( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) : '';
-			} elseif ( str_starts_with( $key, 'cookie_' ) ) {
-				$cookie = substr( $key, 7 );
-				$actual = isset( $_COOKIE[ $cookie ] ) ? sanitize_text_field( wp_unslash( $_COOKIE[ $cookie ] ) ) : '';
-			} else {
-				return false;
-			}
-
-			if ( '' === $expected || false === stripos( $actual, $expected ) ) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	/**
- * @param string                         $current_query Current request query string.
- * @return array<string,mixed>|null
- */
-	private function find_advanced_match( string $request_uri, string $current_query, array $redirects, string $now ): ?array {
+	 * @return array<string,mixed>|null
+	 */
+	private function find_advanced_match( string $request_uri, array $redirects ): ?array {
 		// Realistic paths are short; a multi-kilobyte path is only ever a vector for
 		// driving up pattern-matching cost, so refuse to run regexes against it.
 		if ( strlen( $request_uri ) > 4096 ) {
@@ -277,49 +155,9 @@ final class ERankly_Redirects_Runner {
 		);
 
 		$match            = null;
-		$normalized_paths = array();
 		foreach ( $redirects as $redirect ) {
-			if ( ! $this->is_rule_in_schedule( $redirect, $now ) ) {
-				continue;
-			}
-
-			if ( ! $this->passes_visibility( $redirect ) || ! $this->passes_conditions( $redirect ) ) {
-				continue;
-			}
-
-			$query_mode = (string) ( $redirect['query_mode'] ?? 'ignore' );
-			if ( 'exact' === $query_mode && (string) ( $redirect['source_query'] ?? '' ) !== $current_query ) {
-				continue;
-			}
-
-			$case_sensitive = ! empty( $redirect['case_sensitive'] );
-			$trailing_slash = (string) ( $redirect['trailing_slash'] ?? 'ignore' );
-			$path_key       = ( $case_sensitive ? '1' : '0' ) . '|' . $trailing_slash;
-			if ( ! isset( $normalized_paths[ $path_key ] ) ) {
-				$normalized_paths[ $path_key ] = ERankly_Redirects_Normalizer::normalize_match_path( $request_uri, $case_sensitive, $trailing_slash );
-			}
-			$current_path = $normalized_paths[ $path_key ];
-			$source_path  = (string) ( $redirect['_runtime_source_path'] ?? ERankly_Redirects_Normalizer::normalize_match_path( (string) $redirect['source_path'], $case_sensitive, $trailing_slash ) );
-			$match_type   = (string) ( $redirect['match_type'] ?? ( ! empty( $redirect['is_wildcard'] ) ? 'wildcard' : ( ! empty( $redirect['is_regex'] ) ? 'regex' : 'exact' ) ) );
-			$matched      = false;
-
-			if ( 'wildcard' === $match_type ) {
-				$pattern = (string) ( $redirect['_runtime_pattern'] ?? ERankly_Redirects_Normalizer::build_wildcard_pattern( (string) $redirect['source_path'], $case_sensitive ) );
-				$matched = 1 === preg_match( $pattern, $current_path );
-			} elseif ( 'regex' === $match_type ) {
-				$pattern = (string) ( $redirect['_runtime_pattern'] ?? ERankly_Redirects_Normalizer::build_regex_pattern( (string) $redirect['source_path'], $case_sensitive ) );
-				$matched = 1 === preg_match( $pattern, $current_path );
-			} elseif ( 'contains' === $match_type ) {
-				$matched = str_contains( $current_path, $source_path );
-			} elseif ( 'starts_with' === $match_type ) {
-				$matched = str_starts_with( $current_path, $source_path );
-			} elseif ( 'ends_with' === $match_type ) {
-				$matched = str_ends_with( $current_path, $source_path );
-			} else {
-				$matched = $source_path === $current_path;
-			}
-
-			if ( $matched ) {
+			$evaluation = ERankly_Redirects_Normalizer::evaluate_rule( $redirect, $request_uri );
+			if ( ! empty( $evaluation['matches'] ) ) {
 				$match = $redirect;
 				break;
 			}
@@ -328,13 +166,6 @@ final class ERankly_Redirects_Runner {
 		restore_error_handler();
 
 		return $match;
-	}
-
-	private function is_rule_in_schedule( array $redirect, string $now ): bool {
-		$start = ! empty( $redirect['start_at'] ) ? (string) $redirect['start_at'] : '';
-		$end   = ! empty( $redirect['end_at'] ) ? (string) $redirect['end_at'] : '';
-
-		return ( '' === $start || $now >= $start ) && ( '' === $end || $now <= $end );
 	}
 
 	/** Prevent redirects that resolve to the same local path or a redirect cycle. */

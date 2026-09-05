@@ -34,7 +34,6 @@ define( 'ERANKLY_OPTION', 'erankly_settings' );
 // Special-page metadata is stored per site on Multisite (see erankly_get_site_special_meta()).
 define( 'ERANKLY_SPECIAL_META_OPTION', 'erankly_special_meta' );
 define( 'ERANKLY_VERSION_OPTION', 'erankly_version' );
-define( 'ERANKLY_SETUP_STATUS_OPTION', 'erankly_setup_wizard_status' );
 define( 'ERANKLY_RUNTIME_STATE_OPTION', 'erankly_runtime_state' );
 define( 'ERANKLY_REWRITE_FLUSH_OPTION', 'erankly_flush_rewrite_rules' );
 define( 'ERANKLY_SITEMAP_TRANSIENT_PREFIX', 'erankly_sitemap_' );
@@ -76,7 +75,6 @@ require_once ERANKLY_PATH . 'includes/seo-state.php';
 function erankly_runtime_state_key( string $option ): string {
 	$keys = array(
 		ERANKLY_VERSION_OPTION            => 'version',
-		ERANKLY_SETUP_STATUS_OPTION       => 'setup_status',
 		ERANKLY_REWRITE_GENERATION_OPTION => 'rewrite_generation',
 	);
 
@@ -102,7 +100,6 @@ function erankly_get_runtime_state(): array {
 	if ( ! is_array( $state ) ) {
 		$state = array(
 			'version'            => get_option( ERANKLY_VERSION_OPTION, '' ),
-			'setup_status'       => get_option( ERANKLY_SETUP_STATUS_OPTION, '' ),
 			'rewrite_generation' => get_option( ERANKLY_REWRITE_GENERATION_OPTION, '0' ),
 		);
 
@@ -416,10 +413,6 @@ function erankly_activate(): void {
 		add_site_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 	} else {
 		add_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION, '', 'no' );
-	}
-
-	if ( $is_new_install ) {
-		erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'pending' );
 	}
 
 	erankly_rotate_rewrite_generation();

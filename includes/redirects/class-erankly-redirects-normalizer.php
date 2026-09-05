@@ -22,7 +22,7 @@ final class ERankly_Redirects_Normalizer {
  *
  * @var string[]
  */
-	public const VALID_MATCH_TYPES = array( 'exact', 'wildcard', 'regex', 'contains', 'starts_with', 'ends_with' );
+	public const VALID_MATCH_TYPES = array( 'exact', 'wildcard', 'regex' );
 
 	/**
  * Supported query-string strategies.
@@ -209,14 +209,110 @@ final class ERankly_Redirects_Normalizer {
 			'case_sensitive' => empty( $data['case_sensitive'] ) ? 0 : 1,
 			'trailing_slash' => (string) ( $data['trailing_slash'] ?? 'ignore' ),
 			'query_mode'     => (string) ( $data['query_mode'] ?? 'ignore' ),
-			'visibility'     => (string) ( $data['visibility'] ?? 'all' ),
-			'required_role'  => (string) ( $data['required_role'] ?? '' ),
-			'conditions'     => is_array( $data['conditions'] ?? null ) ? $data['conditions'] : (string) ( $data['conditions'] ?? '' ),
-			'start_at'       => (string) ( $data['start_at'] ?? '' ),
-			'end_at'         => (string) ( $data['end_at'] ?? '' ),
 		);
 
 		return md5( (string) wp_json_encode( $identity ) );
+	}
+
+	/**
+	 * Compare two matching rules without exposing a manual priority control.
+	 * Exact rules win over wildcard rules, wildcard rules win over regexes,
+	 * and the most specific rule wins within the same family.
+	 */
+	public static function compare_rules( array $left, array $right ): int {
+		$rank = array(
+			'exact'    => 0,
+			'wildcard' => 1,
+			'regex'    => 2,
+		);
+		$left_type  = (string) ( $left['match_type'] ?? 'exact' );
+		$right_type = (string) ( $right['match_type'] ?? 'exact' );
+		$comparison = ( $rank[ $left_type ] ?? 3 ) <=> ( $rank[ $right_type ] ?? 3 );
+
+		if ( 0 !== $comparison ) {
+			return $comparison;
+		}
+
+		// Exact-query rules are narrowest. When two rules otherwise overlap,
+		// preserving the visitor query wins over silently discarding it.
+		$query_rank  = array( 'exact' => 0, 'preserve' => 1, 'ignore' => 2 );
+		$left_query  = $query_rank[ (string) ( $left['query_mode'] ?? 'ignore' ) ] ?? 3;
+		$right_query = $query_rank[ (string) ( $right['query_mode'] ?? 'ignore' ) ] ?? 3;
+		$comparison  = $left_query <=> $right_query;
+		if ( 0 !== $comparison ) {
+			return $comparison;
+		}
+
+		$left_specificity  = self::literal_specificity( (string) ( $left['source_path'] ?? '' ), $left_type );
+		$right_specificity = self::literal_specificity( (string) ( $right['source_path'] ?? '' ), $right_type );
+		$comparison        = $right_specificity <=> $left_specificity;
+
+		return 0 !== $comparison
+			? $comparison
+			: (int) ( $left['id'] ?? PHP_INT_MAX ) <=> (int) ( $right['id'] ?? PHP_INT_MAX );
+	}
+
+	/**
+	 * Evaluate one normalized rule against a URL without mutating state.
+	 *
+	 * @return array{matches:bool,target_url:string,path:string,query:string}
+	 */
+	public static function evaluate_rule( array $rule, string $request_uri ): array {
+		$query          = self::extract_query( $request_uri );
+		$query_mode     = (string) ( $rule['query_mode'] ?? 'ignore' );
+		$case_sensitive = ! empty( $rule['case_sensitive'] );
+		$trailing_slash = (string) ( $rule['trailing_slash'] ?? 'ignore' );
+		$path           = self::normalize_match_path( $request_uri, $case_sensitive, $trailing_slash );
+		$capture_path   = self::normalize_match_path_for_capture( $request_uri, $case_sensitive, $trailing_slash );
+		$source         = (string) ( $rule['source_path'] ?? '' );
+		$match_type     = (string) ( $rule['match_type'] ?? 'exact' );
+		$matches        = false;
+
+		if ( 'exact' === $query_mode && (string) ( $rule['source_query'] ?? '' ) !== $query ) {
+			return array( 'matches' => false, 'target_url' => '', 'path' => $path, 'query' => $query );
+		}
+
+		if ( 'wildcard' === $match_type ) {
+			$matches = 1 === preg_match( self::build_wildcard_pattern( $source, $case_sensitive ), $path );
+		} elseif ( 'regex' === $match_type ) {
+			$matches = 1 === preg_match( self::build_regex_pattern( $source, $case_sensitive ), $path );
+		} else {
+			$matches = self::normalize_match_path( $source, $case_sensitive, $trailing_slash ) === $path;
+		}
+
+		if ( ! $matches ) {
+			return array( 'matches' => false, 'target_url' => '', 'path' => $path, 'query' => $query );
+		}
+
+		$target = (string) ( $rule['target_url'] ?? '' );
+		if ( 'wildcard' === $match_type ) {
+			$target = self::apply_wildcard_target( $source, $capture_path, $target, $case_sensitive );
+		} elseif ( 'regex' === $match_type ) {
+			$target = self::apply_regex_target( $source, $capture_path, $target, $case_sensitive );
+		}
+		if ( 'preserve' === $query_mode ) {
+			$target = self::preserve_query( $target, $query );
+		}
+
+		return array(
+			'matches'    => true,
+			'target_url' => self::normalize_target_url( $target ),
+			'path'       => $path,
+			'query'      => $query,
+		);
+	}
+
+	private static function literal_specificity( string $source, string $match_type ): int {
+		if ( 'wildcard' === $match_type ) {
+			return strlen( str_replace( '*', '', $source ) );
+		}
+		if ( 'regex' === $match_type ) {
+			$literal = preg_replace( '/[\\\\.^$|()\[\]{}*+?]/', '', $source );
+
+			return strlen( is_string( $literal ) ? $literal : '' );
+		}
+
+		return strlen( $source );
 	}
 
 	public static function preserve_query( string $target_url, string $query ): string {

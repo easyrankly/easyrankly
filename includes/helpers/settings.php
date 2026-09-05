@@ -74,7 +74,6 @@ function erankly_settings_toggle_keys(): array {
 		'robots_noodp',
 		'robots_indexifembedded',
 		'enable_redirects',
-		'redirect_exclude_admins',
 	);
 
 	/**

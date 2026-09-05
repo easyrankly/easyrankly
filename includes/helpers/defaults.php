@@ -384,6 +384,5 @@ function erankly_default_settings(): array {
 		'robots_noodp'                   => 0,
 		'robots_indexifembedded'         => 0,
 		'enable_redirects'               => 0,
-		'redirect_exclude_admins'        => 1,
 	);
 }

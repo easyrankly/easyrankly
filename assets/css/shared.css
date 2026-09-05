@@ -109,7 +109,6 @@
 .erankly-settings input[type="number"],
 .erankly-meta-box input[type="number"],
 .erankly-term-meta-box input[type="number"],
-.erankly-setup input[type="number"],
 .erankly-panel input[type="number"],
 .erankly-redirects-form input[type="number"] {
 	-moz-appearance: textfield;
@@ -122,8 +121,6 @@
 .erankly-meta-box input[type="number"]::-webkit-inner-spin-button,
 .erankly-term-meta-box input[type="number"]::-webkit-outer-spin-button,
 .erankly-term-meta-box input[type="number"]::-webkit-inner-spin-button,
-.erankly-setup input[type="number"]::-webkit-outer-spin-button,
-.erankly-setup input[type="number"]::-webkit-inner-spin-button,
 .erankly-panel input[type="number"]::-webkit-outer-spin-button,
 .erankly-panel input[type="number"]::-webkit-inner-spin-button,
 .erankly-redirects-form input[type="number"]::-webkit-outer-spin-button,

@@ -327,6 +327,8 @@ final class ERankly_Migration_Job_Store {
 					$counts['redirects_conflicts'] += $total;
 				} elseif ( 'invalid' === $discovery ) {
 					$counts['redirects_invalid'] += $total;
+				} elseif ( 'unsupported' === $discovery ) {
+					$counts['redirects_unsupported'] = (int) ( $counts['redirects_unsupported'] ?? 0 ) + $total;
 				} elseif ( 'failed' === $discovery ) {
 					$counts['redirects_failed'] += $total;
 				}

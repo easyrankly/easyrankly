@@ -16,7 +16,6 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    bindEach(".erankly-meta-box", "bindTabs");
     bindEach("[data-erankly-expandable]", "bindExpandablePanel");
     bindRoot("bindTabs");
     bindRoot("bindSettingsTabs");

@@ -54,7 +54,8 @@ final class ERankly_Migration_Live_Verifier {
 		}
 
 		$redirect_audit = is_array( $evidence['redirect_audit'] ?? null ) ? $evidence['redirect_audit'] : array();
-		foreach ( array_slice( is_array( $redirect_audit['storage_probes'] ?? null ) ? $redirect_audit['storage_probes'] : array(), 0, $limit ) as $probe ) {
+		$redirect_probes = array_values( array_filter( is_array( $redirect_audit['storage_probes'] ?? null ) ? $redirect_audit['storage_probes'] : array(), static fn( array $probe ): bool => ! empty( $probe['live_probe'] ) ) );
+		foreach ( array_slice( $redirect_probes, 0, $limit ) as $probe ) {
 			$path = (string) ( $probe['source_path'] ?? '' );
 			$url  = $this->same_origin_url( $path );
 			if ( '' !== $url ) {
@@ -302,7 +303,8 @@ final class ERankly_Migration_Live_Verifier {
  */
 	private function redirect_contract( array $evidence, int $limit, array $source_responses = array() ): array {
 		$audit  = is_array( $evidence['redirect_audit'] ?? null ) ? $evidence['redirect_audit'] : array();
-		$probes = array_slice( is_array( $audit['storage_probes'] ?? null ) ? $audit['storage_probes'] : array(), 0, max( 1, $limit ) );
+		$probes = array_values( array_filter( is_array( $audit['storage_probes'] ?? null ) ? $audit['storage_probes'] : array(), static fn( array $probe ): bool => ! empty( $probe['live_probe'] ) ) );
+		$probes = array_slice( $probes, 0, max( 1, $limit ) );
 		$result = array(
 			'state'          => 'not_applicable',
 			'tested'         => 0,

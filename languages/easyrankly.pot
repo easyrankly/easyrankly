@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-29T23:06:57+00:00\n"
+"POT-Creation-Date: 2026-09-05T10:48:57+02:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easyrankly\n"
@@ -78,7 +78,6 @@ msgstr ""
 #: admin/assets/settings.php:108
 #: admin/field-renderers.php:268
 #: admin/settings/panels.php:132
-#: admin/setup-wizard.php:183
 #: assets/js/editor-shared.js:503
 msgid "Remove"
 msgstr ""
@@ -759,9 +758,6 @@ msgstr ""
 
 #: admin/settings-page.php:323
 #: admin/settings-page.php:366
-#: admin/setup-wizard.php:21
-#: admin/setup-wizard.php:53
-#: admin/setup-wizard.php:69
 msgid "Permission denied."
 msgstr ""
 
@@ -794,7 +790,6 @@ msgid "Social"
 msgstr ""
 
 #: admin/settings/page-renderer.php:300
-#: admin/setup-wizard.php:217
 msgid "Advanced"
 msgstr ""
 
@@ -854,13 +849,10 @@ msgid "Enable the sitemap module"
 msgstr ""
 
 #: admin/settings/panels.php:73
-#: admin/setup-wizard.php:139
-#: admin/setup-wizard.php:220
 msgid "Site identity"
 msgstr ""
 
 #: admin/settings/panels.php:76
-#: admin/setup-wizard.php:191
 msgid "Organization or person name"
 msgstr ""
 
@@ -877,32 +869,25 @@ msgid "Identity type"
 msgstr ""
 
 #: admin/settings/panels.php:102
-#: admin/setup-wizard.php:144
-#: admin/setup-wizard.php:221
 msgid "Organization"
 msgstr ""
 
 #: admin/settings/panels.php:103
-#: admin/setup-wizard.php:151
-#: admin/setup-wizard.php:221
 msgid "Person"
 msgstr ""
 
 #: admin/settings/panels.php:107
-#: admin/setup-wizard.php:158
 msgid "Person reference user"
 msgstr ""
 
 #. translators: 1: User display name, 2: User ID.
 #: admin/settings/panels.php:119
-#: admin/setup-wizard.php:170
 #: easyrankly.php:855
 #, php-format
 msgid "%1$s (ID: %2$d)"
 msgstr ""
 
 #: admin/settings/panels.php:125
-#: admin/setup-wizard.php:176
 msgid "Search users…"
 msgstr ""
 
@@ -952,8 +937,6 @@ msgid "Social profiles"
 msgstr ""
 
 #: admin/settings/panels.php:259
-#: admin/setup-wizard.php:197
-#: admin/setup-wizard.php:228
 msgid "X (Twitter) Site"
 msgstr ""
 
@@ -1058,12 +1041,10 @@ msgid "Includes published posts with YouTube, Vimeo or self-hosted HTML5 videos;
 msgstr ""
 
 #: admin/settings/panels.php:428
-#: admin/setup-wizard.php:98
 msgid "Preferences"
 msgstr ""
 
 #: admin/settings/panels.php:431
-#: admin/setup-wizard.php:125
 msgid "Simplified mode"
 msgstr ""
 
@@ -1077,14 +1058,6 @@ msgstr ""
 
 #: admin/settings/panels.php:436
 msgid "Shows resolved values instead of {{variables}}. Click to edit."
-msgstr ""
-
-#: admin/settings/panels.php:440
-msgid "Do not apply any redirect to administrators"
-msgstr ""
-
-#: admin/settings/panels.php:441
-msgid "Exempts users with the \"manage_options\" capability (typically Administrators) from all redirects."
 msgstr ""
 
 #: admin/settings/panels.php:468
@@ -1428,127 +1401,6 @@ msgstr ""
 msgid "Visibility defaults"
 msgstr ""
 
-#: admin/setup-wizard-loader.php:64
-#: admin/setup-wizard-loader.php:65
-#: admin/setup-wizard-loader.php:86
-#: admin/setup-wizard.php:92
-msgid "EasyRankly setup"
-msgstr ""
-
-#: admin/setup-wizard.php:93
-msgid "Configure the few preferences that EasyRankly cannot determine automatically."
-msgstr ""
-
-#: admin/setup-wizard.php:96
-msgid "Setup progress"
-msgstr ""
-
-#: admin/setup-wizard.php:97
-msgid "Welcome"
-msgstr ""
-
-#: admin/setup-wizard.php:99
-msgid "Ready"
-msgstr ""
-
-#: admin/setup-wizard.php:104
-msgid "Welcome to EasyRankly"
-msgstr ""
-
-#: admin/setup-wizard.php:105
-msgid "This short wizard asks for your preferred interface mode, whether the site represents an organization or a person, and a few optional details EasyRankly cannot detect on its own."
-msgstr ""
-
-#: admin/setup-wizard.php:106
-msgid "You can change every choice later from the EasyRankly settings."
-msgstr ""
-
-#: admin/setup-wizard.php:108
-msgid "Start setup"
-msgstr ""
-
-#: admin/setup-wizard.php:112
-msgid "Skip for now"
-msgstr ""
-
-#: admin/setup-wizard.php:121
-#: admin/setup-wizard.php:216
-msgid "Interface mode"
-msgstr ""
-
-#: admin/setup-wizard.php:126
-msgid "Recommended. Shows the essential controls and automates advanced SEO defaults."
-msgstr ""
-
-#: admin/setup-wizard.php:132
-msgid "Advanced mode"
-msgstr ""
-
-#: admin/setup-wizard.php:133
-msgid "Shows every available control for manual configuration."
-msgstr ""
-
-#: admin/setup-wizard.php:140
-msgid "Tells search engines whether the site represents a company or brand, or a single individual. This is the basis of the JSON-LD knowledge graph and the publisher node."
-msgstr ""
-
-#: admin/setup-wizard.php:145
-msgid "A company, brand, store, or any team-run site."
-msgstr ""
-
-#: admin/setup-wizard.php:152
-msgid "A personal blog or portfolio run by a single individual."
-msgstr ""
-
-#: admin/setup-wizard.php:186
-msgid "The WordPress profile used for the global Person JSON-LD schema."
-msgstr ""
-
-#: admin/setup-wizard.php:193
-msgid "Leave blank to use the site name automatically."
-msgstr ""
-
-#: admin/setup-wizard.php:199
-msgid "Optional. Enter an @handle or an x.com profile URL. It is used for the twitter:site meta tag."
-msgstr ""
-
-#: admin/setup-wizard.php:204
-msgid "Save and continue"
-msgstr ""
-
-#: admin/setup-wizard.php:205
-msgid "Back"
-msgstr ""
-
-#: admin/setup-wizard.php:211
-msgid "EasyRankly is ready"
-msgstr ""
-
-#: admin/setup-wizard.php:213
-msgid "Your preferences have been saved. You can now review the complete plugin settings or return to the dashboard."
-msgstr ""
-
-#: admin/setup-wizard.php:217
-msgid "Simplified"
-msgstr ""
-
-#: admin/setup-wizard.php:224
-msgid "Name"
-msgstr ""
-
-#: admin/setup-wizard.php:225
-#: admin/setup-wizard.php:229
-msgid "Not configured"
-msgstr ""
-
-#: admin/setup-wizard.php:233
-msgid "Open EasyRankly settings"
-msgstr ""
-
-#: admin/setup-wizard.php:234
-msgid "Return to dashboard"
-msgstr ""
-
 #: easyrankly.php:183
 msgid "EasyRankly could not update its settings atomically."
 msgstr ""
@@ -1598,10 +1450,6 @@ msgstr ""
 
 #: easyrankly.php:930
 msgid "Unknown settings panel."
-msgstr ""
-
-#: includes/admin.php:404
-msgid "Setup wizard"
 msgstr ""
 
 #: includes/breadcrumbs.php:37
@@ -2452,10 +2300,6 @@ msgstr ""
 msgid "Import queued. It is continuing in bounded, restart-safe background batches."
 msgstr ""
 
-#: includes/import-export/panel.php:301
-msgid "The background import completed successfully. Settings, redirects and metadata were restored from the saved checkpoint."
-msgstr ""
-
 #: includes/import-export/panel.php:304
 msgid "The background import stopped before completion. No unchecked batch will be retried; review the PHP/database log before uploading again."
 msgstr ""
@@ -2600,11 +2444,6 @@ msgid "Migration complete. Existing EasyRankly data was preserved."
 msgstr ""
 
 #. translators: 1: settings count, 2: redirects count, 3: post meta count, 4: term meta count, 5: user meta count.
-#: includes/import-export/panel.php:456
-#, php-format
-msgid "Import complete. Settings: %1$d. Redirects: %2$d. Post metadata: %3$d. Term metadata: %4$d. User metadata: %5$d."
-msgstr ""
-
 #: includes/import-export/panel.php:468
 msgid "Yoast SEO"
 msgstr ""
@@ -3091,10 +2930,6 @@ msgstr ""
 msgid "EasyRankly could not inspect or repair the network reset job because a database operation failed. Resolve the database issue, then reload this page."
 msgstr ""
 
-#: includes/redirects/class-erankly-redirects-admin.php:112
-msgid "Redirects are intentionally bypassed while you are signed in as an administrator. Test them in a signed-out browser, or turn off “Do not apply any redirect to administrators” under Settings."
-msgstr ""
-
 #: includes/redirects/class-erankly-redirects-admin.php:117
 msgid "Edit Redirect"
 msgstr ""
@@ -3322,10 +3157,6 @@ msgstr ""
 #: includes/reset.php:335
 #: includes/reset.php:340
 msgid "EasyRankly could not reset the network settings."
-msgstr ""
-
-#: includes/reset.php:348
-msgid "EasyRankly could not reset the network setup status."
 msgstr ""
 
 #: includes/reset.php:382
@@ -3608,4 +3439,152 @@ msgstr ""
 
 #: assets/js/site-editor.js:196
 msgid "EasyRankly settings are not available in the Site Editor."
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "Matches. Destination: %s"
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "Matches. This response has no destination."
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "This URL does not match the rule."
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "The rule could not be tested."
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "Matches one path. By default, letter case and a final slash are ignored."
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "Use * to capture variable path segments. Use * in the target to insert each captured value."
+msgstr ""
+
+#: admin/assets/settings.php
+msgid "Use a PCRE path expression and $1, $2… in the target for captured values."
+msgstr ""
+
+#: includes/import-export/panel.php
+msgid "Import complete. Settings: %1$d. Redirects: %2$d (%3$d safely transformed, %4$d skipped for review). Post metadata: %5$d. Term metadata: %6$d. User metadata: %7$d."
+msgstr ""
+
+#: includes/migrations/runtime-redirects.php
+msgid "[Matching mode converted to a safe regular expression during import.]"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Redirects are not applied while you are signed in as an administrator. Test them in a signed-out browser."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Redirect upgrade completed: %1$d legacy matching rules were converted and %2$d conditional, scheduled, or duplicate rules were disabled for manual review."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Advanced matching"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Use these controls only when one exact source path is not enough. Exact rules take precedence over wildcard rules, which take precedence over regular expressions."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Match type"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Exact URL"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Wildcard pattern"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Regular expression"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Query parameters"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Ignore and discard"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Ignore and preserve"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Match exactly"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Required query string"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Enter the query string without the leading question mark. Parameter order is significant."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Case-sensitive matching"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Treat the trailing slash as significant"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Test URL"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-admin.php
+msgid "Test rule"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-rest.php
+msgid "Select a valid matching mode."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-rest.php
+msgid "Enter a source and a URL to test."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-rest.php
+msgid "Enter a valid internal source path."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-rest.php
+msgid "The wildcard pattern is not valid."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-rest.php
+msgid "The regular expression is not valid or is too expensive."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-rest.php
+msgid "Enter a target URL for this redirect."
+msgstr ""
+
+#: includes/import-export/panel.php
+msgid "This backup format is not supported. Import an EasyRankly 2.0 or 3.0 export."
+msgstr ""
+
+#: includes/import-export/panel.php
+msgid "The background import completed. Redirects: %1$d (%2$d safely transformed, %3$d skipped for review). Settings and metadata were restored from the saved checkpoint."
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-activator.php
+msgid "[Disabled during the redirect upgrade because the rule used audience, request, or schedule conditions.]"
+msgstr ""
+
+#: includes/redirects/class-erankly-redirects-activator.php
+msgid "[Disabled during the redirect upgrade because another rule now has the same canonical match.]"
 msgstr ""

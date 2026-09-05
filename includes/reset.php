@@ -272,10 +272,6 @@ function erankly_reset_site_data(): void {
 		if ( is_wp_error( $result ) || ! $result ) {
 			throw new RuntimeException( esc_html__( 'EasyRankly could not reset its settings.', 'easyrankly' ) );
 		}
-		// 'pending' is the literal value the first-run wizard checks for (see
-		// erankly_setup_wizard_maybe_redirect()); deleting the option instead
-		// would leave the wizard dismissed, but a clean install must re-run it.
-		erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'pending' );
 	}
 
 	/** Fires after core has wiped this site's EasyRankly data. Add-ons should delete their own options, transients and cron events here. */
@@ -303,14 +299,6 @@ function erankly_reset_network_shared_data(): void {
 	$stored_settings = erankly_get_plugin_option( ERANKLY_OPTION, false );
 	if ( ! is_array( $stored_settings ) || array_intersect_key( $stored_settings, $default_settings ) !== $default_settings ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network settings.', 'easyrankly' ) );
-	}
-
-	// 'pending' re-arms the first-run wizard; deleting the option would not
-	// (erankly_setup_wizard_maybe_redirect() checks for the literal 'pending').
-	erankly_update_plugin_option( ERANKLY_SETUP_STATUS_OPTION, 'pending' );
-
-	if ( 'pending' !== erankly_get_plugin_option( ERANKLY_SETUP_STATUS_OPTION, '' ) ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not reset the network setup status.', 'easyrankly' ) );
 	}
 }
 

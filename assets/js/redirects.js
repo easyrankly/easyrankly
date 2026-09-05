@@ -163,6 +163,98 @@
 		statusSel.addEventListener('change', syncTargetField);
 	}
 
+	var matchType = document.getElementById('erankly-redirects-match-type');
+	var queryMode = document.getElementById('erankly-redirects-query-mode');
+	var queryField = document.getElementById('erankly-redirects-source-query-field');
+	var matchHelp = document.getElementById('erankly-redirects-match-help');
+
+	function syncAdvancedFields() {
+		if (queryMode && queryField) {
+			queryField.hidden = queryMode.value !== 'exact';
+		}
+		if (matchType && matchHelp) {
+			var help = {
+				exact: config.exactHelp || 'Matches one path.',
+				wildcard: config.wildcardHelp || 'Use * to capture variable path segments.',
+				regex: config.regexHelp || 'Use a PCRE path expression.',
+			};
+			matchHelp.textContent = help[matchType.value] || '';
+		}
+	}
+
+	syncAdvancedFields();
+	if (matchType) {
+		matchType.addEventListener('change', syncAdvancedFields);
+	}
+	if (queryMode) {
+		queryMode.addEventListener('change', syncAdvancedFields);
+	}
+
+	var testButton = document.getElementById('erankly-redirects-test-button');
+	if (testButton && config.restUrlTest && config.nonce && window.fetch) {
+		testButton.addEventListener('click', function () {
+			var form = testButton.closest('form');
+			var result = document.getElementById('erankly-redirects-test-result');
+			var testUrl = document.getElementById('erankly-redirects-test-url');
+			if (!form || !result || !testUrl) {
+				return;
+			}
+
+			var field = function (name) {
+				return form.querySelector('[name="' + name + '"]');
+			};
+			var caseField = field('case_sensitive');
+			var slashField = field('trailing_slash');
+			var payload = {
+				source_path: field('source_path') ? field('source_path').value : '',
+				target_url: field('target_url') ? field('target_url').value : '',
+				match_type: field('match_type') ? field('match_type').value : 'exact',
+				query_mode: field('query_mode') ? field('query_mode').value : 'ignore',
+				status_code: field('status_code') ? field('status_code').value : '301',
+				source_query: field('source_query') ? field('source_query').value : '',
+				case_sensitive: !!(caseField && caseField.checked),
+				trailing_slash: slashField && slashField.checked ? 'exact' : 'ignore',
+				test_url: testUrl.value,
+			};
+
+			testButton.disabled = true;
+			result.textContent = '';
+			window.fetch(config.restUrlTest, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': config.nonce,
+				},
+				body: JSON.stringify(payload),
+			})
+				.then(function (response) {
+					return response.json().then(function (data) {
+						if (!response.ok) {
+							throw new Error((data && data.message) || config.testError);
+						}
+						return data;
+					});
+				})
+				.then(function (data) {
+					if (!data.matches) {
+						result.textContent = config.testNoMatch || 'This URL does not match the rule.';
+						return;
+					}
+					if (data.status_only) {
+						result.textContent = config.testMatchedStatus || 'Matches. This response has no destination.';
+						return;
+					}
+					result.textContent = (config.testMatched || 'Matches. Destination: %s').replace('%s', data.target_url || '—');
+				})
+				.catch(function (error) {
+					result.textContent = error.message || config.testError || 'The rule could not be tested.';
+				})
+				.finally(function () {
+					testButton.disabled = false;
+				});
+		});
+	}
+
 	// Expand/collapse is handled by the shared bindExpandablePanel() in admin.js
 	// (data-erankly-* attributes on the section wrapper and toggle button).
 }());

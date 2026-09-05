@@ -32,6 +32,12 @@ final class ERankly_Import_Job_Runner {
 				'error' => 'invalid_upload',
 			);
 		}
+		if ( ! in_array( (string) ( $data['format'] ?? '' ), array( '2.0', '3.0' ), true ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'unsupported_format',
+			);
+		}
 
 		$stored = ERankly_Migration_Upload_Store::store_import_http_upload( $file, $maximum );
 		if ( empty( $stored['ok'] ) ) {
@@ -400,16 +406,30 @@ final class ERankly_Import_Job_Runner {
 		if ( ! class_exists( 'ERankly_Redirects_Repository' ) || ! class_exists( 'ERankly_Redirects_Normalizer' ) ) {
 			return;
 		}
-		if ( class_exists( 'ERankly_Redirects_Activator' ) ) {
+		if ( class_exists( 'ERankly_Redirects_Activator' ) && ! erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ) {
 			ERankly_Redirects_Activator::activate();
 		}
 		$repository = new ERankly_Redirects_Repository();
 		$repository->begin_bulk();
 		try {
 			foreach ( $records as $row ) {
-				$redirect = is_array( $row ) ? erankly_import_prepare_redirect( $row ) : null;
+				if ( ! is_array( $row ) ) {
+					++$counts['redirects_invalid'];
+					continue;
+				}
+				if ( '' !== erankly_import_redirect_unsupported_reason( $row ) ) {
+					++$counts['redirects_unsupported'];
+					continue;
+				}
+				$legacy_match = in_array( (string) ( $row['match_type'] ?? '' ), array( 'contains', 'starts_with', 'ends_with' ), true );
+				$redirect     = erankly_import_prepare_redirect( $row );
 				if ( null !== $redirect && in_array( $repository->upsert_by_hash( $redirect ), array( 'created', 'updated' ), true ) ) {
 					++$counts['redirects'];
+					if ( $legacy_match ) {
+						++$counts['redirects_transformed'];
+					}
+				} elseif ( null === $redirect ) {
+					++$counts['redirects_invalid'];
 				}
 			}
 		} finally {
@@ -484,11 +504,14 @@ final class ERankly_Import_Job_Runner {
 
 	private static function empty_counts(): array {
 		return array(
-			'settings'  => 0,
-			'redirects' => 0,
-			'post_meta' => 0,
-			'term_meta' => 0,
-			'user_meta' => 0,
+			'settings'             => 0,
+			'redirects'            => 0,
+			'redirects_transformed' => 0,
+			'redirects_unsupported' => 0,
+			'redirects_invalid'     => 0,
+			'post_meta'            => 0,
+			'term_meta'            => 0,
+			'user_meta'            => 0,
 		);
 	}
 

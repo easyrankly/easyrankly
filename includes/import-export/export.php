@@ -5,6 +5,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/** Returns only settings that are still part of the public import/export contract. */
+function erankly_export_settings(): array {
+	$settings = erankly_get_plugin_option( ERANKLY_OPTION, array() );
+	$settings = is_array( $settings ) ? $settings : array();
+	unset( $settings['redirect_exclude_admins'] );
+
+	return $settings;
+}
+
 /**
  * @param array<string,mixed> $cursor Stream and last row ID from the previous page.
  * @param int                 $limit  Maximum records in this page.
@@ -38,7 +47,7 @@ function erankly_export_build_data( array $cursor = array(), int $limit = 500 ):
 		'version'      => ERANKLY_VERSION,
 		'exported_at'  => gmdate( 'c' ),
 		'site_url'     => home_url(),
-		'settings'     => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
+		'settings'     => erankly_export_settings(),
 		'special_meta' => get_option( ERANKLY_SPECIAL_META_OPTION, array() ),
 		'batch'        => array(
 			'type'    => $stream,
@@ -140,7 +149,7 @@ function erankly_export_download(): void {
 		'version'     => ERANKLY_VERSION,
 		'exported_at' => gmdate( 'c' ),
 		'site_url'    => home_url(),
-		'settings'    => erankly_get_plugin_option( ERANKLY_OPTION, array() ),
+		'settings'    => erankly_export_settings(),
 	);
 
 	/** Filters the native EasyRankly export header. Add-ons may attach extra keys they own. Do not mutate `settings`. */

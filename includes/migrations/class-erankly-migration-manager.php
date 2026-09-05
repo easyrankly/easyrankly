@@ -276,12 +276,22 @@ final class ERankly_Migration_Manager {
 				$reference            = sanitize_text_field( (string) ( $row['source_reference'] ?? '' ) );
 				$row['source_plugin'] = $adapter->slug();
 				$row['migration_id']  = $run_id;
+				$unsupported_reason   = erankly_import_redirect_unsupported_reason( $row );
+				if ( '' !== $unsupported_reason ) {
+					++$report['counts']['redirects_unsupported'];
+					$this->detail( $report, 'unsupported_redirect_' . $unsupported_reason, $reference, '' );
+					continue;
+				}
+				$legacy_match = in_array( (string) ( $row['match_type'] ?? '' ), array( 'contains', 'starts_with', 'ends_with' ), true );
 				$redirect             = erankly_import_prepare_redirect( $row );
 
 				if ( null === $redirect ) {
 					++$report['counts']['redirects_invalid'];
 					$this->detail( $report, 'invalid_redirect', $reference, '' );
 					continue;
+				}
+				if ( $legacy_match ) {
+					++$report['counts']['redirects_transformed'];
 				}
 
 				$rule_hash  = ERankly_Redirects_Normalizer::rule_hash( $redirect );
@@ -348,7 +358,7 @@ final class ERankly_Migration_Manager {
  * @param array<string,mixed> $redirect Normalized or stored redirect.
  */
 	public function redirect_value_hash( array $redirect ): string {
-		$keys     = array( 'source_path', 'source_query', 'target_url', 'status_code', 'match_type', 'is_regex', 'is_wildcard', 'case_sensitive', 'trailing_slash', 'query_mode', 'priority', 'is_active', 'visibility', 'required_role', 'conditions', 'start_at', 'end_at' );
+		$keys     = array( 'source_path', 'source_query', 'target_url', 'status_code', 'match_type', 'case_sensitive', 'trailing_slash', 'query_mode', 'is_active' );
 		$behavior = array();
 		foreach ( $keys as $key ) {
 			$value            = $redirect[ $key ] ?? '';
@@ -426,6 +436,8 @@ final class ERankly_Migration_Manager {
 			'redirects_duplicate'     => 0,
 			'redirects_conflicts'     => 0,
 			'redirects_invalid'       => 0,
+			'redirects_unsupported'   => 0,
+			'redirects_transformed'   => 0,
 			'redirects_failed'        => 0,
 		);
 	}
@@ -494,7 +506,7 @@ final class ERankly_Migration_Manager {
 		$mode            = (string) ( $report['mode'] ?? '' );
 		$status          = (string) ( $report['status'] ?? 'failed' );
 		$failed          = (int) ( $counts['settings_failed'] ?? 0 ) + (int) ( $counts['fields_failed'] ?? 0 ) + (int) ( $counts['redirects_failed'] ?? 0 );
-		$invalid         = (int) ( $counts['settings_invalid'] ?? 0 ) + (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 );
+		$invalid         = (int) ( $counts['settings_invalid'] ?? 0 ) + (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 ) + (int) ( $counts['redirects_unsupported'] ?? 0 );
 		$conflicts       = (int) ( $counts['settings_conflicts'] ?? 0 ) + (int) ( $counts['fields_conflicts'] ?? 0 ) + (int) ( $counts['redirects_conflicts'] ?? 0 );
 		$warnings        = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
 		$blocking_warnings = array_filter(

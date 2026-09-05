@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once ERANKLY_PATH . 'includes/helpers/redirect-cache.php';
 
 /** Database schema version for the redirects table. */
-define( 'ERANKLY_REDIRECTS_DB_VERSION', '2.0.0' );
+define( 'ERANKLY_REDIRECTS_DB_VERSION', '3.0.0' );
 
 /** Option name tracking the installed redirects table version. */
 define( 'ERANKLY_REDIRECTS_DB_VERSION_OPTION', 'erankly_redirects_db_version' );

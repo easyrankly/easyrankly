@@ -148,6 +148,7 @@ final class ERankly_Migration_Admin_Presenter {
 				+ absint( $counts['fields_unsupported'] ?? 0 )
 				+ absint( $counts['redirects_failed'] ?? 0 )
 				+ absint( $counts['redirects_invalid'] ?? 0 )
+				+ absint( $counts['redirects_unsupported'] ?? 0 )
 				+ absint( $counts['redirects_conflicts'] ?? 0 );
 		}
 

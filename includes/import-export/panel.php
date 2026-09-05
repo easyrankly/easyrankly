@@ -281,8 +281,16 @@ function erankly_import_export_render_notice(): void {
 			$message = __( 'Import queued. It is continuing in bounded, restart-safe background batches.', 'easyrankly' );
 			$class   = 'notice-info';
 		} elseif ( is_array( $finished ) && 'complete' === (string) ( $finished['status'] ?? '' ) ) {
-			$message = __( 'The background import completed successfully. Settings, redirects and metadata were restored from the saved checkpoint.', 'easyrankly' );
-			$class   = 'notice-success';
+			$counts  = is_array( $finished['counts'] ?? null ) ? $finished['counts'] : array();
+			$skipped = absint( $counts['redirects_unsupported'] ?? 0 ) + absint( $counts['redirects_invalid'] ?? 0 );
+			$message = sprintf(
+				/* translators: 1: imported redirects, 2: transformed redirects, 3: skipped redirects. */
+				__( 'The background import completed. Redirects: %1$d (%2$d safely transformed, %3$d skipped for review). Settings and metadata were restored from the saved checkpoint.', 'easyrankly' ),
+				absint( $counts['redirects'] ?? 0 ),
+				absint( $counts['redirects_transformed'] ?? 0 ),
+				$skipped
+			);
+			$class = $skipped > 0 ? 'notice-warning' : 'notice-success';
 		} else {
 			$message = __( 'The background import stopped before completion. No unchecked batch will be retried; review the PHP/database log before uploading again.', 'easyrankly' );
 			$class   = 'notice-error';
@@ -293,6 +301,11 @@ function erankly_import_export_render_notice(): void {
 
 	if ( 'import-error' === $notice ) {
 		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'The import job could not be persisted or completed. The private upload was removed and no further background write is scheduled.', 'easyrankly' ) . '</p></div>';
+		return;
+	}
+
+	if ( 'unsupported-format' === $notice ) {
+		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'This backup format is not supported. Import an EasyRankly 2.0 or 3.0 export.', 'easyrankly' ) . '</p></div>';
 		return;
 	}
 
@@ -434,16 +447,20 @@ function erankly_import_export_render_notice(): void {
 	if ( 'imported' === $notice ) {
 		$settings  = isset( $_GET['er_settings'] ) ? absint( $_GET['er_settings'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$redirects = isset( $_GET['er_redirects'] ) ? absint( $_GET['er_redirects'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$transformed = isset( $_GET['er_redirects_transformed'] ) ? absint( $_GET['er_redirects_transformed'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$skipped     = isset( $_GET['er_redirects_skipped'] ) ? absint( $_GET['er_redirects_skipped'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$message   = sprintf(
-			/* translators: 1: settings count, 2: redirects count, 3: post meta count, 4: term meta count, 5: user meta count. */
-			__( 'Import complete. Settings: %1$d. Redirects: %2$d. Post metadata: %3$d. Term metadata: %4$d. User metadata: %5$d.', 'easyrankly' ),
+			/* translators: 1: settings count, 2: redirects count, 3: transformed redirects, 4: skipped redirects, 5: post meta count, 6: term meta count, 7: user meta count. */
+			__( 'Import complete. Settings: %1$d. Redirects: %2$d (%3$d safely transformed, %4$d skipped for review). Post metadata: %5$d. Term metadata: %6$d. User metadata: %7$d.', 'easyrankly' ),
 			$settings,
 			$redirects,
+			$transformed,
+			$skipped,
 			$post_meta,
 			$term_meta,
 			$user_meta
 		);
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+		echo '<div class="notice ' . ( $skipped > 0 ? 'notice-warning' : 'notice-success' ) . ' is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
 		return;
 	}
 

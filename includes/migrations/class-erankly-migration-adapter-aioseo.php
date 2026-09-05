@@ -442,7 +442,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		}
 		if ( $this->table_has_rows( 'aioseo_redirects' ) ) {
 			$settings['enable_redirects']        = 1;
-			$settings['redirect_exclude_admins'] = 0;
 		}
 
 		return $settings;

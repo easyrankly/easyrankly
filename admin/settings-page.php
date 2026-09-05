@@ -38,7 +38,6 @@ function erankly_sanitize_settings( mixed $input ): array {
 	$person_user_id          = isset( $input['schema_person_user_id'] ) ? absint( $input['schema_person_user_id'] ) : 0;
 	$local_business_types    = erankly_get_local_business_types();
 	$local_business_type     = isset( $input['local_business_type'] ) ? erankly_sanitize_text( $input['local_business_type'] ) : 'LocalBusiness';
-	$redirect_exclude_admins = ! empty( $input['redirect_exclude_admins'] );
 
 	if ( $person_user_id > 0 && ! get_userdata( $person_user_id ) ) {
 		$person_user_id = 0;
@@ -138,7 +137,6 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'robots_noodp'                   => ! empty( $input['robots_noodp'] ) ? 1 : 0,
 		'robots_indexifembedded'         => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
 		'enable_redirects'               => ! empty( $input['enable_redirects'] ) ? 1 : 0,
-		'redirect_exclude_admins'        => $redirect_exclude_admins ? 1 : 0,
 	);
 
 	$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
@@ -255,7 +253,6 @@ function erankly_settings_autosave_panels(): array {
 			'keys' => array(
 				'simplified_mode',
 				'resolve_placeholders',
-				'redirect_exclude_admins',
 			),
 		),
 		'social'   => array(
