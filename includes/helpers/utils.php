@@ -119,29 +119,3 @@ function erankly_send_response( string $body, string $content_type ) {
 	$document->save( 'php://output' );
 	exit;
 }
-
-/** @param bool   $success Whether the requirement is met. */
-function erankly_render_inline_status_badge( string $message, bool $success ): void {
-	$class = $success ? 'is-success' : 'is-error';
-
-	printf(
-		'<span class="erankly-inline-status %1$s"><svg class="erankly-inline-status-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="erankly-inline-status-icon-cross" d="M4 4l8 8m0-8-8 8"></path><path class="erankly-inline-status-icon-check" d="M3.25 8.25 6.5 11.5 12.75 4.75"></path></svg>%2$s</span>',
-		esc_attr( $class ),
-		esc_html( $message )
-	);
-}
-
-/**
- * Renders an inline "WordPress Multisite: Detected / Not detected" status badge. Features that require a
- * WordPress network (e.g. the multilingual module) use this so the admin can immediately see whether the current
- * install qualifies. When the network is not detected the related controls must be rendered disabled so the
- * feature cannot be switched on, avoiding confusion and runtime errors.
- */
-function erankly_render_multisite_status(): void {
-	erankly_render_inline_status_badge(
-		is_multisite()
-			? __( 'WordPress Multisite: Detected', 'easyrankly' )
-			: __( 'WordPress Multisite: Not detected', 'easyrankly' ),
-		is_multisite()
-	);
-}

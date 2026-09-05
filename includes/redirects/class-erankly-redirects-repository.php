@@ -340,52 +340,6 @@ final class ERankly_Redirects_Repository {
 		return is_array( $row ) ? $row : null;
 	}
 
-	/** @return array<string,true> Map of hashes with an active exact rule. */
-	public function find_active_exact_hashes( array $source_hashes ): array {
-		global $wpdb;
-
-		$source_hashes = array_values(
-			array_unique(
-				array_filter(
-					array_map( 'strval', $source_hashes ),
-					static fn( string $hash ): bool => '' !== $hash
-				)
-			)
-		);
-
-		if ( empty( $source_hashes ) ) {
-			return array();
-		}
-
-		$active = array();
-
-		foreach ( array_chunk( $source_hashes, 100 ) as $chunk ) {
-			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
-			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a dynamic list of literal %s tokens; values are bound via prepare below.
-			$sql = $wpdb->prepare(
-				"SELECT source_hash FROM %i WHERE source_hash IN ($placeholders) AND is_active = 1 AND match_type = %s AND case_sensitive = 0 AND trailing_slash = %s AND query_mode = %s",
-				array_merge(
-					array( $this->table_name ),
-					$chunk,
-					array( 'exact', 'ignore', 'ignore' )
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-			$found = $wpdb->get_col( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Batched redirect coverage lookup prepared above.
-
-			foreach ( is_array( $found ) ? $found : array() as $hash ) {
-				$hash = (string) $hash;
-
-				if ( '' !== $hash ) {
-					$active[ $hash ] = true;
-				}
-			}
-		}
-
-		return $active;
-	}
-
 	/** @return array<string,mixed>|null */
 	public function find_by_hash( string $rule_hash ): ?array {
 		global $wpdb;

@@ -981,14 +981,6 @@ final class ERankly_Migration_Live_Verifier {
 		return $response;
 	}
 
-	private function compare_probe( array $before, array $after, string $key ): string {
-		if ( 'ok' !== (string) ( $before['request_state'] ?? '' ) || 'ok' !== (string) ( $after['request_state'] ?? '' ) ) {
-			return 'request_failed';
-		}
-
-		return hash_equals( (string) ( $before[ $key ] ?? '' ), (string) ( $after[ $key ] ?? '' ) ) ? 'match' : 'mismatch';
-	}
-
 	/** Tallies one comparison. */
 	private function tally( string $status, int &$matched, int &$expected, int &$mismatch, int &$failed ): void {
 		if ( 'match' === $status ) {

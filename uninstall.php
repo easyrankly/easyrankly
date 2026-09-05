@@ -239,7 +239,6 @@ try {
 		$erankly_network_option_names = array(
 			'erankly_settings',
 			'erankly_version',
-			'erankly_setup_wizard_status',
 			'erankly_rewrite_generation',
 			'erankly_network_reset_job',
 			'erankly_settings_lock_v1',
@@ -288,7 +287,6 @@ try {
 	} else {
 		delete_option( 'erankly_settings' );
 		delete_option( 'erankly_version' );
-		delete_option( 'erankly_setup_wizard_status' );
 		delete_option( 'erankly_rewrite_generation' );
 		delete_option( 'erankly_settings_lock_v1' );
 		erankly_uninstall_site();

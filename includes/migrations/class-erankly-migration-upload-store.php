@@ -78,18 +78,6 @@ final class ERankly_Migration_Upload_Store {
 	}
 
 	/**
- * Stages a trusted local fixture or integration-owned source file. This is intentionally separate from the HTTP
- * entry point. Admin requests must always use store_http_upload(), which enforces is_uploaded_file().
- *
- * @param string $path             Trusted local source path.
- * @param string $requested_source auto or a supported adapter slug.
- * @return array<string,mixed>
- */
-	public static function stage_trusted_file( string $path, string $requested_source = 'auto' ): array {
-		return self::stage( $path, basename( $path ), $requested_source );
-	}
-
-	/**
  * @param bool $create Whether to create the directory.
  * @return string Empty when no non-public writable directory is available.
  */
@@ -249,73 +237,6 @@ final class ERankly_Migration_Upload_Store {
 		}
 
 		return $success;
-	}
-
-	/**
- * Copies, detects and validates one trusted source file.
- *
- * @param string $original_name   Original filename used only for extension validation.
- * @param string $requested_source auto or a supported adapter slug.
- * @return array<string,mixed>
- */
-	private static function stage( string $source_path, string $original_name, string $requested_source ): array {
-		$requested_source = sanitize_key( $requested_source );
-		if ( 'auto' !== $requested_source && ! in_array( $requested_source, self::SOURCES, true ) ) {
-			return self::failure( 'invalid_source' );
-		}
-		if ( ! is_file( $source_path ) || is_link( $source_path ) || ! is_readable( $source_path ) ) {
-			return self::failure( 'unreadable_upload' );
-		}
-
-		$extension = strtolower( (string) pathinfo( sanitize_file_name( $original_name ), PATHINFO_EXTENSION ) );
-		if ( ! in_array( $extension, array( 'csv', 'json' ), true ) ) {
-			return self::failure( 'unsupported_extension' );
-		}
-
-		$size    = filesize( $source_path );
-		$maximum = self::export_max_bytes( $extension );
-		if ( false === $size || $size < 1 ) {
-			return self::failure( 'empty_upload' );
-		}
-		if ( $size > $maximum ) {
-			return self::failure( 'upload_too_large' );
-		}
-
-		$directory = self::directory();
-		if ( '' === $directory ) {
-			return self::failure( 'private_storage_unavailable' );
-		}
-
-		$destination = $directory . '/' . self::FILE_PREFIX . self::random_token() . '.' . $extension;
-		$stored      = copy( $source_path, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Trusted fixtures are copied only into non-public managed storage.
-		if ( ! $stored || ! is_file( $destination ) || is_link( $destination ) ) {
-			if ( is_file( $destination ) && ! is_link( $destination ) ) {
-				self::delete( $destination );
-			}
-			return self::failure( 'private_storage_write_failed' );
-		}
-		$restricted = chmod( $destination, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Sensitive source export in private OS temp storage.
-		clearstatcache( true, $destination );
-		$permissions = fileperms( $destination );
-		if ( ! $restricted || false === $permissions || 0 !== ( $permissions & 0077 ) ) {
-			self::delete( $destination );
-			return self::failure( 'private_storage_permissions_failed' );
-		}
-
-		$detection = self::detect_source( $destination, $requested_source );
-		if ( empty( $detection['ok'] ) ) {
-			self::delete( $destination );
-			return $detection;
-		}
-
-		return array(
-			'ok'            => true,
-			'path'          => $destination,
-			'source'        => (string) $detection['source'],
-			'format'        => (string) $detection['format'],
-			'original_name' => sanitize_file_name( $original_name ),
-			'size'          => (int) $size,
-		);
 	}
 
 	/**

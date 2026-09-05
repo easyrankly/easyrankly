@@ -58,12 +58,6 @@ function erankly_migration_load_adapter( string $source ): bool {
 	return class_exists( $class, false );
 }
 
-function erankly_migration_load_all_adapters(): void {
-	foreach ( array( 'yoast', 'rankmath', 'aioseo', 'seopress' ) as $source ) {
-		erankly_migration_load_adapter( $source );
-	}
-}
-
 /**
  * Returns the shared migration manager instance.
  *

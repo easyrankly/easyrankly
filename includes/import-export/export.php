@@ -14,57 +14,6 @@ function erankly_export_settings(): array {
 	return $settings;
 }
 
-/**
- * @param array<string,mixed> $cursor Stream and last row ID from the previous page.
- * @param int                 $limit  Maximum records in this page.
- * @return array<string,mixed>
- */
-function erankly_export_build_data( array $cursor = array(), int $limit = 500 ): array {
-	$streams = array( 'redirects', 'post_meta', 'term_meta', 'user_meta' );
-	$stream  = sanitize_key( (string) ( $cursor['stream'] ?? 'redirects' ) );
-	$index   = array_search( $stream, $streams, true );
-	$index   = false === $index ? 0 : (int) $index;
-	$limit   = max( 1, min( 1000, $limit ) );
-	$after   = absint( $cursor['after_id'] ?? 0 );
-	$rows    = erankly_export_page( $streams[ $index ], $after, $limit );
-	$last_id = $after;
-	foreach ( $rows as &$row ) {
-		$last_id = max( $last_id, absint( $row['_cursor'] ?? 0 ) );
-		unset( $row['_cursor'] );
-	}
-	unset( $row );
-
-	$done = count( $rows ) < $limit;
-	if ( $done && $index < count( $streams ) - 1 ) {
-		++$index;
-		$last_id = 0;
-		$done    = false;
-	}
-
-	$payload = array(
-		'plugin'       => 'erankly',
-		'format'       => ERANKLY_EXPORT_FORMAT,
-		'version'      => ERANKLY_VERSION,
-		'exported_at'  => gmdate( 'c' ),
-		'site_url'     => home_url(),
-		'settings'     => erankly_export_settings(),
-		'special_meta' => get_option( ERANKLY_SPECIAL_META_OPTION, array() ),
-		'batch'        => array(
-			'type'    => $stream,
-			'records' => $rows,
-		),
-		'cursor'       => array(
-			'stream'   => $streams[ $index ],
-			'after_id' => $last_id,
-		),
-		'done'         => $done,
-	);
-
-	$payload = apply_filters( 'erankly_export_header', $payload );
-
-	return is_array( $payload ) ? $payload : array();
-}
-
 /** @param int    $after_id Last emitted keyset cursor. */
 function erankly_export_page( string $stream, int $after_id, int $limit ): array {
 	global $wpdb;

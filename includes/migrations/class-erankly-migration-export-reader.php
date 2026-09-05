@@ -747,12 +747,6 @@ final class ERankly_Migration_Export_Reader {
 		return $blocks;
 	}
 
-	/** @return array<int,string> */
-	private static function list_value( string $value ): array {
-		$values = preg_split( '/[\r\n,]+/', $value );
-		return array_values( array_unique( array_filter( array_map( 'sanitize_text_field', is_array( $values ) ? $values : array() ), 'strlen' ) ) );
-	}
-
 	/** Source truthy helper. */
 	private static function truthy( mixed $value ): bool {
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'yes', 'true', 'on', 'active', 'enabled' ), true );

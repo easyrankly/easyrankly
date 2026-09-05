@@ -1,26 +1,5 @@
 /** EasyRankly shared settings, classic-editor, and taxonomy components. */
 
-.erankly-inline-status {
-	align-items: center;
-	display: inline-flex;
-	font-size: 12px;
-	font-weight: 400;
-	gap: 3px;
-	line-height: 1.4;
-}
-
-.erankly-inline-status.is-success {
-	color: var(--erankly-color-success);
-}
-
-.erankly-inline-status.is-warning {
-	color: var(--erankly-color-warning);
-}
-
-.erankly-inline-status.is-error {
-	color: var(--erankly-color-error);
-}
-
 /* WordPress admin notices inside EasyRankly use the plugin's visual language. */
 .erankly-settings .notice.notice-info,
 .erankly-settings .notice.notice-success,
@@ -124,33 +103,6 @@
 .erankly-settings .notice.notice-error .notice-dismiss {
 	top: 50%;
 	transform: translateY(-50%);
-}
-
-.erankly-inline-status .dashicons,
-.erankly-inline-status-icon {
-	flex: 0 0 auto;
-	height: 14px;
-	width: 14px;
-}
-
-.erankly-inline-status .dashicons {
-	font-size: 14px;
-}
-
-.erankly-inline-status-icon {
-	display: block;
-}
-
-.erankly-inline-status-icon-check {
-	display: none;
-}
-
-.erankly-inline-status.is-success .erankly-inline-status-icon-cross {
-	display: none;
-}
-
-.erankly-inline-status.is-success .erankly-inline-status-icon-check {
-	display: inline;
 }
 
 .erankly-schema-identity-fields,
