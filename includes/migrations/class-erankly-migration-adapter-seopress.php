@@ -133,8 +133,14 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 			);
 		}
 		if ( $post_map ) {
+			list( $post_map, $schema_map ) = $this->split_post_type_schema( $post_map );
+
 			$settings['global_post_type_meta']        = $post_map;
 			$settings['global_post_type_meta_linked'] = 0;
+
+			if ( $schema_map ) {
+				$settings['global_post_type_schema'] = $schema_map;
+			}
 		}
 
 		$taxonomies = $titles['seopress_titles_tax_titles'] ?? array();

@@ -191,6 +191,7 @@ if ( is_admin() ) {
 
 /** Boots the plugin after all plugins are available for compatibility checks. */
 function erankly_bootstrap(): void {
+	add_action( 'admin_notices', 'erankly_render_invalid_json_ld_notice' );
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_filter( 'debug_information', 'erankly_add_multilingual_debug_information' );
@@ -201,6 +202,7 @@ function erankly_bootstrap(): void {
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_rewrites' );
 	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );
+	add_action( 'init', 'erankly_maybe_migrate_post_type_schema', 16 );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
 

@@ -1,26 +1,24 @@
 <?php
-/** Post editor meta box. */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
+/**
+ * Classic-editor meta box and taxonomy form fields (Gutenberg renders the React panels instead). The
+ * erankly_render_post_*_fields() functions are shared with the block-editor sidebar (assets/js/editor.js);
+ * erankly_render_advanced_robots_fields() is shared with term forms. Saves live in meta-box/post-saver.php
+ * and meta-box/term-saver.php.
+ */
+defined( 'ABSPATH' ) || exit;
 require_once ERANKLY_PATH . 'admin/field-renderers.php';
 require_once ERANKLY_PATH . 'admin/settings/section-links.php';
-
+require_once ERANKLY_PATH . 'admin/meta-box/post-saver.php';
+require_once ERANKLY_PATH . 'admin/meta-box/term-saver.php';
 function erankly_register_meta_box(): void {
 	$screen = get_current_screen();
-
-	// Gutenberg renders the React document panels instead of legacy meta boxes.
 	if ( $screen instanceof WP_Screen && $screen->is_block_editor() ) {
 		return;
 	}
-
 	foreach ( erankly_get_public_post_types() as $post_type => $object ) {
 		if ( ! $object->show_ui ) {
 			continue;
 		}
-
 		add_meta_box(
 			'erankly',
 			__( 'EasyRankly', 'easyrankly' ),
@@ -31,48 +29,36 @@ function erankly_register_meta_box(): void {
 		);
 	}
 }
-
 function erankly_register_taxonomy_fields(): void {
 	foreach ( erankly_get_public_taxonomies() as $taxonomy => $object ) {
 		if ( ! $object->show_ui ) {
 			continue;
 		}
-
 		add_action( $taxonomy . '_add_form_fields', 'erankly_render_add_term_fields' );
 		add_action( $taxonomy . '_edit_form_fields', 'erankly_render_edit_term_fields' );
 		add_action( 'created_' . $taxonomy, 'erankly_save_term_fields' );
 		add_action( 'edited_' . $taxonomy, 'erankly_save_term_fields' );
 	}
 }
-
 function erankly_get_post_global_meta_placeholder( WP_Post $post, string $field, int $limit ): string {
 	$template = erankly_get_global_post_type_meta( $post->post_type, $field );
-
 	if ( '' === $template ) {
 		return '';
 	}
-
 	$exclude = 'description' === $field ? array( 'meta_description' ) : array( 'seo_title' );
 	$value   = erankly_replace_variables( $template, $post->ID, $exclude );
-
 	return erankly_trim_text( $value, $limit );
 }
-
 function erankly_get_post_global_social_placeholder( int $post_id, string $setting, int $limit ): string {
 	$template = (string) erankly_get_setting( $setting, '' );
-
 	if ( '' === $template ) {
 		return '';
 	}
-
 	return erankly_trim_text( erankly_replace_variables( $template, $post_id ), $limit );
 }
-
 function erankly_get_term_global_meta_placeholder( string $taxonomy, string $field ): string {
 	return erankly_get_global_taxonomy_meta( $taxonomy, $field );
 }
-
-/** Renders the General fields shared by the meta box and the editor sidebar. */
 function erankly_render_post_general_fields( WP_Post $post ): void {
 	$title                   = erankly_get_post_meta_string( $post->ID, 'title' );
 	$description             = erankly_get_post_meta_string( $post->ID, 'description' );
@@ -83,16 +69,11 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	$canonical_placeholder   = wp_get_canonical_url( $post->ID );
 	$title_placeholder       = erankly_get_post_global_meta_placeholder( $post, 'title', 70 );
 	$description_placeholder = erankly_get_post_global_meta_placeholder( $post, 'description', 160 );
-	// Same fallback as an empty breadcrumb_name: post title (SEO title only in simplified mode, where this field is hidden).
 	$breadcrumb_placeholder = get_the_title( $post );
-
 	if ( ! is_string( $canonical_placeholder ) || '' === $canonical_placeholder ) {
 		$canonical_placeholder = get_permalink( $post );
 	}
-
 	$canonical_placeholder = is_string( $canonical_placeholder ) ? $canonical_placeholder : '';
-	// The post being edited is its own {{post_title}}-style example, so the
-	// preview shows this post's real title/excerpt/etc., not a stand-in.
 	$examples = erankly_get_admin_variable_examples( $post );
 	?>
 	<div class="erankly-field">
@@ -158,8 +139,6 @@ function erankly_render_post_general_fields( WP_Post $post ): void {
 	<?php do_action( 'erankly_post_general_fields_after', $post ); ?>
 	<?php
 }
-
-/** Renders the Social fields shared by the meta box and the editor sidebar. */
 function erankly_render_post_social_fields( WP_Post $post ): void {
 	$og_title                   = erankly_get_post_meta_string( $post->ID, 'og_title' );
 	$og_description             = erankly_get_post_meta_string( $post->ID, 'og_description' );
@@ -248,8 +227,6 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 	<?php do_action( 'erankly_post_social_fields_after', $post ); ?>
 	<?php
 }
-
-/** Renders the Visibility fields shared by the meta box and the editor sidebar. */
 function erankly_render_post_visibility_fields( WP_Post $post ): void {
 	$noindex                  = erankly_get_post_meta_bool( $post->ID, 'noindex' );
 	$nofollow                 = erankly_get_post_meta_bool( $post->ID, 'nofollow' );
@@ -303,7 +280,6 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 	<?php endif; ?>
 	<?php
 }
-
 function erankly_render_robots_directive_select( string $name, string $value, string $label, string $allow_label, string $deny_label ): void {
 	$axis  = str_replace( array( 'erankly_', '_directive' ), '', $name );
 	$id    = 'erankly-' . str_replace( '_', '-', $axis ) . '-directive';
@@ -332,18 +308,6 @@ function erankly_render_robots_directive_select( string $name, string $value, st
 	</div>
 	<?php
 }
-
-/**
- * Renders the advanced (non-simplified) robots controls shared by the post meta box and term forms.
- *
- * Reuses the shared field anatomy and the settings page inline grid classes,
- * so every control gets a block label and a full-width control without any
- * surface-specific CSS.
- *
- * @param array<string,mixed> $values Current values: the five *_directive selects, max_snippet,
- *                                    max_video_preview, max_image_preview, indexifembedded
- *                                    and disable_sitemap.
- */
 function erankly_render_advanced_robots_fields( array $values ): void {
 	$max_snippet_value       = isset( $values['max_snippet'] ) && is_scalar( $values['max_snippet'] ) ? (string) $values['max_snippet'] : '';
 	$max_video_preview_value = isset( $values['max_video_preview'] ) && is_scalar( $values['max_video_preview'] ) ? (string) $values['max_video_preview'] : '';
@@ -381,7 +345,6 @@ function erankly_render_advanced_robots_fields( array $values ): void {
 	</div>
 	<?php
 }
-
 function erankly_render_post_schema_fields( WP_Post $post ): void {
 	$mode           = erankly_get_post_meta_string( $post->ID, 'schema_mode' );
 	$blocks         = get_post_meta( $post->ID, '_erankly_schema_blocks', true );
@@ -400,8 +363,10 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
 	<div class="erankly-field">
 		<label for="erankly-schema-disabled-types"><?php esc_html_e( 'Suppress automatic schema types', 'easyrankly' ); ?></label>
 		<input id="erankly-schema-disabled-types" class="widefat" type="text" name="erankly_schema_disabled_types" value="<?php echo esc_attr( implode( ', ', is_array( $disabled_types ) ? $disabled_types : array() ) ); ?>" placeholder="Article, Product, FAQPage">
+		<p class="description"><?php esc_html_e( 'Comma-separated. Applies to everything EasyRankly generates for this page, including breadcrumbs and site-wide schema blocks, but never to the JSON-LD added below.', 'easyrankly' ); ?></p>
 	</div>
-	<div class="erankly-schema-builder" data-erankly-schema-builder>
+	<?php // data-erankly-next-index seeds the Add button: without it the first added block reuses index 0 and overwrites the block already stored. ?>
+	<div class="erankly-schema-builder" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $blocks ) ); ?>">
 		<div class="erankly-schema-blocks <?php echo empty( $blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks>
 			<?php foreach ( $blocks as $index => $block ) : ?>
 				<?php erankly_render_schema_block( is_array( $block ) ? $block : array(), (string) $index, 'erankly_schema_blocks' ); ?>
@@ -412,27 +377,21 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
 	</div>
 	<?php
 }
-
-/** Renders the single inline meta box (classic editor fallback). */
 function erankly_render_meta_box( WP_Post $post ): void {
 	wp_nonce_field( 'erankly_save_meta_box', 'erankly_meta_box_nonce' );
 	$simplified_mode = (bool) erankly_get_setting( 'simplified_mode', 1 );
 	?>
 	<div class="erankly-meta-box">
 		<?php erankly_render_post_general_fields( $post ); ?>
-
 		<?php if ( ! $simplified_mode ) : ?>
 			<?php erankly_render_post_social_fields( $post ); ?>
 			<?php erankly_render_post_schema_fields( $post ); ?>
 		<?php endif; ?>
-
 		<?php erankly_render_post_visibility_fields( $post ); ?>
-
 		<?php do_action( 'erankly_meta_box_panels', $post ); ?>
 	</div>
 	<?php
 }
-
 function erankly_render_add_term_fields( string $taxonomy ): void {
 	?>
 	<div class="form-field term-erankly-wrap">
@@ -442,7 +401,6 @@ function erankly_render_add_term_fields( string $taxonomy ): void {
 	</div>
 	<?php
 }
-
 function erankly_render_edit_term_fields( WP_Term $term ): void {
 	?>
 	<tr class="form-field term-erankly-wrap">
@@ -454,11 +412,8 @@ function erankly_render_edit_term_fields( WP_Term $term ): void {
 	</tr>
 	<?php
 }
-
-/** Renders shared taxonomy SEO controls. */
 function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void {
 	wp_nonce_field( 'erankly_save_term_fields', 'erankly_term_fields_nonce' );
-
 	$title                    = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'title' ) : '';
 	$description              = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'description' ) : '';
 	$canonical                = $term_id > 0 ? erankly_get_term_meta_string( $term_id, 'canonical' ) : '';
@@ -486,11 +441,9 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 	$id_suffix                = $term_id > 0 ? (string) $term_id : sanitize_key( $taxonomy );
 	$title_placeholder        = erankly_get_term_global_meta_placeholder( $taxonomy, 'title' );
 	$description_placeholder  = erankly_get_term_global_meta_placeholder( $taxonomy, 'description' );
-	// The term being edited is its own {{term_name}}-style example.
 	$term_object           = $term_id > 0 ? get_term( $term_id, $taxonomy ) : null;
 	$examples              = erankly_get_admin_variable_examples( null, $term_object instanceof WP_Term ? $term_object : null );
 	$canonical_placeholder = '';
-
 	if ( $term_object instanceof WP_Term ) {
 		$term_link             = get_term_link( $term_object );
 		$canonical_placeholder = is_wp_error( $term_link ) ? '' : $term_link;
@@ -523,7 +476,6 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 		</div>
 		<?php endif; ?>
 		<?php do_action( 'erankly_term_general_fields_after', $term_id, $id_suffix ); ?>
-
 		<?php if ( ! $simplified_mode ) : ?>
 		<div class="erankly-field">
 			<label for="erankly-term-og-title-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Open Graph Title', 'easyrankly' ); ?></label>
@@ -594,7 +546,6 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 		</div>
 		<?php do_action( 'erankly_term_social_fields_after', $term_id, $id_suffix ); ?>
 		<?php endif; ?>
-
 		<?php if ( $simplified_mode ) : ?>
 		<div class="erankly-field erankly-checkboxes">
 			<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
@@ -619,10 +570,6 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 			);
 			?>
 		<?php endif; ?>
-
 	</div>
 	<?php
 }
-
-require_once ERANKLY_PATH . 'admin/meta-box/post-saver.php';
-require_once ERANKLY_PATH . 'admin/meta-box/term-saver.php';

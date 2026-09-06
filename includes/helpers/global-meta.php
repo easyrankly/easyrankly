@@ -253,6 +253,43 @@ function erankly_get_global_post_type_meta( string $post_type, string $field ): 
 	return erankly_get_global_entity_meta( 'global_post_type_meta', $post_type, $field );
 }
 
+/**
+ * Returns the Schema.org type configured for a post type, or its default when nothing is stored.
+ *
+ * Deliberately does not borrow another post type's value the way title and description do when "Same for all"
+ * is on: a post type registered after the settings were last saved has no row, and inheriting the first stored
+ * row would give a brand-new custom post type the Article node configured for blog posts.
+ *
+ * @param string $field Either webpage_type or article_type.
+ */
+function erankly_get_post_type_schema_type( string $post_type, string $field ): string {
+	if ( ! in_array( $field, array( 'webpage_type', 'article_type' ), true ) ) {
+		return '';
+	}
+
+	foreach ( array( 'global_post_type_schema', 'global_post_type_meta' ) as $setting_key ) {
+		// global_post_type_meta is the pre-2.9 location, still written by the
+		// third-party migration adapters; it is read only as a fallback so an
+		// import stays visible until the Schema panel is saved once.
+		$rows = erankly_get_global_entity_meta_map( $setting_key );
+		$row  = ( isset( $rows[ $post_type ] ) && is_array( $rows[ $post_type ] ) ) ? $rows[ $post_type ] : array();
+
+		if ( ! array_key_exists( $field, $row ) ) {
+			continue;
+		}
+
+		$value = is_string( $row[ $field ] ) ? trim( $row[ $field ] ) : '';
+
+		// A stored empty string is how the retired free-text field expressed
+		// "do not emit this node", so it is honoured rather than defaulted.
+		return 'article_type' === $field && '' === $value ? 'none' : $value;
+	}
+
+	$defaults = erankly_default_post_type_schema_row( $post_type );
+
+	return $defaults[ $field ];
+}
+
 function erankly_get_global_taxonomy_meta( string $taxonomy, string $field ): string {
 	return erankly_get_global_entity_meta( 'global_taxonomy_meta', $taxonomy, $field );
 }

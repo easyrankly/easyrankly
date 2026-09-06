@@ -70,6 +70,39 @@
 		triStateRobots: true,
 	};
 
+	// Mirrors erankly_decode_custom_json_ld(): one object, a list of objects, or
+	// an object carrying @graph. Placeholders are swapped for a string first —
+	// {{post_title}} is not valid JSON on its own.
+	function isValidJsonLd( value ) {
+		const text = String( value || '' ).replace( /{{\s*[a-z0-9_]+\s*}}/gi, 'x' );
+		const hasObject = ( list ) => list.some( ( entry ) => entry && typeof entry === 'object' && ! Array.isArray( entry ) );
+		let parsed;
+
+		if ( text.trim() === '' ) {
+			return true;
+		}
+
+		try {
+			parsed = JSON.parse( text );
+		} catch ( error ) {
+			return false;
+		}
+
+		if ( ! parsed || typeof parsed !== 'object' ) {
+			return false;
+		}
+
+		if ( Array.isArray( parsed ) ) {
+			return hasObject( parsed );
+		}
+
+		if ( Array.isArray( parsed[ '@graph' ] ) ) {
+			return hasObject( parsed[ '@graph' ] );
+		}
+
+		return Object.keys( parsed ).some( ( key ) => key !== '@context' );
+	}
+
 	// Post-meta data adapter shared builders read and write through.
 	function usePostData() {
 		const meta = useSelect(
@@ -183,11 +216,21 @@
 				placeholder: 'Article, Product, FAQPage',
 				value: disabledTypes,
 			} ),
-			...blocks.map( ( block, index ) => el(
+			...blocks.map( ( block, index ) => {
+				const json = block && block.fields ? ( block.fields.custom_json || '' ) : '';
+				// The REST meta sanitizer drops a block it cannot decode, so an
+				// unparseable paste is reported here rather than disappearing
+				// the next time the editor reloads.
+				const isValid = isValidJsonLd( json );
+
+				return el(
 				Fragment,
 				{ key: `schema-block-${ index }` },
 				el( TextareaControl, {
-					help: __( 'One JSON-LD object, array or @graph.', 'easyrankly' ),
+					className: isValid ? undefined : 'erankly-is-invalid',
+					help: isValid
+						? __( 'One JSON-LD object, array or @graph.', 'easyrankly' )
+						: __( 'This is not valid JSON-LD and will not be saved. Use one JSON-LD object, an array of objects, or an object with @graph.', 'easyrankly' ),
 					label: `${ __( 'Custom JSON-LD', 'easyrankly' ) } ${ index + 1 }`,
 					onChange: ( value ) => {
 						const nextBlocks = [ ...blocks ];
@@ -195,14 +238,15 @@
 						data.set( 'schema_blocks', nextBlocks );
 					},
 					rows: 10,
-					value: block && block.fields ? ( block.fields.custom_json || '' ) : '',
+					value: json,
 				} ),
 				el( Button, {
 					isDestructive: true,
 					onClick: () => data.set( 'schema_blocks', blocks.filter( ( unused, blockIndex ) => blockIndex !== index ) ),
 					variant: 'link',
 				}, __( 'Remove schema block', 'easyrankly' ) )
-			) ),
+				);
+			} ),
 			el( Button, {
 				onClick: () => data.set( 'schema_blocks', [ ...blocks, { type: 'custom', fields: { custom_json: '' } } ] ),
 				variant: 'secondary',

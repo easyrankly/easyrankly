@@ -1,10 +1,9 @@
 <?php
-/** Block and Site Editor assets. */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
+/**
+ * Block and Site Editor assets: shared editor bundle + per-editor script with wp_localize data, plus the
+ * special-page panels for block themes on WP 6.6+ (erankly_site_editor_special_page_panels_supported()).
+ */
+defined( 'ABSPATH' ) || exit;
 function erankly_enqueue_accordion_faq_schema_assets(): void {
 	wp_enqueue_script(
 		'erankly-accordion-faq-schema',
@@ -22,19 +21,14 @@ function erankly_enqueue_accordion_faq_schema_assets(): void {
 	);
 	wp_set_script_translations( 'erankly-accordion-faq-schema', 'easyrankly', ERANKLY_PATH . 'languages' );
 }
-
 function erankly_admin_enqueue_block_editor_assets(): void {
 	$post = get_post();
-
 	if ( ! $post instanceof WP_Post || ! current_user_can( 'edit_post', $post->ID ) ) {
 		return;
 	}
-
 	require_once ERANKLY_PATH . 'admin/meta-box.php';
-
 	erankly_enqueue_editor_shared_assets();
 	erankly_enqueue_accordion_faq_schema_assets();
-
 	$editor_deps = array(
 		'erankly-editor-shared',
 		'wp-api-fetch',
@@ -48,7 +42,6 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		'wp-i18n',
 		'wp-plugins',
 	);
-
 	wp_enqueue_script(
 		'erankly-editor',
 		ERANKLY_URL . 'assets/js/editor.js',
@@ -57,7 +50,6 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		true
 	);
 	wp_set_script_translations( 'erankly-editor', 'easyrankly', ERANKLY_PATH . 'languages' );
-
 	wp_localize_script(
 		'erankly-editor',
 		'eranklyEditor',
@@ -79,12 +71,6 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 			'variables'                     => erankly_get_variable_groups(),
 		)
 	);
-
-	/**
- * Fires after EasyRankly has enqueued its admin assets for this screen.
- *
- * @param array<string,mixed> $context Screen flags for add-ons.
- */
 	do_action(
 		'erankly_admin_enqueue_assets',
 		array(
@@ -99,23 +85,15 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		)
 	);
 }
-
-/**
- * Enqueues the editor stylesheet and the shared editor component bundle. Shared by the post editor and the Site
- * Editor so both load the same presentational controls and field builders.
- */
 function erankly_enqueue_editor_shared_assets(): void {
 	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
-
 	erankly_enqueue_shared_styles();
-
 	wp_enqueue_style(
 		'erankly-editor',
 		ERANKLY_URL . 'assets/css/editor.css',
 		array( 'erankly-shared', 'wp-components' ),
 		ERANKLY_VERSION
 	);
-
 	wp_enqueue_script(
 		'erankly-editor-shared',
 		ERANKLY_URL . 'assets/js/editor-shared.js',
@@ -152,27 +130,16 @@ function erankly_enqueue_editor_shared_assets(): void {
 		)
 	);
 }
-
-/**
- * Enqueues the Site Editor special-page panels. Adds EasyRankly SEO default panels to the template inspector
- * when a block theme template maps to a WordPress special-page context. Values bind to the native root/site Core
- * Data entity, so the Site Editor saves them together with template changes. Requires WordPress 6.6+ for the
- * unified editor slotfills.
- */
 function erankly_admin_enqueue_site_editor_assets(): void {
 	if ( ! erankly_site_editor_special_page_panels_supported() ) {
 		return;
 	}
-
 	if ( ! current_user_can( 'edit_theme_options' ) || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
-
 	require_once ERANKLY_PATH . 'admin/field-renderers.php';
-
 	erankly_enqueue_editor_shared_assets();
 	erankly_enqueue_accordion_faq_schema_assets();
-
 	wp_enqueue_script(
 		'erankly-site-editor',
 		ERANKLY_URL . 'assets/js/site-editor.js',
@@ -193,7 +160,6 @@ function erankly_admin_enqueue_site_editor_assets(): void {
 		true
 	);
 	wp_set_script_translations( 'erankly-site-editor', 'easyrankly', ERANKLY_PATH . 'languages' );
-
 	wp_localize_script(
 		'erankly-site-editor',
 		'eranklySiteEditor',

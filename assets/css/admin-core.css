@@ -657,3 +657,22 @@
 		align-self: flex-end;
 	}
 }
+
+/*
+ * Invalid custom JSON-LD is dropped when the block is saved, so the builder
+ * flags it inline while typing instead of letting the paste disappear.
+ */
+.erankly-schema-json-error {
+	margin: var(--erankly-space-help) 0 0;
+	color: var(--erankly-color-error);
+	font-size: 12px;
+}
+
+textarea.erankly-is-invalid {
+	border-color: var(--erankly-color-error);
+}
+
+/* TEMP: nasconde la sezione "Useful resources" finché il sito non è pronto — da rimuovere */
+.erankly-settings-nav-section[aria-labelledby="erankly-settings-nav-useful-resources"] {
+	display: none;
+}

@@ -623,10 +623,44 @@ abstract class ERankly_Migration_Adapter {
 
 		if ( '' !== $webpage_type || '' !== $article_type ) {
 			$row['webpage_type'] = erankly_sanitize_schema_type_name( $webpage_type );
-			$row['article_type'] = erankly_sanitize_schema_type_name( $article_type );
+			// The sources express "emit no Article node" as an empty value;
+			// EasyRankly stores that choice explicitly.
+			$row['article_type'] = '' === trim( $article_type ) ? 'none' : erankly_sanitize_schema_type_name( $article_type );
 		}
 
 		return $row;
+	}
+
+	/**
+	 * Splits the Schema.org types out of a post type meta map. They live in their own setting because the
+	 * "Same for all" toggle shares one title and description across content types, which would otherwise hide
+	 * and overwrite an imported per-type schema choice.
+	 *
+	 * @param array<string,mixed> $post_map Rows built by global_meta_row().
+	 * @return array{0:array<string,mixed>,1:array<string,array{webpage_type:string,article_type:string}>} Cleaned map and schema map.
+	 */
+	protected function split_post_type_schema( array $post_map ): array {
+		erankly_load_default_helpers();
+		$schema_map = array();
+
+		foreach ( $post_map as $post_type => $row ) {
+			if ( ! is_array( $row ) || ( ! array_key_exists( 'webpage_type', $row ) && ! array_key_exists( 'article_type', $row ) ) ) {
+				continue;
+			}
+
+			$defaults     = erankly_default_post_type_schema_row( (string) $post_type );
+			$webpage_type = erankly_sanitize_schema_type_name( $row['webpage_type'] ?? '' );
+			$article_type = erankly_sanitize_schema_type_name( $row['article_type'] ?? '' );
+
+			$schema_map[ (string) $post_type ] = array(
+				'webpage_type' => '' !== $webpage_type ? $webpage_type : $defaults['webpage_type'],
+				'article_type' => '' !== $article_type ? $article_type : $defaults['article_type'],
+			);
+
+			unset( $post_map[ $post_type ]['webpage_type'], $post_map[ $post_type ]['article_type'] );
+		}
+
+		return array( $post_map, $schema_map );
 	}
 
 	/**

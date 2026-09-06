@@ -304,7 +304,9 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 
 /** Sanitizes an enum while treating an omitted value as inheritance/default. */
 function erankly_sanitize_meta_enum( mixed $value, array $allowed ): string {
-	$value = sanitize_key( (string) $value );
+	// Casting an array to string is a PHP warning, and the result never
+	// matches an allowed value anyway.
+	$value = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
 
 	return in_array( $value, $allowed, true ) ? $value : '';
 }
@@ -448,21 +450,58 @@ function erankly_schema_block_has_content( array $block ): bool {
 	return isset( $block['fields']['custom_json'] ) && '' !== trim( (string) $block['fields']['custom_json'] );
 }
 
-/** Adds an admin settings error for invalid custom JSON-LD. */
+/** The message shown when custom JSON-LD is rejected, shared by the settings screen and the editors. */
+function erankly_invalid_json_ld_message(): string {
+	return __( 'Custom JSON-LD was not saved because it is not valid. Use one JSON-LD object, an array of objects, or an object with @graph.', 'easyrankly' );
+}
+
+/**
+ * Reports invalid custom JSON-LD. add_settings_error() only surfaces on Settings API screens, so a block
+ * rejected while saving a post or a term used to disappear without a word; the queued notice covers the
+ * editors and the REST meta writer, which never reach settings_errors().
+ */
 function erankly_add_schema_json_settings_error(): void {
 	static $added = false;
 
-	if ( $added || ! function_exists( 'add_settings_error' ) ) {
+	if ( $added ) {
 		return;
 	}
 
 	$added = true;
 
-	add_settings_error(
-		ERANKLY_OPTION,
-		'erankly_invalid_json_ld',
-		__( 'Custom JSON-LD was not saved because it is not valid. Use one JSON-LD object, an array of objects, or an object with @graph.', 'easyrankly' ),
-		'error'
+	if ( function_exists( 'add_settings_error' ) ) {
+		add_settings_error( ERANKLY_OPTION, 'erankly_invalid_json_ld', erankly_invalid_json_ld_message(), 'error' );
+	}
+
+	$user_id = get_current_user_id();
+
+	if ( $user_id > 0 ) {
+		set_transient( 'erankly_invalid_json_ld_' . $user_id, 1, 5 * MINUTE_IN_SECONDS );
+	}
+}
+
+/** Prints and clears the queued invalid JSON-LD notice on the next admin screen. */
+function erankly_render_invalid_json_ld_notice(): void {
+	$user_id = get_current_user_id();
+
+	if ( $user_id <= 0 || ! get_transient( 'erankly_invalid_json_ld_' . $user_id ) ) {
+		return;
+	}
+
+	delete_transient( 'erankly_invalid_json_ld_' . $user_id );
+
+	// The settings screen prints the same message through settings_errors().
+	if ( function_exists( 'get_current_screen' ) ) {
+		$screen = get_current_screen();
+
+		if ( $screen instanceof WP_Screen && str_contains( (string) $screen->id, 'erankly' ) ) {
+			return;
+		}
+	}
+
+	printf(
+		'<div class="notice notice-error"><p>%s</p></div>',
+		esc_html( erankly_invalid_json_ld_message() )
 	);
 }
 

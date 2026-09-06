@@ -1,10 +1,10 @@
 <?php
-/** Settings field rendering functions. */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
+/**
+ * Settings field renderers: organization details, local business, opening hours and global defaults (post
+ * types, taxonomies, special pages, social networks). Hidden inputs carry advanced-only values through
+ * simplified-mode and cross-panel saves so nothing stored is ever wiped by a partial form submission.
+ */
+defined( 'ABSPATH' ) || exit;
 function erankly_render_organization_details( array $settings ): void {
 	?>
 	<details class="erankly-settings-details">
@@ -52,7 +52,6 @@ function erankly_render_organization_details( array $settings ): void {
 	</details>
 	<?php
 }
-
 function erankly_render_local_business_settings( array $settings ): void {
 	$types        = erankly_get_local_business_types();
 	$pages        = get_pages(
@@ -66,10 +65,8 @@ function erankly_render_local_business_settings( array $settings ): void {
 	$type         = isset( $settings['local_business_type'] ) ? (string) $settings['local_business_type'] : 'LocalBusiness';
 	$page_path    = isset( $settings['local_business_page_path'] ) ? (string) $settings['local_business_page_path'] : '';
 	$page_options = array();
-
 	foreach ( $pages as $page ) {
 		$path = erankly_sanitize_relative_path( '/' . get_page_uri( $page ) . '/' );
-
 		if ( '' !== $path ) {
 			$page_options[ $path ] = get_the_title( $page ) . ' (' . $path . ')';
 		}
@@ -141,7 +138,6 @@ function erankly_render_local_business_settings( array $settings ): void {
 	</div>
 	<?php
 }
-
 function erankly_render_opening_hours_fields( array $hours ): void {
 	$days = array(
 		'monday'    => __( 'Monday', 'easyrankly' ),
@@ -188,18 +184,15 @@ function erankly_render_opening_hours_fields( array $hours ): void {
 	</div>
 	<?php
 }
-
 function erankly_render_global_meta_defaults( string $setting_key, array $objects, array $settings ): void {
 	$values             = isset( $settings[ $setting_key ] ) && is_array( $settings[ $setting_key ] ) ? $settings[ $setting_key ] : array();
 	$linked_setting_key = $setting_key . '_linked';
 	$is_linked          = ! array_key_exists( $linked_setting_key, $settings ) || ! empty( $settings[ $linked_setting_key ] );
 	$is_taxonomy        = 'global_taxonomy_meta' === $setting_key;
-
 	if ( empty( $objects ) ) {
 		echo '<p class="description">' . esc_html__( 'No public items available.', 'easyrankly' ) . '</p>';
 		return;
 	}
-
 	$tabs_id           = 'erankly-' . sanitize_key( $setting_key ) . '-tabs';
 	$toggle_id         = 'erankly-' . sanitize_key( $setting_key ) . '-linked';
 	$toggle_base_label = __( 'Same for all', 'easyrankly' );
@@ -242,7 +235,6 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 			</button>
 			<span class="screen-reader-text" aria-live="polite" data-erankly-linked-status><?php echo esc_html( $is_linked ? $toggle_on_label : $toggle_off_label ); ?></span>
 		</div>
-
 		<?php
 		$is_first = true;
 		foreach ( $objects as $key => $object ) :
@@ -253,16 +245,11 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 			$nofollow        = ! empty( $row['nofollow'] );
 			$noarchive       = ! empty( $row['noarchive'] );
 			$disable_sitemap = ! empty( $row['disable_sitemap'] );
-			$webpage_type    = isset( $row['webpage_type'] ) ? (string) $row['webpage_type'] : 'WebPage';
-			$article_type    = isset( $row['article_type'] ) ? (string) $row['article_type'] : ( 'post' === $key ? 'BlogPosting' : '' );
 			$label           = $object instanceof WP_Taxonomy ? erankly_get_taxonomy_admin_label( $object ) : $object->labels->singular_name;
 			$id_prefix       = 'erankly-' . sanitize_key( $setting_key ) . '-' . sanitize_key( $key );
 			$panel_key       = sanitize_key( $setting_key . '-' . $key );
 			$panel_id        = 'erankly-' . $panel_key . '-panel';
 			$tab_id          = 'erankly-' . $panel_key . '-tab';
-			// A sample post/term stands in for {{post_title}}/{{term_name}} etc. in
-			// the preview since these fields are global templates, not tied to any
-			// single post/term; the raw token stays literal when none exist yet.
 			$sample_post = $is_taxonomy ? null : erankly_get_sample_post_for_type( (string) $key );
 			$sample_term = $is_taxonomy ? erankly_get_sample_term_for_taxonomy( (string) $key ) : null;
 			$examples    = erankly_get_admin_variable_examples( $sample_post, $sample_term );
@@ -283,19 +270,6 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 							<?php erankly_render_variable_picker( $examples ); ?>
 						</div>
 					</div>
-					<?php if ( ! $is_taxonomy ) : ?>
-						<div class="erankly-inline-fields erankly-inline-fields-two-columns">
-							<div class="erankly-field">
-								<label for="<?php echo esc_attr( $id_prefix ); ?>-webpage-type"><?php esc_html_e( 'Web page schema type', 'easyrankly' ); ?></label>
-								<input id="<?php echo esc_attr( $id_prefix ); ?>-webpage-type" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[<?php echo esc_attr( $setting_key ); ?>][<?php echo esc_attr( $key ); ?>][webpage_type]" value="<?php echo esc_attr( $webpage_type ); ?>" placeholder="WebPage">
-							</div>
-							<div class="erankly-field">
-								<label for="<?php echo esc_attr( $id_prefix ); ?>-article-type"><?php esc_html_e( 'Article schema type', 'easyrankly' ); ?></label>
-								<input id="<?php echo esc_attr( $id_prefix ); ?>-article-type" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[<?php echo esc_attr( $setting_key ); ?>][<?php echo esc_attr( $key ); ?>][article_type]" value="<?php echo esc_attr( $article_type ); ?>" placeholder="<?php echo esc_attr( 'post' === $key ? 'BlogPosting' : __( 'None', 'easyrankly' ) ); ?>">
-								<p class="description"><?php esc_html_e( 'Type none to emit no Article schema for this content type.', 'easyrankly' ); ?></p>
-							</div>
-						</div>
-					<?php endif; ?>
 					<?php erankly_render_global_visibility_defaults( $setting_key, (string) $key, $noindex, $nofollow, $noarchive, $disable_sitemap ); ?>
 					<?php erankly_render_global_advanced_robot_preservation( $setting_key, (string) $key, $row ); ?>
 				</div>
@@ -307,12 +281,69 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 	</div>
 	<?php
 }
+/**
+ * Renders the Schema.org types used for each post type. Kept out of the post type defaults tabs on purpose:
+ * those share one title and description across content types when "Same for all" is on, which hid these two
+ * fields for every type but the first, while the types themselves are never shared.
+ */
+function erankly_render_post_type_schema_types(): void {
+	$post_types = erankly_get_public_post_types();
+
+	if ( empty( $post_types ) ) {
+		echo '<p class="description">' . esc_html__( 'No public content types available.', 'easyrankly' ) . '</p>';
+
+		return;
+	}
+
+	$webpage_types = erankly_get_webpage_schema_types();
+	$article_types = erankly_get_article_schema_types();
+	?>
+	<div class="erankly-post-type-schema">
+		<?php foreach ( $post_types as $post_type => $object ) : ?>
+			<?php
+			$post_type    = (string) $post_type;
+			$id_prefix    = 'erankly-post-type-schema-' . sanitize_key( $post_type );
+			$name_prefix  = ERANKLY_OPTION . '[global_post_type_schema][' . $post_type . ']';
+			$webpage_type = erankly_get_post_type_schema_type( $post_type, 'webpage_type' );
+			$article_type = erankly_get_post_type_schema_type( $post_type, 'article_type' );
+			?>
+			<div class="erankly-post-type-schema-row">
+				<h4 class="erankly-post-type-schema-label"><?php echo esc_html( $object->labels->singular_name ); ?></h4>
+				<div class="erankly-inline-fields erankly-inline-fields-two-columns">
+					<div class="erankly-field">
+						<label for="<?php echo esc_attr( $id_prefix ); ?>-webpage"><?php esc_html_e( 'Page type', 'easyrankly' ); ?></label>
+						<?php erankly_render_schema_type_select( $id_prefix . '-webpage', $name_prefix . '[webpage_type]', $webpage_types, '' !== $webpage_type ? $webpage_type : 'WebPage' ); ?>
+					</div>
+					<div class="erankly-field">
+						<label for="<?php echo esc_attr( $id_prefix ); ?>-article"><?php esc_html_e( 'Article type', 'easyrankly' ); ?></label>
+						<?php erankly_render_schema_type_select( $id_prefix . '-article', $name_prefix . '[article_type]', $article_types, '' !== $article_type ? $article_type : 'none' ); ?>
+					</div>
+				</div>
+			</div>
+		<?php endforeach; ?>
+	</div>
+	<p class="description"><?php esc_html_e( 'Article, Blog posting and News article are equivalent for Google: the choice that matters is whether an article node is emitted at all. Leave it off for content that is not an article, such as landing pages.', 'easyrankly' ); ?></p>
+	<?php
+}
 
 /**
- * Renders default Open Graph / X (Twitter) templates with a linked toggle. Mirrors the post type defaults UI:
- * when linked (the default), one template drives both networks; when separate, each network keeps its own
- * values.
+ * Renders one Schema.org type dropdown. A stored type that is missing from the list is added as an extra
+ * option, so a value imported from another SEO plugin is not dropped the first time the panel is saved.
+ *
+ * @param array<string,string> $choices Value => label.
  */
+function erankly_render_schema_type_select( string $id, string $name, array $choices, string $value ): void {
+	if ( '' !== $value && ! isset( $choices[ $value ] ) ) {
+		$choices[ $value ] = $value;
+	}
+	?>
+	<select id="<?php echo esc_attr( $id ); ?>" class="widefat" name="<?php echo esc_attr( $name ); ?>">
+		<?php foreach ( $choices as $choice => $label ) : ?>
+			<option value="<?php echo esc_attr( (string) $choice ); ?>" <?php selected( $value, (string) $choice ); ?>><?php echo esc_html( $label ); ?></option>
+		<?php endforeach; ?>
+	</select>
+	<?php
+}
 function erankly_render_social_meta_defaults( array $settings ): void {
 	$networks = array(
 		'og'      => array(
@@ -328,19 +359,13 @@ function erankly_render_social_meta_defaults( array $settings ): void {
 			'id_prefix'       => 'erankly-default-twitter',
 		),
 	);
-
 	$og_title            = isset( $settings['default_og_title'] ) ? (string) $settings['default_og_title'] : '';
 	$og_description      = isset( $settings['default_og_description'] ) ? (string) $settings['default_og_description'] : '';
 	$twitter_title       = isset( $settings['default_twitter_title'] ) ? (string) $settings['default_twitter_title'] : '';
 	$twitter_description = isset( $settings['default_twitter_description'] ) ? (string) $settings['default_twitter_description'] : '';
-
-	// Sites saved before the toggle existed inherit the linked default only when
-	// their Open Graph and X (Twitter) templates already match, so customized
-	// per-network values are never silently overwritten.
 	$is_linked = ( ! array_key_exists( 'social_defaults_linked', $settings ) || ! empty( $settings['social_defaults_linked'] ) )
 		&& $og_title === $twitter_title
 		&& $og_description === $twitter_description;
-
 	$toggle_base_label = __( 'Same for all', 'easyrankly' );
 	$toggle_on_label   = sprintf(
 		/* translators: %s: linked templates label. */
@@ -380,11 +405,7 @@ function erankly_render_social_meta_defaults( array $settings ): void {
 			</button>
 			<span class="screen-reader-text" aria-live="polite" data-erankly-linked-status><?php echo esc_html( $is_linked ? $toggle_on_label : $toggle_off_label ); ?></span>
 		</div>
-
 		<?php
-		// These templates apply to every post regardless of type, so the most
-		// recently published post (of the default "post" type) stands in as
-		// the {{post_title}}-style example; the raw token stays literal if none exist yet.
 		$examples = erankly_get_admin_variable_examples( erankly_get_sample_post_for_type( 'post' ) );
 		$is_first = true;
 		foreach ( $networks as $key => $network ) :
@@ -419,30 +440,14 @@ function erankly_render_social_meta_defaults( array $settings ): void {
 	</div>
 	<?php
 }
-
-/**
- * Renders global SEO defaults for special pages and archives. Special pages are singleton entities sharing the
- * same metadata structure as post types and taxonomies, but without the "linked" toggle. This settings renderer
- * is the fallback for classic themes and for block themes on WordPress versions where the contextual Site Editor
- * panels are unavailable.
- *
- * @param array<string,string> $entities Map of entity key => admin label.
- */
 function erankly_render_special_page_defaults( array $entities, array $settings ): void {
 	if ( empty( $entities ) || erankly_use_site_editor_special_page_panels() ) {
 		return;
 	}
-
 	$setting_key = 'global_special_meta';
 	$values      = isset( $settings[ $setting_key ] ) && is_array( $settings[ $setting_key ] ) ? $settings[ $setting_key ] : array();
-
 	erankly_render_special_page_defaults_group( $entities, $values, $setting_key, 'all', __( 'Default metadata by WordPress context', 'easyrankly' ) );
 }
-
-/**
- * @param array<string,string> $entities    Map of entity key => admin label.
- * @param array<string,mixed>  $values      Current settings for the group.
- */
 function erankly_render_special_page_defaults_group( array $entities, array $values, string $setting_key, string $group_key, string $aria_label ): void {
 	$tabs_id   = 'erankly-' . sanitize_key( $setting_key . '-' . $group_key ) . '-tabs';
 	$is_simple = (bool) erankly_get_setting( 'simplified_mode', 1 );
@@ -464,7 +469,6 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 				?>
 			</div>
 		</div>
-
 		<?php
 		$is_first = true;
 		foreach ( array_keys( $entities ) as $key ) :
@@ -497,13 +501,8 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 						</div>
 					</div>
 					<?php
-					// Among special pages only the author archive ever appears in the
-					// XML sitemap, so the "Disable sitemap" toggle is shown only there.
 					erankly_render_global_visibility_defaults( $setting_key, (string) $key, $noindex, $nofollow, $noarchive, $disable_sitemap, 'author' === (string) $key );
 					erankly_render_global_advanced_robot_preservation( $setting_key, (string) $key, $row );
-
-					// Social sharing is an advanced-only panel; in simplified mode the
-					// values are carried through as hidden inputs so saving never wipes them.
 					erankly_render_special_page_social_defaults( $setting_key, (string) $key, $row, $id_prefix, $is_simple );
 					?>
 				</div>
@@ -515,15 +514,6 @@ function erankly_render_special_page_defaults_group( array $entities, array $val
 	</div>
 	<?php
 }
-
-/**
- * Renders the advanced-only social sharing defaults for one special page. In simplified mode the panel is
- * hidden, but the stored values are carried through as hidden inputs so saving in simplified mode never wipes
- * them (mirrors how the visibility panel preserves nofollow/noarchive).
- *
- * @param array<string,mixed> $row         Current values for this entity.
- * @param bool                $is_simple   Whether simplified mode is active.
- */
 function erankly_render_special_page_social_defaults( string $setting_key, string $key, array $row, string $id_prefix, bool $is_simple ): void {
 	$name           = ERANKLY_OPTION . '[' . $setting_key . '][' . $key . ']';
 	$og_title       = isset( $row['og_title'] ) ? (string) $row['og_title'] : '';
@@ -532,7 +522,6 @@ function erankly_render_special_page_social_defaults( string $setting_key, strin
 	$tw_description = isset( $row['twitter_description'] ) ? (string) $row['twitter_description'] : '';
 	$image_url      = isset( $row['social_image_url'] ) ? (string) $row['social_image_url'] : '';
 	$image_id       = isset( $row['og_image_id'] ) ? absint( $row['og_image_id'] ) : 0;
-
 	if ( $is_simple ) {
 		?>
 		<input type="hidden" name="<?php echo esc_attr( $name ); ?>[og_title]" value="<?php echo esc_attr( $og_title ); ?>">
@@ -592,13 +581,9 @@ function erankly_render_special_page_social_defaults( string $setting_key, strin
 	</div>
 	<?php
 }
-
-/** @param bool   $show_disable_sitemap Whether the entity can appear in a sitemap. */
 function erankly_render_global_visibility_defaults( string $setting_key, string $entity_key, bool $noindex, bool $nofollow, bool $noarchive, bool $disable_sitemap, bool $show_disable_sitemap = true ): void {
 	$name_prefix = ERANKLY_OPTION . '[' . $setting_key . '][' . $entity_key . ']';
 	$is_simple   = (bool) erankly_get_setting( 'simplified_mode', 1 );
-	// When the sitemap toggle does not apply to this entity, "hide from search
-	// results" is driven by noindex alone.
 	$is_hidden = $show_disable_sitemap ? ( $noindex && $disable_sitemap ) : $noindex;
 	?>
 	<fieldset class="erankly-field erankly-checkboxes erankly-visibility-defaults">
@@ -606,7 +591,7 @@ function erankly_render_global_visibility_defaults( string $setting_key, string 
 		<div class="erankly-checkbox-options">
 			<?php if ( $is_simple ) : ?>
 				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[hide_from_search_results]" value="1" <?php checked( $is_hidden ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
-				<?php // The simplified control only drives noindex + disable_sitemap; carry the advanced-only directives through so saving in simplified mode never wipes them. ?>
+				<?php ?>
 				<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[nofollow]" value="<?php echo $nofollow ? '1' : '0'; ?>">
 				<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[noarchive]" value="<?php echo $noarchive ? '1' : '0'; ?>">
 			<?php else : ?>
@@ -621,14 +606,6 @@ function erankly_render_global_visibility_defaults( string $setting_key, string 
 	</fieldset>
 	<?php
 }
-
-/**
- * Carries imported advanced robot defaults through settings saves. These fields are intentionally hidden from
- * the compact global-default UI; per-object editors still expose the same controls. Keeping explicit positive
- * and negative values prevents a later settings save from erasing an inherited third-party robots policy.
- *
- * @param array<string,mixed> $row         Stored global metadata row.
- */
 function erankly_render_global_advanced_robot_preservation( string $setting_key, string $entity_key, array $row ): void {
 	$name_prefix = ERANKLY_OPTION . '[' . $setting_key . '][' . $entity_key . ']';
 	$keys        = array(
@@ -643,7 +620,6 @@ function erankly_render_global_advanced_robot_preservation( string $setting_key,
 		'max_video_preview',
 		'max_image_preview',
 	);
-
 	foreach ( $keys as $key ) {
 		if ( ! array_key_exists( $key, $row ) || ! is_scalar( $row[ $key ] ) ) {
 			continue;

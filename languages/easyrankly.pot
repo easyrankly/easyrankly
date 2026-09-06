@@ -836,6 +836,10 @@ msgstr ""
 msgid "Documentation"
 msgstr ""
 
+#: admin/settings/page-renderer.php:320
+msgid "Need help?"
+msgstr ""
+
 #: admin/settings/page-renderer.php:385
 #: admin/settings/panels.php:252
 #: admin/settings/panels.php:264

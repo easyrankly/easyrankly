@@ -1,15 +1,15 @@
 <?php
-/** Settings page. */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
+/**
+ * Settings API: option registration, panel-scoped sanitizer, autosave panel registry, network/site save
+ * handlers, extension tab normalization, sidebar nav links. Raw $_POST is wp_unslash()ed then sanitized
+ * field-by-field inside erankly_sanitize_settings(); unknown extension keys survive unchanged via the
+ * erankly_preserved_extension_settings filter. Legacy head/body_code snippets auto-migrate to the matching
+ * *_code_blocks array on privileged saves (unfiltered_html or system context).
+ */
+defined( 'ABSPATH' ) || exit;
 require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
-
 function erankly_register_settings(): void {
 	erankly_load_default_helpers();
-
 	register_setting(
 		'erankly',
 		ERANKLY_OPTION,
@@ -20,66 +20,45 @@ function erankly_register_settings(): void {
 		)
 	);
 }
-
-/**
- * Sanitizes settings.
- *
- * @return array<string,mixed>
- */
 function erankly_sanitize_settings( mixed $input ): array {
 	$input = is_array( $input ) ? $input : array();
 	$panel = isset( $input['erankly_settings_panel'] ) ? sanitize_key( (string) $input['erankly_settings_panel'] ) : '';
 	unset( $input['erankly_settings_panel'] );
-
 	if ( '' !== $panel ) {
 		$input = erankly_merge_settings_submission( $input, $panel );
 	}
-
 	$defaults                = erankly_default_settings();
 	$identity                = isset( $input['schema_identity'] ) ? erankly_sanitize_text( $input['schema_identity'] ) : '';
 	$person_user_id          = isset( $input['schema_person_user_id'] ) ? absint( $input['schema_person_user_id'] ) : 0;
 	$local_business_types    = erankly_get_local_business_types();
 	$local_business_type     = isset( $input['local_business_type'] ) ? erankly_sanitize_text( $input['local_business_type'] ) : 'LocalBusiness';
-
 	if ( $person_user_id > 0 && ! get_userdata( $person_user_id ) ) {
 		$person_user_id = 0;
 	}
-
 	if ( ! isset( $local_business_types[ $local_business_type ] ) ) {
 		$local_business_type = 'LocalBusiness';
 	}
-
 	$social_defaults_linked      = ! empty( $input['social_defaults_linked'] );
 	$default_og_title            = isset( $input['default_og_title'] ) ? erankly_sanitize_text( $input['default_og_title'] ) : '';
 	$default_og_description      = isset( $input['default_og_description'] ) ? erankly_sanitize_textarea( $input['default_og_description'] ) : '';
 	$default_twitter_title       = isset( $input['default_twitter_title'] ) ? erankly_sanitize_text( $input['default_twitter_title'] ) : '';
 	$default_twitter_description = isset( $input['default_twitter_description'] ) ? erankly_sanitize_textarea( $input['default_twitter_description'] ) : '';
 	$global_special_meta         = array();
-
 	if ( $social_defaults_linked ) {
 		$default_twitter_title       = $default_og_title;
 		$default_twitter_description = $default_og_description;
 	}
-
 	if ( isset( $input['global_special_meta'] ) ) {
 		$global_special_meta = erankly_sanitize_global_entity_meta( $input['global_special_meta'], array_keys( erankly_special_page_keys() ), false, true );
 	} elseif ( ! empty( $input['preserve_global_special_meta'] ) && ! is_multisite() && erankly_use_site_editor_special_page_panels() ) {
-		// Site Editor-capable block themes edit these values outside this form,
-		// so the settings screen carries only this marker and must not erase the
-		// separately edited map.
 		$global_special_meta = erankly_get_global_entity_meta_map( 'global_special_meta' );
 	}
-
 	$organization_logo_url    = isset( $input['organization_logo_url'] ) ? erankly_sanitize_url_template( $input['organization_logo_url'] ) : $defaults['organization_logo_url'];
 	$default_social_image_url = isset( $input['default_social_image_url'] ) ? erankly_sanitize_url_template( $input['default_social_image_url'] ) : '';
 	$organization_logo        = isset( $input['organization_logo'] ) ? absint( $input['organization_logo'] ) : $defaults['organization_logo'];
 	$default_og_image         = isset( $input['default_og_image'] ) ? absint( $input['default_og_image'] ) : 0;
-	// A concrete URL that diverges from the stored attachment drops the stale
-	// media ID: the URL always wins at runtime, so the ID must not linger as
-	// a hidden second source of truth.
 	$organization_logo = erankly_drop_stale_media_id( $organization_logo, $organization_logo_url );
 	$default_og_image  = erankly_drop_stale_media_id( $default_og_image, $default_social_image_url );
-
 	$settings = array(
 		'organization_name'              => isset( $input['organization_name'] ) ? erankly_sanitize_text( $input['organization_name'] ) : $defaults['organization_name'],
 		'website_name'                   => isset( $input['website_name'] ) ? erankly_sanitize_text( $input['website_name'] ) : $defaults['website_name'],
@@ -108,6 +87,7 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'twitter_site'                   => isset( $input['twitter_site'] ) ? erankly_sanitize_twitter_handle( $input['twitter_site'] ) : '',
 		'global_post_type_meta_linked'   => ! empty( $input['global_post_type_meta_linked'] ) ? 1 : 0,
 		'global_post_type_meta'          => isset( $input['global_post_type_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_post_type_meta'], array_keys( erankly_get_public_post_types() ), ! empty( $input['global_post_type_meta_linked'] ), false, true ) : array(),
+		'global_post_type_schema'        => isset( $input['global_post_type_schema'] ) ? erankly_sanitize_global_post_type_schema( $input['global_post_type_schema'] ) : $defaults['global_post_type_schema'],
 		'global_taxonomy_meta_linked'    => ! empty( $input['global_taxonomy_meta_linked'] ) ? 1 : 0,
 		'global_taxonomy_meta'           => isset( $input['global_taxonomy_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_taxonomy_meta'], array_keys( erankly_get_public_taxonomies() ), ! empty( $input['global_taxonomy_meta_linked'] ), false, true ) : array(),
 		'global_special_meta'            => $global_special_meta,
@@ -151,78 +131,44 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'head_code_blocks'               => erankly_sanitize_custom_code_blocks_field( $input['head_code_blocks'] ?? null, 'head_code_blocks' ),
 		'body_open_code_blocks'          => erankly_sanitize_custom_code_blocks_field( $input['body_open_code_blocks'] ?? null, 'body_open_code_blocks' ),
 		'body_close_code_blocks'         => erankly_sanitize_custom_code_blocks_field( $input['body_close_code_blocks'] ?? null, 'body_close_code_blocks' ),
-		// Legacy single snippets: preserved for the frontend fallback, then
-		// auto-migrated to full-visibility blocks below on privileged saves.
 		'head_code'                      => erankly_sanitize_custom_code_field( $input['head_code'] ?? null, 'head_code' ),
 		'body_open_code'                 => erankly_sanitize_custom_code_field( $input['body_open_code'] ?? null, 'body_open_code' ),
 		'body_close_code'                => erankly_sanitize_custom_code_field( $input['body_close_code'] ?? null, 'body_close_code' ),
 	);
-
-	// One-time migration: any stored legacy snippet becomes an appended
-	// full-visibility block, so pre-block installs keep printing it with
-	// per-location targeting from the first resave on — even if blocks were
-	// already added in the meantime. Runs only for privileged/system contexts
-	// (the block/legacy sanitizers above already preserved stored values for
-	// low-privilege users). Respects the per-location block cap.
 	$can_migrate_code = ! function_exists( 'get_current_user_id' ) || 0 === (int) get_current_user_id() || current_user_can( 'unfiltered_html' );
-
 	if ( $can_migrate_code ) {
 		foreach ( array( 'head_code' => 'head_code_blocks', 'body_open_code' => 'body_open_code_blocks', 'body_close_code' => 'body_close_code_blocks' ) as $legacy_key => $blocks_key ) {
 			$legacy_code = trim( (string) $settings[ $legacy_key ] );
-
 			if ( '' === $legacy_code ) {
 				continue;
 			}
-
 			$existing = is_array( $settings[ $blocks_key ] ) ? array_values( $settings[ $blocks_key ] ) : array();
-
 			if ( count( $existing ) >= erankly_custom_code_max_blocks() ) {
 				continue;
 			}
-
 			$existing[]             = erankly_custom_code_migrated_block( $legacy_code );
 			$settings[ $blocks_key ] = $existing;
 			$settings[ $legacy_key ] = '';
 		}
 	}
-
 	$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
 	$stored = is_array( $stored ) ? $stored : array();
-
-	/**
- * Filters already-stored extension keys that core must preserve unchanged. Only keys absent from the current
- * core defaults are eligible. New request input can never create an unknown key through this path.
- */
 	$extension_settings = apply_filters(
 		'erankly_preserved_extension_settings',
 		array_diff_key( $stored, $defaults ),
 		$input
 	);
 	$extension_settings = is_array( $extension_settings ) ? $extension_settings : array();
-
 	return array_replace( $extension_settings, $settings );
 }
-
-/** Sanitizes max-snippet and max-video-preview values. */
 function erankly_sanitize_robots_preview_value( mixed $value ): string {
 	$value = trim( (string) $value );
-
 	if ( '' === $value || ! preg_match( '/^-?\d+$/', $value ) ) {
 		return '';
 	}
-
 	$number = (int) $value;
-
 	return $number < -1 ? '' : (string) $number;
 }
-
-/**
- * Settings keys owned by the General panel. Used to scope the autosave REST route (registered in easyrankly.php)
- * so it can only ever touch these fields, never the ones that live on other panels (Features, Social, Schema,
- * Sitemap, Advanced).
- *
- * @return array<int,string>
- */
 function erankly_general_panel_setting_keys(): array {
 	return array(
 		'organization_name',
@@ -249,15 +195,6 @@ function erankly_general_panel_setting_keys(): array {
 		'preserve_global_special_meta',
 	);
 }
-
-/**
- * Registry of settings panels that autosave via REST (see erankly_rest_save_settings_panel() in easyrankly.php).
- * Each entry lists the top-level erankly_settings[...] keys that panel owns, and an optional 'normalize'
- * callback, a callable( array $merged, array $changes ): array, run on the merged array before sanitizing, for
- * panels whose sanitizer branches on isset() in a way that only makes sense for a full-page submission.
- *
- * @return array<string,array{keys:array<int,string>,normalize?:callable}>
- */
 function erankly_settings_autosave_panels(): array {
 	$panels = array(
 		'general'  => array( 'keys' => erankly_general_panel_setting_keys() ),
@@ -325,6 +262,7 @@ function erankly_settings_autosave_panels(): array {
 		),
 		'schema'   => array(
 			'keys' => array(
+				'global_post_type_schema',
 				'enable_breadcrumbs',
 				'enable_local_business',
 				'local_business_type',
@@ -339,30 +277,18 @@ function erankly_settings_autosave_panels(): array {
 			),
 		),
 	);
-
 	$panels = apply_filters( 'erankly_settings_autosave_panels', $panels );
-
 	return is_array( $panels ) ? $panels : array();
 }
-
-/** Saves settings submitted from the Network Admin settings page. */
 function erankly_save_network_settings(): void {
 	check_admin_referer( 'erankly_network_settings' );
-
 	if ( ! current_user_can( 'manage_network_options' ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
-
-	$raw       = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized inside erankly_sanitize_settings().
+	$raw       = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array();
 	$sanitized = erankly_sanitize_settings( $raw );
-
 	erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
-
 	$redirect = network_admin_url( 'settings.php?page=erankly' );
-
-	// Keep the redirect on whatever tab was active so saving never bounces back
-	// to General. The form's _wp_http_referer carries the active tab (the admin
-	// JS syncs it as the user switches tabs).
 	$referer = wp_get_referer();
 	if ( $referer ) {
 		$query = (string) wp_parse_url( $referer, PHP_URL_QUERY );
@@ -376,34 +302,22 @@ function erankly_save_network_settings(): void {
 			}
 		}
 	}
-
 	wp_safe_redirect( add_query_arg( 'updated', '1', $redirect ) );
 	exit;
 }
-
-/**
- * Saves special-page metadata submitted from a subsite's "General" tab on Multisite. Special pages are stored
- * per site (ERANKLY_SPECIAL_META_OPTION) rather than in the network-wide settings, so each site keeps its own
- * homepage / archive metadata.
- */
 function erankly_save_site_special_meta(): void {
 	check_admin_referer( 'erankly_site_special_meta' );
-
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
-
-	$raw = isset( $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized inside erankly_update_special_meta_map().
-
+	$raw = isset( $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) : array();
 	erankly_update_special_meta_map( $raw );
-
 	$redirect_args = array(
 		'page'        => 'erankly',
 		'erankly_tab' => 'special-pages',
 		'updated'     => '1',
 	);
 	$referer       = wp_get_referer();
-
 	if ( $referer ) {
 		$query = (string) wp_parse_url( $referer, PHP_URL_QUERY );
 		if ( '' !== $query ) {
@@ -413,44 +327,27 @@ function erankly_save_site_special_meta(): void {
 			}
 		}
 	}
-
 	wp_safe_redirect( add_query_arg( $redirect_args, admin_url( 'options-general.php' ) ) );
 	exit;
 }
-
-/**
- * Normalises tabs registered through the `erankly_settings_tabs` filter. Add-ons register a settings tab by
- * returning an entry keyed by a tab slug: array( 'my-addon' => array( 'label' => 'My Add-on', 'capability' =>
- * 'manage_options' ) ). The body of each tab is printed by the matching `erankly_render_settings_tab_{$slug}`
- * action. Malformed, wrong-scope and unauthorized entries are dropped.
- *
- * @param array<string,mixed> $screen_context Current settings screen context.
- * @return array<string,array{label:string,capability:string,scope:string,position:int}>
- */
 function erankly_normalize_settings_tabs( mixed $tabs, array $screen_context ): array {
 	if ( ! is_array( $tabs ) ) {
 		return array();
 	}
-
 	$reserved = array( 'general', 'features', 'social', 'schema', 'sitemap', 'custom-code', 'settings', 'advanced', 'import-export', 'redirects', 'special-pages' );
 	$scope    = (string) ( $screen_context['scope'] ?? 'site' );
 	$clean    = array();
-
 	foreach ( $tabs as $slug => $tab ) {
 		$slug = sanitize_key( (string) $slug );
-
 		if ( '' === $slug || in_array( $slug, $reserved, true ) || ! is_array( $tab ) ) {
 			continue;
 		}
-
 		$label      = isset( $tab['label'] ) ? (string) $tab['label'] : '';
 		$tab_scope  = isset( $tab['scope'] ) ? sanitize_key( (string) $tab['scope'] ) : 'site';
 		$capability = ( isset( $tab['capability'] ) && '' !== $tab['capability'] ) ? sanitize_key( (string) $tab['capability'] ) : 'manage_options';
-
 		if ( '' === $label || ! in_array( $tab_scope, array( 'site', 'network' ), true ) || $scope !== $tab_scope || ! current_user_can( $capability ) ) {
 			continue;
 		}
-
 		$clean[ $slug ] = array(
 			'label'      => $label,
 			'capability' => $capability,
@@ -459,51 +356,35 @@ function erankly_normalize_settings_tabs( mixed $tabs, array $screen_context ): 
 			'group'      => isset( $tab['group'] ) ? sanitize_key( (string) $tab['group'] ) : '',
 		);
 	}
-
 	uksort(
 		$clean,
 		static function ( string $left, string $right ) use ( $clean ): int {
 			$position = $clean[ $left ]['position'] <=> $clean[ $right ]['position'];
-
 			return 0 !== $position ? $position : strcmp( $left, $right );
 		}
 	);
-
 	return $clean;
 }
-
-/**
- * @param bool                                   $disabled    Whether the internal tabs are currently disabled.
- * @return array<int,array{subtab:string,disabled:bool}>
- */
 function erankly_get_global_meta_nav_subtabs( string $setting_key, array $objects, bool $disabled = false ): array {
 	$items = array();
-
 	foreach ( array_keys( $objects ) as $key ) {
 		$items[] = array(
 			'subtab'   => sanitize_key( $setting_key . '-' . $key ),
 			'disabled' => $disabled,
 		);
 	}
-
 	return $items;
 }
-
-/** @return array<int,array{subtab:string,disabled:bool}> */
 function erankly_get_special_page_nav_subtabs( array $entities ): array {
 	$items = array();
-
 	foreach ( array_keys( $entities ) as $key ) {
 		$items[] = array(
 			'subtab'   => sanitize_key( 'global_special_meta-all-' . $key ),
 			'disabled' => false,
 		);
 	}
-
 	return $items;
 }
-
-/** @return array<int,array{subtab:string,disabled:bool}> */
 function erankly_get_social_nav_subtabs( array $settings ): array {
 	$og_title            = isset( $settings['default_og_title'] ) ? (string) $settings['default_og_title'] : '';
 	$og_description      = isset( $settings['default_og_description'] ) ? (string) $settings['default_og_description'] : '';
@@ -513,22 +394,18 @@ function erankly_get_social_nav_subtabs( array $settings ): array {
 		&& $og_title === $twitter_title
 		&& $og_description === $twitter_description;
 	$items               = array();
-
 	foreach ( array( 'og', 'twitter' ) as $key ) {
 		$items[] = array(
 			'subtab'   => sanitize_key( 'social-defaults-' . $key ),
 			'disabled' => $is_linked,
 		);
 	}
-
 	return $items;
 }
-
 function erankly_settings_tab_url( string $tab ): string {
 	$base = is_network_admin()
 		? network_admin_url( 'settings.php' )
 		: admin_url( 'options-general.php' );
-
 	return add_query_arg(
 		array(
 			'page'        => 'erankly',
@@ -537,12 +414,10 @@ function erankly_settings_tab_url( string $tab ): string {
 		$base
 	);
 }
-
-/** @param bool   $hidden       Whether the link is currently unavailable. */
 function erankly_render_settings_nav_link( string $slug, string $label, string $active_panel, bool $hidden = false ): void {
 	$panel     = 'settings-' . $slug;
 	$is_active = $panel === $active_panel;
 	?>
-	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo erankly_nav_icon( $slug ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static inline SVG from erankly_nav_icons(). ?><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
+	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo erankly_nav_icon( $slug ); ?><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
 	<?php
 }

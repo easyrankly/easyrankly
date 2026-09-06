@@ -43,125 +43,231 @@ function erankly_get_schema_graph(): array {
 		return array();
 	}
 
-	$graph = is_404() ? array() : erankly_schema_foundational_graph();
-
-	$breadcrumbs = array();
-	if ( ! is_404() && function_exists( 'erankly_schema_breadcrumb_list' ) ) {
-		$breadcrumbs = erankly_schema_breadcrumb_list();
-	}
-
-	$breadcrumb_id = ! empty( $breadcrumbs ) && isset( $breadcrumbs['@id'] )
-		? (string) $breadcrumbs['@id']
-		: '';
-
-	if ( is_singular() ) {
-		$product = erankly_get_woocommerce_product_data( $post_id );
-
-		$graph[] = erankly_schema_webpage( $post_id, $breadcrumb_id );
-
-		$post_type    = (string) get_post_type( $post_id );
-		$article_type = erankly_get_global_post_type_meta( $post_type, 'article_type' );
-		if ( '' === $article_type ) {
-			// Mirror the settings UI fallback: a stored row without the
-			// article_type key displays BlogPosting for posts, so partial rows
-			// (imports, hand-written data) must resolve the same way instead
-			// of silently dropping the Article node. An explicit empty value
-			// or "none" keeps the node disabled.
-			$stored_rows = erankly_get_global_entity_meta_map( 'global_post_type_meta' );
-			$stored_row  = ( isset( $stored_rows[ $post_type ] ) && is_array( $stored_rows[ $post_type ] ) ) ? $stored_rows[ $post_type ] : array();
-
-			if ( ! array_key_exists( 'article_type', $stored_row ) ) {
-				$article_type = 'post' === $post_type ? 'BlogPosting' : '';
-			}
-		}
-		if ( ! empty( $product ) ) {
-			$graph[] = $product;
-		} elseif ( '' !== $article_type && 'none' !== strtolower( $article_type ) ) {
-			$graph[] = erankly_schema_article( $post_id );
-		}
-
-		$faq = erankly_schema_faq( $post_id );
-
-		if ( ! empty( $faq ) ) {
-			$graph[] = $faq;
-		}
-
-		$local_business = erankly_schema_local_business_for_page( $post_id );
-
-		if ( ! empty( $local_business ) ) {
-			// LocalBusiness references the Organization via parentOrganization. Ensure that
-			// node exists even when the primary identity is a Person (duplicates are removed
-			// later by erankly_dedupe_schema_graph()).
-			if ( 'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) ) {
-				$graph[] = erankly_schema_organization();
-			}
-
-			$graph[] = $local_business;
-		}
-
-		$howto = erankly_schema_howto( $post_id );
-
-		if ( ! empty( $howto ) ) {
-			$graph[] = $howto;
-		}
-
-		$event = erankly_schema_event( $post_id );
-
-		if ( ! empty( $event ) ) {
-			$graph[] = $event;
-		}
-
-		$service = erankly_schema_service_for_page( $post_id );
-
-		if ( ! empty( $service ) ) {
-			$graph[] = $service;
-		}
-
-		foreach ( erankly_schema_video_objects( $post_id ) as $video_object ) {
-			$graph[] = $video_object;
-		}
-	} elseif ( ! is_404() ) {
-		$graph[] = erankly_schema_webpage( 0, $breadcrumb_id );
-	}
+	// "Custom schema only" discards the automatic graph, so it is never built:
+	// assembling it would parse the post content for FAQ, HowTo and embedded
+	// video markup only to throw the result away a few lines later.
+	$automatic = 'replace' === $schema_mode ? array() : erankly_automatic_schema_graph( $post_id );
+	$global    = erankly_get_global_schema_graph();
+	$custom    = ( $post_id > 0 && in_array( $schema_mode, array( 'merge', 'replace' ), true ) )
+		? erankly_post_custom_schema_graph( $post_id )
+		: array();
 
 	if ( $post_id > 0 ) {
+		// Suppression covers everything EasyRankly emits on its own for this
+		// page — the breadcrumb trail and site-wide blocks targeting it
+		// included — but never the JSON-LD authored on this post, which is
+		// edited on the same screen as the suppression field.
 		$disabled_types = get_post_meta( $post_id, '_erankly_schema_disabled_types', true );
 		$disabled_types = is_array( $disabled_types ) ? $disabled_types : array();
-		$graph          = erankly_filter_schema_graph_types( $graph, $disabled_types );
-
-		if ( 'replace' === $schema_mode ) {
-			$graph       = array();
-			$breadcrumbs = array();
-		}
-
-		if ( in_array( $schema_mode, array( 'merge', 'replace' ), true ) ) {
-			$blocks = get_post_meta( $post_id, '_erankly_schema_blocks', true );
-
-			foreach ( is_array( $blocks ) ? $blocks : array() as $block ) {
-				if ( ! is_array( $block ) ) {
-					continue;
-				}
-
-				foreach ( erankly_schema_from_configured_block( $block, $post_id ) as $schema ) {
-					if ( ! empty( $schema ) ) {
-						$graph[] = $schema;
-					}
-				}
-			}
-		}
+		$automatic      = erankly_filter_schema_graph_types( $automatic, $disabled_types );
+		$global         = erankly_filter_schema_graph_types( $global, $disabled_types );
 	}
 
-	foreach ( erankly_get_global_schema_graph() as $schema ) {
-		$graph[] = $schema;
+	// A suppressed or disabled node leaves "@id" pointers behind (publisher,
+	// isPartOf, mainEntityOfPage, breadcrumb) and a reference to a node that is
+	// not in the graph is an error for validators. Only the generated nodes are
+	// pruned: authored JSON-LD may legitimately point at an entity defined
+	// elsewhere.
+	$automatic = erankly_prune_dangling_schema_references(
+		$automatic,
+		erankly_collect_schema_node_ids( array_merge( $automatic, $custom, $global ) )
+	);
+
+	$graph = apply_filters( 'erankly_schema', array_filter( array_merge( $automatic, $custom, $global ) ) );
+
+	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
+}
+
+/**
+ * Builds the graph EasyRankly derives from the request on its own: the site identity, the page node, the
+ * content nodes detected on singular content, and the breadcrumb trail.
+ *
+ * @param int $post_id Queried post ID, or 0 outside singular content.
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_automatic_schema_graph( int $post_id ): array {
+	if ( is_404() ) {
+		return array();
+	}
+
+	$graph         = erankly_schema_foundational_graph();
+	$breadcrumbs   = function_exists( 'erankly_schema_breadcrumb_list' ) ? erankly_schema_breadcrumb_list() : array();
+	$breadcrumb_id = ! empty( $breadcrumbs ) && isset( $breadcrumbs['@id'] ) ? (string) $breadcrumbs['@id'] : '';
+
+	if ( ! is_singular() ) {
+		$graph[] = erankly_schema_webpage( 0, $breadcrumb_id );
+
+		if ( ! empty( $breadcrumbs ) ) {
+			$graph[] = $breadcrumbs;
+		}
+
+		return $graph;
+	}
+
+	$graph[] = erankly_schema_webpage( $post_id, $breadcrumb_id );
+
+	$product      = erankly_get_woocommerce_product_data( $post_id );
+	$article_type = erankly_get_post_type_schema_type( (string) get_post_type( $post_id ), 'article_type' );
+
+	if ( ! empty( $product ) ) {
+		$graph[] = $product;
+	} elseif ( '' !== $article_type && 'none' !== strtolower( $article_type ) ) {
+		$graph[] = erankly_schema_article( $post_id );
+	}
+
+	$faq = erankly_schema_faq( $post_id );
+
+	if ( ! empty( $faq ) ) {
+		$graph[] = $faq;
+	}
+
+	$local_business = erankly_schema_local_business_for_page( $post_id );
+
+	if ( ! empty( $local_business ) ) {
+		// LocalBusiness references the Organization via parentOrganization. Ensure that
+		// node exists even when the primary identity is a Person (duplicates are removed
+		// later by erankly_dedupe_schema_graph()).
+		if ( 'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) ) {
+			$graph[] = erankly_schema_organization();
+		}
+
+		$graph[] = $local_business;
+	}
+
+	$howto = erankly_schema_howto( $post_id );
+
+	if ( ! empty( $howto ) ) {
+		$graph[] = $howto;
+	}
+
+	$event = erankly_schema_event( $post_id );
+
+	if ( ! empty( $event ) ) {
+		$graph[] = $event;
+	}
+
+	$service = erankly_schema_service_for_page( $post_id );
+
+	if ( ! empty( $service ) ) {
+		$graph[] = $service;
+	}
+
+	foreach ( erankly_schema_video_objects( $post_id ) as $video_object ) {
+		$graph[] = $video_object;
 	}
 
 	if ( ! empty( $breadcrumbs ) ) {
 		$graph[] = $breadcrumbs;
 	}
 
-	$graph = apply_filters( 'erankly_schema', array_filter( $graph ) );
+	return $graph;
+}
 
-	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
+/**
+ * Returns the JSON-LD blocks authored on one post.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_post_custom_schema_graph( int $post_id ): array {
+	$blocks = get_post_meta( $post_id, '_erankly_schema_blocks', true );
+	$graph  = array();
+
+	foreach ( is_array( $blocks ) ? $blocks : array() as $block ) {
+		if ( ! is_array( $block ) ) {
+			continue;
+		}
+
+		foreach ( erankly_schema_from_configured_block( $block, $post_id ) as $schema ) {
+			if ( ! empty( $schema ) ) {
+				$graph[] = $schema;
+			}
+		}
+	}
+
+	return $graph;
+}
+
+/**
+ * Collects every "@id" a graph defines, including the ones on nested nodes.
+ *
+ * @param array<int,mixed> $graph Schema graph nodes.
+ * @return array<string,true>
+ */
+function erankly_collect_schema_node_ids( array $graph ): array {
+	$ids = array();
+
+	foreach ( $graph as $node ) {
+		if ( ! is_array( $node ) ) {
+			continue;
+		}
+
+		// A node that carries an "@id" alongside other properties defines that
+		// entity; an array holding nothing but "@id" is a reference to one.
+		if ( isset( $node['@id'] ) && is_string( $node['@id'] ) && count( $node ) > 1 ) {
+			$ids[ trim( $node['@id'] ) ] = true;
+		}
+
+		foreach ( $node as $value ) {
+			if ( is_array( $value ) ) {
+				$ids += erankly_collect_schema_node_ids( array( $value ) );
+			}
+		}
+	}
+
+	return $ids;
+}
+
+/**
+ * Removes "@id" references pointing at nodes that are not part of the graph.
+ *
+ * @param array<int,array<string,mixed>> $graph      Nodes to clean.
+ * @param array<string,true>             $known_ids  Every "@id" the final graph defines.
+ * @return array<int,array<string,mixed>>
+ */
+function erankly_prune_dangling_schema_references( array $graph, array $known_ids ): array {
+	foreach ( $graph as $index => $node ) {
+		if ( is_array( $node ) ) {
+			$graph[ $index ] = erankly_prune_dangling_schema_references_in_node( $node, $known_ids );
+		}
+	}
+
+	return array_values( array_filter( $graph ) );
+}
+
+/**
+ * @param array<string,mixed> $node      Single schema node.
+ * @param array<string,true>  $known_ids Every "@id" the final graph defines.
+ * @return array<string,mixed>
+ */
+function erankly_prune_dangling_schema_references_in_node( array $node, array $known_ids ): array {
+	foreach ( $node as $key => $value ) {
+		if ( '@id' === $key || ! is_array( $value ) ) {
+			continue;
+		}
+
+		if ( erankly_is_dangling_schema_reference( $value, $known_ids ) ) {
+			unset( $node[ $key ] );
+			continue;
+		}
+
+		$node[ $key ] = erankly_prune_dangling_schema_references_in_node( $value, $known_ids );
+
+		if ( array() === $node[ $key ] ) {
+			unset( $node[ $key ] );
+		}
+	}
+
+	return $node;
+}
+
+/**
+ * @param array<mixed>       $value     Candidate reference.
+ * @param array<string,true> $known_ids Every "@id" the final graph defines.
+ */
+function erankly_is_dangling_schema_reference( array $value, array $known_ids ): bool {
+	return array( '@id' ) === array_keys( $value )
+		&& is_string( $value['@id'] )
+		&& ! isset( $known_ids[ trim( $value['@id'] ) ] );
 }
 
 /** @return array<int,array<string,mixed>> */
@@ -428,7 +534,7 @@ function erankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ):
 	$canonical = erankly_get_canonical();
 	$type      = ( 0 === $post_id && ( is_archive() || is_search() ) ) ? 'CollectionPage' : 'WebPage';
 	if ( $post_id > 0 ) {
-		$configured_type = erankly_get_global_post_type_meta( (string) get_post_type( $post_id ), 'webpage_type' );
+		$configured_type = erankly_get_post_type_schema_type( (string) get_post_type( $post_id ), 'webpage_type' );
 		if ( 'none' === strtolower( $configured_type ) ) {
 			return array();
 		}
@@ -473,8 +579,10 @@ function erankly_schema_article( int $post_id = 0 ): array {
 	$url       = '' !== $url ? $url : (string) get_permalink( $post_id );
 	$image     = erankly_get_og_image();
 	$author_id = (int) get_post_field( 'post_author', $post_id );
-	$article_type = erankly_get_global_post_type_meta( (string) get_post_type( $post_id ), 'article_type' );
-	$article_type = '' !== $article_type ? $article_type : ( is_singular( 'post' ) ? 'BlogPosting' : 'Article' );
+	$article_type = erankly_get_post_type_schema_type( (string) get_post_type( $post_id ), 'article_type' );
+	$article_type = ( '' !== $article_type && 'none' !== strtolower( $article_type ) )
+		? $article_type
+		: ( is_singular( 'post' ) ? 'BlogPosting' : 'Article' );
 	$schema       = array(
 		'@type'            => $article_type,
 		'@id'              => $url . '#article',

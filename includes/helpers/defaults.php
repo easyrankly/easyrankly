@@ -55,15 +55,55 @@ function erankly_build_global_entity_meta_defaults( array $keys, array $template
 
 /** @return array<string,array<string,string>> */
 function erankly_default_global_post_type_meta(): array {
-	$defaults = erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_post_types() ), erankly_default_post_type_meta_template() );
+	return erankly_build_global_entity_meta_defaults( array_keys( erankly_get_public_post_types() ), erankly_default_post_type_meta_template() );
+}
 
-	foreach ( $defaults as $post_type => &$row ) {
-		$row['webpage_type'] = 'WebPage';
-		$row['article_type'] = 'post' === $post_type ? 'BlogPosting' : '';
+/**
+ * Returns the default Schema.org types per post type. These live outside global_post_type_meta because the
+ * "Same for all" toggle links titles and descriptions across content types, while a page and a post must be
+ * able to describe themselves differently.
+ *
+ * @return array<string,array{webpage_type:string,article_type:string}>
+ */
+function erankly_default_global_post_type_schema(): array {
+	$defaults = array();
+
+	foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
+		$defaults[ $post_type ] = erankly_default_post_type_schema_row( (string) $post_type );
 	}
-	unset( $row );
 
 	return $defaults;
+}
+
+/**
+ * Sanitizes the per-post-type Schema.org types. Unknown post types are dropped; unknown type names are kept
+ * only when they are well-formed, so a value imported from another SEO plugin is not silently discarded.
+ *
+ * @return array<string,array{webpage_type:string,article_type:string}>
+ */
+function erankly_sanitize_global_post_type_schema( mixed $input ): array {
+	$input   = is_array( $input ) ? $input : array();
+	$allowed = array_fill_keys( array_map( 'sanitize_key', array_keys( erankly_get_public_post_types() ) ), true );
+	$clean   = array();
+
+	foreach ( $input as $post_type => $fields ) {
+		$post_type = sanitize_key( (string) $post_type );
+
+		if ( ! isset( $allowed[ $post_type ] ) || ! is_array( $fields ) ) {
+			continue;
+		}
+
+		$defaults     = erankly_default_post_type_schema_row( $post_type );
+		$webpage_type = array_key_exists( 'webpage_type', $fields ) ? erankly_sanitize_schema_type_name( $fields['webpage_type'] ) : '';
+		$article_type = array_key_exists( 'article_type', $fields ) ? erankly_sanitize_schema_type_name( $fields['article_type'] ) : '';
+
+		$clean[ $post_type ] = array(
+			'webpage_type' => '' !== $webpage_type ? $webpage_type : $defaults['webpage_type'],
+			'article_type' => '' !== $article_type ? $article_type : $defaults['article_type'],
+		);
+	}
+
+	return $clean;
 }
 
 /** @return array<string,array<string,string>> */
@@ -122,7 +162,6 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 	$keys           = array_map( 'sanitize_key', $allowed_keys );
 	$allowed        = array_fill_keys( $keys, true );
 	$clean          = array();
-	$directive_keys = array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' );
 	$has_directives = static function ( array $directives ): bool {
 		foreach ( $directives as $key => $value ) {
 			if ( in_array( $key, array( 'noindex', 'nofollow', 'noarchive', 'disable_sitemap' ), true ) ) {
@@ -151,22 +190,9 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 		$description = isset( $first_row['description'] ) ? erankly_sanitize_textarea( $first_row['description'] ) : '';
 		$directives  = erankly_sanitize_global_entity_directives( $first_row );
 
-		$schema_by_key = array();
-		$diverged      = false;
+		$diverged = false;
 		foreach ( $keys as $key ) {
-			if ( ! isset( $input[ $key ] ) || ! is_array( $input[ $key ] ) ) {
-				continue;
-			}
-			$schema = array();
-			if ( array_key_exists( 'webpage_type', $input[ $key ] ) ) {
-				$schema['webpage_type'] = erankly_sanitize_schema_type_name( $input[ $key ]['webpage_type'] );
-			}
-			if ( array_key_exists( 'article_type', $input[ $key ] ) ) {
-				$schema['article_type'] = erankly_sanitize_schema_type_name( $input[ $key ]['article_type'] );
-			}
-			$schema_by_key[ $key ] = $schema;
-
-			if ( $key === $first_key ) {
+			if ( ! isset( $input[ $key ] ) || ! is_array( $input[ $key ] ) || $key === $first_key ) {
 				continue;
 			}
 
@@ -179,11 +205,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			}
 		}
 
-		$has_schema = (bool) array_filter(
-			$schema_by_key,
-			static fn( array $schema ): bool => (bool) array_filter( $schema, 'strlen' )
-		);
-		if ( '' === $title && '' === $description && ! $has_directives( $directives ) && ! $has_schema ) {
+		if ( '' === $title && '' === $description && ! $has_directives( $directives ) ) {
 			return array();
 		}
 
@@ -200,7 +222,7 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			$clean[ $key ] = array(
 				'title'       => $title,
 				'description' => $description,
-			) + $directives + ( $schema_by_key[ $key ] ?? array() );
+			) + $directives;
 		}
 
 		return $clean;
@@ -217,34 +239,36 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 		$description = isset( $fields['description'] ) ? erankly_sanitize_textarea( $fields['description'] ) : '';
 		$directives  = erankly_sanitize_global_entity_directives( $fields );
 		$social      = $with_social ? erankly_sanitize_global_entity_social( $fields ) : array();
-		$schema      = array();
-		if ( array_key_exists( 'webpage_type', $fields ) ) {
-			$schema['webpage_type'] = erankly_sanitize_schema_type_name( $fields['webpage_type'] );
-		}
-		if ( array_key_exists( 'article_type', $fields ) ) {
-			$schema['article_type'] = erankly_sanitize_schema_type_name( $fields['article_type'] );
-		}
 		$no_social   = ! $with_social || erankly_global_entity_social_is_empty( $social );
-		$no_schema   = ! array_filter( $schema, 'strlen' );
 
-		if ( '' === $title && '' === $description && ! $has_directives( $directives ) && $no_social && $no_schema ) {
+		if ( '' === $title && '' === $description && ! $has_directives( $directives ) && $no_social ) {
 			continue;
 		}
 
 		$clean[ $entity ] = array(
 			'title'       => $title,
 			'description' => $description,
-		) + $directives + $social + $schema;
+		) + $directives + $social;
 	}
 
 	return $clean;
 }
 
-/** Sanitizes a Schema.org type name used by post-type defaults. */
+/**
+ * Sanitizes a Schema.org type name used by post-type defaults, plus the "none" sentinel that suppresses a node.
+ * Schema.org type names are UpperCamelCase alphanumerics: stripping the invalid characters (as this used to do)
+ * turned a typo into a different invalid type instead of rejecting it, and the result was emitted as an @type.
+ */
 function erankly_sanitize_schema_type_name( mixed $value ): string {
-	$value = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $value );
+	// Casting an array to string warns and yields the literal "Array", which
+	// would otherwise pass the pattern below and reach the output as an @type.
+	$value = is_scalar( $value ) ? trim( (string) $value ) : '';
 
-	return is_string( $value ) ? substr( $value, 0, 100 ) : '';
+	if ( 'none' === strtolower( $value ) ) {
+		return 'none';
+	}
+
+	return 1 === preg_match( '/^[A-Z][A-Za-z0-9]{0,99}$/', $value ) ? $value : '';
 }
 
 /**
@@ -363,6 +387,7 @@ function erankly_default_settings(): array {
 		'twitter_site'                   => '',
 		'global_post_type_meta'          => erankly_default_global_post_type_meta(),
 		'global_post_type_meta_linked'   => 1,
+		'global_post_type_schema'        => erankly_default_global_post_type_schema(),
 		'global_taxonomy_meta'           => erankly_default_global_taxonomy_meta(),
 		'global_taxonomy_meta_linked'    => 1,
 		'global_special_meta'            => erankly_default_global_special_meta(),

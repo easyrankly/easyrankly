@@ -151,6 +151,62 @@ function erankly_get_setting( string $key, mixed $default_value = null ): mixed 
 	return apply_filters( 'erankly_setting_value', $value, $key, $default_value, $context );
 }
 
+/**
+ * Moves the per-post-type Schema.org types out of global_post_type_meta into their own setting. They used to
+ * ride along with the title and description rows, which meant the "Same for all" toggle hid them for every
+ * content type but the first, and a General save could drop them.
+ */
+function erankly_maybe_migrate_post_type_schema(): void {
+	if ( erankly_get_plugin_option( 'erankly_migrated_post_type_schema_v1', false ) ) {
+		return;
+	}
+
+	erankly_load_default_helpers();
+	$settings = erankly_get_stored_settings();
+
+	if ( empty( $settings ) || isset( $settings['global_post_type_schema'] ) ) {
+		erankly_update_plugin_option( 'erankly_migrated_post_type_schema_v1', true );
+
+		return;
+	}
+
+	$legacy = ( isset( $settings['global_post_type_meta'] ) && is_array( $settings['global_post_type_meta'] ) )
+		? $settings['global_post_type_meta']
+		: array();
+	$schema = array();
+
+	foreach ( array_keys( erankly_get_public_post_types() ) as $post_type ) {
+		$post_type = (string) $post_type;
+		$row       = ( isset( $legacy[ $post_type ] ) && is_array( $legacy[ $post_type ] ) ) ? $legacy[ $post_type ] : array();
+		$defaults  = erankly_default_post_type_schema_row( $post_type );
+
+		$webpage_type = array_key_exists( 'webpage_type', $row ) ? erankly_sanitize_schema_type_name( $row['webpage_type'] ) : '';
+		// An empty stored value was how the retired free-text field expressed
+		// "emit no Article node", so it maps to the explicit "none" choice.
+		$article_type = array_key_exists( 'article_type', $row )
+			? ( '' === trim( (string) $row['article_type'] ) ? 'none' : erankly_sanitize_schema_type_name( $row['article_type'] ) )
+			: '';
+
+		$schema[ $post_type ] = array(
+			'webpage_type' => '' !== $webpage_type ? $webpage_type : $defaults['webpage_type'],
+			'article_type' => '' !== $article_type ? $article_type : $defaults['article_type'],
+		);
+	}
+
+	foreach ( $legacy as $post_type => $row ) {
+		if ( is_array( $row ) ) {
+			unset( $legacy[ $post_type ]['webpage_type'], $legacy[ $post_type ]['article_type'] );
+		}
+	}
+
+	$settings['global_post_type_schema'] = $schema;
+	$settings['global_post_type_meta']   = $legacy;
+
+	erankly_update_plugin_settings( $settings, '', true );
+	erankly_clear_settings_cache();
+	erankly_update_plugin_option( 'erankly_migrated_post_type_schema_v1', true );
+}
+
 /** Applies one-time settings migrations. */
 function erankly_maybe_migrate_settings(): void {
 	if ( erankly_get_plugin_option( 'erankly_migrated_title_defaults_v1', false ) ) {

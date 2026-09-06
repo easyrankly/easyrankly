@@ -1,23 +1,7 @@
 <?php
-/**
- * Settings page: per-panel renderers. Each function renders one tab panel of the EasyRankly settings screen. The
- * markup was extracted verbatim from erankly_render_settings_page() to keep that orchestrator small; the
- * generated output is unchanged.
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-/**
- * @param bool                $redirects_enabled   Whether the redirect module is enabled.
- * @param bool                $sitemap_enabled     Whether the sitemap module is enabled.
- * @param bool                $custom_code_enabled Whether the custom code module is enabled.
- */
+/** One renderer per settings tab panel; markup contract (data-erankly-*) shared with admin.js. */
+defined( 'ABSPATH' ) || exit;
 function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $custom_code_enabled, string $active_panel ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 				<div class="erankly-tab-panel<?php echo 'settings-features' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-features" role="tabpanel" aria-labelledby="erankly-settings-tab-features" data-erankly-settings-panel="settings-features" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> <?php echo 'settings-features' === $active_panel ? '' : 'hidden'; ?>>
@@ -37,7 +21,6 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_custom_code]" value="1" <?php checked( $custom_code_enabled ); ?>> <?php esc_html_e( 'Enable custom code', 'easyrankly' ); ?></label>
 						</div>
 						<?php
-						/** Prints extra feature-module toggles after Redirects and Sitemap. */
 						do_action( 'erankly_settings_features_modules', $settings );
 						?>
 							</div>
@@ -45,14 +28,7 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 				</div>
 	<?php
 }
-
-/**
- * @param array<int,mixed> $head_blocks       HEAD snippets.
- * @param array<int,mixed> $body_open_blocks  Start-of-BODY snippets.
- * @param array<int,mixed> $body_close_blocks End-of-BODY snippets.
- */
 function erankly_render_settings_panel_custom_code( array $settings, array $head_blocks, string $head_name, array $body_open_blocks, string $body_open_name, array $body_close_blocks, string $body_close_name ): void {
-	// Same reachability as Sitemap: single-site or Network Admin only.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	$can_unfiltered  = current_user_can( 'unfiltered_html' );
 	?>
@@ -94,14 +70,6 @@ function erankly_render_settings_panel_custom_code( array $settings, array $head
 				</div>
 	<?php
 }
-
-/**
- * Renders one location builder. Reuses the schema builder markup/hooks
- * (data-erankly-schema-builder & co.) so the existing admin-schema.js
- * drives all three builders with no new assets.
- *
- * @param array<int,mixed> $blocks Configured code blocks for this location.
- */
 function erankly_render_custom_code_builder( string $title, string $description, array $blocks, string $name, bool $can_unfiltered ): void {
 	?>
 						<div class="erankly-settings-section">
@@ -115,26 +83,15 @@ function erankly_render_custom_code_builder( string $title, string $description,
 										<?php erankly_render_custom_code_block( is_array( $block ) ? $block : array(), (string) $index, $name, $can_unfiltered ); ?>
 									<?php endforeach; ?>
 								</div>
-
 								<template data-erankly-schema-template>
 									<?php erankly_render_custom_code_block( array(), '__INDEX__', $name, $can_unfiltered ); ?>
 								</template>
-
 								<p class="erankly-schema-actions"><button type="button" class="button button-secondary" data-erankly-add-schema><?php esc_html_e( 'Add code', 'easyrankly' ); ?></button></p>
 							</div>
 						</div>
 	<?php
 }
-
-/**
- * @param int                 $schema_person_user_id    Selected Person schema user ID.
- * @param WP_User|false       $schema_person_user       Selected Person schema user, or false.
- * @param bool                $show_organization_fields Whether to show Organization-only fields.
- */
 function erankly_render_settings_panel_general( array $settings, int $schema_person_user_id, $schema_person_user, bool $show_organization_fields, string $active_panel ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 				<div class="erankly-tab-panel<?php echo 'settings-general' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-general" role="tabpanel" aria-labelledby="erankly-settings-tab-general" data-erankly-settings-panel="settings-general" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> <?php echo 'settings-general' === $active_panel ? '' : 'hidden'; ?>>
@@ -225,7 +182,6 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 						</div>
 					</div>
 					</div>
-
 				<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Post type defaults', 'easyrankly' ); ?></h3>
@@ -235,7 +191,6 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 						<?php erankly_render_global_meta_defaults( 'global_post_type_meta', erankly_get_public_post_types(), $settings ); ?>
 					</div>
 				</div>
-
 				<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Taxonomy defaults', 'easyrankly' ); ?></h3>
@@ -245,7 +200,6 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 						<?php erankly_render_global_meta_defaults( 'global_taxonomy_meta', erankly_get_public_taxonomies(), $settings ); ?>
 					</div>
 				</div>
-
 						<?php if ( is_multisite() ) : ?>
 								<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 									<div class="erankly-section-title-row">
@@ -272,11 +226,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 			</div>
 	<?php
 }
-
 function erankly_render_settings_panel_social( array $settings ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-social" role="tabpanel" aria-labelledby="erankly-settings-tab-social" data-erankly-settings-panel="settings-social" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
@@ -291,15 +241,12 @@ function erankly_render_settings_panel_social( array $settings ): void {
 						<?php
 						$organization_logo_id  = absint( $settings['organization_logo'] );
 						$organization_logo_url = isset( $settings['organization_logo_url'] ) ? (string) $settings['organization_logo_url'] : '';
-
 						if ( '' === $organization_logo_url && $organization_logo_id > 0 ) {
 							$organization_logo_url = erankly_get_image_url( $organization_logo_id, 'full' );
 						}
-
 						if ( '' === $organization_logo_url ) {
 							$organization_logo_url = erankly_default_organization_logo_url_template();
 						}
-
 						erankly_render_media_url_field(
 							'erankly-organization-logo-url',
 							ERANKLY_OPTION . '[organization_logo_url]',
@@ -358,15 +305,7 @@ function erankly_render_settings_panel_social( array $settings ): void {
 			</div>
 	<?php
 }
-
-/**
- * @param array<int,mixed>    $global_schema_blocks Configured global schema blocks.
- * @param string              $global_schema_name   Schema blocks field name prefix.
- */
 function erankly_render_settings_panel_schema( array $settings, array $global_schema_blocks, string $global_schema_name ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-schema" role="tabpanel" aria-labelledby="erankly-settings-tab-schema" data-erankly-settings-panel="settings-schema" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
@@ -385,6 +324,15 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 				</div>
 				<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 					<div class="erankly-section-title-row">
+						<h3 class="erankly-section-title"><?php esc_html_e( 'Schema types by content type', 'easyrankly' ); ?></h3>
+						<?php erankly_render_section_doc_link( 'post-type-defaults' ); ?>
+					</div>
+					<div class="erankly-card">
+						<?php erankly_render_post_type_schema_types(); ?>
+					</div>
+				</div>
+				<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
+					<div class="erankly-section-title-row">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Custom JSON-LD Schema', 'easyrankly' ); ?></h3>
 						<?php erankly_render_section_doc_link( 'custom-schema' ); ?>
 					</div>
@@ -394,22 +342,16 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 								<?php erankly_render_schema_block( is_array( $block ) ? $block : array(), (string) $index, $global_schema_name, true ); ?>
 							<?php endforeach; ?>
 						</div>
-
 						<template data-erankly-schema-template>
 							<?php erankly_render_schema_block( array(), '__INDEX__', $global_schema_name, true ); ?>
 						</template>
-
 						<p class="erankly-schema-actions"><button type="button" class="button button-secondary" data-erankly-add-schema><?php esc_html_e( 'Add Schema', 'easyrankly' ); ?></button></p>
 					</div>
 				</div>
 			</div>
 	<?php
 }
-
 function erankly_render_settings_panel_sitemap( array $settings, string $sitemap_url ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-sitemap" role="tabpanel" aria-labelledby="erankly-settings-tab-sitemap" data-erankly-settings-panel="settings-sitemap" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
@@ -502,12 +444,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 			</div>
 	<?php
 }
-
-/** @param bool                $redirects_enabled Whether the redirect module is enabled. */
 function erankly_render_settings_panel_settings( array $settings, bool $redirects_enabled ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
 			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-settings" role="tabpanel" aria-labelledby="erankly-settings-tab-settings" data-erankly-settings-panel="settings-settings" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
@@ -528,18 +465,13 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 					</div>
 					</div>
 				</div>
-
 				<?php if ( function_exists( 'erankly_reset_render_panel' ) ) : ?>
 					<?php erankly_reset_render_panel(); ?>
 				<?php endif; ?>
 			</div>
 	<?php
 }
-
 function erankly_render_settings_panel_advanced( array $settings ): void {
-	// The panel is only ever reachable on single-site or from Network Admin
-	// (a per-site admin on Multisite never gets this tab), so that's the
-	// only place autosave applies.
 	$autosave_active   = ! is_multisite() || is_network_admin();
 	$max_image_preview = isset( $settings['robots_max_image_preview'] ) ? sanitize_key( (string) $settings['robots_max_image_preview'] ) : '';
 	?>
@@ -585,7 +517,6 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 					</div>
 						</div>
 					</div>
-
 					<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'robots.txt', 'easyrankly' ); ?></h3>
@@ -606,7 +537,6 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						</div>
 					</div>
 					</div>
-
 					<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Pagination', 'easyrankly' ); ?></h3>
@@ -628,7 +558,6 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						</div>
 					</div>
 					</div>
-
 					<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
 						<h3 class="erankly-section-title"><?php esc_html_e( 'Attachment pages', 'easyrankly' ); ?></h3>

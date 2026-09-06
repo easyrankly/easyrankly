@@ -1,25 +1,7 @@
 <?php
-/**
- * Per-section documentation links. Each settings section title gets a "Learn more"
- * anchor on the opposite side that points to the section's documentation page.
- */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-/**
- * Returns the documentation URL for every settings section, keyed by section slug.
- * Leave a value empty to omit the link until its documentation exists.
- *
- * @return array<string,string> Map of section key to documentation URL.
- */
+/** Per-section "Learn more" documentation links; empty URL = link omitted. */
+defined( 'ABSPATH' ) || exit;
 function erankly_section_doc_links(): array {
-	/**
-	 * Filters the per-section documentation URLs rendered next to each section title.
-	 *
-	 * @param array<string,string> $urls Map of section key to documentation URL.
-	 */
 	return apply_filters(
 		'erankly_section_doc_links',
 		array(
@@ -58,20 +40,12 @@ function erankly_section_doc_links(): array {
 		)
 	);
 }
-
-/**
- * Renders the "Learn more" documentation link for a settings section. Printed on the
- * opposite side of the section title inside a `.erankly-section-title-row` wrapper.
- *
- * @param string $section Section key as defined in erankly_section_doc_links().
- */
 function erankly_render_section_doc_link( string $section ): void {
 	$urls = erankly_section_doc_links();
 	$url  = (string) ( $urls[ $section ] ?? '' );
 	if ( '' === $url ) {
 		return;
 	}
-
 	printf(
 		'<a class="erankly-section-doc-link" href="%1$s" data-erankly-doc-section="%2$s" target="_blank" rel="noopener noreferrer">%3$s</a>',
 		esc_url( $url ),

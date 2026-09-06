@@ -165,6 +165,29 @@
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/*
+ * Post-type schema groups ("Schema types by content type" card): one
+ * labelled group per post type. Zero the h4 margins (wp-admin gives h4
+ * 1.33em vertical margins that collapse through the unstyled wrappers and
+ * add phantom space to the card top) so the group behaves like any other
+ * .erankly-field and the card's first-child spacing matches every card.
+ */
+.erankly-post-type-schema {
+	display: grid;
+	margin: 0 0 var(--erankly-space-field);
+	row-gap: var(--erankly-space-field);
+}
+
+.erankly-post-type-schema .erankly-inline-fields {
+	margin-bottom: 0;
+}
+
+.erankly-post-type-schema-label {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0 0 var(--erankly-space-label);
+}
+
 /* wp-clearfix ::after becomes a flex item and picks up gap after the last tab. */
 .nav-tab-wrapper.erankly-tabs::after,
 button.erankly-linked-defaults-toggle.erankly-tabs::after {

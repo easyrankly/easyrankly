@@ -5,6 +5,94 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Returns the selectable WebPage subtypes, keyed by the stored value. "none" suppresses the page node entirely.
+ * The list is closed on purpose: the field used to accept free text, which let a typo ("Webpage", "chi-siamo")
+ * reach the output as an invalid @type. Values imported from another SEO plugin survive because the renderer
+ * appends any stored type that is missing from this list.
+ *
+ * @return array<string,string>
+ */
+function erankly_get_webpage_schema_types(): array {
+	$types = array(
+		'WebPage'        => __( 'Web page (default)', 'easyrankly' ),
+		'ItemPage'       => __( 'Item page', 'easyrankly' ),
+		'AboutPage'      => __( 'About page', 'easyrankly' ),
+		'ContactPage'    => __( 'Contact page', 'easyrankly' ),
+		'ProfilePage'    => __( 'Profile page', 'easyrankly' ),
+		'CollectionPage' => __( 'Collection page', 'easyrankly' ),
+		'QAPage'         => __( 'Q&A page', 'easyrankly' ),
+		'none'           => __( 'No page schema', 'easyrankly' ),
+	);
+
+	/** Filters the selectable WebPage subtypes for post type schema defaults. */
+	return erankly_filter_schema_type_choices( apply_filters( 'erankly_webpage_schema_types', $types ) );
+}
+
+/**
+ * Returns the selectable Article subtypes, keyed by the stored value. Google treats Article, BlogPosting and
+ * NewsArticle identically, so the meaningful choice here is really "emit an Article node or not".
+ *
+ * @return array<string,string>
+ */
+function erankly_get_article_schema_types(): array {
+	$types = array(
+		'none'        => __( 'No article schema', 'easyrankly' ),
+		'Article'     => __( 'Article', 'easyrankly' ),
+		'BlogPosting' => __( 'Blog posting', 'easyrankly' ),
+		'NewsArticle' => __( 'News article', 'easyrankly' ),
+	);
+
+	/** Filters the selectable Article subtypes for post type schema defaults. */
+	return erankly_filter_schema_type_choices( apply_filters( 'erankly_article_schema_types', $types ) );
+}
+
+/**
+ * Keeps only well-formed Schema.org type names (plus the "none" sentinel) from a filtered choice list.
+ *
+ * @param mixed $types Value => label map.
+ * @return array<string,string>
+ */
+function erankly_filter_schema_type_choices( mixed $types ): array {
+	if ( ! is_array( $types ) ) {
+		return array();
+	}
+
+	$valid = array();
+
+	foreach ( $types as $type => $label ) {
+		$type = (string) $type;
+
+		if ( is_string( $label ) && ( 'none' === $type || 1 === preg_match( '/^[A-Z][A-Za-z0-9]*$/', $type ) ) ) {
+			$valid[ $type ] = $label;
+		}
+	}
+
+	return $valid;
+}
+
+/**
+ * Returns the Schema.org types a post type falls back to when nothing has been configured for it. Posts describe
+ * themselves as blog postings; every other post type emits only the page node, because an Article node on a
+ * landing page or a portfolio item is structured data that does not describe the content.
+ *
+ * @return array{webpage_type:string,article_type:string}
+ */
+function erankly_default_post_type_schema_row( string $post_type ): array {
+	$row = array(
+		'webpage_type' => 'WebPage',
+		'article_type' => 'post' === $post_type ? 'BlogPosting' : 'none',
+	);
+
+	/** Filters the default Schema.org types for a post type. */
+	$row = apply_filters( 'erankly_default_post_type_schema_row', $row, $post_type );
+
+	return array(
+		'webpage_type' => isset( $row['webpage_type'] ) ? (string) $row['webpage_type'] : 'WebPage',
+		'article_type' => isset( $row['article_type'] ) ? (string) $row['article_type'] : 'none',
+	);
+}
+
 /** @return array<string,string> */
 function erankly_get_local_business_types(): array {
 	$types = array(

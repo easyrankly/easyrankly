@@ -1,11 +1,10 @@
 <?php
-/** Shared admin field renderers used by settings and classic-editor surfaces. */
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-/** @return array<string,array{label:string,variables:array<string,string>}> */
+/**
+ * Shared admin field renderers (variable picker, JSON-LD schema blocks, custom-code blocks, media URL
+ * fields) reused by the settings page, the classic meta box and the React editor panels. The data-* hooks
+ * in the markup are the contract with admin.js / admin-schema.js: change both sides together.
+ */
+defined( 'ABSPATH' ) || exit;
 function erankly_get_variable_groups(): array {
 	return array(
 		'content'    => array(
@@ -84,20 +83,15 @@ function erankly_get_variable_groups(): array {
 		),
 	);
 }
-
-/** @param array<string,string> $examples Example values for friendly previews. */
 function erankly_render_variable_picker( array $examples = array() ): void {
 	if ( array() === $examples ) {
 		static $site_examples = null;
-
 		if ( null === $site_examples ) {
 			if ( ! function_exists( 'erankly_get_admin_variable_examples' ) ) {
 				erankly_load_content_helpers();
 			}
-
 			$site_examples = erankly_get_admin_variable_examples();
 		}
-
 		$examples = $site_examples;
 	}
 	?>
@@ -115,8 +109,6 @@ function erankly_render_variable_picker( array $examples = array() ): void {
 	</div>
 	<?php
 }
-
-/** @param bool                $is_global   Whether to render targeting controls. */
 function erankly_render_schema_block( array $block, string $index, string $name_prefix, bool $is_global = false ): void {
 	$enabled     = ! isset( $block['enabled'] ) || ! empty( $block['enabled'] );
 	$fields      = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
@@ -144,12 +136,6 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 	</details>
 	<?php
 }
-
-/**
- * @param bool                $enabled                  Whether the block is enabled.
- * @param string              $toggle_label             Optional toggle label. Defaults to the schema wording.
- * @param bool                $include_archive_contexts Whether custom-code-only public archive contexts are shown.
- */
 function erankly_render_schema_targeting_fields( array $block, string $index, string $name_prefix, bool $enabled, string $toggle_label = '', bool $include_archive_contexts = false ): void {
 	$target_contexts   = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? array_map( 'sanitize_key', $block['target_contexts'] ) : array();
 	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? array_map( 'sanitize_key', $block['target_post_types'] ) : array();
@@ -201,15 +187,7 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 	</fieldset>
 	<?php
 }
-
-/**
- * Renders one custom-code snippet block. Reuses the schema targeting UI
- * (same names/keys) and the schema builder JS/CSS hooks so no new assets
- * are needed; only the payload textarea differs (raw `code`, no variables).
- */
 function erankly_render_custom_code_block( array $block, string $index, string $name_prefix, bool $can_unfiltered ): void {
-	// New template blocks default to enabled, mirroring schema blocks: checking
-	// targeting contexts alone must suffice for the snippet to print.
 	$enabled = ! isset( $block['enabled'] ) || ! empty( $block['enabled'] );
 	$code    = isset( $block['code'] ) ? (string) $block['code'] : '';
 	$field_id = 'erankly-code-' . sanitize_html_class( $index ) . '-' . sanitize_html_class( md5( $name_prefix ) );
@@ -229,25 +207,21 @@ function erankly_render_custom_code_block( array $block, string $index, string $
 	</details>
 	<?php
 }
-
 function erankly_render_schema_textarea_field( string $index, string $name_prefix, string $key, string $label, string $value, int $rows ): void {
 	$field_id = 'erankly-schema-' . sanitize_html_class( $index ) . '-' . sanitize_html_class( $key );
+	$error_id = $field_id . '-error';
 	?>
 	<div class="erankly-schema-field">
 		<label for="<?php echo esc_attr( $field_id ); ?>"><?php echo esc_html( $label ); ?></label>
 		<div class="erankly-variable-field" data-erankly-variable-field>
-			<textarea id="<?php echo esc_attr( $field_id ); ?>" class="widefat" rows="<?php echo esc_attr( (string) $rows ); ?>" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][fields][<?php echo esc_attr( $key ); ?>]"><?php echo esc_textarea( $value ); ?></textarea>
+			<textarea id="<?php echo esc_attr( $field_id ); ?>" class="widefat" rows="<?php echo esc_attr( (string) $rows ); ?>" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][fields][<?php echo esc_attr( $key ); ?>]" aria-describedby="<?php echo esc_attr( $error_id ); ?>" data-erankly-json-ld-input><?php echo esc_textarea( $value ); ?></textarea>
 			<?php erankly_render_variable_picker(); ?>
 		</div>
+		<?php // Invalid JSON-LD is dropped on save, so it is flagged while typing rather than silently discarded. ?>
+		<p class="erankly-schema-json-error" id="<?php echo esc_attr( $error_id ); ?>" data-erankly-json-ld-error role="alert" hidden><?php echo esc_html( erankly_invalid_json_ld_message() ); ?></p>
 	</div>
 	<?php
 }
-
-/**
- * @param string $attachment_id_name Optional attachment ID input name.
- * @param int    $attachment_id      Optional attachment ID value.
- * @param bool   $show_preview       Whether to render the image preview.
- */
 function erankly_render_media_url_field( string $id, string $name, string $value, string $placeholder = '', string $attachment_id_name = '', int $attachment_id = 0, bool $show_preview = true ): void {
 	$preview = '' !== $value && false === strpos( $value, '{{' ) ? $value : '';
 	?>
