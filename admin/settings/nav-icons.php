@@ -20,6 +20,28 @@ function erankly_nav_icons(): array {
 	$icons['special-pages'] = $icons['general'] ?? '';
 	return $icons;
 }
+/** Allowed HTML for settings navigation SVG icons (used with wp_kses at output). */
+function erankly_nav_icon_allowed_html(): array {
+	return array(
+		'svg'  => array(
+			'class'           => true,
+			'viewbox'         => true,
+			'fill'            => true,
+			'stroke'          => true,
+			'stroke-width'    => true,
+			'stroke-linecap'  => true,
+			'stroke-linejoin' => true,
+			'aria-hidden'     => true,
+			'focusable'       => true,
+			'xmlns'           => true,
+		),
+		'path' => array(
+			'd'               => true,
+			'stroke-linecap'  => true,
+			'stroke-linejoin' => true,
+		),
+	);
+}
 function erankly_nav_icon( string $slug ): string {
 	$icons = erankly_nav_icons();
 	$fallback = '<path stroke-linecap="round" stroke-linejoin="round" d="M7 3v18M17 3v18m4-14H3m18 10H3"/>';

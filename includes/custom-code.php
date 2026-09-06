@@ -74,7 +74,7 @@ function erankly_get_matching_custom_code( string $blocks_key, string $legacy_ke
 			continue;
 		}
 
-		$code = (string) apply_filters( $filter, $code );
+		$code = (string) apply_filters( $filter, $code ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Callers pass only erankly_custom_* filters (head/body_open/body_close).
 
 		if ( '' !== trim( $code ) ) {
 			$out[] = $code;
@@ -87,7 +87,7 @@ function erankly_get_matching_custom_code( string $blocks_key, string $legacy_ke
 	$legacy = trim( (string) erankly_get_setting( $legacy_key, '' ) );
 
 	if ( '' !== $legacy ) {
-		$legacy = (string) apply_filters( $filter, $legacy );
+		$legacy = (string) apply_filters( $filter, $legacy ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Same fixed erankly_custom_* filter as above.
 
 		if ( '' !== trim( $legacy ) ) {
 			$out[] = $legacy;

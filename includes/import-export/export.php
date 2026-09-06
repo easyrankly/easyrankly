@@ -182,7 +182,7 @@ function erankly_export_download(): void {
 	} catch ( RuntimeException ) {
 		wp_die( esc_html__( 'The export could not be generated.', 'easyrankly' ), '', array( 'response' => 500 ) );
 	} finally {
-		fclose( $handle );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the php://output download stream; WP_Filesystem cannot handle php://output.
 	}
 	exit;
 }

@@ -285,7 +285,7 @@ function erankly_save_network_settings(): void {
 	if ( ! current_user_can( 'manage_network_options' ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
-	$raw       = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array();
+	$raw       = isset( $_POST[ ERANKLY_OPTION ] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized field-by-field in erankly_sanitize_settings().
 	$sanitized = erankly_sanitize_settings( $raw );
 	erankly_update_plugin_option( ERANKLY_OPTION, $sanitized );
 	$redirect = network_admin_url( 'settings.php?page=erankly' );
@@ -310,7 +310,7 @@ function erankly_save_site_special_meta(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( esc_html__( 'Permission denied.', 'easyrankly' ) );
 	}
-	$raw = isset( $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) : array();
+	$raw = isset( $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) ? wp_unslash( (array) $_POST[ ERANKLY_OPTION ]['global_special_meta'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized in erankly_update_special_meta_map() via erankly_sanitize_special_meta_map().
 	erankly_update_special_meta_map( $raw );
 	$redirect_args = array(
 		'page'        => 'erankly',
@@ -418,6 +418,6 @@ function erankly_render_settings_nav_link( string $slug, string $label, string $
 	$panel     = 'settings-' . $slug;
 	$is_active = $panel === $active_panel;
 	?>
-	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo erankly_nav_icon( $slug ); ?><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
+	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo wp_kses( erankly_nav_icon( $slug ), erankly_nav_icon_allowed_html() ); ?><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
 	<?php
 }

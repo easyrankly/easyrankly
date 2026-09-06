@@ -52,7 +52,7 @@ function erankly_filter_core_sitemap_posts_query_args( array $args, string $post
 		}
 
 		if ( $excluded_pages ) {
-			$args['post__not_in'] = array_values( array_unique( $excluded_pages ) );
+			$args['post__not_in'] = array_values( array_unique( $excluded_pages ) ); // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- At most two special-page IDs (front + posts page); bounded exclusion.
 		}
 	}
 
@@ -100,7 +100,7 @@ function erankly_filter_core_sitemap_posts_pre_url_list( ?array $url_list, strin
 			'loc'     => get_permalink( $post ),
 			'lastmod' => wp_date( DATE_W3C, strtotime( $post->post_modified_gmt ) ),
 		);
-		$entry = apply_filters( 'wp_sitemaps_posts_entry', $entry, $post, $post_type );
+		$entry = apply_filters( 'wp_sitemaps_posts_entry', $entry, $post, $post_type ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress sitemap hook; name must stay unprefixed.
 		if ( is_array( $entry ) && ! empty( $entry['loc'] ) ) {
 			$list[] = $entry;
 		}
@@ -131,7 +131,7 @@ function erankly_filter_core_sitemap_posts_pre_max_num_pages( ?int $pages, strin
 /** @return array<string,mixed> Native post-sitemap defaults with public filters applied. */
 function erankly_get_core_sitemap_posts_query_args( string $post_type ): array {
 	return apply_filters(
-		'wp_sitemaps_posts_query_args',
+		'wp_sitemaps_posts_query_args', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress sitemap hook; name must stay unprefixed.
 		array(
 			'orderby'                => 'ID',
 			'order'                  => 'ASC',
@@ -196,7 +196,7 @@ function erankly_filter_core_sitemap_terms_query_args( array $args, string $taxo
 	$canonical_exclusions = erankly_get_non_self_canonical_term_ids( $taxonomy );
 	if ( $canonical_exclusions ) {
 		$existing        = isset( $args['exclude'] ) ? array_map( 'absint', (array) $args['exclude'] ) : array();
-		$args['exclude'] = array_values( array_unique( array_merge( $existing, $canonical_exclusions ) ) );
+		$args['exclude'] = array_values( array_unique( array_merge( $existing, $canonical_exclusions ) ) ); // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Bounded exclusion of non-self-canonical terms only.
 	}
 
 	return $args;
@@ -224,7 +224,7 @@ function erankly_filter_core_sitemap_users_query_args( array $args ): array {
 	$canonical_exclusions = erankly_get_non_self_canonical_user_ids();
 	if ( $canonical_exclusions ) {
 		$existing        = isset( $args['exclude'] ) ? array_map( 'absint', (array) $args['exclude'] ) : array();
-		$args['exclude'] = array_values( array_unique( array_merge( $existing, $canonical_exclusions ) ) );
+		$args['exclude'] = array_values( array_unique( array_merge( $existing, $canonical_exclusions ) ) ); // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Bounded exclusion of non-self-canonical authors only.
 	}
 
 	$eligible_authors = erankly_get_sitemap_user_ids();
@@ -778,7 +778,8 @@ function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p', array $pos
 
 	if ( $globally_noindex ) {
 		$placeholders = implode( ', ', array_fill( 0, count( $globally_noindex ), '%s' ) );
-		$sql         .= $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Alias and placeholders are validated/generated internally.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Alias is regex-validated above; the %s list is generated from the bound array passed below.
+		$sql         .= $wpdb->prepare(
 			" AND (
 				{$post_alias}.post_type NOT IN ({$placeholders})
 				OR EXISTS (
@@ -790,6 +791,7 @@ function erankly_get_sitemap_exclusion_sql( string $post_alias = 'p', array $pos
 			)",
 			$globally_noindex
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 	}
 
 	return $sql;

@@ -42,7 +42,7 @@ function erankly_save_term_fields( int $term_id ): void {
 		);
 	}
 	foreach ( $fields as $key => $field ) {
-		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '';
+		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta() on the next line.
 		$value     = erankly_sanitize_registered_meta( $raw_value, $key );
 		if ( '' === $value || 0 === $value ) {
 			delete_term_meta( $term_id, $key );
@@ -73,7 +73,7 @@ function erankly_save_term_fields( int $term_id ): void {
 			'_erankly_max_image_preview' => 'erankly_max_image_preview',
 		);
 		foreach ( $directive_fields as $key => $field ) {
-			$value = erankly_sanitize_registered_meta( isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '', $key );
+			$value = erankly_sanitize_registered_meta( isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '', $key ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; value is sanitized by erankly_sanitize_registered_meta().
 			if ( '' === $value || 'inherit' === $value ) {
 				delete_term_meta( $term_id, $key );
 			} else {

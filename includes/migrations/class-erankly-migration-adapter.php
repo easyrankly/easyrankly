@@ -292,7 +292,7 @@ abstract class ERankly_Migration_Adapter {
 		$sql          = 'SELECT ' . $placeholders . ' FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d';
 		$params       = array_merge( $columns, array( $table, $after_id, $limit ) );
 
-		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded third-party source scan.
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Bounded third-party source scan; $sql is fully prepared on the next line (columns allow-listed via SHOW COLUMNS + sanitize_key, table via $wpdb->prefix + existence check).
 			$wpdb->prepare( $sql, $params ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Every selected identifier and value has a matching placeholder.
 			ARRAY_A
 		);

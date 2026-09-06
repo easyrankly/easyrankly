@@ -1,7 +1,7 @@
 <?php
 /** Removal of state left behind by retired migration subsystems. */
 
-if ( ! defined( 'ABSPATH' ) && ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 

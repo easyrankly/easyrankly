@@ -56,7 +56,7 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 		);
 	}
 	foreach ( $fields as $key => $field ) {
-		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '';
+		$raw_value = isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta() on the next line.
 		$value     = erankly_sanitize_registered_meta( $raw_value, $key );
 		if ( '' === $value || 0 === $value ) {
 			delete_post_meta( $post_id, $key );
@@ -87,7 +87,7 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 			'_erankly_max_image_preview' => 'erankly_max_image_preview',
 		);
 		foreach ( $directive_fields as $key => $field ) {
-			$value = erankly_sanitize_registered_meta( isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '', $key );
+			$value = erankly_sanitize_registered_meta( isset( $_POST[ $field ] ) ? wp_unslash( $_POST[ $field ] ) : '', $key ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; value is sanitized by erankly_sanitize_registered_meta().
 			if ( '' === $value || 'inherit' === $value ) {
 				delete_post_meta( $post_id, $key );
 			} else {
@@ -130,11 +130,11 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 	if ( ! $simplified_mode ) {
 		// The field is a text input, but preg_split() fatals on PHP 8 when the
 		// request sends an array instead, so the type is checked before use.
-		$raw_disabled_types = isset( $_POST['erankly_schema_disabled_types'] ) ? wp_unslash( $_POST['erankly_schema_disabled_types'] ) : '';
+		$raw_disabled_types = isset( $_POST['erankly_schema_disabled_types'] ) ? wp_unslash( $_POST['erankly_schema_disabled_types'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; type-checked and sanitized via erankly_sanitize_registered_meta() below.
 		$disabled_types     = is_string( $raw_disabled_types ) ? preg_split( '/[\r\n,]+/', $raw_disabled_types ) : array();
 		$complex_fields     = array(
-			'_erankly_primary_terms'         => isset( $_POST['erankly_primary_terms'] ) ? wp_unslash( $_POST['erankly_primary_terms'] ) : array(),
-			'_erankly_schema_blocks'         => isset( $_POST['erankly_schema_blocks'] ) ? wp_unslash( $_POST['erankly_schema_blocks'] ) : array(),
+			'_erankly_primary_terms'         => isset( $_POST['erankly_primary_terms'] ) ? wp_unslash( $_POST['erankly_primary_terms'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta() below.
+			'_erankly_schema_blocks'         => isset( $_POST['erankly_schema_blocks'] ) ? wp_unslash( $_POST['erankly_schema_blocks'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta() below.
 			'_erankly_schema_disabled_types' => is_array( $disabled_types ) ? $disabled_types : array(),
 		);
 		foreach ( $complex_fields as $key => $raw_value ) {
@@ -145,7 +145,7 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 				update_post_meta( $post_id, $key, wp_slash( $value ) );
 			}
 		}
-		$schema_mode = erankly_sanitize_registered_meta( isset( $_POST['erankly_schema_mode'] ) ? wp_unslash( $_POST['erankly_schema_mode'] ) : '', '_erankly_schema_mode' );
+		$schema_mode = erankly_sanitize_registered_meta( isset( $_POST['erankly_schema_mode'] ) ? wp_unslash( $_POST['erankly_schema_mode'] ) : '', '_erankly_schema_mode' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; value is sanitized by erankly_sanitize_registered_meta().
 		if ( '' === $schema_mode || 'default' === $schema_mode ) {
 			delete_post_meta( $post_id, '_erankly_schema_mode' );
 		} else {

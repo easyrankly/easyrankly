@@ -28,8 +28,8 @@ function erankly_render_settings_page(): void {
 		$site_panels[] = 'settings-redirects';
 	}
 	$show_import_export_tab = ! is_multisite() || is_network_admin();
-	$requested_tab          = isset( $_GET['erankly_tab'] ) ? sanitize_key( wp_unslash( $_GET['erankly_tab'] ) ) : '';
-	$requested_subtab       = isset( $_GET['erankly_subtab'] ) ? sanitize_key( wp_unslash( $_GET['erankly_subtab'] ) ) : '';
+	$requested_tab          = isset( $_GET['erankly_tab'] ) ? sanitize_key( wp_unslash( $_GET['erankly_tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab routing for display; no state change (capability checked above).
+	$requested_subtab       = isset( $_GET['erankly_subtab'] ) ? sanitize_key( wp_unslash( $_GET['erankly_subtab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only subtab routing for display; no state change.
 	$active_panel           = $is_site_admin_on_network ? ( $site_panels[0] ?? '' ) : 'settings-general';
 	$active_subtab          = '';
 	$screen                 = get_current_screen();
@@ -185,11 +185,11 @@ function erankly_render_settings_page(): void {
 	<div class="wrap erankly-settings">
 		<?php
 		if ( is_network_admin() ) {
-			if ( isset( $_GET['updated'] ) ) {
+			if ( isset( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag for the save confirmation notice.
 				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'easyrankly' ) . '</p></div>';
 			}
 		} else {
-			if ( $is_site_admin_on_network && isset( $_GET['updated'] ) ) {
+			if ( $is_site_admin_on_network && isset( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag for the save confirmation notice.
 				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'easyrankly' ) . '</p></div>';
 			}
 			settings_errors( ERANKLY_OPTION );
@@ -258,8 +258,8 @@ function erankly_render_settings_page(): void {
 				<?php endif; ?>
 				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-useful-resources">
 					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-useful-resources"><?php esc_html_e( 'Useful resources', 'easyrankly' ); ?></span>
-					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://docs.easyrankly.com/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo erankly_nav_icon( 'documentation' ); ?><span class="erankly-settings-nav-label"><?php esc_html_e( 'Documentation', 'easyrankly' ); ?></span></a>
-					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://easyrankly.com/help/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo erankly_nav_icon( 'help' ); ?><span class="erankly-settings-nav-label"><?php esc_html_e( 'Need help?', 'easyrankly' ); ?></span></a>
+					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://docs.easyrankly.com/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo wp_kses( erankly_nav_icon( 'documentation' ), erankly_nav_icon_allowed_html() ); ?><span class="erankly-settings-nav-label"><?php esc_html_e( 'Documentation', 'easyrankly' ); ?></span></a>
+					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://easyrankly.com/help/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo wp_kses( erankly_nav_icon( 'help' ), erankly_nav_icon_allowed_html() ); ?><span class="erankly-settings-nav-label"><?php esc_html_e( 'Need help?', 'easyrankly' ); ?></span></a>
 				</div>
 				</nav>
 				<span class="erankly-autosave-status" data-erankly-autosave-status aria-live="polite"></span>

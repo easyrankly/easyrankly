@@ -97,7 +97,7 @@ Release date: June 14, 2026
 == Upgrade Notice ==
 
 = 2.0.0 =
-EasyRankly 2.0.0 introduces a substantially redesigned core. Before upgrading, create a full backup. Existing SEO content and redirects are preserved. AI generation, content analysis, internal linking, and Health monitoring have moved to a separate add-on. Review your settings after completing the upgrade.
+Before upgrading, create a full backup. Existing SEO content and redirects are preserved. AI generation, content analysis, internal linking and Health monitoring have moved to a separate add-on. Review settings after upgrade.
 
 = 1.0.0 =
 First public release of EasyRankly.
