@@ -128,11 +128,10 @@ function erankly_filter_wp_robots( array $robots ): array {
 		$robots['follow'] = true;
 	}
 
+	// Only an explicitly stored value emits the directive. With no stored value, WordPress
+	// core adds its own max-image-preview:large on public sites (wp_robots_max_image_preview_large()).
 	$max_image_preview = sanitize_key( (string) erankly_get_setting( 'robots_max_image_preview', '' ) );
-	if ( ! in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
-		$max_image_preview = (bool) erankly_get_setting( 'robots_max_image_preview_large', 1 ) ? 'large' : '';
-	}
-	if ( '' !== $max_image_preview ) {
+	if ( in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
 		$robots['max-image-preview'] = $max_image_preview;
 	}
 
@@ -157,10 +156,9 @@ function erankly_filter_wp_robots( array $robots ): array {
 	if ( (bool) erankly_get_setting( 'robots_notranslate', 0 ) ) {
 		$robots['notranslate'] = true;
 	}
-	if ( (bool) erankly_get_setting( 'robots_noodp', 0 ) ) {
-		$robots['noodp'] = true;
-	}
 
+	// Google only honors indexifembedded with noindex. It lets an embedded copy
+	// be indexed while the standalone URL remains excluded from results.
 	if ( ! empty( $robots['noindex'] ) && (bool) erankly_get_setting( 'robots_indexifembedded', 0 ) ) {
 		$robots['indexifembedded'] = true;
 	}
@@ -271,14 +269,12 @@ function erankly_apply_global_entity_robot_row( array $robots, array $row ): arr
 		}
 	}
 
-	foreach ( array( 'notranslate', 'noodp' ) as $directive ) {
-		if ( ! array_key_exists( $directive, $row ) ) {
-			continue;
-		}
-		if ( ! empty( $row[ $directive ] ) ) {
-			$robots[ $directive ] = true;
+	// noodp was retired: DMOZ shut down in 2017 and no engine reads the directive.
+	if ( array_key_exists( 'notranslate', $row ) ) {
+		if ( ! empty( $row['notranslate'] ) ) {
+			$robots['notranslate'] = true;
 		} else {
-			unset( $robots[ $directive ] );
+			unset( $robots['notranslate'] );
 		}
 	}
 
@@ -429,23 +425,9 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 		$lines[] = 'Disallow: /';
 	}
 
-	if ( erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps() ) {
+	if ( $is_public && erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps() ) {
 		// Core wp_sitemaps serves the main sitemap index at /wp-sitemap.xml.
 		$lines[] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/wp-sitemap.xml' ) );
-
-		// Declare specialised sitemaps explicitly for faster crawl discovery.
-		// Google News bots in particular benefit from a direct robots.txt pointer.
-		if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) {
-			$lines[] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/sitemap-news-1.xml' ) );
-		}
-
-		if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
-			$lines[] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/sitemap-image-1.xml' ) );
-		}
-
-		if ( (bool) erankly_get_setting( 'enable_video_sitemap', 0 ) ) {
-			$lines[] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/sitemap-video-1.xml' ) );
-		}
 	}
 
 	$custom = trim( (string) erankly_get_setting( 'robots_txt_extra', '' ) );

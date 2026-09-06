@@ -467,7 +467,10 @@ final class ERankly_Redirects_Repository {
 			max( 1, min( 1000, $limit ) )
 		);
 
-		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded custom-table export page prepared above.
+		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded custom-table export page prepared above.
+		if ( '' !== (string) $wpdb->last_error ) {
+			throw new RuntimeException( 'A redirect export page could not be read.' );
+		}
 
 		return is_array( $rows ) ? $rows : array();
 	}

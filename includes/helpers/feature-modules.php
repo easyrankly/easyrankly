@@ -15,3 +15,7 @@ function erankly_redirects_enabled(): bool {
 function erankly_sitemap_enabled(): bool {
 	return (bool) erankly_get_setting( 'enable_sitemap', 0 );
 }
+
+function erankly_custom_code_enabled(): bool {
+	return ! empty( erankly_get_setting( 'enable_custom_code' ) );
+}

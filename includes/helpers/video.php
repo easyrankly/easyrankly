@@ -47,7 +47,9 @@ function erankly_extract_video_urls( string $content ): array {
 		$html_videos
 	);
 	foreach ( $html_videos[1] as $src ) {
-		$urls[] = esc_url_raw( $src );
+		// Relative self-hosted media is resolved by the owning sitemap/schema
+		// context, which knows the public page URL.
+		$urls[] = trim( html_entity_decode( (string) $src, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 	}
 
 	return array_values( array_unique( array_filter( $urls ) ) );

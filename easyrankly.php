@@ -49,13 +49,16 @@ define( 'ERANKLY_NETWORK_WEB_LIFECYCLE_LIMIT', 100 );
 define( 'ERANKLY_MIGRATION_ACTIVE_JOB_OPTION', 'erankly_migration_active_job_v1' );
 define( 'ERANKLY_MIGRATION_CRON_HOOK', 'erankly_migration_process_batch' );
 define( 'ERANKLY_MIGRATION_BATCH_SIZE', 100 );
-define( 'ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK', 'erankly_migration_rollback_batch' );
-define( 'ERANKLY_MIGRATION_ROLLBACK_BATCH_SIZE', 100 );
-define( 'ERANKLY_MIGRATION_VERIFY_CRON_HOOK', 'erankly_migration_verify_batch' );
 define( 'ERANKLY_IMPORT_ACTIVE_JOB_OPTION', 'erankly_import_active_job_v1' );
 define( 'ERANKLY_IMPORT_LAST_RESULT_OPTION', 'erankly_import_last_result_v1' );
 define( 'ERANKLY_IMPORT_CRON_HOOK', 'erankly_import_process_batch' );
 define( 'ERANKLY_IMPORT_BATCH_SIZE', 100 );
+
+/** Native export document version. Bumped when the JSON structure changes. */
+define( 'ERANKLY_EXPORT_FORMAT', '4.0' );
+
+/** Maximum supported nesting depth for the EasyRankly export schema. */
+define( 'ERANKLY_IMPORT_JSON_MAX_DEPTH', 64 );
 
 require_once ERANKLY_PATH . 'includes/helpers.php';
 $erankly_plugin_check_helper = ERANKLY_PATH . 'includes/plugin-check.php';
@@ -191,10 +194,9 @@ function erankly_bootstrap(): void {
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_filter( 'debug_information', 'erankly_add_multilingual_debug_information' );
+	add_action( 'update_option_' . ERANKLY_SPECIAL_META_OPTION, 'erankly_handle_sitemap_visibility_updated', 10, 2 );
 
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
-	add_action( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK, 'erankly_process_migration_rollback' );
-	add_action( ERANKLY_MIGRATION_VERIFY_CRON_HOOK, 'erankly_process_migration_verification' );
 	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_rewrites' );
@@ -220,15 +222,57 @@ function erankly_bootstrap(): void {
 		erankly_redirects_boot();
 	}
 
-	if ( erankly_should_serve_sitemaps() ) {
+	if ( erankly_custom_code_enabled() ) {
+		require_once ERANKLY_PATH . 'includes/custom-code.php';
+		erankly_custom_code_boot();
+	}
+
+	// The native WordPress sitemap remains available when EasyRankly's optional
+	// sitemap module is off. Keep its URL lists aligned with EasyRankly's robots,
+	// canonical and per-object visibility rules unless another SEO plugin owns
+	// sitemap output.
+	if ( ! erankly_should_suppress_sitemaps() ) {
 		erankly_load_sitemap_helpers();
 		erankly_load_content_helpers();
 		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
 		add_filter( 'wp_sitemaps_posts_query_args', 'erankly_filter_core_sitemap_posts_query_args', 20, 2 );
+		add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_filter_core_sitemap_posts_pre_url_list', 20, 3 );
+		add_filter( 'wp_sitemaps_posts_pre_max_num_pages', 'erankly_filter_core_sitemap_posts_pre_max_num_pages', 20, 2 );
 		add_filter( 'wp_sitemaps_taxonomies_query_args', 'erankly_filter_core_sitemap_terms_query_args', 20, 2 );
+		add_filter( 'wp_sitemaps_users_query_args', 'erankly_filter_core_sitemap_users_query_args', 20 );
 		add_filter( 'wp_sitemaps_post_types', 'erankly_filter_core_sitemap_post_types', 20 );
 		add_filter( 'wp_sitemaps_taxonomies', 'erankly_filter_core_sitemap_taxonomies', 20 );
 		add_filter( 'wp_sitemaps_add_provider', 'erankly_filter_core_sitemap_add_provider', 20, 2 );
+		add_filter( 'posts_where', 'erankly_filter_sitemap_posts_where', 20, 2 );
+
+		add_action( 'save_post', 'erankly_flush_sitemap_cache_for_post' );
+		add_action( 'deleted_post', 'erankly_flush_sitemap_cache_for_deleted_post' );
+		add_action( 'transition_post_status', 'erankly_flush_sitemap_cache_for_status', 10, 3 );
+		add_action( 'profile_update', 'erankly_flush_sitemap_cache' );
+		add_action( 'user_register', 'erankly_flush_sitemap_cache' );
+		add_action( 'deleted_user', 'erankly_flush_sitemap_cache' );
+		add_action( 'added_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
+		add_action( 'updated_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
+		add_action( 'deleted_user_meta', 'erankly_flush_sitemap_cache_for_user_meta', 10, 3 );
+		add_action( 'added_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+		add_action( 'updated_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+		add_action( 'deleted_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
+		add_action( 'created_term', 'erankly_flush_sitemap_cache', 10, 3 );
+		add_action( 'edited_term', 'erankly_flush_sitemap_cache', 10, 3 );
+		add_action( 'delete_term', 'erankly_flush_sitemap_cache', 10, 5 );
+		add_action( 'added_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+		add_action( 'updated_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+		add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+	}
+
+	if ( erankly_should_serve_sitemaps() ) {
+		require_once ERANKLY_PATH . 'includes/class-erankly-site-sitemaps-provider.php';
+		add_action(
+			'init',
+			function () {
+				wp_register_sitemap_provider( 'erankly-site', new ERankly_Site_Sitemaps_Provider() );
+			}
+		);
 
 		// Specialised sitemaps (image, video, news) that require non-standard XML
 		// namespaces are still served as EasyRankly virtual files. Each implementation
@@ -246,30 +290,20 @@ function erankly_bootstrap(): void {
 			require_once ERANKLY_PATH . 'includes/sitemap/video.php';
 		}
 
-		require_once ERANKLY_PATH . 'includes/class-erankly-specialist-sitemaps-provider.php';
-		add_action(
-			'init',
-			function () {
-				wp_register_sitemap_provider( 'erankly', new ERankly_Specialist_Sitemaps_Provider() );
-			}
-		);
-		add_action( 'template_redirect', 'erankly_maybe_render_virtual_files', 0 );
+		$has_specialist_sitemaps = (bool) erankly_get_setting( 'enable_news_sitemap', 0 )
+			|| (bool) erankly_get_setting( 'enable_image_sitemap', 0 )
+			|| (bool) erankly_get_setting( 'enable_video_sitemap', 0 );
 
-		add_action( 'save_post', 'erankly_flush_sitemap_cache_for_post' );
-		add_action( 'deleted_post', 'erankly_flush_sitemap_cache_for_deleted_post' );
-		add_action( 'transition_post_status', 'erankly_flush_sitemap_cache_for_status', 10, 3 );
-		add_action( 'profile_update', 'erankly_flush_sitemap_cache' );
-		add_action( 'user_register', 'erankly_flush_sitemap_cache' );
-		add_action( 'deleted_user', 'erankly_flush_sitemap_cache' );
-		add_action( 'created_term', 'erankly_flush_sitemap_cache' );
-		add_action( 'edited_term', 'erankly_flush_sitemap_cache' );
-		add_action( 'delete_term', 'erankly_flush_sitemap_cache' );
-		add_action( 'added_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
-		add_action( 'updated_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
-		add_action( 'deleted_term_meta', 'erankly_flush_sitemap_cache_for_term_meta', 10, 3 );
-		add_action( 'added_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
-		add_action( 'updated_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
-		add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+		if ( $has_specialist_sitemaps ) {
+			require_once ERANKLY_PATH . 'includes/class-erankly-specialist-sitemaps-provider.php';
+			add_action(
+				'init',
+				function () {
+					wp_register_sitemap_provider( 'erankly', new ERankly_Specialist_Sitemaps_Provider() );
+				}
+			);
+		}
+		add_action( 'template_redirect', 'erankly_maybe_render_virtual_files', 0 );
 	}
 
 	if ( is_admin() ) {
@@ -311,18 +345,6 @@ add_action( 'plugins_loaded', 'erankly_close_multilingual_provider_registry', 20
 function erankly_process_migration_job( string $job_id ): void {
 	require_once ERANKLY_PATH . 'includes/migrations.php';
 	erankly_migration_job_runner()->process( $job_id );
-}
-
-function erankly_process_migration_rollback( string $job_id ): void {
-	require_once ERANKLY_PATH . 'includes/migrations.php';
-	$result = erankly_migration_journal()->process_rollback( $job_id );
-	erankly_migration_record_rollback_result( $job_id, $result );
-}
-
-/** Advances one bounded, background live-verification page. */
-function erankly_process_migration_verification( string $report_id ): void {
-	require_once ERANKLY_PATH . 'includes/migrations.php';
-	ERankly_Migration_Verification_Job::process( $report_id );
 }
 
 function erankly_process_import_job( string $job_id ): void {
@@ -497,15 +519,81 @@ function erankly_get_rewrite_signature(): string {
 }
 
 /**
+ * Deletes retired keys from the persisted settings array. The settings writer merges changes over the stored
+ * array and the interlock re-adds current values, so keys whose readers were removed would otherwise be
+ * preserved forever as "extension settings". Called once from the version upgrade routine.
+ *
+ * @param string[] $keys Setting keys that no longer have a reader.
+ * @return bool Whether the reduced settings snapshot was durably stored.
+ */
+function erankly_remove_retired_setting_keys( array $keys ): bool {
+	$stored = is_multisite() ? get_site_option( ERANKLY_OPTION, array() ) : get_option( ERANKLY_OPTION, array() );
+
+	if ( ! is_array( $stored ) ) {
+		return true;
+	}
+
+	$remaining = array_diff_key( $stored, array_fill_keys( $keys, true ) );
+
+	if ( $remaining === $stored ) {
+		return true;
+	}
+
+	$lock_token = erankly_acquire_settings_lock();
+
+	if ( is_wp_error( $lock_token ) ) {
+		return false;
+	}
+
+	// The replace context makes the settings interlock pass the reduced array through unchanged instead of
+	// merging it back over the stored keys (see erankly_interlock_settings_pre_update()).
+	$GLOBALS['erankly_settings_write_context'] = array(
+		'token'             => $lock_token,
+		'release_on_update' => false,
+		'replace'           => true,
+	);
+
+	try {
+		if ( is_multisite() ) {
+			update_site_option( ERANKLY_OPTION, $remaining );
+		} else {
+			update_option( ERANKLY_OPTION, $remaining, true );
+		}
+
+		$persisted = is_multisite() ? get_site_option( ERANKLY_OPTION, array() ) : get_option( ERANKLY_OPTION, array() );
+
+		return is_array( $persisted ) && $persisted === $remaining;
+	} finally {
+		unset( $GLOBALS['erankly_settings_write_context'] );
+		erankly_release_settings_lock( $lock_token );
+	}
+}
+
+/**
  * Records the plugin version after an upgrade. Per-site rewrite updates are handled independently by
  * erankly_maybe_flush_rewrite_rules() through the lazy rewrite signature.
  */
 function erankly_maybe_flush_after_upgrade(): void {
 	$stored = (string) erankly_get_plugin_option( ERANKLY_VERSION_OPTION, '' );
 
-	if ( ERANKLY_VERSION !== $stored ) {
-		erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
+	if ( ERANKLY_VERSION === $stored ) {
+		return;
 	}
+
+	// Migration verification, the rollback journal and the staging queue were retired. Their tables, options
+	// and cron hooks have no reader left, so an upgraded site must not keep carrying them.
+	require_once ERANKLY_PATH . 'includes/migrations/legacy-cleanup.php';
+	if ( ! erankly_migration_purge_legacy_state() ) {
+		return;
+	}
+
+	// The noodp robots directive (dropped from Google's robots meta spec years ago; its only data source,
+	// DMOZ, shut down in 2017) and the pre-2.0 robots_max_image_preview_large fallback have no reader left.
+	if ( ! erankly_remove_retired_setting_keys( array( 'robots_noodp', 'robots_max_image_preview_large' ) ) ) {
+		return;
+	}
+
+	erankly_update_plugin_option( ERANKLY_VERSION_OPTION, ERANKLY_VERSION );
 }
 
 /** Adapter for the update_site_option_ hook, which passes args in a different order. */
@@ -516,19 +604,37 @@ function erankly_handle_network_settings_updated( string $option, mixed $value, 
 function erankly_handle_settings_updated( mixed $old_value, mixed $value ): void {
 	erankly_clear_settings_cache();
 
-	$old_sitemap_enabled = is_array( $old_value ) && ! empty( $old_value['enable_sitemap'] );
-	$new_sitemap_enabled = is_array( $value ) && ! empty( $value['enable_sitemap'] );
+	$old_value = is_array( $old_value ) ? $old_value : array();
+	$value     = is_array( $value ) ? $value : array();
+	$keys      = array(
+		'enable_sitemap',
+		'enable_news_sitemap',
+		'news_sitemap_post_types',
+		'news_publication_name',
+		'enable_image_sitemap',
+		'enable_video_sitemap',
+		'global_post_type_meta',
+		'global_taxonomy_meta',
+		'global_special_meta',
+	);
 
-	if ( $old_sitemap_enabled !== $new_sitemap_enabled ) {
-		erankly_load_sitemap_helpers();
-		erankly_flush_sitemap_cache();
+	foreach ( $keys as $key ) {
+		if ( ( $old_value[ $key ] ?? null ) !== ( $value[ $key ] ?? null ) ) {
+			erankly_load_sitemap_helpers();
+			erankly_flush_sitemap_cache();
+			break;
+		}
+	}
+}
+
+/** Invalidates author/home/archive sitemap state stored outside the main settings option. */
+function erankly_handle_sitemap_visibility_updated( mixed $old_value, mixed $value ): void {
+	if ( $old_value === $value ) {
 		return;
 	}
 
-	if ( $new_sitemap_enabled ) {
-		erankly_load_sitemap_helpers();
-		erankly_flush_sitemap_cache();
-	}
+	erankly_load_sitemap_helpers();
+	erankly_flush_sitemap_cache();
 }
 
 /** Lazily applies the current rewrite signature to this site. */
@@ -560,8 +666,6 @@ function erankly_deactivate_current_site(): void {
 		array(
 			ERANKLY_NETWORK_RESET_CRON_HOOK,
 			ERANKLY_MIGRATION_CRON_HOOK,
-			ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK,
-			ERANKLY_MIGRATION_VERIFY_CRON_HOOK,
 			ERANKLY_IMPORT_CRON_HOOK,
 		) as $hook
 	) {

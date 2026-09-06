@@ -59,7 +59,21 @@ function erankly_get_schema_graph(): array {
 
 		$graph[] = erankly_schema_webpage( $post_id, $breadcrumb_id );
 
-		$article_type = erankly_get_global_post_type_meta( (string) get_post_type( $post_id ), 'article_type' );
+		$post_type    = (string) get_post_type( $post_id );
+		$article_type = erankly_get_global_post_type_meta( $post_type, 'article_type' );
+		if ( '' === $article_type ) {
+			// Mirror the settings UI fallback: a stored row without the
+			// article_type key displays BlogPosting for posts, so partial rows
+			// (imports, hand-written data) must resolve the same way instead
+			// of silently dropping the Article node. An explicit empty value
+			// or "none" keeps the node disabled.
+			$stored_rows = erankly_get_global_entity_meta_map( 'global_post_type_meta' );
+			$stored_row  = ( isset( $stored_rows[ $post_type ] ) && is_array( $stored_rows[ $post_type ] ) ) ? $stored_rows[ $post_type ] : array();
+
+			if ( ! array_key_exists( 'article_type', $stored_row ) ) {
+				$article_type = 'post' === $post_type ? 'BlogPosting' : '';
+			}
+		}
 		if ( ! empty( $product ) ) {
 			$graph[] = $product;
 		} elseif ( '' !== $article_type && 'none' !== strtolower( $article_type ) ) {

@@ -93,13 +93,16 @@
 }
 
 .erankly-settings-nav-item {
+	align-items: center;
 	background: transparent;
 	border: none;
 	border-left: 3px solid transparent;
 	border-radius: var(--erankly-radius-control);
 	box-sizing: border-box;
 	color: var(--erankly-color-text);
+	column-gap: var(--erankly-space-3);
 	cursor: pointer;
+	display: flex;
 	font-size: 14px;
 	line-height: 1.4;
 	padding: var(--erankly-space-2) 10px var(--erankly-space-2) 9px;
@@ -107,6 +110,17 @@
 	text-decoration: none;
 	width: 100%;
 	overflow-wrap: anywhere;
+}
+
+.erankly-settings-nav-item .erankly-nav-icon {
+	flex-shrink: 0;
+	height: 18px;
+	margin-top: -1px;
+	width: 18px;
+}
+
+.erankly-settings-nav-item .erankly-settings-nav-label {
+	flex: 0 1 auto;
 }
 
 .erankly-settings-nav-item:hover {
@@ -240,6 +254,28 @@
 	}
 }
 
+/*
+ * Danger button: shared destructive-action style (site reset, schema and
+ * custom-code block deletion). Lives here, not in reset.css, so every
+ * surface that renders buttons can reuse it.
+ */
+.erankly-btn-danger.button {
+	background: var(--erankly-color-danger);
+	border-color: var(--erankly-color-danger);
+	color: var(--erankly-color-surface);
+}
+
+.erankly-btn-danger.button:hover,
+.erankly-btn-danger.button:focus {
+	background: var(--erankly-color-error);
+	border-color: var(--erankly-color-error);
+	color: var(--erankly-color-surface);
+}
+
+.erankly-btn-danger.button:focus {
+	box-shadow: 0 0 0 1px var(--erankly-color-surface), 0 0 0 3px var(--erankly-color-danger);
+}
+
 .erankly-field {
 	margin: 0 0 var(--erankly-space-field);
 	min-width: 0;
@@ -340,6 +376,20 @@
 
 .erankly-section-title {
 	max-width: 720px;
+}
+
+/* Section heading row: title on one side, documentation link on the other. */
+.erankly-section-title-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0 0 var(--erankly-space-label);
+	max-width: 720px;
+}
+
+.erankly-section-title-row .erankly-section-title {
+	margin-bottom: 0;
 }
 
 .erankly-card > :first-child {

@@ -19,7 +19,12 @@
   function bindSchemaBlock(block) {
     var removeButton = block.querySelector("[data-erankly-remove-schema]");
 
-    ER.bindVariablePickers(block);
+    // The variables module is not enqueued on every surface that reuses the
+    // schema builder (e.g. custom code blocks carry no variable pickers).
+    // Guard so one missing module cannot break Add/Delete on those screens.
+    if (typeof ER.bindVariablePickers === "function") {
+      ER.bindVariablePickers(block);
+    }
 
     if (removeButton) {
       removeButton.addEventListener("click", function (event) {

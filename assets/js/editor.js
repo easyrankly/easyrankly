@@ -116,7 +116,8 @@
 				title: __( 'Search appearance', 'easyrankly' ),
 			},
 			...shared.searchAppearanceFields( { config: panelConfig, data, features: FEATURES } ),
-			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.searchAppearanceExtras', [], { data, config } ) : [] )
+			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.searchAppearanceExtras', [], { data, config } ) : [] ),
+			el( shared.PanelDocLink, { section: 'editor-search-appearance' } )
 		);
 	}
 
@@ -132,7 +133,8 @@
 				title: __( 'Social sharing', 'easyrankly' ),
 			},
 			...shared.socialFields( { config: panelConfig, data, features: FEATURES } ),
-			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.socialExtras', [], { data, config } ) : [] )
+			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.socialExtras', [], { data, config } ) : [] ),
+			el( shared.PanelDocLink, { section: 'editor-social' } )
 		);
 	}
 
@@ -146,7 +148,8 @@
 				name: 'erankly-visibility',
 				title: __( 'Search visibility', 'easyrankly' ),
 			},
-			...shared.visibilityFields( { config, data, features: FEATURES } )
+			...shared.visibilityFields( { config, data, features: FEATURES } ),
+			el( shared.PanelDocLink, { section: 'editor-visibility' } )
 		);
 	}
 
@@ -203,7 +206,8 @@
 			el( Button, {
 				onClick: () => data.set( 'schema_blocks', [ ...blocks, { type: 'custom', fields: { custom_json: '' } } ] ),
 				variant: 'secondary',
-			}, __( 'Add JSON-LD schema', 'easyrankly' ) )
+			}, __( 'Add JSON-LD schema', 'easyrankly' ) ),
+			el( shared.PanelDocLink, { section: 'editor-schema' } )
 		);
 	}
 

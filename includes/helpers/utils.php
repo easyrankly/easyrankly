@@ -97,6 +97,14 @@ function erankly_send_response( string $body, string $content_type ) {
 		exit;
 	}
 
+	$etag = '"' . hash( 'sha256', $body ) . '"';
+	if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) ) === $etag ) {
+		status_header( 304 );
+		header( 'ETag: ' . $etag );
+		header( 'Cache-Control: public, max-age=300, stale-while-revalidate=60' );
+		exit;
+	}
+
 	// Parse before output so malformed or externally declared XML never reaches
 	// the response stream.
 	$previous_errors              = libxml_use_internal_errors( true );
@@ -115,6 +123,8 @@ function erankly_send_response( string $body, string $content_type ) {
 	status_header( 200 );
 	header( 'Content-Type: application/xml; charset=' . get_bloginfo( 'charset' ) );
 	header( 'X-Robots-Tag: noindex, follow', true );
+	header( 'Cache-Control: public, max-age=300, stale-while-revalidate=60' );
+	header( 'ETag: ' . $etag );
 
 	$document->save( 'php://output' );
 	exit;

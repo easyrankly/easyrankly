@@ -125,9 +125,6 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 	<details class="erankly-schema-block" data-erankly-schema-block>
 		<summary class="erankly-schema-block-header">
 			<span class="erankly-schema-title"><?php esc_html_e( 'JSON-LD schema', 'easyrankly' ); ?></span>
-			<div class="erankly-schema-row-actions">
-				<button type="button" class="button-link button-link-delete" data-erankly-remove-schema><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
-			</div>
 		</summary>
 		<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][type]" value="custom">
 		<div class="erankly-schema-panel" data-erankly-schema-panel>
@@ -142,13 +139,18 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 					<?php esc_html_e( 'One JSON-LD object or @graph array; supports {{variables}}.', 'easyrankly' ); ?>
 				<?php endif; ?>
 			</p>
+			<button type="button" class="button erankly-btn-danger erankly-schema-delete" data-erankly-remove-schema><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
 		</div>
 	</details>
 	<?php
 }
 
-/** @param bool                $enabled     Whether the block is enabled. */
-function erankly_render_schema_targeting_fields( array $block, string $index, string $name_prefix, bool $enabled ): void {
+/**
+ * @param bool                $enabled                  Whether the block is enabled.
+ * @param string              $toggle_label             Optional toggle label. Defaults to the schema wording.
+ * @param bool                $include_archive_contexts Whether custom-code-only public archive contexts are shown.
+ */
+function erankly_render_schema_targeting_fields( array $block, string $index, string $name_prefix, bool $enabled, string $toggle_label = '', bool $include_archive_contexts = false ): void {
 	$target_contexts   = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? array_map( 'sanitize_key', $block['target_contexts'] ) : array();
 	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? array_map( 'sanitize_key', $block['target_post_types'] ) : array();
 	$include_items     = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
@@ -162,10 +164,16 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 		'post_type_archive' => __( 'Post type archives', 'easyrankly' ),
 		'search'            => __( 'Search results', 'easyrankly' ),
 	);
+	if ( $include_archive_contexts ) {
+		$contexts['taxonomy'] = __( 'Taxonomy archives', 'easyrankly' );
+		$contexts['author']   = __( 'Author archives', 'easyrankly' );
+		$contexts['date']     = __( 'Date archives', 'easyrankly' );
+		$contexts['404']      = __( '404 page', 'easyrankly' );
+	}
 	?>
 	<fieldset class="erankly-schema-targeting">
 		<legend><?php esc_html_e( 'Global application rules', 'easyrankly' ); ?></legend>
-		<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>> <?php esc_html_e( 'Enable this schema block', 'easyrankly' ); ?></label>
+		<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>> <?php echo '' !== $toggle_label ? esc_html( $toggle_label ) : esc_html__( 'Enable this schema block', 'easyrankly' ); ?></label>
 		<div class="erankly-schema-targeting-grid">
 			<fieldset class="erankly-schema-targeting-group">
 				<legend><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></legend>
@@ -191,6 +199,34 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 			</div>
 		</div>
 	</fieldset>
+	<?php
+}
+
+/**
+ * Renders one custom-code snippet block. Reuses the schema targeting UI
+ * (same names/keys) and the schema builder JS/CSS hooks so no new assets
+ * are needed; only the payload textarea differs (raw `code`, no variables).
+ */
+function erankly_render_custom_code_block( array $block, string $index, string $name_prefix, bool $can_unfiltered ): void {
+	// New template blocks default to enabled, mirroring schema blocks: checking
+	// targeting contexts alone must suffice for the snippet to print.
+	$enabled = ! isset( $block['enabled'] ) || ! empty( $block['enabled'] );
+	$code    = isset( $block['code'] ) ? (string) $block['code'] : '';
+	$field_id = 'erankly-code-' . sanitize_html_class( $index ) . '-' . sanitize_html_class( md5( $name_prefix ) );
+	?>
+	<details class="erankly-schema-block" data-erankly-schema-block>
+		<summary class="erankly-schema-block-header">
+			<span class="erankly-schema-title"><?php esc_html_e( 'Code snippet', 'easyrankly' ); ?></span>
+		</summary>
+		<div class="erankly-schema-panel" data-erankly-schema-panel>
+			<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled, __( 'Enable this code snippet', 'easyrankly' ), true ); ?>
+			<div class="erankly-schema-field">
+				<label for="<?php echo esc_attr( $field_id ); ?>"><?php esc_html_e( 'Code', 'easyrankly' ); ?></label>
+				<textarea id="<?php echo esc_attr( $field_id ); ?>" class="widefat code" rows="12" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][code]" <?php echo $can_unfiltered ? '' : 'readonly'; ?>><?php echo esc_textarea( $code ); ?></textarea>
+			</div>
+			<button type="button" class="button erankly-btn-danger erankly-schema-delete" data-erankly-remove-schema><?php esc_html_e( 'Delete', 'easyrankly' ); ?></button>
+		</div>
+	</details>
 	<?php
 }
 

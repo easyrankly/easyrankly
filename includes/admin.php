@@ -53,6 +53,8 @@ function erankly_admin_bootstrap(): void {
 function erankly_admin_load_settings_modules(): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'admin/settings-page.php';
+	require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
+	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
 	require_once ERANKLY_PATH . 'admin/settings/panels.php';
 	require_once ERANKLY_PATH . 'admin/settings/page-renderer.php';
 }
@@ -111,6 +113,7 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 	$unavailable = (
 		( 'sitemap' === $requested_tab && ! erankly_sitemap_enabled() )
 		|| ( 'redirects' === $requested_tab && ( is_network_admin() || ! erankly_redirects_enabled() ) )
+		|| ( 'custom-code' === $requested_tab && ! erankly_custom_code_enabled() )
 		|| ( 'special-pages' === $requested_tab )
 	);
 
@@ -389,6 +392,7 @@ function erankly_admin_asset_modules( string $surface ): array {
 		'social'        => array( 'tabs', 'media', 'variables', 'settings' ),
 		'schema'        => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
 		'sitemap'       => array( 'tabs', 'settings' ),
+		'custom-code'   => array( 'tabs', 'variables', 'schema', 'settings' ),
 		'settings'      => array( 'tabs', 'settings', 'reset' ),
 		'advanced'      => array( 'tabs', 'variables', 'settings' ),
 		'import-export' => array( 'tabs', 'fields' ),

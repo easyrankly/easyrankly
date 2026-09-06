@@ -15,10 +15,12 @@ function erankly_render_settings_page(): void {
 	$settings                 = erankly_get_settings();
 	$redirects_enabled        = erankly_redirects_enabled();
 	$sitemap_enabled          = erankly_sitemap_enabled();
+	$custom_code_enabled      = erankly_custom_code_enabled();
 	$is_site_admin_on_network = is_multisite() && ! is_network_admin();
 	$show_redirects_tab       = $redirects_enabled && ! is_network_admin();
 	$show_sitemap_tab         = ! $is_site_admin_on_network && $sitemap_enabled;
-	$show_feature_modules_nav = $show_redirects_tab || $show_sitemap_tab;
+	$show_custom_code_tab     = ! $is_site_admin_on_network && $custom_code_enabled;
+	$show_feature_modules_nav = $show_redirects_tab || $show_sitemap_tab || $show_custom_code_tab;
 	// Special-page metadata is per site on Multisite: edited from each subsite's
 	// "General" tab unless the block-theme Site Editor panels are available.
 	$show_site_special_tab = $is_site_admin_on_network && ! erankly_use_site_editor_special_page_panels();
@@ -136,6 +138,7 @@ function erankly_render_settings_page(): void {
 		'social'        => 'settings-social',
 		'schema'        => 'settings-schema',
 		'sitemap'       => 'settings-sitemap',
+		'custom-code'   => 'settings-custom-code',
 		'settings'      => 'settings-settings',
 		'advanced'      => 'settings-advanced',
 		'import-export' => 'settings-import-export',
@@ -172,6 +175,11 @@ function erankly_render_settings_page(): void {
 		$active_subtab = '';
 	}
 
+	if ( 'settings-custom-code' === $active_panel && ! $show_custom_code_tab ) {
+		$active_panel  = $is_site_admin_on_network ? ( $site_panels[0] ?? '' ) : 'settings-features';
+		$active_subtab = '';
+	}
+
 	if ( 'settings-advanced' === $active_panel && ! empty( $settings['simplified_mode'] ) ) {
 		$active_panel  = 'settings-settings';
 		$active_subtab = '';
@@ -184,7 +192,7 @@ function erankly_render_settings_page(): void {
 		$active_subtab = '';
 	}
 
-	if ( in_array( $active_panel, array( 'settings-general', 'settings-social', 'settings-schema', 'settings-advanced', 'settings-special-pages' ), true ) ) {
+	if ( in_array( $active_panel, array( 'settings-general', 'settings-social', 'settings-schema', 'settings-advanced', 'settings-special-pages', 'settings-custom-code' ), true ) ) {
 		require_once ERANKLY_PATH . 'admin/field-renderers.php';
 	}
 
@@ -210,37 +218,26 @@ function erankly_render_settings_page(): void {
 		$sitemap_url = erankly_get_sitemap_url( '/wp-sitemap.xml' );
 	}
 
-	// With every built-in panel now autosaving, $show_settings_submit ends up
-	// false for every reachable $active_panel today, but the computation
-	// itself isn't dead: it's what keeps the button correctly hidden on the
-	// very first server-rendered paint (the JS in bindSettingsTabs()'s
-	// activate() only corrects it after DOMContentLoaded, which would
-	// otherwise flash the button briefly), and it'll matter again the moment
-	// a future panel, built-in or a third-party extension tab, doesn't
-	// autosave.
-	$show_settings_submit = ! $is_site_admin_on_network && ! in_array( $active_panel, array( 'settings-import-export', 'settings-redirects' ), true );
-
-	// Panels that autosave via REST (see erankly_settings_autosave_panels())
-	// no longer need the shared button once they're actually reachable.
-	// single-site, or Network Admin on Multisite (a per-site admin on
-	// Multisite never gets these tabs at all, mirroring $is_site_admin_on_network).
-	// Driven entirely by the registry so this never needs editing again as
-	// panels are added.
-	if ( ! is_multisite() || is_network_admin() ) {
-		$autosave_panel_slugs = array_map(
-			static fn( $key ) => 'settings-' . $key,
-			array_keys( erankly_settings_autosave_panels() )
-		);
-
-		if ( in_array( $active_panel, $autosave_panel_slugs, true ) ) {
-			$show_settings_submit = false;
-		}
+	if ( 'settings-custom-code' === $active_panel ) {
+		$head_code_blocks       = isset( $settings['head_code_blocks'] ) && is_array( $settings['head_code_blocks'] ) ? array_values( $settings['head_code_blocks'] ) : array();
+		$head_code_name         = ERANKLY_OPTION . '[head_code_blocks]';
+		$body_open_code_blocks  = isset( $settings['body_open_code_blocks'] ) && is_array( $settings['body_open_code_blocks'] ) ? array_values( $settings['body_open_code_blocks'] ) : array();
+		$body_open_code_name    = ERANKLY_OPTION . '[body_open_code_blocks]';
+		$body_close_code_blocks = isset( $settings['body_close_code_blocks'] ) && is_array( $settings['body_close_code_blocks'] ) ? array_values( $settings['body_close_code_blocks'] ) : array();
+		$body_close_code_name   = ERANKLY_OPTION . '[body_close_code_blocks]';
 	}
 
-	// Extension tabs render their own form, so hide the shared "Save Changes" button on them.
-	if ( in_array( $active_panel, array_map( static fn( $slug ) => 'settings-' . $slug, array_keys( $extra_tabs ) ), true ) ) {
-		$show_settings_submit = false;
+	// The shared button is a no-JavaScript fallback only (wrapped in <noscript>
+	// below): JS users autosave via REST, while a no-JS submission still saves
+	// through the same panel-scoped options.php handler. Autosave panels must
+	// NOT hide it — without JavaScript the REST path never runs, so hiding the
+	// button would leave no save path at all. Panels with their own form (or
+	// no form) never show it.
+	$standalone_panels = array( 'settings-import-export', 'settings-redirects', 'settings-special-pages' );
+	foreach ( array_keys( $extra_tabs ) as $extra_slug ) {
+		$standalone_panels[] = 'settings-' . $extra_slug;
 	}
+	$show_settings_submit = ! $is_site_admin_on_network && ! in_array( $active_panel, $standalone_panels, true );
 	?>
 	<div class="wrap erankly-settings">
 		<?php
@@ -301,6 +298,9 @@ function erankly_render_settings_page(): void {
 					<?php if ( $show_sitemap_tab ) : ?>
 						<?php erankly_render_settings_nav_link( 'sitemap', __( 'Sitemap', 'easyrankly' ), $active_panel ); ?>
 					<?php endif; ?>
+					<?php if ( $show_custom_code_tab ) : ?>
+						<?php erankly_render_settings_nav_link( 'custom-code', __( 'Custom code', 'easyrankly' ), $active_panel ); ?>
+					<?php endif; ?>
 					<?php foreach ( $feature_module_tabs as $extra_slug => $extra_tab ) : ?>
 						<?php erankly_render_settings_nav_link( $extra_slug, $extra_tab['label'], $active_panel ); ?>
 					<?php endforeach; ?>
@@ -316,7 +316,7 @@ function erankly_render_settings_page(): void {
 				<?php endif; ?>
 				<div class="erankly-settings-nav-section" role="group" aria-labelledby="erankly-settings-nav-useful-resources">
 					<span class="erankly-settings-nav-heading" id="erankly-settings-nav-useful-resources"><?php esc_html_e( 'Useful resources', 'easyrankly' ); ?></span>
-					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://docs.easyrankly.com/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Documentation', 'easyrankly' ); ?></a>
+					<a class="erankly-settings-nav-item" href="<?php echo esc_url( add_query_arg( 'utm_source', 'easyrankly-settings-nav', 'https://docs.easyrankly.com/' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo erankly_nav_icon( 'documentation' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static inline SVG from erankly_nav_icons(). ?><span class="erankly-settings-nav-label"><?php esc_html_e( 'Documentation', 'easyrankly' ); ?></span></a>
 				</div>
 				</nav>
 				<span class="erankly-autosave-status" data-erankly-autosave-status aria-live="polite"></span>
@@ -333,7 +333,7 @@ function erankly_render_settings_page(): void {
 					<input type="hidden" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[erankly_settings_panel]" value="<?php echo esc_attr( erankly_active_panel_submission_slug( $active_panel ) ); ?>">
 
 					<?php if ( 'settings-features' === $active_panel ) : ?>
-							<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $active_panel ); ?>
+							<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $custom_code_enabled, $active_panel ); ?>
 					<?php endif; ?>
 
 					<?php if ( 'settings-general' === $active_panel ) : ?>
@@ -352,6 +352,10 @@ function erankly_render_settings_page(): void {
 					<?php erankly_render_settings_panel_sitemap( $settings, $sitemap_url ); ?>
 				<?php endif; ?>
 
+					<?php if ( $custom_code_enabled && 'settings-custom-code' === $active_panel ) : ?>
+						<?php erankly_render_settings_panel_custom_code( $settings, $head_code_blocks, $head_code_name, $body_open_code_blocks, $body_open_code_name, $body_close_code_blocks, $body_close_code_name ); ?>
+					<?php endif; ?>
+
 					<?php if ( 'settings-settings' === $active_panel ) : ?>
 						<?php erankly_render_settings_panel_settings( $settings, $redirects_enabled ); ?>
 					<?php endif; ?>
@@ -360,9 +364,13 @@ function erankly_render_settings_page(): void {
 						<?php erankly_render_settings_panel_advanced( $settings ); ?>
 					<?php endif; ?>
 
-					<div class="erankly-settings-submit" data-erankly-settings-submit <?php echo $show_settings_submit ? '' : 'hidden'; ?>>
-						<?php submit_button(); ?>
-					</div>
+					<?php if ( $show_settings_submit ) : ?>
+					<noscript>
+						<div class="erankly-settings-submit">
+							<?php submit_button(); ?>
+						</div>
+					</noscript>
+					<?php endif; ?>
 				<?php if ( ! $is_site_admin_on_network ) : ?>
 				</form>
 				<?php endif; ?>
@@ -373,7 +381,10 @@ function erankly_render_settings_page(): void {
 					<?php wp_nonce_field( 'erankly_site_special_meta' ); ?>
 					<input type="hidden" name="action" value="erankly_save_site_special_meta">
 					<div class="erankly-settings-section">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
+						<div class="erankly-section-title-row">
+							<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
+							<?php erankly_render_section_doc_link( 'special-pages' ); ?>
+						</div>
 						<div class="erankly-card">
 							<?php erankly_render_special_page_defaults( erankly_special_page_keys(), array( 'global_special_meta' => erankly_get_site_special_meta() ) ); ?>
 						</div>

@@ -5,6 +5,99 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/** Resolves a relative media URL against its owning public page. */
+function erankly_absolutize_content_url( string $url, string $base_url = '' ): string {
+	$url = trim( html_entity_decode( $url, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+
+	if ( '' === $url || str_starts_with( $url, '#' ) ) {
+		return '';
+	}
+
+	$url = esc_url_raw( $url );
+	if ( erankly_is_absolute_http_url( $url ) ) {
+		return $url;
+	}
+
+	$home = wp_parse_url( home_url( '/' ) );
+	if ( ! is_array( $home ) || empty( $home['scheme'] ) || empty( $home['host'] ) ) {
+		return '';
+	}
+
+	if ( str_starts_with( $url, '//' ) ) {
+		return esc_url_raw( $home['scheme'] . ':' . $url );
+	}
+
+	$base  = wp_parse_url( '' !== $base_url ? $base_url : home_url( '/' ) );
+	$base  = is_array( $base ) ? $base : $home;
+	$path  = (string) ( $base['path'] ?? '/' );
+	$path  = str_starts_with( $url, '/' ) ? $url : trailingslashit( dirname( $path ) ) . $url;
+	$query = '';
+
+	if ( str_contains( $path, '?' ) ) {
+		list( $path, $query ) = explode( '?', $path, 2 );
+		$query                = '?' . $query;
+	}
+	$has_trailing_slash = str_ends_with( $path, '/' );
+
+	$segments = array();
+	foreach ( explode( '/', $path ) as $segment ) {
+		if ( '' === $segment || '.' === $segment ) {
+			continue;
+		}
+		if ( '..' === $segment ) {
+			array_pop( $segments );
+			continue;
+		}
+		$segments[] = $segment;
+	}
+
+	$authority = $home['scheme'] . '://' . $home['host'];
+	if ( isset( $home['port'] ) ) {
+		$authority .= ':' . absint( $home['port'] );
+	}
+
+	$normalized_path = '/' . implode( '/', $segments );
+	if ( $has_trailing_slash && '/' !== $normalized_path ) {
+		$normalized_path = trailingslashit( $normalized_path );
+	}
+
+	return esc_url_raw( $authority . $normalized_path . $query );
+}
+
+/**
+ * Collects attachment IDs from native image-bearing Gutenberg blocks.
+ *
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ * @return array<int,int>
+ */
+function erankly_get_image_block_attachment_ids( array $blocks ): array {
+	$ids   = array();
+	$names = array( 'core/image', 'core/gallery', 'core/media-text', 'core/cover' );
+
+	foreach ( $blocks as $block ) {
+		$name  = (string) ( $block['blockName'] ?? '' );
+		$attrs = isset( $block['attrs'] ) && is_array( $block['attrs'] ) ? $block['attrs'] : array();
+
+		if ( in_array( $name, $names, true ) ) {
+			if ( isset( $attrs['id'] ) ) {
+				$ids[] = absint( $attrs['id'] );
+			}
+			if ( isset( $attrs['mediaId'] ) ) {
+				$ids[] = absint( $attrs['mediaId'] );
+			}
+			foreach ( isset( $attrs['ids'] ) && is_array( $attrs['ids'] ) ? $attrs['ids'] : array() as $id ) {
+				$ids[] = absint( $id );
+			}
+		}
+
+		if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+			$ids = array_merge( $ids, erankly_get_image_block_attachment_ids( $block['innerBlocks'] ) );
+		}
+	}
+
+	return array_values( array_unique( array_filter( $ids ) ) );
+}
+
 /**
  * Returns valid image URLs embedded in post content, in document order. Images inside code examples are ignored.
  * The raw block markup fallback covers image URLs stored in Gutenberg attributes when no rendered img tag is
@@ -22,20 +115,33 @@ function erankly_get_post_content_image_urls( int $post_id ): array {
 	$content = (string) preg_replace( '#<(pre|code)[^>]*>.*?</\1>#is', '', $post->post_content );
 	$content = is_string( $content ) ? $content : $post->post_content;
 	$images  = array();
+	$base    = (string) get_permalink( $post_id );
 
 	if ( preg_match_all( '/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $content, $content_matches ) ) {
 		foreach ( $content_matches[1] as $src ) {
-			$src = esc_url_raw( (string) $src );
+			$src = erankly_absolutize_content_url( (string) $src, $base );
 
 			if ( erankly_is_absolute_http_url( $src ) ) {
 				$images[] = $src;
+			}
+		}
+	}
+
+	if ( preg_match_all( '/<img[^>]+srcset=["\']([^"\']+)["\'][^>]*>/i', $content, $srcset_matches ) ) {
+		foreach ( $srcset_matches[1] as $srcset ) {
+			foreach ( explode( ',', (string) $srcset ) as $candidate ) {
+				$parts = preg_split( '/\s+/', trim( $candidate ) );
+				$src   = erankly_absolutize_content_url( (string) ( $parts[0] ?? '' ), $base );
+				if ( erankly_is_absolute_http_url( $src ) ) {
+					$images[] = $src;
+				}
 			}
 		}
 	}
 
 	if ( preg_match_all( '/"(?:url|link|href)":\s*"(https?:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp|avif|svg|bmp)[^"]*)"/', $content, $block_matches, PREG_SET_ORDER ) ) {
 		foreach ( $block_matches as $match ) {
-			$src = esc_url_raw( $match[1] );
+			$src = erankly_absolutize_content_url( $match[1], $base );
 
 			if ( erankly_is_absolute_http_url( $src ) ) {
 				$images[] = $src;
@@ -43,7 +149,23 @@ function erankly_get_post_content_image_urls( int $post_id ): array {
 		}
 	}
 
-	return array_values( array_unique( $images ) );
+	if ( function_exists( 'parse_blocks' ) && has_blocks( $post->post_content ) ) {
+		foreach ( erankly_get_image_block_attachment_ids( parse_blocks( $post->post_content ) ) as $attachment_id ) {
+			$images[] = erankly_get_image_url( $attachment_id, 'full' );
+		}
+	}
+
+	if ( preg_match_all( '/\[gallery\b([^\]]*)\]/i', $post->post_content, $gallery_matches ) ) {
+		foreach ( $gallery_matches[1] as $raw_attributes ) {
+			$attributes = shortcode_parse_atts( (string) $raw_attributes );
+			$attributes = is_array( $attributes ) ? $attributes : array();
+			foreach ( array_filter( array_map( 'absint', explode( ',', (string) ( $attributes['ids'] ?? '' ) ) ) ) as $attachment_id ) {
+				$images[] = erankly_get_image_url( $attachment_id, 'full' );
+			}
+		}
+	}
+
+	return array_values( array_unique( array_filter( $images, 'erankly_is_absolute_http_url' ) ) );
 }
 
 /** @param string $key     Meta key without plugin prefix. */

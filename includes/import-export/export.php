@@ -14,7 +14,10 @@ function erankly_export_settings(): array {
 	return $settings;
 }
 
-/** @param int    $after_id Last emitted keyset cursor. */
+/**
+ * @param int $after_id Last emitted keyset cursor.
+ * @throws RuntimeException When a database page cannot be read.
+ */
 function erankly_export_page( string $stream, int $after_id, int $limit ): array {
 	global $wpdb;
 
@@ -45,6 +48,9 @@ function erankly_export_page( string $stream, int $after_id, int $limit ): array
 		),
 		ARRAY_A
 	);
+	if ( '' !== (string) $wpdb->last_error ) {
+		throw new RuntimeException( 'An export database page could not be read.' );
+	}
 	$result = array();
 	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 		$result[] = array(
@@ -59,14 +65,34 @@ function erankly_export_page( string $stream, int $after_id, int $limit ): array
 }
 
 /**
- * Emits a JSON array while holding at most one keyset page in memory.
+ * Writes a complete string even when the stream accepts a partial write.
  *
+ * @param resource $handle Open, writable stream.
+ * @throws RuntimeException When the stream stops accepting data.
+ */
+function erankly_export_write_all( $handle, string $data ): void {
+	$length = strlen( $data );
+	$offset = 0;
+
+	while ( $offset < $length ) {
+		$written = fwrite( $handle, substr( $data, $offset ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- The export stream may be a private backup or the explicitly requested download response.
+		if ( false === $written || 0 === $written ) {
+			throw new RuntimeException( 'The export stream could not be written completely.' );
+		}
+		$offset += $written;
+	}
+}
+
+/**
+ * Writes a JSON array to one stream while holding at most one keyset page in memory.
+ *
+ * @param resource $handle Open, writable stream.
  * @throws RuntimeException When a row cannot be encoded or the cursor stalls.
  */
-function erankly_export_stream_array( string $stream, int $limit = 500 ): void {
+function erankly_export_stream_array( $handle, string $stream, int $limit = 500 ): void {
 	$after_id = 0;
 	$first    = true;
-	echo '['; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response framing.
+	erankly_export_write_all( $handle, '[' );
 	do {
 		$rows = erankly_export_page( $stream, $after_id, $limit );
 		foreach ( $rows as $row ) {
@@ -76,22 +102,25 @@ function erankly_export_stream_array( string $stream, int $limit = 500 ): void {
 			if ( false === $encoded || $cursor <= $after_id ) {
 				throw new RuntimeException( 'Export page encoding or cursor validation failed.' );
 			}
-			echo $first ? $encoded : ',' . $encoded; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode output in a JSON download.
+			erankly_export_write_all( $handle, $first ? $encoded : ',' . $encoded );
 			$first    = false;
 			$after_id = $cursor;
 		}
 		$count = count( $rows );
 	} while ( $limit === $count );
-	echo ']'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response framing.
+	erankly_export_write_all( $handle, ']' );
 }
 
-function erankly_export_download(): void {
-	$filename = 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
-
-	nocache_headers();
-	header( 'Content-Type: application/json; charset=utf-8' );
-	header( 'Content-Disposition: attachment; filename=' . $filename );
-
+/**
+ * Writes one complete EasyRankly backup document to a stream.
+ *
+ * Shared by the admin download and by the automatic pre-import backup, so a restore always reads exactly the
+ * same format the export tab produces.
+ *
+ * @param resource $handle Open, writable stream.
+ * @throws RuntimeException When the header cannot be encoded.
+ */
+function erankly_export_write( $handle ): void {
 	$header = array(
 		'plugin'      => 'erankly',
 		'format'      => ERANKLY_EXPORT_FORMAT,
@@ -103,22 +132,58 @@ function erankly_export_download(): void {
 
 	/** Filters the native EasyRankly export header. Add-ons may attach extra keys they own. Do not mutate `settings`. */
 	$header = apply_filters( 'erankly_export_header', $header );
-	$header = is_array( $header ) ? $header : array();
+	if (
+		! is_array( $header )
+		|| 'erankly' !== (string) ( $header['plugin'] ?? '' )
+		|| ERANKLY_EXPORT_FORMAT !== (string) ( $header['format'] ?? '' )
+		|| ! is_array( $header['settings'] ?? null )
+		|| ! is_string( $header['site_url'] ?? null )
+	) {
+		throw new RuntimeException( 'The export header was changed into an invalid document.' );
+	}
 
 	$encoded_header = wp_json_encode( $header, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 	if ( false === $encoded_header ) {
-		wp_die( esc_html__( 'The export header could not be encoded.', 'easyrankly' ), '', array( 'response' => 500 ) );
+		throw new RuntimeException( 'The export header could not be encoded.' );
 	}
-	echo substr( $encoded_header, 0, -1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON download header with only its outer terminator removed.
+
+	if ( ! str_ends_with( $encoded_header, '}' ) ) {
+		throw new RuntimeException( 'The export header is not a JSON object.' );
+	}
+
+	erankly_export_write_all( $handle, substr( $encoded_header, 0, -1 ) );
 	foreach ( array( 'redirects', 'post_meta', 'term_meta', 'user_meta' ) as $stream ) {
-		echo ',"' . $stream . '":'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Fixed internal JSON property name.
-		erankly_export_stream_array( $stream );
+		erankly_export_write_all( $handle, ',"' . $stream . '":' );
+		erankly_export_stream_array( $handle, $stream );
 	}
 	$special_meta = get_option( ERANKLY_SPECIAL_META_OPTION, null );
-	if ( is_array( $special_meta ) ) {
-		echo ',"special_meta":' . wp_json_encode( $special_meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded download value.
+	$special_meta = is_array( $special_meta ) ? $special_meta : null;
+	$encoded_special_meta = wp_json_encode( $special_meta, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+	if ( false === $encoded_special_meta ) {
+		throw new RuntimeException( 'The special-page metadata could not be encoded.' );
 	}
-	echo '}'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response terminator.
+	erankly_export_write_all( $handle, ',"special_meta":' . $encoded_special_meta );
+	erankly_export_write_all( $handle, '}' );
+}
+
+function erankly_export_download(): void {
+	$filename = 'erankly-export-' . gmdate( 'Y-m-d-His' ) . '.json';
+
+	nocache_headers();
+	header( 'Content-Type: application/json; charset=utf-8' );
+	header( 'Content-Disposition: attachment; filename=' . $filename );
+
+	$handle = fopen( 'php://output', 'wb' );
+	if ( false === $handle ) {
+		wp_die( esc_html__( 'The export stream could not be opened.', 'easyrankly' ), '', array( 'response' => 500 ) );
+	}
+	try {
+		erankly_export_write( $handle );
+	} catch ( RuntimeException ) {
+		wp_die( esc_html__( 'The export could not be generated.', 'easyrankly' ), '', array( 'response' => 500 ) );
+	} finally {
+		fclose( $handle );
+	}
 	exit;
 }
 

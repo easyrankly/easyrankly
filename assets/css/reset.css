@@ -7,23 +7,6 @@
 	gap: var(--erankly-space-2);
 }
 
-.erankly-btn-danger.button {
-	background: var(--erankly-color-danger);
-	border-color: var(--erankly-color-danger);
-	color: var(--erankly-color-surface);
-}
-
-.erankly-btn-danger.button:hover,
-.erankly-btn-danger.button:focus {
-	background: var(--erankly-color-error);
-	border-color: var(--erankly-color-error);
-	color: var(--erankly-color-surface);
-}
-
-.erankly-btn-danger.button:focus {
-	box-shadow: 0 0 0 1px var(--erankly-color-surface), 0 0 0 3px var(--erankly-color-danger);
-}
-
 /* display: flex below beats the UA stylesheet's [hidden] { display: none },
    so the closed state needs its own explicit rule. */
 .erankly-modal-overlay[hidden] {

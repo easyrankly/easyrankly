@@ -56,6 +56,11 @@ function erankly_flush_sitemap_cache_for_post( int $post_id ): void {
 		return;
 	}
 
+	$post = get_post( $post_id );
+	if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status || ! is_post_type_viewable( $post->post_type ) ) {
+		return;
+	}
+
 	erankly_flush_sitemap_cache();
 }
 
@@ -85,7 +90,10 @@ function erankly_flush_sitemap_cache_for_status( string $new_status, string $old
 function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id, string $meta_key ): void {
 	unset( $meta_id, $term_id );
 
-	if ( str_starts_with( $meta_key, '_erankly_' ) ) {
+	$keys = array( '_erankly_index_directive', '_erankly_noindex', '_erankly_disable_sitemap', '_erankly_canonical' );
+	$keys = (array) apply_filters( 'erankly_sitemap_term_meta_cache_keys', $keys );
+
+	if ( in_array( $meta_key, $keys, true ) ) {
 		erankly_flush_sitemap_cache();
 	}
 }
@@ -98,7 +106,34 @@ function erankly_flush_sitemap_cache_for_term_meta( mixed $meta_id, int $term_id
 function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_id, string $meta_key ): void {
 	unset( $meta_id, $object_id );
 
-	if ( str_starts_with( $meta_key, '_erankly_' ) ) {
+	$keys = array(
+		'_erankly_index_directive',
+		'_erankly_noindex',
+		'_erankly_disable_sitemap',
+		'_erankly_canonical',
+		'_erankly_exclude_from_news',
+		'_thumbnail_id',
+		'_product_image_gallery',
+	);
+	$keys = (array) apply_filters( 'erankly_sitemap_post_meta_cache_keys', $keys );
+
+	if ( in_array( $meta_key, $keys, true ) ) {
+		erankly_flush_sitemap_cache();
+	}
+}
+
+/**
+ * Invalidates sitemap caches only for EasyRankly user metadata.
+ *
+ * @param mixed $meta_id User-meta row ID or deleted row IDs.
+ */
+function erankly_flush_sitemap_cache_for_user_meta( mixed $meta_id, int $object_id, string $meta_key ): void {
+	unset( $meta_id, $object_id );
+
+	$keys = array( '_erankly_index_directive', '_erankly_noindex', '_erankly_canonical' );
+	$keys = (array) apply_filters( 'erankly_sitemap_user_meta_cache_keys', $keys );
+
+	if ( in_array( $meta_key, $keys, true ) ) {
 		erankly_flush_sitemap_cache();
 	}
 }
@@ -108,11 +143,9 @@ function erankly_flush_sitemap_cache_for_post_meta( mixed $meta_id, int $object_
  * transient rows expire naturally instead of being deleted with a wildcard SQL query.
  */
 function erankly_get_sitemap_cache_key( string $suffix ): string {
-	static $version = null;
-
-	if ( null === $version ) {
-		$version = max( 1, (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 ) );
-	}
+	// get_option() is request-cached by WordPress. Reading it here keeps a cache
+	// flush effective even when a sitemap is rebuilt later in the same request.
+	$version = max( 1, (int) get_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, 1 ) );
 
 	return ERANKLY_SITEMAP_TRANSIENT_PREFIX . $version . '_' . sanitize_key( $suffix );
 }

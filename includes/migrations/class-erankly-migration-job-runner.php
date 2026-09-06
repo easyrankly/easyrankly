@@ -5,46 +5,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Coordinates discovery, staging, writes, checkpoints and recovery. */
+/**
+ * Reads one source plugin in restart-safe batches and writes directly into EasyRankly.
+ *
+ * Discovery and writing happen in the same pass. A preview runs the identical code path and stops just
+ * before each write, so the counters an administrator reviews are produced by the logic that will actually
+ * run rather than by a parallel simulation.
+ */
 final class ERankly_Migration_Job_Runner {
 	private const LOCK_TTL     = 300;
-	private const DETAIL_LIMIT = 100;
+	private const DETAIL_LIMIT = 200;
 
-	/** Shared source adapter and report manager. */
 	private ERankly_Migration_Manager $manager;
-
-	private ERankly_Migration_Job_Store $store;
-
-	private ERankly_Migration_Evidence_Store $evidence_store;
-
-	private ERankly_Migration_Journal $journal;
 
 	/** @var array<string,mixed>|null */
 	private ?array $active_job_cache = null;
 
-	/** Creates the runner around the shared migration services. */
 	public function __construct() {
-		$this->manager        = erankly_migration_manager();
-		$this->store          = new ERankly_Migration_Job_Store();
-		$this->journal        = erankly_migration_journal();
-		$this->evidence_store = erankly_migration_evidence_store();
+		$this->manager = erankly_migration_manager();
 	}
 
 	/**
  * Starts a new resumable preview or import.
  *
- * @param bool   $dry_run     Whether writes are simulated.
- * @param string $export_file Optional local official CSV/JSON export.
+ * @param bool $dry_run Whether writes are simulated.
  * @return array{ok:bool,job?:array<string,mixed>,error?:string}
  * @throws RuntimeException When an owned checkpoint cannot be removed after a failed start.
  */
-	public function start( string $source, bool $dry_run, string $export_file = '' ): array {
+	public function start( string $source, bool $dry_run ): array {
 		$active = $this->raw_active_job();
 		if ( is_array( $active ) ) {
 			return array(
 				'ok'    => false,
-				'job'   => $this->with_counts( $active ),
+				'job'   => $active,
 				'error' => 'migration_already_running',
+			);
+		}
+		$active_import = $this->active_import_job();
+		if ( is_array( $active_import ) ) {
+			return array(
+				'ok'    => false,
+				'job'   => $active_import,
+				'error' => 'import_already_running',
 			);
 		}
 
@@ -55,51 +57,13 @@ final class ERankly_Migration_Job_Runner {
 				'error' => 'unknown_source',
 			);
 		}
-		if ( '' !== $export_file ) {
-			if ( ! $adapter->use_export_file( $export_file ) ) {
-				return array(
-					'ok'    => false,
-					'error' => 'invalid_source_export',
-				);
-			}
-		} else {
-			$adapter->use_export_file( '' );
-		}
-
-		$profile = $adapter->profile();
-		if ( 'unsupported' === (string) ( $profile['storage_status'] ?? '' ) ) {
-			return array(
-				'ok'    => false,
-				'error' => 'unsupported_source_storage',
-			);
-		}
 		if ( ! $adapter->is_available() ) {
 			return array(
 				'ok'    => false,
 				'error' => 'no_source_data',
 			);
 		}
-		if ( ! $this->store->ensure_schema() ) {
-			return array(
-				'ok'    => false,
-				'error' => 'queue_storage_unavailable',
-			);
-		}
-		if ( ! $this->evidence_store->ensure_schema() ) {
-			return array(
-				'ok'    => false,
-				'error' => 'evidence_storage_unavailable',
-			);
-		}
-		if ( ! $dry_run && ! $this->journal->ensure_schema() ) {
-			return array(
-				'ok'    => false,
-				'error' => 'rollback_storage_unavailable',
-			);
-		}
-		$this->journal->prune_expired();
 
-		$inventory   = $adapter->inventory();
 		$fingerprint = $adapter->fingerprint();
 		if ( '' === $fingerprint ) {
 			return array(
@@ -110,92 +74,135 @@ final class ERankly_Migration_Job_Runner {
 
 		$job_id                       = wp_generate_uuid4();
 		$report                       = $this->manager->new_report( $source, $dry_run, $job_id );
-		$report['source_profile']     = $profile;
-		$report['source_inventory']   = $inventory;
 		$report['source_fingerprint'] = $fingerprint;
-		$managed_source               = $adapter->uses_export_file() && class_exists( 'ERankly_Migration_Upload_Store' ) && ERankly_Migration_Upload_Store::owns( $adapter->export_file() );
-		if ( $adapter->uses_export_file() ) {
-			$report['source_file_lifecycle'] = array(
-				'managed_temporary' => $managed_source,
-				'retention'         => $managed_source ? 'until_terminal_report' : 'caller_managed',
-				'deleted'           => false,
+		$report['source_profile']     = array(
+			'mode'           => 'database',
+			'version_status' => $adapter->version_status( $adapter->version() ),
+		);
+
+		// An out-of-range version still imports: the mapping is keyed on storage layout, not on the version
+		// string. The administrator is told so an unexpected result can be traced back to it.
+		if ( 'unsupported' === (string) $report['source_profile']['version_status'] ) {
+			$report['warnings'][] = array(
+				'code'      => 'source_version_outside_certified_range',
+				'message'   => 'The detected source version is outside the range this adapter was verified against. Review the imported values before deactivating the old plugin.',
+				'reference' => sanitize_text_field( $adapter->version() ),
+				'blocking'  => false,
 			);
 		}
-		foreach ( is_array( $profile['module_support'] ?? null ) ? $profile['module_support'] : array() as $module => $support ) {
-			if ( 'review_required' === $support ) {
-				$report['warnings'][] = array(
-					'code'      => 'source_module_review_required',
-					'message'   => sprintf( 'The detected %s module has global or add-on data that requires manual review after migration.', sanitize_key( (string) $module ) ),
-					'reference' => sanitize_key( (string) $module ),
-					'blocking'  => false,
+
+		// A real import is the only irreversible step, so capture the undo artefact before the first write.
+		if ( ! $dry_run ) {
+			$backup = erankly_migration_create_backup();
+			if ( empty( $backup['ok'] ) ) {
+				return array(
+					'ok'    => false,
+					'error' => sanitize_key( (string) ( $backup['error'] ?? 'backup_write_failed' ) ),
 				);
 			}
+			unset( $backup['ok'] );
+			$report['backup'] = $backup;
 		}
+
 		$job = array(
-			'id'                  => $job_id,
-			'source'              => $adapter->slug(),
-			'dry_run'             => $dry_run,
-			'status'              => 'queued',
-			'stream'              => 'settings',
-			'cursor'              => array(),
-			'batches'             => 0,
-			'cancel_requested'    => false,
-			'started_at'          => gmdate( 'c' ),
-			'updated_at'          => gmdate( 'c' ),
-			'last_error'          => '',
-			'source_mode'         => $adapter->uses_export_file() ? 'official_export' : 'database',
-			'source_file'         => $adapter->uses_export_file() ? $adapter->export_file() : '',
-			'source_file_managed' => $managed_source,
-			'source_fingerprint'  => $fingerprint,
-			'report'              => $report,
+			'id'                 => $job_id,
+			'source'             => $adapter->slug(),
+			'dry_run'            => $dry_run,
+			'status'             => 'queued',
+			'stream'             => 'settings',
+			'cursor'             => array(),
+			'batches'            => 0,
+			'cancel_requested'   => false,
+			'started_at'         => gmdate( 'c' ),
+			'updated_at'         => gmdate( 'c' ),
+			'last_error'         => '',
+			'source_fingerprint' => $fingerprint,
+			'counts'             => $this->manager->empty_counts(),
+			'report'             => $report,
 		);
-		if ( ! add_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, $job, '', 'no' ) ) {
+
+		$start_token = erankly_acquire_data_transfer_start_lock();
+		if ( '' === $start_token ) {
+			$this->discard_unattached_backup( $report );
+			return array(
+				'ok'    => false,
+				'error' => 'transfer_start_in_progress',
+			);
+		}
+
+		try {
+			// Recheck both workers inside the shared gate. The earlier checks make
+			// common requests cheap; these close the race while a backup was made.
 			$active = $this->raw_active_job();
-			return is_array( $active )
-				? array(
+			if ( is_array( $active ) ) {
+				$this->discard_unattached_backup( $report );
+				return array(
 					'ok'    => false,
-					'job'   => $this->with_counts( $active ),
+					'job'   => $active,
 					'error' => 'migration_already_running',
-				)
-				: array(
+				);
+			}
+			$active_import = $this->active_import_job();
+			if ( is_array( $active_import ) ) {
+				$this->discard_unattached_backup( $report );
+				return array(
+					'ok'    => false,
+					'job'   => $active_import,
+					'error' => 'import_already_running',
+				);
+			}
+
+			if ( ! add_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, $job, '', 'no' ) ) {
+				$this->discard_unattached_backup( $report );
+				$active        = $this->raw_active_job();
+				$active_import = $this->active_import_job();
+				if ( is_array( $active ) ) {
+					return array(
+						'ok'    => false,
+						'job'   => $active,
+						'error' => 'migration_already_running',
+					);
+				}
+				if ( is_array( $active_import ) ) {
+					return array(
+						'ok'    => false,
+						'job'   => $active_import,
+						'error' => 'import_already_running',
+					);
+				}
+
+				return array(
 					'ok'    => false,
 					'error' => 'job_checkpoint_unavailable',
 				);
-		}
-		$this->active_job_cache = null;
+			}
+			$this->active_job_cache = null;
 
-		try {
-			$stored = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, null );
-			if ( ! is_array( $stored ) || wp_json_encode( $stored ) !== wp_json_encode( $job ) ) {
-				throw new RuntimeException( 'Migration job checkpoint could not be persisted.' );
+			try {
+				$stored = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, null );
+				if ( ! is_array( $stored ) || wp_json_encode( $stored ) !== wp_json_encode( $job ) ) {
+					throw new RuntimeException( 'Migration job checkpoint could not be persisted.' );
+				}
+				if ( ! $this->schedule( $job_id ) ) {
+					$this->add_warning( $job, 'cron_schedule_failed', 'The automatic worker could not be scheduled. Use Resume now from the migration screen.', '' );
+					$this->save_job( $job );
+				}
+			} catch ( RuntimeException ) {
+				$this->delete_active_job_if_owned( $job_id );
+				$this->discard_unattached_backup( $report );
+				return array(
+					'ok'    => false,
+					'error' => 'job_checkpoint_unavailable',
+				);
 			}
-			if ( ! $this->schedule( $job_id ) ) {
-				$this->add_warning( $job, 'cron_schedule_failed', 'The automatic worker could not be scheduled. Use Resume now from the migration screen.', '' );
-				$this->save_job( $job );
-			}
-		} catch ( RuntimeException ) {
-			$this->delete_active_job_if_owned( $job_id );
+
 			return array(
-				'ok'    => false,
-				'error' => 'job_checkpoint_unavailable',
+				'ok'  => true,
+				'job' => $job,
 			);
+		} finally {
+			erankly_release_data_transfer_start_lock( $start_token );
 		}
-
-		return array(
-			'ok'  => true,
-			'job' => $this->with_counts( $job ),
-		);
-	}
-
-	/**
- * Starts a resumable migration from an official source-plugin export.
- *
- * @param string $export_file Local readable CSV/JSON file.
- * @param bool   $dry_run     Whether writes are simulated.
- * @return array{ok:bool,job?:array<string,mixed>,error?:string}
- */
-	public function start_from_export( string $source, string $export_file, bool $dry_run ): array {
-		return $this->start( $source, $dry_run, $export_file );
 	}
 
 	/** @return array<string,mixed>|null */
@@ -208,7 +215,7 @@ final class ERankly_Migration_Job_Runner {
 			$this->schedule( (string) $job['id'] );
 		}
 
-		$this->active_job_cache = is_array( $job ) ? $this->with_counts( $job ) : null;
+		$this->active_job_cache = $job;
 
 		return $this->active_job_cache;
 	}
@@ -235,8 +242,10 @@ final class ERankly_Migration_Job_Runner {
 	}
 
 	/**
- * @return array<string,mixed>|null Current job or null after completion.
- * @throws RuntimeException When queue storage or checkpoint persistence fails.
+ * Advances one batch of a resumable migration.
+ *
+ * @return array<string,mixed>|null Current job, or null once it reaches a terminal state.
+ * @throws RuntimeException When checkpoint persistence fails.
  */
 	public function process( string $job_id ): ?array {
 		$job = $this->raw_active_job();
@@ -255,12 +264,13 @@ final class ERankly_Migration_Job_Runner {
 			if ( ! is_array( $job ) || ! hash_equals( (string) $job['id'], $job_id ) ) {
 				return null;
 			}
-
 			if ( ! empty( $job['cancel_requested'] ) ) {
-				$this->finish_cancelled( $job );
+				if ( ! $this->renew_lock( $job_id, $token ) ) {
+					throw new RuntimeException( 'The migration worker lease was lost before cancellation.' );
+				}
+				$this->finish( $job, true );
 				return null;
 			}
-
 			if ( 'paused' === (string) ( $job['status'] ?? '' ) ) {
 				return $job;
 			}
@@ -268,17 +278,6 @@ final class ERankly_Migration_Job_Runner {
 			$adapter = $this->manager->adapter( (string) $job['source'] );
 			if ( ! $adapter ) {
 				throw new RuntimeException( 'Migration adapter is no longer available.' );
-			}
-			$source_file = (string) ( $job['source_file'] ?? '' );
-			if ( '' !== $source_file ) {
-				if ( ! $adapter->use_export_file( $source_file ) ) {
-					throw new RuntimeException( 'The official source export is no longer readable.' );
-				}
-			} else {
-				$adapter->use_export_file( '' );
-			}
-			if ( ! $this->store->ensure_schema() ) {
-				throw new RuntimeException( 'Migration queue storage is unavailable.' );
 			}
 
 			if ( function_exists( 'wp_raise_memory_limit' ) ) {
@@ -288,13 +287,14 @@ final class ERankly_Migration_Job_Runner {
 				erankly_import_variable_diagnostics( null, true );
 			}
 
-			$stream = (string) ( $job['stream'] ?? 'settings' );
-			if ( in_array( $stream, array( 'settings', 'content', 'redirect' ), true ) ) {
-				$job['status'] = 'discovering';
-				$this->process_discovery_page( $job, $adapter, $stream );
-			} else {
-				$job['status'] = 'applying';
-				$this->process_apply_page( $job );
+			if ( ! $this->renew_lock( $job_id, $token ) ) {
+				throw new RuntimeException( 'The migration worker lease was lost before applying the batch.' );
+			}
+
+			$job['status'] = ! empty( $job['dry_run'] ) ? 'previewing' : 'importing';
+			$this->process_stream( $job, $adapter, $token );
+			if ( ! $this->renew_lock( $job_id, $token ) ) {
+				throw new RuntimeException( 'The migration worker lease was lost before saving its checkpoint.' );
 			}
 
 			++$job['batches'];
@@ -302,7 +302,7 @@ final class ERankly_Migration_Job_Runner {
 			$this->collect_warnings( $job, $adapter );
 
 			if ( 'finish' === (string) $job['stream'] ) {
-				$this->finish_successfully( $job );
+				$this->finish( $job, false );
 				return null;
 			}
 
@@ -311,13 +311,25 @@ final class ERankly_Migration_Job_Runner {
 
 			return $job;
 		} catch ( Throwable $error ) {
-			$job = $this->raw_active_job();
-			if ( is_array( $job ) && hash_equals( (string) $job['id'], $job_id ) ) {
+			// A stale worker must never overwrite a checkpoint after another worker
+			// has taken its expired lease. A token owner, however, keeps the local
+			// cursor and counters so a caught write error does not lose progress.
+			if ( ! $this->owns_lock( $job_id, $token ) ) {
+				$this->schedule( $job_id, 10 );
+				$current = $this->raw_active_job();
+				return is_array( $current ) ? $current : null;
+			}
+
+			$current = $this->raw_active_job();
+			if ( is_array( $current ) && hash_equals( (string) $current['id'], $job_id ) ) {
+				if ( ! is_array( $job ) || ! hash_equals( (string) ( $job['id'] ?? '' ), $job_id ) ) {
+					$job = $current;
+				}
 				$job['status']     = 'paused';
 				$job['last_error'] = sanitize_text_field( get_class( $error ) );
 				$job['updated_at'] = gmdate( 'c' );
 				if ( $error instanceof ERankly_Migration_Source_Changed_Exception ) {
-					$this->add_warning( $job, 'source_changed_after_start', 'Source SEO data changed after this migration started. No queued value was applied; cancel this job and run a fresh preview.', '' );
+					$this->add_warning( $job, 'source_changed_after_start', 'Source SEO data changed after this migration started. Cancel this job and run a fresh preview.', '' );
 				} else {
 					$this->add_warning( $job, 'worker_interrupted', 'The worker paused after an unexpected error. The saved checkpoint can be resumed safely.', get_class( $error ) );
 				}
@@ -331,10 +343,13 @@ final class ERankly_Migration_Job_Runner {
 		}
 	}
 
-	/** @throws ERankly_Migration_Source_Changed_Exception When the immutable source fingerprint changes. */
-	private function process_discovery_page( array &$job, ERankly_Migration_Adapter $adapter, string $stream ): void {
+	/** @throws ERankly_Migration_Source_Changed_Exception When the source changes mid-run. */
+	private function process_stream( array &$job, ERankly_Migration_Adapter $adapter, string $token ): void {
+		$stream = (string) ( $job['stream'] ?? 'settings' );
+		$job_id = (string) ( $job['id'] ?? '' );
+
 		if ( 'settings' === $stream ) {
-			$this->stage_global_settings( $job, $adapter->global_settings() );
+			$this->write_global_settings( $job, $adapter->global_settings(), $token );
 			$job['stream'] = 'content';
 			$job['cursor'] = array();
 			return;
@@ -344,16 +359,25 @@ final class ERankly_Migration_Job_Runner {
 		$page  = 'content' === $stream
 			? $adapter->content_batch( is_array( $job['cursor'] ) ? $job['cursor'] : array(), $limit )
 			: $adapter->redirect_batch( is_array( $job['cursor'] ) ? $job['cursor'] : array(), $limit );
+		$records = is_array( $page['records'] ?? null ) ? $page['records'] : array();
 
-		foreach ( is_array( $page['records'] ?? null ) ? $page['records'] : array() as $record ) {
-			if ( ! is_array( $record ) ) {
-				continue;
+		if ( ! $this->renew_lock( $job_id, $token ) ) {
+			throw new RuntimeException( 'The migration worker lease was lost while reading the source batch.' );
+		}
+
+		if ( 'content' === $stream ) {
+			$processed = 0;
+			foreach ( $records as $record ) {
+				if ( is_array( $record ) ) {
+					$this->write_content_record( $job, $record );
+				}
+				++$processed;
+				if ( 0 === $processed % 25 && ! $this->renew_lock( $job_id, $token ) ) {
+					throw new RuntimeException( 'The migration worker lease was lost while writing content.' );
+				}
 			}
-			if ( 'content' === $stream ) {
-				$this->stage_content_record( $job, $record );
-			} else {
-				$this->stage_redirect_record( $job, $adapter, $record );
-			}
+		} else {
+			$this->write_redirect_batch( $job, $adapter, $records, $token );
 		}
 
 		$job['cursor'] = is_array( $page['cursor'] ?? null ) ? $page['cursor'] : array();
@@ -367,34 +391,36 @@ final class ERankly_Migration_Job_Runner {
 			return;
 		}
 
-		$current_fingerprint  = $adapter->fingerprint();
-		$expected_fingerprint = (string) ( $job['source_fingerprint'] ?? '' );
-		if ( '' === $current_fingerprint || '' === $expected_fingerprint || ! hash_equals( $expected_fingerprint, $current_fingerprint ) ) {
-			throw new ERankly_Migration_Source_Changed_Exception( 'Source SEO data changed during discovery.' );
+		// The source must be identical to what the run started from, otherwise the counters describe a state
+		// that no longer exists.
+		$current  = $adapter->fingerprint();
+		$expected = (string) ( $job['source_fingerprint'] ?? '' );
+		if ( '' === $current || '' === $expected || ! hash_equals( $expected, $current ) ) {
+			throw new ERankly_Migration_Source_Changed_Exception( 'Source SEO data changed during the migration.' );
 		}
 		if ( is_array( $job['report'] ?? null ) ) {
 			$job['report']['source_fingerprint_verified'] = true;
 			$job['report']['source_verified_at']          = gmdate( 'c' );
 		}
 
-		$job['stream'] = ! empty( $job['dry_run'] ) ? 'finish' : 'apply';
+		$job['stream'] = 'finish';
 		$job['cursor'] = array();
 	}
 
-	/** Stages sanitized global settings without overwriting customized targets. */
-	private function stage_global_settings( array &$job, array $settings ): void {
+	/** Writes sanitized global settings, preserving every customized EasyRankly leaf. */
+	private function write_global_settings( array &$job, array $settings, string $token ): void {
 		if ( ! $settings ) {
 			return;
 		}
 
 		erankly_load_default_helpers();
-		// Global metadata maps live in the content helper bundle. Background
-		// workers do not render a frontend/admin surface first, so they must load
-		// the bundle explicitly before reconciling special and entity defaults.
+		// Global metadata maps live in the content helper bundle. Background workers never render an admin or
+		// frontend surface first, so they must load it explicitly before reconciling defaults.
 		erankly_load_content_helpers();
 		if ( ! function_exists( 'erankly_sanitize_settings' ) ) {
 			require_once ERANKLY_PATH . 'admin/settings-page.php';
 		}
+
 		$defaults = erankly_default_settings();
 		$settings = array_intersect_key( $settings, $defaults );
 		if ( ! $settings ) {
@@ -415,75 +441,55 @@ final class ERankly_Migration_Job_Runner {
 				$settings[ $map_key ] = $current_map;
 			}
 		}
-		$proposed  = array_replace( $current_effective, $settings );
-		$sanitized = erankly_sanitize_settings( $proposed );
+		$sanitized = erankly_sanitize_settings( array_replace( $current_effective, $settings ) );
 		$stored    = erankly_get_stored_settings();
 
 		foreach ( array_keys( $settings ) as $key ) {
+			if ( ! $this->renew_lock( (string) ( $job['id'] ?? '' ), $token ) ) {
+				throw new RuntimeException( 'The migration worker lease was lost while writing settings.' );
+			}
 			if ( ! array_key_exists( $key, $sanitized ) ) {
 				continue;
 			}
-			$value      = $sanitized[ $key ];
-			$is_special = 'global_special_meta' === $key;
-			$exists     = $is_special && is_multisite()
+			++$job['counts']['settings_found'];
+
+			$is_special   = 'global_special_meta' === $key;
+			$exists       = $is_special && is_multisite()
 				? false !== get_option( ERANKLY_SPECIAL_META_OPTION, false )
 				: array_key_exists( $key, $stored );
-			$current    = $is_special ? erankly_get_global_entity_meta_map( $key ) : ( $exists ? $stored[ $key ] : $defaults[ $key ] );
+			$current      = $is_special ? erankly_get_global_entity_meta_map( $key ) : ( $exists ? $stored[ $key ] : $defaults[ $key ] );
 			$stored_value = $is_special && is_multisite()
 				? get_option( ERANKLY_SPECIAL_META_OPTION, array() )
 				: ( $exists ? $stored[ $key ] : null );
+
 			$preserved_paths = array();
-			$value = $this->reconcile_setting_value( $current, $value, $defaults[ $key ], $stored_value, $exists, $key, $preserved_paths );
-			$reference = 'settings:' . $key;
-			$occurrence = $this->store->occurrence_key( (string) $job['id'], 'setting', $reference, $key );
-			if ( $this->store->occurrence_exists( $occurrence ) ) {
-				continue;
-			}
+			$value           = $this->reconcile_setting_value( $current, $sanitized[ $key ], $defaults[ $key ], $stored_value, $exists, $key, $preserved_paths );
+
 			foreach ( $preserved_paths as $path ) {
-				$this->add_warning(
-					$job,
-					'existing_setting_value_preserved',
-					sprintf(
-						/* translators: %s: EasyRankly settings path. */
-						__( 'An existing EasyRankly value differs from the source and will be preserved: %s. Review it before importing.', 'easyrankly' ),
-						$path
-					),
-					'settings:' . $path
-				);
+				++$job['counts']['settings_conflicts'];
 				$this->add_detail( $job, 'existing_setting_value_preserved', 'settings:' . $path, $key );
 			}
 
-			$status = 'ready';
-			$apply  = ! empty( $job['dry_run'] ) ? 'preview' : 'pending';
 			if ( $this->canonical_json( $current ) === $this->canonical_json( $value ) ) {
-				$status = $preserved_paths ? 'existing' : 'identical';
-				$apply  = 'none';
+				++$job['counts']['settings_identical'];
+				continue;
+			}
+			if ( ! empty( $job['dry_run'] ) ) {
+				++$job['counts']['settings_ready'];
+				continue;
 			}
 
-			$encoded    = wp_json_encode( $value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-			$value_hash = hash( 'sha256', false === $encoded ? '' : $encoded );
-			$inserted   = $this->store->add_event(
-				array(
-					'job_id'           => (string) $job['id'],
-					'item_kind'        => 'setting',
-					'source_reference' => $reference,
-					'target_field'     => $key,
-					'identity'         => 'setting:' . $key,
-					'value_hash'       => $value_hash,
-					'discovery_status' => $status,
-					'apply_status'     => $apply,
-					'payload'          => array(
-						'key'             => $key,
-						'value'           => $value,
-						'expected_exists' => $exists,
-						'expected_current'=> $current,
-						'special'         => $is_special,
-						'transformed'     => $this->canonical_json( $settings[ $key ] ) !== $this->canonical_json( $value ),
-					),
-				)
-			);
-			if ( $inserted && 'existing' === $status ) {
-				$this->add_detail( $job, 'existing_setting_preserved', $reference, $key );
+			if ( $is_special ) {
+				$written = is_array( $value ) && erankly_update_special_meta_map( $value ) === $value;
+			} else {
+				$updated = erankly_update_plugin_settings( array( $key => $value ) );
+				$written = ! is_wp_error( $updated ) && (bool) $updated;
+			}
+			if ( $written ) {
+				++$job['counts']['settings_written'];
+			} else {
+				++$job['counts']['settings_failed'];
+				$this->add_detail( $job, 'write_failed', 'settings:' . $key, $key );
 			}
 		}
 	}
@@ -541,528 +547,225 @@ final class ERankly_Migration_Job_Runner {
 		return $current;
 	}
 
-	/** Converts one content record into idempotent object and field events. */
-	private function stage_content_record( array &$job, array $record ): void {
+	/** Writes one object's metadata, never overwriting a value EasyRankly already holds. */
+	private function write_content_record( array &$job, array $record ): void {
 		$object_type = sanitize_key( (string) ( $record['object_type'] ?? '' ) );
 		$object_id   = absint( $record['object_id'] ?? 0 );
 		$reference   = sanitize_text_field( (string) ( $record['source_reference'] ?? $object_type . ':' . $object_id ) );
 		$meta        = is_array( $record['meta'] ?? null ) ? $record['meta'] : array();
-		$valid       = in_array( $object_type, array( 'post', 'term', 'user' ), true ) && $object_id > 0;
-		$object_ref  = $valid ? 'object:' . $object_type . ':' . $object_id : 'invalid:' . $reference;
 
-		$object_occurrence = $this->store->occurrence_key( (string) $job['id'], 'object', $object_ref, '' );
-		$inserted          = false;
-		if ( ! $this->store->occurrence_exists( $object_occurrence ) ) {
-			$inserted = $this->store->add_event(
-				array(
-					'job_id'           => (string) $job['id'],
-					'item_kind'        => 'object',
-					'object_type'      => $object_type,
-					'source_reference' => $object_ref,
-					'target_field'     => '',
-					'identity'         => $object_ref,
-					'discovery_status' => $valid ? 'found' : 'invalid',
-					'apply_status'     => 'none',
-					'payload'          => $valid ? array(
-						'object_type' => $object_type,
-						'object_id'   => $object_id,
-					) : array(),
-				)
-			);
-		}
-		if ( ! $valid ) {
-			if ( $inserted ) {
-				$this->add_detail( $job, 'invalid_object', $reference, '' );
-			}
+		if ( ! in_array( $object_type, array( 'post', 'term', 'user' ), true ) || $object_id < 1 ) {
+			++$job['counts']['objects_invalid'];
+			$this->add_detail( $job, 'invalid_object', $reference, '' );
 			return;
 		}
 
-		$allowed = erankly_get_meta_keys();
+		++$job['counts']['objects_found'];
+		++$job['counts'][ $object_type . 's_found' ];
+
+		// Terms and users read a narrower set of keys than posts do. Filtering here rather than in each adapter
+		// keeps every source from writing rows that no EasyRankly feature can ever read back.
+		$allowed    = erankly_importable_meta_keys( $object_type );
+		$registered = erankly_get_meta_keys();
+
 		foreach ( $meta as $key => $value ) {
 			$key = (string) $key;
-			if ( ! isset( $allowed[ $key ] ) || ! $this->manager->is_meaningful( $value ) ) {
+			if ( ! $this->manager->is_meaningful( $value ) ) {
+				continue;
+			}
+			if ( ! isset( $allowed[ $key ] ) ) {
+				if ( isset( $registered[ $key ] ) ) {
+					++$job['counts']['fields_unsupported'];
+				}
 				continue;
 			}
 
-			$occurrence = $this->store->occurrence_key( (string) $job['id'], 'meta', $reference, $key );
-			if ( $this->store->occurrence_exists( $occurrence ) ) {
-				continue;
-			}
-
-			$clean      = erankly_sanitize_registered_meta( $value, $key );
-			$identity   = $object_type . ':' . $object_id . ':' . $key;
-			$encoded    = wp_json_encode( $clean, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
-			$value_hash = hash( 'sha256', false === $encoded ? '' : $encoded );
-			$status     = 'ready';
-			$apply      = ! empty( $job['dry_run'] ) ? 'preview' : 'pending';
-
+			++$job['counts']['fields_found'];
+			$clean = erankly_sanitize_registered_meta( $value, $key );
 			if ( ! $this->manager->is_meaningful( $clean ) ) {
-				$status = 'invalid';
-				$apply  = 'none';
-			} else {
-				$first = $this->store->first_identity( (string) $job['id'], 'meta', $identity, array( 'ready' ) );
-				if ( is_array( $first ) ) {
-					$status = hash_equals( (string) $first['value_hash'], $value_hash ) ? 'duplicate' : 'conflict';
-					$apply  = 'none';
-				} elseif ( metadata_exists( $object_type, $object_id, $key ) ) {
-					$current = get_metadata( $object_type, $object_id, $key, true );
-					$status  = wp_json_encode( $current ) === wp_json_encode( $clean ) ? 'identical' : 'existing';
-					$apply   = 'none';
-				}
+				++$job['counts']['fields_invalid'];
+				$this->add_detail( $job, 'invalid_value', $reference, $key );
+				continue;
 			}
 
-			$inserted = $this->store->add_event(
-				array(
-					'job_id'           => (string) $job['id'],
-					'item_kind'        => 'meta',
-					'object_type'      => $object_type,
-					'source_reference' => $reference,
-					'target_field'     => $key,
-					'identity'         => $identity,
-					'value_hash'       => $value_hash,
-					'discovery_status' => $status,
-					'apply_status'     => $apply,
-					'payload'          => array(
-						'object_type' => $object_type,
-						'object_id'   => $object_id,
-						'key'         => $key,
-						'value'       => $clean,
-						'transformed' => wp_json_encode( $value ) !== wp_json_encode( $clean ),
-					),
-				)
-			);
-
-			if ( $inserted ) {
-				$code = array(
-					'invalid'  => 'invalid_value',
-					'existing' => 'existing_value_preserved',
-					'conflict' => 'source_conflict',
-				)[ $status ] ?? '';
-				if ( '' !== $code ) {
-					$this->add_detail( $job, $code, $reference, $key );
+			if ( metadata_exists( $object_type, $object_id, $key ) ) {
+				$current = get_metadata( $object_type, $object_id, $key, true );
+				if ( wp_json_encode( $current ) === wp_json_encode( $clean ) ) {
+					++$job['counts']['fields_identical'];
+				} else {
+					++$job['counts']['fields_conflicts'];
+					$this->add_detail( $job, 'existing_value_preserved', $reference, $key );
 				}
+				continue;
 			}
+
+			if ( ! empty( $job['dry_run'] ) ) {
+				++$job['counts']['fields_ready'];
+				++$job['counts'][ $object_type . '_fields_ready' ];
+				continue;
+			}
+
+			if ( false === update_metadata( $object_type, $object_id, $key, $clean ) ) {
+				++$job['counts']['fields_failed'];
+				$this->add_detail( $job, 'write_failed', $reference, $key );
+				continue;
+			}
+
+			++$job['counts']['fields_written'];
+			++$job['counts'][ $object_type . '_fields_written' ];
 		}
 	}
 
-	private function stage_redirect_record( array &$job, ERankly_Migration_Adapter $adapter, array $row ): void {
-		$reference = sanitize_text_field( (string) ( $row['source_reference'] ?? '' ) );
-		if ( '' === $reference ) {
-			$reference = 'redirect:' . substr( hash( 'sha256', (string) wp_json_encode( $row ) ), 0, 24 );
-		}
-		$occurrence = $this->store->occurrence_key( (string) $job['id'], 'redirect', $reference, 'rule' );
-		if ( $this->store->occurrence_exists( $occurrence ) ) {
+	/**
+ * Writes one page of redirects through the shared normalizer and repository.
+ *
+ * @param array<int,mixed> $records Raw source rows.
+ */
+	private function write_redirect_batch( array &$job, ERankly_Migration_Adapter $adapter, array $records, string $token ): void {
+		if ( ! $records ) {
 			return;
 		}
 
 		erankly_ensure_redirect_classes_available();
 		if ( ! class_exists( 'ERankly_Redirects_Normalizer' ) || ! class_exists( 'ERankly_Redirects_Repository' ) ) {
-			$this->store->add_event(
-				array(
-					'job_id'           => (string) $job['id'],
-					'item_kind'        => 'redirect',
-					'source_reference' => $reference,
-					'target_field'     => 'rule',
-					'identity'         => 'failed:' . $reference,
-					'discovery_status' => 'failed',
-					'apply_status'     => 'none',
-				)
-			);
-			$this->add_warning( $job, 'redirect_engine_unavailable', 'The EasyRankly redirect engine could not be loaded.', $reference );
+			$job['counts']['redirects_failed'] += count( $records );
+			$this->add_warning( $job, 'redirect_engine_unavailable', 'The EasyRankly redirect engine could not be loaded.', '' );
 			return;
 		}
-
-		$row['source_plugin'] = $adapter->slug();
-		$row['migration_id']  = (string) $job['id'];
-		$legacy_match         = in_array( (string) ( $row['match_type'] ?? '' ), array( 'contains', 'starts_with', 'ends_with' ), true );
-		$unsupported_reason   = erankly_import_redirect_unsupported_reason( $row );
-		if ( '' !== $unsupported_reason ) {
-			if ( $this->store->add_event(
-				array(
-					'job_id'           => (string) $job['id'],
-					'item_kind'        => 'redirect',
-					'source_reference' => $reference,
-					'target_field'     => 'rule',
-					'identity'         => 'unsupported:' . $reference,
-					'discovery_status' => 'unsupported',
-					'apply_status'     => 'none',
-				)
-			) ) {
-				$this->add_detail( $job, 'unsupported_redirect_' . $unsupported_reason, $reference, '' );
-			}
-			return;
-		}
-		$redirect             = erankly_import_prepare_redirect( $row );
-		if ( null === $redirect ) {
-			if ( $this->store->add_event(
-				array(
-					'job_id'           => (string) $job['id'],
-					'item_kind'        => 'redirect',
-					'source_reference' => $reference,
-					'target_field'     => 'rule',
-					'identity'         => 'invalid:' . $reference,
-					'discovery_status' => 'invalid',
-					'apply_status'     => 'none',
-				)
-			) ) {
-				$this->add_detail( $job, 'invalid_redirect', $reference, '' );
-			}
-			return;
+		if ( empty( $job['dry_run'] ) && class_exists( 'ERankly_Redirects_Activator' ) && ! erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ) {
+			ERankly_Redirects_Activator::activate();
 		}
 
-		$rule_hash  = ERankly_Redirects_Normalizer::rule_hash( $redirect );
-		$value_hash = $this->manager->redirect_value_hash( $redirect );
-		$first      = $this->store->first_identity( (string) $job['id'], 'redirect', $rule_hash, array( 'ready_create', 'ready_update', 'unchanged', 'conflict' ) );
-		$status     = 'ready_create';
-		$apply      = ! empty( $job['dry_run'] ) ? 'preview' : 'pending';
-		$table      = ERankly_Redirects_Repository::get_table_name();
-		$repository = erankly_table_exists( $table ) ? new ERankly_Redirects_Repository() : null;
-
-		if ( is_array( $first ) ) {
-			$status = hash_equals( (string) ( $first['value_hash'] ?? '' ), $value_hash ) ? 'duplicate' : 'conflict';
-			$apply  = 'none';
-		} elseif ( $repository ) {
-			$existing = $repository->find_by_hash( $rule_hash );
-			if ( $existing && $adapter->slug() !== (string) ( $existing['source_plugin'] ?? '' ) ) {
-				$status = 'conflict';
-				$apply  = 'none';
-			} elseif ( $existing && $this->manager->same_redirect( $existing, $redirect ) ) {
-				$status = 'unchanged';
-				$apply  = 'none';
-			} elseif ( $existing ) {
-				$status = 'ready_update';
-			}
-		}
-
-		$inserted = $this->store->add_event(
-			array(
-				'job_id'           => (string) $job['id'],
-				'item_kind'        => 'redirect',
-				'source_reference' => $reference,
-				'target_field'     => 'rule',
-				'identity'         => $rule_hash,
-				'value_hash'       => $value_hash,
-				'discovery_status' => $status,
-				'apply_status'     => $apply,
-				'payload'          => array(
-					'rule_hash' => $rule_hash,
-					'redirect'  => $redirect,
-					'transformed' => $legacy_match,
-				),
-			)
-		);
-		if ( $inserted && 'conflict' === $status ) {
-			$this->add_detail( $job, 'redirect_conflict_preserved', $reference, '' );
-		} elseif ( $inserted && $legacy_match ) {
-			$this->add_detail( $job, 'redirect_match_safely_transformed', $reference, '' );
-		}
-	}
-
-	/**
- * @throws RuntimeException When staging cleanup cannot be completed.
- * @throws RuntimeException When an apply checkpoint cannot be persisted.
- */
-	private function process_apply_page( array &$job ): void {
-		$limit = max( 10, min( 500, (int) apply_filters( 'erankly_migration_batch_size', ERANKLY_MIGRATION_BATCH_SIZE ) ) );
-		$rows  = $this->store->pending( (string) $job['id'], $limit );
-		if ( ! $rows ) {
-			$job['stream'] = 'finish';
-			return;
-		}
-
-		$repository    = null;
-		$has_redirects = false;
-		foreach ( $rows as $row ) {
-			if ( 'redirect' === (string) ( $row['item_kind'] ?? '' ) ) {
-				$has_redirects = true;
-				break;
-			}
-		}
-		if ( $has_redirects ) {
-			erankly_ensure_redirect_classes_available();
-			if ( class_exists( 'ERankly_Redirects_Repository' ) && class_exists( 'ERankly_Redirects_Activator' ) && ! erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ) {
-				ERankly_Redirects_Activator::activate();
-			}
-			if ( class_exists( 'ERankly_Redirects_Repository' ) && erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ) {
-				$repository = new ERankly_Redirects_Repository();
-				$repository->begin_bulk();
-			}
+		$repository = erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ? new ERankly_Redirects_Repository() : null;
+		if ( $repository && empty( $job['dry_run'] ) ) {
+			$repository->begin_bulk();
 		}
 
 		try {
-			foreach ( $rows as $row ) {
-				$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
-				$payload = is_array( $payload ) ? $payload : array();
-				$outcome = 'failed';
-
-				if ( 'setting' === (string) ( $row['item_kind'] ?? '' ) ) {
-					$outcome = $this->apply_setting_item( $job, $row, $payload );
-				} elseif ( 'meta' === (string) ( $row['item_kind'] ?? '' ) ) {
-					$outcome = $this->apply_meta_item( $job, $row, $payload );
-				} elseif ( 'redirect' === (string) ( $row['item_kind'] ?? '' ) ) {
-					$outcome = $this->apply_redirect_item( $job, $row, $payload, $repository );
+			$processed = 0;
+			foreach ( $records as $row ) {
+				if ( is_array( $row ) ) {
+					$this->write_redirect_record( $job, $adapter, $row, $repository );
 				}
-
-				if ( ! $this->store->update_apply_status( absint( $row['id'] ?? 0 ), $outcome ) ) {
-					throw new RuntimeException( 'Migration write checkpoint could not be saved.' );
-				}
-				if ( in_array( $outcome, array( 'failed', 'preserved', 'conflict' ), true ) ) {
-					$code = 'failed' === $outcome ? 'write_failed' : ( 'preserved' === $outcome ? 'existing_value_preserved_during_apply' : 'redirect_conflict_preserved_during_apply' );
-					$this->add_detail( $job, $code, (string) ( $row['source_reference'] ?? '' ), (string) ( $row['target_field'] ?? '' ) );
+				++$processed;
+				if ( 0 === $processed % 25 && ! $this->renew_lock( (string) ( $job['id'] ?? '' ), $token ) ) {
+					throw new RuntimeException( 'The migration worker lease was lost while writing redirects.' );
 				}
 			}
 		} finally {
-			if ( $repository ) {
+			if ( $repository && empty( $job['dry_run'] ) ) {
 				$repository->end_bulk();
 			}
 		}
 	}
 
-	/** Applies one idempotent global setting under the shared settings mutex. */
-	private function apply_setting_item( array $job, array $row, array $payload ): string {
-		$key     = sanitize_key( (string) ( $payload['key'] ?? '' ) );
-		$value   = $payload['value'] ?? null;
-		$special = ! empty( $payload['special'] ) && 'global_special_meta' === $key;
-		erankly_load_default_helpers();
-		if ( '' === $key || ! array_key_exists( $key, erankly_default_settings() ) ) {
-			return 'failed';
+	private function write_redirect_record( array &$job, ERankly_Migration_Adapter $adapter, array $row, ?ERankly_Redirects_Repository $repository ): void {
+		$reference = sanitize_text_field( (string) ( $row['source_reference'] ?? '' ) );
+		if ( '' === $reference ) {
+			$reference = 'redirect:' . substr( hash( 'sha256', (string) wp_json_encode( $row ) ), 0, 24 );
+		}
+		++$job['counts']['redirects_found'];
+
+		$row['source_plugin'] = $adapter->slug();
+		$row['migration_id']  = (string) $job['id'];
+		$legacy_match         = in_array( (string) ( $row['match_type'] ?? '' ), array( 'contains', 'starts_with', 'ends_with' ), true );
+
+		$unsupported = erankly_import_redirect_unsupported_reason( $row );
+		if ( '' !== $unsupported ) {
+			++$job['counts']['redirects_unsupported'];
+			$this->add_detail( $job, 'unsupported_redirect_' . $unsupported, $reference, '' );
+			return;
 		}
 
-		$stored  = erankly_get_stored_settings();
-		$exists  = $special && is_multisite() ? false !== get_option( ERANKLY_SPECIAL_META_OPTION, false ) : array_key_exists( $key, $stored );
-		$current = $special ? erankly_get_global_entity_meta_map( $key ) : ( $exists ? $stored[ $key ] : erankly_default_settings()[ $key ] );
-		if ( $this->canonical_json( $current ) === $this->canonical_json( $value ) ) {
-			$event_key = $this->journal->prepare_setting( (string) $job['id'], absint( $row['id'] ?? 0 ), $payload );
-			return '' !== $event_key && $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
+		$redirect = erankly_import_prepare_redirect( $row );
+		if ( null === $redirect ) {
+			++$job['counts']['redirects_invalid'];
+			$this->add_detail( $job, 'invalid_redirect', $reference, '' );
+			return;
 		}
-		if ( $exists !== (bool) ( $payload['expected_exists'] ?? false ) || $this->canonical_json( $current ) !== $this->canonical_json( $payload['expected_current'] ?? null ) ) {
-			return 'preserved';
+		if ( $legacy_match ) {
+			++$job['counts']['redirects_transformed'];
+			$this->add_detail( $job, 'redirect_match_safely_transformed', $reference, '' );
 		}
-
-		$event_key = $this->journal->prepare_setting( (string) $job['id'], absint( $row['id'] ?? 0 ), $payload );
-		if ( '' === $event_key ) {
-			return 'failed';
-		}
-		if ( $special ) {
-			if ( ! is_array( $value ) || erankly_update_special_meta_map( $value ) !== $value ) {
-				return 'failed';
+		if ( ! $repository ) {
+			if ( ! empty( $job['dry_run'] ) ) {
+				++$job['counts']['redirects_ready_create'];
+				return;
 			}
+			++$job['counts']['redirects_failed'];
+			return;
+		}
+
+		$existing = $repository->find_by_hash( ERankly_Redirects_Normalizer::rule_hash( $redirect ) );
+		if ( $existing && $adapter->slug() !== (string) ( $existing['source_plugin'] ?? '' ) ) {
+			++$job['counts']['redirects_conflicts'];
+			$this->add_detail( $job, 'redirect_conflict_preserved', $reference, '' );
+			return;
+		}
+		if ( $existing && $this->manager->same_redirect( $existing, $redirect ) ) {
+			++$job['counts']['redirects_unchanged'];
+			return;
+		}
+
+		if ( ! empty( $job['dry_run'] ) ) {
+			++$job['counts'][ $existing ? 'redirects_ready_update' : 'redirects_ready_create' ];
+			return;
+		}
+
+		if ( $existing ) {
+			if ( $repository->update( absint( $existing['id'] ?? 0 ), $redirect ) ) {
+				++$job['counts']['redirects_updated'];
+			} else {
+				++$job['counts']['redirects_failed'];
+				$this->add_detail( $job, 'write_failed', $reference, '' );
+			}
+			return;
+		}
+
+		if ( $repository->create( $redirect ) > 0 ) {
+			++$job['counts']['redirects_created'];
 		} else {
-			$updated = erankly_update_plugin_settings( array( $key => $value ) );
-			if ( is_wp_error( $updated ) || ! $updated ) {
-				return 'failed';
-			}
+			++$job['counts']['redirects_failed'];
+			$this->add_detail( $job, 'write_failed', $reference, '' );
 		}
-
-		return $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
-	}
-
-	/** Applies an idempotent metadata item. */
-	private function apply_meta_item( array $job, array $row, array $payload ): string {
-		$object_type = sanitize_key( (string) ( $payload['object_type'] ?? '' ) );
-		$object_id   = absint( $payload['object_id'] ?? 0 );
-		$key         = sanitize_key( (string) ( $payload['key'] ?? '' ) );
-		$value       = $payload['value'] ?? null;
-
-		if ( ! in_array( $object_type, array( 'post', 'term', 'user' ), true ) || $object_id < 1 || '' === $key ) {
-			return 'failed';
-		}
-		if ( metadata_exists( $object_type, $object_id, $key ) ) {
-			$current = get_metadata( $object_type, $object_id, $key, true );
-			if ( wp_json_encode( $current ) !== wp_json_encode( $value ) ) {
-				return 'preserved';
-			}
-			$event_key = $this->journal->prepare_meta( (string) $job['id'], absint( $row['id'] ?? 0 ), $payload );
-			return '' !== $event_key && $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
-		}
-
-		$event_key = $this->journal->prepare_meta( (string) $job['id'], absint( $row['id'] ?? 0 ), $payload );
-		if ( '' === $event_key || false === update_metadata( $object_type, $object_id, $key, $value ) ) {
-			return 'failed';
-		}
-
-		return $this->journal->mark_applied( $event_key ) ? 'written' : 'failed';
-	}
-
-	/** Applies an idempotent redirect item. */
-	private function apply_redirect_item( array $job, array $row, array $payload, ?ERankly_Redirects_Repository $repository ): string {
-		if ( ! $repository || ! is_array( $payload['redirect'] ?? null ) || empty( $payload['rule_hash'] ) ) {
-			return 'failed';
-		}
-
-		$redirect = $payload['redirect'];
-		$hash     = (string) $payload['rule_hash'];
-		$existing = $repository->find_by_hash( $hash );
-		$decision = (string) ( $row['discovery_status'] ?? '' );
-		$source   = (string) $job['source'];
-
-		if ( 'ready_create' === $decision ) {
-			if ( ! $existing ) {
-				$event_key = $this->journal->prepare_redirect( (string) $job['id'], absint( $row['id'] ?? 0 ), $redirect, null );
-				if ( '' === $event_key ) {
-					return 'failed';
-				}
-				$created_id = $repository->create( $redirect );
-				return $created_id > 0 && $this->journal->mark_applied( $event_key, $created_id ) ? 'created' : 'failed';
-			}
-			if (
-				(string) ( $existing['source_plugin'] ?? '' ) === $source
-				&& (string) ( $existing['migration_id'] ?? '' ) === (string) $job['id']
-				&& $this->manager->same_redirect( $existing, $redirect )
-			) {
-				return 'created';
-			}
-			return 'conflict';
-		}
-
-		if ( ! $existing || (string) ( $existing['source_plugin'] ?? '' ) !== $source ) {
-			return 'conflict';
-		}
-		if ( $this->manager->same_redirect( $existing, $redirect ) && (string) ( $existing['migration_id'] ?? '' ) === (string) $job['id'] ) {
-			return 'updated';
-		}
-
-		$event_key = $this->journal->prepare_redirect( (string) $job['id'], absint( $row['id'] ?? 0 ), $redirect, $existing );
-		$target_id = absint( $existing['id'] ?? 0 );
-		if ( '' === $event_key || ! $repository->update( $target_id, $redirect ) ) {
-			return 'failed';
-		}
-
-		return $this->journal->mark_applied( $event_key, $target_id ) ? 'updated' : 'failed';
 	}
 
 	/**
- * Finalizes and persists a successful/partial report.
+ * Persists the terminal report and clears every checkpoint this job owns.
  *
- * @throws RuntimeException When staging cleanup cannot be completed.
+ * @param bool $cancelled Whether the administrator stopped the run.
+ * @throws RuntimeException When the owned checkpoint cannot be removed.
  */
-	private function finish_successfully( array $job ): void {
-		if ( ! empty( $job['final_report_ready'] ) && is_array( $job['report'] ?? null ) ) {
-			$report = $job['report'];
-		} else {
-			$report                  = is_array( $job['report'] ?? null ) ? $job['report'] : $this->manager->new_report( (string) $job['source'], ! empty( $job['dry_run'] ), (string) $job['id'] );
-			$report['counts']        = $this->store->counts( (string) $job['id'], $this->manager );
-			$report['details']       = $this->clean_diagnostics( is_array( $report['details'] ?? null ) ? $report['details'] : array() );
-			$report['warnings']      = $this->clean_diagnostics( is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array() );
-			$report['execution']     = array(
-				'resumable' => true,
-				'batches'   => absint( $job['batches'] ?? 0 ),
-				'worker'    => 'wp-cron',
-			);
-			$failed                  = (int) $report['counts']['settings_failed'] + (int) $report['counts']['fields_failed'] + (int) $report['counts']['redirects_failed'];
-			$successful              = (int) $report['counts']['settings_written'] + (int) $report['counts']['fields_written'] + (int) $report['counts']['redirects_created'] + (int) $report['counts']['redirects_updated'];
-			$report['status']        = $failed > 0 ? ( $successful > 0 ? 'partial' : 'failed' ) : 'complete';
-			$auditor                 = new ERankly_Migration_Auditor();
-			$report['evidence']      = $auditor->build( (string) $job['id'], $report, $this->store, $this->journal, $this->evidence_store );
-			$verifier                = new ERankly_Migration_Live_Verifier();
-			$report['html_baseline'] = $verifier->capture_baseline( $report['evidence'], (string) $job['source'] );
-
-			$job['report']             = $report;
-			$job['status']             = 'finalizing';
-			$job['final_report_ready'] = true;
-			$job['updated_at']         = gmdate( 'c' );
-			$this->save_job( $job );
-		}
-
-		$this->manager->finish_report( $report );
-		if ( ! $this->store->delete_job( (string) $job['id'] ) ) {
-			throw new RuntimeException( 'Finished migration staging rows could not be removed.' );
-		}
-		$this->delete_active_job_if_owned( (string) $job['id'] );
-		delete_option( $this->cancel_key( (string) $job['id'] ) );
-		$this->active_job_cache = null;
-		wp_clear_scheduled_hook( ERANKLY_MIGRATION_CRON_HOOK, array( (string) $job['id'] ) );
-		$this->finalize_source_file( $job, $report );
-		$this->release_export_adapter( $job );
-	}
-
-	/** @throws RuntimeException When staging cleanup cannot be completed. */
-	private function finish_cancelled( array $job ): void {
-		if ( ! empty( $job['final_report_ready'] ) && is_array( $job['report'] ?? null ) ) {
-			$report = $job['report'];
-		} else {
-			$report              = is_array( $job['report'] ?? null ) ? $job['report'] : $this->manager->new_report( (string) $job['source'], ! empty( $job['dry_run'] ), (string) $job['id'] );
-			$report['counts']    = $this->store->counts( (string) $job['id'], $this->manager );
-			$report['status']    = 'cancelled';
-			$report['warnings']  = array_slice(
-				array_merge(
-					is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array(),
-					array(
-						array(
-							'code'      => 'migration_cancelled',
-							'message'   => 'The administrator cancelled the migration. Source data and existing EasyRankly values were preserved.',
-							'reference' => '',
-						),
-					)
-				),
-				0,
-				self::DETAIL_LIMIT
-			);
-			$report['warnings']  = $this->clean_diagnostics( $report['warnings'] );
-			$report['details']   = $this->clean_diagnostics( is_array( $report['details'] ?? null ) ? $report['details'] : array() );
-			$report['execution'] = array(
-				'resumable' => true,
-				'batches'   => absint( $job['batches'] ?? 0 ),
-				'worker'    => 'wp-cron',
-			);
-
-			$job['report']             = $report;
-			$job['status']             = 'finalizing';
-			$job['cancel_requested']   = true;
-			$job['final_report_ready'] = true;
-			$job['updated_at']         = gmdate( 'c' );
-			$this->save_job( $job );
-		}
-
-		$this->manager->finish_report( $report );
-		if ( ! $this->store->delete_job( (string) $job['id'] ) ) {
-			throw new RuntimeException( 'Cancelled migration staging rows could not be removed.' );
-		}
-		$this->delete_active_job_if_owned( (string) $job['id'] );
-		delete_option( $this->cancel_key( (string) $job['id'] ) );
-		$this->active_job_cache = null;
-		wp_clear_scheduled_hook( ERANKLY_MIGRATION_CRON_HOOK, array( (string) $job['id'] ) );
-		$this->finalize_source_file( $job, $report );
-		$this->release_export_adapter( $job );
-	}
-
-	/** Releases a terminal export path from the shared adapter instance. */
-	private function release_export_adapter( array $job ): void {
-		if ( 'official_export' !== (string) ( $job['source_mode'] ?? '' ) ) {
-			return;
-		}
-
-		$adapter = $this->manager->adapter( (string) ( $job['source'] ?? '' ) );
-		if ( $adapter ) {
-			$adapter->use_export_file( '' );
-		}
-	}
-
-	/** Deletes a managed source upload only after the terminal checkpoint is gone. */
-	private function finalize_source_file( array $job, array $report ): void {
-		if ( empty( $job['source_file_managed'] ) || ! class_exists( 'ERankly_Migration_Upload_Store' ) ) {
-			return;
-		}
-
-		$path                            = (string) ( $job['source_file'] ?? '' );
-		$deleted                         = '' !== $path && ERankly_Migration_Upload_Store::delete( $path );
-		$report['source_file_lifecycle'] = array(
-			'managed_temporary' => true,
-			'retention'         => 'until_terminal_report',
-			'deleted'           => $deleted,
-			'deleted_at'        => $deleted ? gmdate( 'c' ) : '',
+	private function finish( array $job, bool $cancelled ): void {
+		$report            = is_array( $job['report'] ?? null ) ? $job['report'] : $this->manager->new_report( (string) $job['source'], ! empty( $job['dry_run'] ), (string) $job['id'] );
+		$report['counts']  = is_array( $job['counts'] ?? null ) ? $job['counts'] : $this->manager->empty_counts();
+		$report['details'] = $this->clean_diagnostics( is_array( $report['details'] ?? null ) ? $report['details'] : array() );
+		$report['execution'] = array(
+			'resumable' => true,
+			'batches'   => absint( $job['batches'] ?? 0 ),
+			'worker'    => 'wp-cron',
 		);
-		if ( ! $deleted ) {
-			$report['warnings']   = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
+
+		if ( $cancelled ) {
 			$report['warnings'][] = array(
-				'code'      => 'managed_upload_cleanup_deferred',
-				'message'   => 'The private source upload could not be removed immediately and will be retried by stale-file cleanup.',
+				'code'      => 'migration_cancelled',
+				'message'   => 'The administrator cancelled the migration. Source data and existing EasyRankly values were preserved.',
 				'reference' => '',
+				'blocking'  => false,
 			);
-			$report['warnings']   = array_slice( $report['warnings'], 0, self::DETAIL_LIMIT );
+			$report['status'] = 'cancelled';
+		} else {
+			$failed     = (int) $report['counts']['settings_failed'] + (int) $report['counts']['fields_failed'] + (int) $report['counts']['redirects_failed'];
+			$successful = (int) $report['counts']['settings_written'] + (int) $report['counts']['fields_written'] + (int) $report['counts']['redirects_created'] + (int) $report['counts']['redirects_updated'];
+			$report['status'] = $failed > 0 ? ( $successful > 0 ? 'partial' : 'failed' ) : 'complete';
 		}
+		$report['warnings'] = $this->clean_diagnostics( is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array() );
 
 		$this->manager->finish_report( $report );
+		$this->delete_active_job_if_owned( (string) $job['id'] );
+		delete_option( $this->cancel_key( (string) $job['id'] ) );
+		$this->active_job_cache = null;
+		wp_clear_scheduled_hook( ERANKLY_MIGRATION_CRON_HOOK, array( (string) $job['id'] ) );
 	}
 
 	private function collect_warnings( array &$job, ERankly_Migration_Adapter $adapter ): void {
@@ -1086,7 +789,7 @@ final class ERankly_Migration_Job_Runner {
 	/**
  * Adds a unique bounded warning to the job report.
  *
- * @param bool                $blocking  Whether the warning blocks go-live.
+ * @param bool $blocking Whether the warning marks the migration as needing attention.
  */
 	private function add_warning( array &$job, string $code, string $message, string $reference, bool $blocking = true ): void {
 		$report   = is_array( $job['report'] ?? null ) ? $job['report'] : array();
@@ -1114,14 +817,14 @@ final class ERankly_Migration_Job_Runner {
 	private function add_detail( array &$job, string $code, string $reference, string $field ): void {
 		$report  = is_array( $job['report'] ?? null ) ? $job['report'] : array();
 		$details = is_array( $report['details'] ?? null ) ? $report['details'] : array();
-		$key     = sanitize_key( $code ) . '|' . sanitize_text_field( $reference ) . '|' . sanitize_key( $field );
+		if ( count( $details ) >= self::DETAIL_LIMIT ) {
+			return;
+		}
+		$key = sanitize_key( $code ) . '|' . sanitize_text_field( $reference ) . '|' . sanitize_key( $field );
 		foreach ( $details as $detail ) {
 			if ( (string) ( $detail['_key'] ?? '' ) === $key ) {
 				return;
 			}
-		}
-		if ( count( $details ) >= self::DETAIL_LIMIT ) {
-			return;
 		}
 		$details[]         = array(
 			'_key'      => $key,
@@ -1160,15 +863,11 @@ final class ERankly_Migration_Job_Runner {
 		return is_array( $job ) && ! empty( $job['id'] ) ? $job : null;
 	}
 
-	/** @return array<string,mixed> */
-	private function with_counts( array $job ): array {
-		if ( erankly_table_exists( ERankly_Migration_Job_Store::table_name() ) ) {
-			$job['counts'] = $this->store->counts( (string) $job['id'], $this->manager );
-		} else {
-			$job['counts'] = $this->manager->empty_counts();
-		}
+	/** @return array<string,mixed>|null */
+	private function active_import_job(): ?array {
+		$job = get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, null );
 
-		return $job;
+		return is_array( $job ) && ! empty( $job['id'] ) ? $job : null;
 	}
 
 	/** Returns a stable JSON representation for migration value comparisons. */
@@ -1223,20 +922,18 @@ final class ERankly_Migration_Job_Runner {
 		$token   = wp_generate_uuid4();
 		$value   = array(
 			'token'   => $token,
-			'created' => time(),
+			'expires' => time() + self::LOCK_TTL,
 		);
-		$created = add_option(
-			$key,
-			$value,
-			'',
-			'no'
-		);
+		$created = add_option( $key, $value, '', 'no' );
 		if ( $created ) {
 			return $token;
 		}
 
 		$lock = get_option( $key, array() );
-		if ( ! is_array( $lock ) || (int) ( $lock['created'] ?? 0 ) >= time() - self::LOCK_TTL ) {
+		$expires = is_array( $lock )
+			? (int) ( $lock['expires'] ?? (int) ( $lock['created'] ?? 0 ) + self::LOCK_TTL )
+			: 0;
+		if ( $expires >= time() ) {
 			return '';
 		}
 
@@ -1249,9 +946,56 @@ final class ERankly_Migration_Job_Runner {
 				maybe_serialize( $lock )
 			)
 		);
-		wp_cache_delete( $key, 'options' );
+		if ( 1 === $updated ) {
+			wp_cache_delete( $key, 'options' );
+		}
 
 		return 1 === $updated ? $token : '';
+	}
+
+	/** Renews a lease only while this worker still owns a non-expired token. */
+	private function renew_lock( string $job_id, string $token ): bool {
+		global $wpdb;
+
+		$key  = $this->lock_key( $job_id );
+		$lock = get_option( $key, array() );
+		if ( ! is_array( $lock ) || ! hash_equals( (string) ( $lock['token'] ?? '' ), $token ) ) {
+			return false;
+		}
+
+		$expires = (int) ( $lock['expires'] ?? (int) ( $lock['created'] ?? 0 ) + self::LOCK_TTL );
+		if ( $expires < time() ) {
+			return false;
+		}
+
+		$renewed            = $lock;
+		$renewed['expires'] = max( time() + self::LOCK_TTL, $expires + 1 );
+		$updated            = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic lease renewal fences stale workers before a checkpoint write.
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
+				$wpdb->options,
+				maybe_serialize( $renewed ),
+				$key,
+				maybe_serialize( $lock )
+			)
+		);
+		if ( 1 === $updated ) {
+			wp_cache_delete( $key, 'options' );
+		}
+
+		return 1 === $updated;
+	}
+
+	/** Whether the caller still owns an unexpired lease. */
+	private function owns_lock( string $job_id, string $token ): bool {
+		$lock = get_option( $this->lock_key( $job_id ), array() );
+		if ( ! is_array( $lock ) ) {
+			return false;
+		}
+
+		$expires = (int) ( $lock['expires'] ?? (int) ( $lock['created'] ?? 0 ) + self::LOCK_TTL );
+
+		return $expires >= time() && hash_equals( (string) ( $lock['token'] ?? '' ), $token );
 	}
 
 	/** Releases a lock only when the caller still owns it. */
@@ -1288,6 +1032,16 @@ final class ERankly_Migration_Job_Runner {
 		$active = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, null );
 		if ( is_array( $active ) && hash_equals( (string) ( $active['id'] ?? '' ), $job_id ) ) {
 			throw new RuntimeException( 'Migration job checkpoint could not be removed.' );
+		}
+	}
+
+	/** Removes a backup made for a job that could not acquire its checkpoint. */
+	private function discard_unattached_backup( array $report ): void {
+		$backup = is_array( $report['backup'] ?? null ) ? $report['backup'] : array();
+		$path   = (string) ( $backup['path'] ?? '' );
+
+		if ( '' !== $path ) {
+			ERankly_Migration_Upload_Store::delete( $path );
 		}
 	}
 

@@ -1,69 +1,14 @@
 <?php
-/** Private lifecycle for official migration-export uploads. */
+/** Private lifecycle for EasyRankly import uploads and pre-import backups. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Stages validated imports and source exports outside the public WordPress tree. */
+/** Stages uploaded backups and generated pre-import backups outside the public WordPress tree. */
 final class ERankly_Migration_Upload_Store {
-	private const FILE_PREFIX        = 'erankly-source-';
 	private const IMPORT_FILE_PREFIX = 'erankly-import-';
-	private const SOURCES            = array( 'yoast', 'rankmath', 'aioseo', 'seopress' );
-
-	public static function export_max_bytes( string $extension = 'csv' ): int {
-		$maximum   = max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
-		$extension = sanitize_key( $extension );
-		if ( 'json' === $extension && class_exists( 'ERankly_Migration_Export_Reader' ) ) {
-			$maximum = min( $maximum, ERankly_Migration_Export_Reader::json_max_bytes() );
-		}
-
-		return $maximum;
-	}
-
-	/**
- * @param array<string,mixed> $file             One normalized $_FILES entry.
- * @param string              $requested_source auto or a supported adapter slug.
- * @return array<string,mixed>
- */
-	public static function store_http_upload( array $file, string $requested_source = 'auto' ): array {
-		$requested_source = sanitize_key( $requested_source );
-		if ( 'auto' !== $requested_source && ! in_array( $requested_source, self::SOURCES, true ) ) {
-			return self::failure( 'invalid_source' );
-		}
-
-		$name      = isset( $file['name'] ) ? sanitize_file_name( wp_unslash( (string) $file['name'] ) ) : '';
-		$extension = strtolower( (string) pathinfo( $name, PATHINFO_EXTENSION ) );
-		$stored    = self::store_wordpress_upload(
-			$file,
-			self::FILE_PREFIX,
-			array(
-				'csv'  => 'text/csv',
-				'json' => 'application/json',
-			),
-			self::export_max_bytes( $extension )
-		);
-		if ( empty( $stored['ok'] ) ) {
-			return $stored;
-		}
-
-		$path      = (string) $stored['path'];
-		$detection = self::detect_source( $path, $requested_source );
-		if ( empty( $detection['ok'] ) ) {
-			self::delete( $path );
-			return $detection;
-		}
-
-		return array(
-			'ok'            => true,
-			'path'          => $path,
-			'source'        => (string) $detection['source'],
-			'format'        => (string) $detection['format'],
-			'original_name' => (string) $stored['original_name'],
-			'size'          => (int) $stored['size'],
-		);
-	}
-
+	private const BACKUP_FILE_PREFIX = 'erankly-backup-';
 	/**
  * @param array<string,mixed> $file    One normalized $_FILES entry.
  * @return array<string,mixed>
@@ -81,6 +26,54 @@ final class ERankly_Migration_Upload_Store {
  * @param bool $create Whether to create the directory.
  * @return string Empty when no non-public writable directory is available.
  */
+	/**
+ * Reserves a private path for one pre-import backup.
+ *
+ * Backups live beside the staged uploads but are a different file class: they are the only way to undo an
+	 * import, so `prune_stale()` keeps them for their own longer window.
+ *
+ * @return string Absolute path, or an empty string when private storage is unavailable.
+ */
+	public static function reserve_backup_path(): string {
+		$directory = self::directory();
+		if ( '' === $directory ) {
+			return '';
+		}
+
+		return $directory . '/' . self::BACKUP_FILE_PREFIX . self::random_token() . '.json';
+	}
+
+	/**
+ * Reserves a private path for one restore working copy.
+ *
+ * The spool stage consumes the file it reads, so a backup is never spooled directly: it is copied to a path
+ * of the import file class first, which keeps the backup itself restorable more than once.
+ *
+ * @return string Absolute path, or an empty string when private storage is unavailable.
+ */
+	public static function reserve_import_path(): string {
+		$directory = self::directory();
+		if ( '' === $directory ) {
+			return '';
+		}
+
+		return $directory . '/' . self::IMPORT_FILE_PREFIX . self::random_token() . '.json';
+	}
+
+	/** Checks whether a path is a managed pre-import backup. */
+	public static function is_backup( string $path ): bool {
+		return self::owns( $path )
+			&& 1 === preg_match( '/^' . preg_quote( self::BACKUP_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json$/', basename( wp_normalize_path( $path ) ) );
+	}
+
+	/** Returns the retention window for pre-import backups. */
+	public static function backup_ttl(): int {
+		$default = defined( 'WEEK_IN_SECONDS' ) ? WEEK_IN_SECONDS : 604800;
+
+		/** Filters how long an automatic pre-import backup stays restorable. */
+		return max( 300, (int) apply_filters( 'erankly_migration_backup_ttl', $default ) );
+	}
+
 	public static function directory( bool $create = true ): string {
 		$site_id = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
 		$token   = substr( hash( 'sha256', wp_normalize_path( ABSPATH ) . '|' . (string) $site_id ), 0, 20 );
@@ -121,23 +114,19 @@ final class ERankly_Migration_Upload_Store {
 		$path      = wp_normalize_path( $path );
 		$basename  = basename( $path );
 
-		$source_pattern = preg_quote( self::FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.(?:csv|json(?:\.ndjson)?)';
 		$import_pattern = preg_quote( self::IMPORT_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json(?:\.spool)?';
+		$backup_pattern = preg_quote( self::BACKUP_FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json';
 
 		return '' !== $directory
 			&& hash_equals( $directory, untrailingslashit( wp_normalize_path( dirname( $path ) ) ) )
-			&& 1 === preg_match( '/^(?:' . $source_pattern . '|' . $import_pattern . ')$/', $basename );
+			&& 1 === preg_match( '/^(?:' . $import_pattern . '|' . $backup_pattern . ')$/', $basename );
 	}
 
 	public static function delete( string $path ): bool {
 		if ( ! self::owns( $path ) ) {
 			return false;
 		}
-		$paths = array( $path );
-		if ( 1 === preg_match( '/^' . preg_quote( self::FILE_PREFIX, '/' ) . '[a-f0-9]{32}\.json$/', basename( $path ) ) ) {
-			$paths[] = $path . '.ndjson';
-		}
-
+		$paths   = array( $path );
 		$success = true;
 		foreach ( $paths as $managed_path ) {
 			if ( ! self::owns( $managed_path ) || ! file_exists( $managed_path ) ) {
@@ -166,12 +155,11 @@ final class ERankly_Migration_Upload_Store {
 			return 0;
 		}
 
-		$active      = function_exists( 'get_option' ) ? get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array() ) : array();
-		$active_file = is_array( $active ) ? wp_normalize_path( (string) ( $active['source_file'] ?? '' ) ) : '';
 		$import_job  = function_exists( 'get_option' ) ? get_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, array() ) : array();
 		$import_file = is_array( $import_job ) ? wp_normalize_path( (string) ( $import_job['path'] ?? $import_job['file'] ?? $import_job['source_file'] ?? '' ) ) : '';
 		$ttl         = max( 300, (int) apply_filters( 'erankly_migration_upload_ttl', defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400 ) );
 		$cutoff      = time() - $ttl;
+		$backup_cutoff = time() - self::backup_ttl();
 		$deleted     = 0;
 
 		try {
@@ -181,11 +169,15 @@ final class ERankly_Migration_Upload_Store {
 		}
 
 		foreach ( $iterator as $file ) {
-			if ( $file->isDot() || $file->isLink() || ! $file->isFile() || $file->getMTime() >= $cutoff ) {
+			if ( $file->isDot() || $file->isLink() || ! $file->isFile() ) {
 				continue;
 			}
-			$path = wp_normalize_path( $file->getPathname() );
-			if ( ( '' !== $active_file && ( hash_equals( $active_file, $path ) || hash_equals( $active_file . '.ndjson', $path ) ) ) || ( '' !== $import_file && hash_equals( $import_file, $path ) ) ) {
+			$path      = wp_normalize_path( $file->getPathname() );
+			$is_backup = self::is_backup( $path );
+			if ( $file->getMTime() >= ( $is_backup ? $backup_cutoff : $cutoff ) ) {
+				continue;
+			}
+			if ( '' !== $import_file && hash_equals( $import_file, $path ) ) {
 				continue;
 			}
 			if ( ! file_exists( $path ) ) {
@@ -387,44 +379,6 @@ final class ERankly_Migration_Upload_Store {
 	private static function delete_staged_path( string $path, string $directory, string $file_prefix, array $extensions ): bool {
 		return self::is_staged_path( $path, $directory, $file_prefix, $extensions )
 			&& unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Exact private directory and managed random filename were verified above.
-	}
-
-	/**
- * Identifies a certified source signature and rejects mismatches.
- *
- * @param string $requested_source auto or a supported adapter slug.
- * @return array<string,mixed>
- */
-	private static function detect_source( string $path, string $requested_source ): array {
-		$matches = array();
-		foreach ( self::SOURCES as $source ) {
-			$inspection = ERankly_Migration_Export_Reader::inspect( $path, $source );
-			if ( 'supported' === (string) ( $inspection['status'] ?? '' ) ) {
-				$matches[ $source ] = (string) ( $inspection['format'] ?? '' );
-			}
-		}
-
-		if ( 'auto' !== $requested_source ) {
-			if ( isset( $matches[ $requested_source ] ) ) {
-				return array(
-					'ok'     => true,
-					'source' => $requested_source,
-					'format' => $matches[ $requested_source ],
-				);
-			}
-			return self::failure( $matches ? 'source_mismatch' : 'unsupported_export_signature' );
-		}
-
-		if ( 1 !== count( $matches ) ) {
-			return self::failure( $matches ? 'ambiguous_export_signature' : 'unsupported_export_signature' );
-		}
-
-		$source = (string) array_key_first( $matches );
-		return array(
-			'ok'     => true,
-			'source' => $source,
-			'format' => $matches[ $source ],
-		);
 	}
 
 	/** Rejects private paths inside the public WordPress/content trees. */

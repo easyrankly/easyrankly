@@ -1,6 +1,73 @@
 (function (ER) {
   "use strict";
 
+  // Every bound panel registers its last-chance flush here so the shared
+  // page-visibility listeners below can reach all of them. Those listeners
+  // must live at window level (pagehide/visibilitychange never reach panel
+  // elements) but must exist exactly once: bindSettingsReplacement() re-binds
+  // reloadOnSave panels after every refresh, so per-panel window listeners
+  // would accumulate as closures over detached panels, each able to replay a
+  // detached panel's stale serialized values over fresher saves. Pruning
+  // disconnected entries at flush time keeps the registry in step with the
+  // DOM swaps.
+  var activeAutosaveFlushers = [];
+  var visibilityFlushBound = false;
+
+  function flushPendingAutosaves() {
+    var stillConnected = [];
+
+    activeAutosaveFlushers.forEach(function (flush) {
+      if (flush()) {
+        stillConnected.push(flush);
+      }
+    });
+
+    activeAutosaveFlushers = stillConnected;
+  }
+
+  function bindVisibilityFlushListeners() {
+    if (visibilityFlushBound) {
+      return;
+    }
+
+    visibilityFlushBound = true;
+
+    // pagehide covers navigation/refresh/close; visibilitychange covers tab
+    // switches and app backgrounding (where the page survives and its timers
+    // keep running). Closing a tab fires both, which just sends one redundant
+    // identical save the server treats as a no-op.
+    window.addEventListener("pagehide", flushPendingAutosaves);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") {
+        flushPendingAutosaves();
+      }
+    });
+  }
+
+  // Top-level diff of two serialize() snapshots. JSON comparison instead of
+  // === so nested values (checkbox groups, entity maps) compare structurally.
+  function changedTopLevelKeys(next, previous) {
+    var keys = {};
+    var key;
+
+    for (key in next) {
+      keys[key] = true;
+    }
+    for (key in previous) {
+      keys[key] = true;
+    }
+
+    var changed = [];
+
+    for (key in keys) {
+      if (JSON.stringify(next[key]) !== JSON.stringify(previous[key])) {
+        changed.push(key);
+      }
+    }
+
+    return changed;
+  }
+
   function bindEach(root, selector, callbackName) {
     if (typeof ER[callbackName] !== "function") {
       return;
@@ -28,7 +95,6 @@
     bindEach(root, "[data-erankly-user-search-wrap]", "bindUserSearch");
     bindEach(root, "[data-erankly-local-business]", "bindLocalBusiness");
     bindEach(root, "[data-erankly-file-dropzone]", "bindFileDropzone");
-    bindEach(root, "[data-erankly-segment-control]", "bindSegmentControl");
 
     bindAllSettingsAutosave(root);
   }
@@ -100,6 +166,18 @@
     var abortController = null;
     var MAX_RETRIES = 5;
     var STATUS_VISIBLE_MS = 4000;
+    // Ownership token for the in-flight slot: an aborted save's response
+    // handler must not clear saveInFlight on behalf of the newer save that
+    // aborted it.
+    var saveSeq = 0;
+    var saveInFlight = false;
+    // What this panel believes the server holds: the DOM snapshot taken at
+    // bind (the render already reflects persisted settings), moved forward
+    // only by confirmed saves and completed flushes. Diffs against it decide
+    // whether a reloadOnSave panel needs refreshSettingsRoot(); because it
+    // only ever moves forward, a diff can flag a change spuriously (harmless
+    // extra refresh) but never miss one.
+    var lastSavedValues = JSON.parse(JSON.stringify(serialize()));
 
     // Walks/creates object nodes for every path segment except the last,
     // so setPath()/array-push only ever have to handle the final segment.
@@ -240,6 +318,8 @@
         abortController.abort();
       }
       abortController = new AbortController();
+      var seq = ++saveSeq;
+      saveInFlight = true;
 
       setStatus(i18n.saving || "Saving…", null);
 
@@ -260,6 +340,9 @@
           // fixed by retrying the same request. Stop and ask for a reload.
           if (!res.ok) {
             if (res.status >= 400 && res.status < 500) {
+              if (seq === saveSeq) {
+                saveInFlight = false;
+              }
               setStatus(
                 i18n.error || "Could not save. Reload the page.",
                 "error",
@@ -307,7 +390,18 @@
           // browser page. scheduleSave() cancels this if another edit
           // comes in before it fires, so quick successive toggles are not
           // dropped by the refresh.
-          if (config.reloadOnSave && !warnings.length) {
+          // Record what the server now holds, then refresh only when a key
+          // that actually drives PHP-rendered UI differs from the last
+          // persisted state. Panels without a refreshKeys map keep the
+          // legacy always-refresh behavior.
+          var changedKeys = changedTopLevelKeys(payload, lastSavedValues);
+          lastSavedValues = JSON.parse(JSON.stringify(payload));
+
+          if (
+            config.reloadOnSave &&
+            !warnings.length &&
+            refreshNeeded(changedKeys)
+          ) {
             reloadTimer = window.setTimeout(function () {
               refreshSettingsRoot(settingsRoot);
             }, 700);
@@ -316,6 +410,10 @@
         .catch(function (err) {
           if (err && "AbortError" === err.name) {
             return;
+          }
+
+          if (seq === saveSeq) {
+            saveInFlight = false;
           }
 
           retryCount += 1;
@@ -333,6 +431,67 @@
         });
     }
 
+    function refreshNeeded(changedKeys) {
+      if (!config.refreshKeys || !config.refreshKeys.length) {
+        return true;
+      }
+
+      return changedKeys.some(function (key) {
+        return config.refreshKeys.indexOf(key) !== -1;
+      });
+    }
+
+    // Last-chance flush when the page is being hidden (tab switch,
+    // navigation, refresh, app backgrounding): a pending debounced edit
+    // would otherwise be silently dropped with the page's timers. Sends a
+    // fire-and-forget keepalive POST of the panel's current values — the
+    // same full-panel payload the regular autosave sends, so it lands
+    // through the same whitelisted merge and is idempotent when nothing
+    // changed. Returns whether this panel is still in the document; the
+    // shared flusher uses that to prune entries orphaned by
+    // refreshSettingsRoot() DOM swaps.
+    function flushPendingSave() {
+      if (!panel.isConnected) {
+        return false;
+      }
+
+      if (debounceTimer === null && retryTimer === null && !saveInFlight) {
+        return true;
+      }
+
+      window.clearTimeout(debounceTimer);
+      debounceTimer = null;
+      window.clearTimeout(retryTimer);
+
+      if (abortController) {
+        abortController.abort();
+        saveInFlight = false;
+      }
+
+      var payload = serialize();
+
+      fetch(config.restUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true,
+        headers: {
+          "Content-Type": "application/json",
+          "X-WP-Nonce": config.nonce,
+        },
+        body: JSON.stringify({ settings: payload }),
+      })
+        .then(function () {
+          // Runs only when the page is still alive (a mere tab switch):
+          // keeps the snapshot in step with what the server now holds.
+          lastSavedValues = JSON.parse(JSON.stringify(payload));
+        })
+        .catch(function () {
+          // The page is going away; there is nothing left to try.
+        });
+
+      return true;
+    }
+
     function scheduleSave() {
       window.clearTimeout(debounceTimer);
       window.clearTimeout(reloadTimer);
@@ -341,6 +500,9 @@
 
     panel.addEventListener("input", scheduleSave);
     panel.addEventListener("change", scheduleSave);
+
+    activeAutosaveFlushers.push(flushPendingSave);
+    bindVisibilityFlushListeners();
   }
 
   // Binds every settings panel that has a matching entry in the config
@@ -372,6 +534,7 @@
           nonce: settingsConfig.nonce,
           i18n: settingsConfig.i18n,
           reloadOnSave: !!panelConfig.reloadOnSave,
+          refreshKeys: panelConfig.refreshKeys,
           fieldRoot: panelConfig.fieldRoot,
         });
       });

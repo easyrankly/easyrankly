@@ -15,11 +15,16 @@ final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 	public function get_sitemap_entries(): array {
 		$entries = array();
 
-		if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) && erankly_count_news_sitemap_posts() > 0 ) {
-			$entries[] = array(
-				'loc'     => $this->get_specialist_sitemap_url( 'news', 1 ),
-				'lastmod' => erankly_get_news_sitemap_lastmod(),
-			);
+		if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) {
+			$news_count = erankly_count_news_sitemap_posts();
+			$news_pages = (int) ceil( $news_count / ERANKLY_SITEMAP_PER_PAGE );
+
+			for ( $page = 1; $page <= $news_pages; $page++ ) {
+				$entries[] = array(
+					'loc'     => $this->get_specialist_sitemap_url( 'news', $page ),
+					'lastmod' => erankly_get_news_sitemap_lastmod(),
+				);
+			}
 		}
 
 		if ( (bool) erankly_get_setting( 'enable_image_sitemap', 0 ) ) {
@@ -54,11 +59,11 @@ final class ERankly_Specialist_Sitemaps_Provider extends WP_Sitemaps_Provider {
 	}
 
 	/**
- * Required by WP_Sitemaps_Provider but unused here because we render specialist XML formats directly via
- * template_redirect.
- *
- * @return array<int,array<string,string>>
- */
+	 * Required by WP_Sitemaps_Provider but unused here because we render specialist XML formats directly via
+	 * template_redirect.
+	 *
+	 * @return array<int,array<string,string>>
+	 */
 	public function get_url_list( $page_num, $object_subtype = '' ): array {
 		return array();
 	}

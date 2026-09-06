@@ -47,9 +47,6 @@ function erankly_get_meta_keys(): array {
 		'_erankly_og_image_id'           => 'integer',
 		'_erankly_twitter_image_id'      => 'integer',
 		'_erankly_primary_terms'         => 'object',
-		// Kept readable for backwards compatibility. New migrations use the
-		// native editorial keys above instead of writing opaque source payloads.
-		'_erankly_legacy_editorial'      => 'object',
 		'_erankly_schema_mode'           => 'string',
 		'_erankly_schema_blocks'         => 'array',
 		'_erankly_schema_disabled_types' => 'array',
@@ -68,6 +65,61 @@ function erankly_get_meta_keys(): array {
 	$keys = apply_filters( 'erankly_meta_keys', $keys );
 
 	return is_array( $keys ) ? $keys : array();
+}
+
+/**
+ * Returns the meta keys an import may write for one object type.
+ *
+ * Every registered key is writable on posts, but terms and users only ever read a subset at runtime.
+ * Importers write through this list so a source plugin that stores schema or primary terms on a taxonomy
+ * cannot leave rows behind that nothing in EasyRankly can consume. Legacy keys superseded by the tri-state
+ * robots directives are never imported either: they are read only as a fallback when the directive is absent,
+ * so writing both would make the boolean inert while still costing a row.
+ *
+ * @param string $object_type One of post, term or user.
+ * @return array<string,string> Meta key => value type.
+ */
+function erankly_importable_meta_keys( string $object_type ): array {
+	$keys = erankly_get_meta_keys();
+	unset(
+		$keys['_erankly_noindex'],
+		$keys['_erankly_nofollow'],
+		$keys['_erankly_noarchive'],
+		$keys['_erankly_social_image_url']
+	);
+
+	if ( 'post' === $object_type ) {
+		return $keys;
+	}
+
+	$shared = array(
+		'_erankly_title',
+		'_erankly_description',
+		'_erankly_canonical',
+		'_erankly_og_title',
+		'_erankly_og_description',
+		'_erankly_twitter_title',
+		'_erankly_twitter_description',
+		'_erankly_twitter_card_type',
+		'_erankly_og_image_url',
+		'_erankly_og_image_alt',
+		'_erankly_twitter_image_url',
+		'_erankly_twitter_image_alt',
+		'_erankly_index_directive',
+		'_erankly_follow_directive',
+		'_erankly_archive_directive',
+		'_erankly_snippet_directive',
+		'_erankly_image_directive',
+		'_erankly_max_snippet',
+		'_erankly_max_video_preview',
+		'_erankly_max_image_preview',
+		'_erankly_indexifembedded',
+	);
+	if ( 'term' === $object_type ) {
+		$shared[] = '_erankly_disable_sitemap';
+	}
+
+	return array_intersect_key( $keys, array_flip( $shared ) );
 }
 
 function erankly_register_meta(): void {
@@ -227,8 +279,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 			return $value >= -1 ? (string) $value : '';
 		case '_erankly_primary_terms':
 			return erankly_sanitize_primary_terms( $value );
-		case '_erankly_legacy_editorial':
-			return erankly_sanitize_legacy_editorial_data( $value );
 		case '_erankly_schema_mode':
 			return erankly_sanitize_meta_enum( $value, array( 'default', 'merge', 'replace', 'disabled' ) );
 		case '_erankly_schema_blocks':
@@ -277,19 +327,6 @@ function erankly_sanitize_primary_terms( mixed $value ): array {
 	}
 
 	return $clean;
-}
-
-/**
- * Keeps plugin-specific editorial payloads losslessly enough for future reports.
- *
- * @return array<string,mixed>
- */
-function erankly_sanitize_legacy_editorial_data( mixed $value ): array {
-	if ( ! is_array( $value ) ) {
-		return array();
-	}
-
-	return map_deep( $value, static fn( mixed $item ): mixed => is_scalar( $item ) ? sanitize_text_field( (string) $item ) : $item );
 }
 
 /**

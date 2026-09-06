@@ -400,7 +400,17 @@
 				},
 				el(
 					'div',
-					{ className: 'erankly-variable-menu erankly-editor-variable-menu', role: 'listbox' },
+					{
+						className: 'erankly-variable-menu erankly-editor-variable-menu',
+						role: 'listbox',
+						// Gutenberg popovers size to their content, so the menu can end up wider than
+						// the field it hangs from. Pin the menu to the anchor's width so the editor
+						// matches the settings pages, where the menu is absolutely positioned inside
+						// the field and therefore exactly as wide.
+						style: fieldRef.current
+							? { width: fieldRef.current.getBoundingClientRect().width }
+							: undefined,
+					},
 					suggestions.map( ( item, index ) => el(
 						'button',
 						{
@@ -1058,7 +1068,32 @@
 		return fields;
 	}
 
+	// Bottom-of-panel documentation link. URLs come from the shared bundle's
+	// docLinks map (erankly_section_doc_links() in PHP); empty entries keep the
+	// "#" placeholder until documentation URLs are filled in.
+	function PanelDocLink( { section } ) {
+		const links = ( window.eranklyEditorShared && window.eranklyEditorShared.docLinks ) || {};
+		const url = links[ section ] || '#';
+
+		return el(
+			'p',
+			{ className: 'erankly-panel-doc-link' },
+			el(
+				'a',
+				{
+					className: 'erankly-section-doc-link',
+					'data-erankly-doc-section': section,
+					href: url,
+					rel: 'noopener noreferrer',
+					target: '_blank',
+				},
+				__( 'Learn more' )
+			)
+		);
+	}
+
 	window.eranklyShared = {
+		PanelDocLink,
 		SocialImageControl,
 		VariableControl,
 		getRobotsDirectiveInconsistencies,

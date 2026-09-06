@@ -83,14 +83,20 @@ final class ERankly_Redirects_Admin {
 			<?php $this->render_notices(); ?>
 
 			<div class="erankly-settings-section">
-				<h3 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h3>
+				<div class="erankly-section-title-row">
+					<h3 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h3>
+					<?php erankly_render_section_doc_link( 'redirect-form' ); ?>
+				</div>
 				<section class="erankly-card">
 					<?php $this->render_redirect_form( $edit_redirect, $prefill ); ?>
 				</section>
 			</div>
 
 			<div class="erankly-settings-section erankly-panel-expandable" id="erankly-redirects-table-wrap" data-erankly-expandable>
-				<h3 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h3>
+				<div class="erankly-section-title-row">
+					<h3 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h3>
+					<?php erankly_render_section_doc_link( 'redirect-rules' ); ?>
+				</div>
 				<section class="erankly-card">
 				<div class="erankly-panel-toolbar erankly-redirects-toolbar">
 					<form method="get" class="erankly-redirects-search">

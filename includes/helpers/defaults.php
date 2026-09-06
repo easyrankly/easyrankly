@@ -113,9 +113,11 @@ function erankly_default_global_special_meta(): array {
  * @param array<int,string> $allowed_keys Entity keys allowed in settings.
  * @param bool              $linked       Whether one template should apply to every entity.
  * @param bool              $with_social  Whether to also keep per-entity social fields.
+ * @param bool              $warn_on_divergence Whether a settings warning should be recorded when linked
+ *                                    rows carry differing values (they are replaced by the first row).
  * @return array<string,array<string,string|int>>
  */
-function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys, bool $linked = false, bool $with_social = false ): array {
+function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys, bool $linked = false, bool $with_social = false, bool $warn_on_divergence = false ): array {
 	$input          = is_array( $input ) ? $input : array();
 	$keys           = array_map( 'sanitize_key', $allowed_keys );
 	$allowed        = array_fill_keys( $keys, true );
@@ -139,11 +141,18 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 	};
 
 	if ( $linked && ! empty( $keys ) ) {
-		$title       = '';
-		$description = '';
-		$directives  = array_fill_keys( $directive_keys, 0 );
+		// The unified panel always edits the first entity's fields, so the
+		// first entity is the single source of truth — never the first
+		// non-empty row, whose arbitrary win silently discarded values
+		// authored on other tabs.
+		$first_key   = $keys[0];
+		$first_row   = ( isset( $input[ $first_key ] ) && is_array( $input[ $first_key ] ) ) ? $input[ $first_key ] : array();
+		$title       = isset( $first_row['title'] ) ? erankly_sanitize_text( $first_row['title'] ) : '';
+		$description = isset( $first_row['description'] ) ? erankly_sanitize_textarea( $first_row['description'] ) : '';
+		$directives  = erankly_sanitize_global_entity_directives( $first_row );
 
 		$schema_by_key = array();
+		$diverged      = false;
 		foreach ( $keys as $key ) {
 			if ( ! isset( $input[ $key ] ) || ! is_array( $input[ $key ] ) ) {
 				continue;
@@ -157,15 +166,16 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 			}
 			$schema_by_key[ $key ] = $schema;
 
-			$current_title       = isset( $input[ $key ]['title'] ) ? erankly_sanitize_text( $input[ $key ]['title'] ) : '';
-			$current_description = isset( $input[ $key ]['description'] ) ? erankly_sanitize_textarea( $input[ $key ]['description'] ) : '';
-			$current_directives  = erankly_sanitize_global_entity_directives( $input[ $key ] );
+			if ( $key === $first_key ) {
+				continue;
+			}
 
-			if ( '' !== $current_title || '' !== $current_description || $has_directives( $current_directives ) ) {
-				$title       = $current_title;
-				$description = $current_description;
-				$directives  = $current_directives;
-				break;
+			$other_title       = isset( $input[ $key ]['title'] ) ? erankly_sanitize_text( $input[ $key ]['title'] ) : '';
+			$other_description = isset( $input[ $key ]['description'] ) ? erankly_sanitize_textarea( $input[ $key ]['description'] ) : '';
+			$other_directives  = erankly_sanitize_global_entity_directives( $input[ $key ] );
+
+			if ( $other_title !== $title || $other_description !== $description || $other_directives !== $directives ) {
+				$diverged = true;
 			}
 		}
 
@@ -175,6 +185,15 @@ function erankly_sanitize_global_entity_meta( mixed $input, array $allowed_keys,
 		);
 		if ( '' === $title && '' === $description && ! $has_directives( $directives ) && ! $has_schema ) {
 			return array();
+		}
+
+		if ( $diverged && $warn_on_divergence && function_exists( 'add_settings_error' ) ) {
+			add_settings_error(
+				ERANKLY_OPTION,
+				'erankly_linked_defaults_diverged',
+				__( 'The unified default was applied to every content type because the submitted per-type values differed; the differing values were replaced.', 'easyrankly' ),
+				'warning'
+			);
 		}
 
 		foreach ( $keys as $key ) {
@@ -243,7 +262,8 @@ function erankly_sanitize_global_entity_directives( array $fields ): array {
 		'disable_sitemap' => ( $hide || ! empty( $fields['disable_sitemap'] ) ) ? 1 : 0,
 	);
 
-	foreach ( array( 'notranslate', 'noodp', 'indexifembedded' ) as $key ) {
+	// noodp was retired: DMOZ shut down in 2017 and no engine reads the directive.
+	foreach ( array( 'notranslate', 'indexifembedded' ) as $key ) {
 		if ( array_key_exists( $key, $fields ) ) {
 			$directives[ $key ] = ! empty( $fields[ $key ] ) ? 1 : 0;
 		}
@@ -374,15 +394,23 @@ function erankly_default_settings(): array {
 		'noindex_feeds'                  => 0,
 		'paginated_title_format'         => '',
 		'attachment_redirect'            => 'none',
-		'robots_max_image_preview_large' => 1,
 		'robots_max_image_preview'       => '',
 		'robots_max_snippet'             => '',
 		'robots_max_video_preview'       => '',
 		'robots_nosnippet'               => 0,
 		'robots_noimageindex'            => 0,
 		'robots_notranslate'             => 0,
-		'robots_noodp'                   => 0,
 		'robots_indexifembedded'         => 0,
 		'enable_redirects'               => 0,
+		'enable_custom_code'             => 0,
+		// Repeatable, location-targeted snippets (see erankly_sanitize_custom_code_blocks).
+		'head_code_blocks'               => array(),
+		'body_open_code_blocks'          => array(),
+		'body_close_code_blocks'         => array(),
+		// Legacy single-snippet storage (pre-block UI). Kept as a frontend
+		// fallback and auto-migrated to blocks on next privileged save.
+		'head_code'                      => '',
+		'body_open_code'                 => '',
+		'body_close_code'                => '',
 	);
 }

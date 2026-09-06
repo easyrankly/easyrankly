@@ -13,6 +13,9 @@ final class ERankly_Import_Job_Runner {
 	private const SPOOL_VERSION = 1;
 	private const STAGES        = array( 'settings', 'redirects', 'user_meta', 'post_meta', 'term_meta' );
 
+	/** Export document versions this worker can restore. */
+	public const SUPPORTED_FORMATS = array( '2.0', '3.0', '4.0' );
+
 	/**
  * @param array<string,mixed> $data     Already validated decoded payload.
  * @return array<string,mixed>
@@ -26,16 +29,30 @@ final class ERankly_Import_Job_Runner {
 				'job'   => $active,
 			);
 		}
+		$active_migration = self::active_migration_job();
+		if ( is_array( $active_migration ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'migration_already_running',
+				'job'   => $active_migration,
+			);
+		}
 		if ( 'erankly' !== (string) ( $data['plugin'] ?? '' ) ) {
 			return array(
 				'ok'    => false,
 				'error' => 'invalid_upload',
 			);
 		}
-		if ( ! in_array( (string) ( $data['format'] ?? '' ), array( '2.0', '3.0' ), true ) ) {
+		if ( ! in_array( (string) ( $data['format'] ?? '' ), self::SUPPORTED_FORMATS, true ) ) {
 			return array(
 				'ok'    => false,
 				'error' => 'unsupported_format',
+			);
+		}
+		if ( self::payload_contains_custom_code( $data ) && ! self::current_user_may_import_custom_code() ) {
+			return array(
+				'ok'    => false,
+				'error' => 'unfiltered_html_required',
 			);
 		}
 
@@ -55,46 +72,164 @@ final class ERankly_Import_Job_Runner {
 				'error' => 'private_storage_write_failed',
 			);
 		}
-		$path = (string) $spool['path'];
+		return self::launch( (string) $spool['path'], $spool, $data );
+	}
 
-		$job_id = wp_generate_uuid4();
-		$job    = array(
-			'id'            => $job_id,
-			'status'        => 'queued',
-			'path'          => wp_normalize_path( $path ),
-			'spool_size'    => (int) $spool['size'],
-			'spool_mtime'   => (int) $spool['mtime'],
-			'stage_offsets' => $spool['stage_offsets'],
-			'stage_ends'    => $spool['stage_ends'],
-			'stage'         => 'settings',
-			'offset'        => 0,
-			'byte'          => 0,
-			'batches'       => 0,
-			'processed'     => 0,
-			'started_at'    => gmdate( 'c' ),
-			'updated_at'    => gmdate( 'c' ),
-			'counts'        => self::empty_counts(),
-			'totals'        => array(
-				'redirects' => count( is_array( $data['redirects'] ?? null ) ? $data['redirects'] : array() ),
-				'user_meta' => count( is_array( $data['user_meta'] ?? null ) ? $data['user_meta'] : array() ),
-				'post_meta' => count( is_array( $data['post_meta'] ?? null ) ? $data['post_meta'] : array() ),
-				'term_meta' => count( is_array( $data['term_meta'] ?? null ) ? $data['term_meta'] : array() ),
-			),
-		);
-		if ( ! add_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, $job, '', 'no' ) ) {
+	/**
+ * Creates and schedules the checkpoint for one staged spool.
+ *
+ * @param array<string,mixed> $spool Result of stage_spool().
+ * @param array<string,mixed> $data  Decoded backup document.
+ * @return array{ok:bool,job?:array<string,mixed>,error?:string}
+ */
+	private static function launch( string $path, array $spool, array $data, bool $purge_owned = false ): array {
+		$start_token = erankly_acquire_data_transfer_start_lock();
+		if ( '' === $start_token ) {
 			self::delete_file( $path );
 			return array(
 				'ok'    => false,
-				'error' => 'checkpoint_unavailable',
+				'error' => 'transfer_start_in_progress',
 			);
 		}
-		delete_option( ERANKLY_IMPORT_LAST_RESULT_OPTION );
-		self::schedule( $job_id );
 
-		return array(
-			'ok'  => true,
-			'job' => $job,
-		);
+		try {
+			// The initial checks happen before staging to avoid unnecessary I/O.
+			// Repeat them in the shared gate so a migration cannot start between
+			// staging and this durable checkpoint.
+			$active = self::active_job();
+			if ( is_array( $active ) ) {
+				self::delete_file( $path );
+				return array(
+					'ok'    => false,
+					'error' => 'import_already_running',
+					'job'   => $active,
+				);
+			}
+			$active_migration = self::active_migration_job();
+			if ( is_array( $active_migration ) ) {
+				self::delete_file( $path );
+				return array(
+					'ok'    => false,
+					'error' => 'migration_already_running',
+					'job'   => $active_migration,
+				);
+			}
+
+			$job_id = wp_generate_uuid4();
+			$job    = array(
+				'id'            => $job_id,
+				'status'        => 'queued',
+				'path'          => wp_normalize_path( $path ),
+				'spool_size'    => (int) $spool['size'],
+				'spool_mtime'   => (int) $spool['mtime'],
+				'stage_offsets' => $spool['stage_offsets'],
+				'stage_ends'    => $spool['stage_ends'],
+				'stage'         => 'settings',
+				'offset'        => 0,
+				'byte'          => 0,
+				'batches'       => 0,
+				'processed'     => 0,
+				'started_at'    => gmdate( 'c' ),
+				'updated_at'    => gmdate( 'c' ),
+				'purge_owned'   => $purge_owned,
+				'counts'        => self::empty_counts(),
+				'totals'        => array(
+					'redirects' => count( is_array( $data['redirects'] ?? null ) ? $data['redirects'] : array() ),
+					'user_meta' => count( is_array( $data['user_meta'] ?? null ) ? $data['user_meta'] : array() ),
+					'post_meta' => count( is_array( $data['post_meta'] ?? null ) ? $data['post_meta'] : array() ),
+					'term_meta' => count( is_array( $data['term_meta'] ?? null ) ? $data['term_meta'] : array() ),
+				),
+			);
+			if ( ! add_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION, $job, '', 'no' ) ) {
+				self::delete_file( $path );
+				$active           = self::active_job();
+				$active_migration = self::active_migration_job();
+				if ( is_array( $active ) ) {
+					return array(
+						'ok'    => false,
+						'error' => 'import_already_running',
+						'job'   => $active,
+					);
+				}
+				if ( is_array( $active_migration ) ) {
+					return array(
+						'ok'    => false,
+						'error' => 'migration_already_running',
+						'job'   => $active_migration,
+					);
+				}
+
+				return array(
+					'ok'    => false,
+					'error' => 'checkpoint_unavailable',
+				);
+			}
+			delete_option( ERANKLY_IMPORT_LAST_RESULT_OPTION );
+			self::schedule( $job_id );
+
+			return array(
+				'ok'  => true,
+				'job' => $job,
+			);
+		} finally {
+			erankly_release_data_transfer_start_lock( $start_token );
+		}
+	}
+
+	/**
+ * Starts a restore from a backup file this plugin already owns.
+ *
+ * Used by the pre-import backup, whose file was written by `erankly_export_write()` into the private
+ * migration directory and therefore never passed through an HTTP upload.
+ *
+ * @param array<string,mixed> $data Decoded backup document.
+ * @return array{ok:bool,job?:array<string,mixed>,error?:string}
+ */
+	public static function start_from_file( string $path, array $data ): array {
+		$active = self::active_job();
+		if ( is_array( $active ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'import_already_running',
+				'job'   => $active,
+			);
+		}
+		$active_migration = self::active_migration_job();
+		if ( is_array( $active_migration ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'migration_already_running',
+				'job'   => $active_migration,
+			);
+		}
+		if ( 'erankly' !== (string) ( $data['plugin'] ?? '' ) || ! in_array( (string) ( $data['format'] ?? '' ), self::SUPPORTED_FORMATS, true ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'invalid_upload',
+			);
+		}
+		if ( self::payload_contains_custom_code( $data ) && ! self::current_user_may_import_custom_code() ) {
+			return array(
+				'ok'    => false,
+				'error' => 'unfiltered_html_required',
+			);
+		}
+		if ( ! is_file( $path ) || is_link( $path ) || ! is_readable( $path ) || ! ERankly_Migration_Upload_Store::owns( $path ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'invalid_upload',
+			);
+		}
+
+		$spool = self::stage_spool( $path, $data );
+		if ( empty( $spool['ok'] ) ) {
+			return array(
+				'ok'    => false,
+				'error' => 'private_storage_write_failed',
+			);
+		}
+
+		return self::launch( (string) $spool['path'], $spool, $data, true );
 	}
 
 	public static function active_job(): ?array {
@@ -105,6 +240,42 @@ final class ERankly_Import_Job_Runner {
 		}
 
 		return null;
+	}
+
+	/** @return array<string,mixed>|null */
+	private static function active_migration_job(): ?array {
+		$option = defined( 'ERANKLY_MIGRATION_ACTIVE_JOB_OPTION' ) ? ERANKLY_MIGRATION_ACTIVE_JOB_OPTION : 'erankly_migration_active_job_v1';
+		$job    = get_option( $option, null );
+
+		return is_array( $job ) && ! empty( $job['id'] ) ? $job : null;
+	}
+
+	/** Whether the caller can cause raw custom code to be restored. */
+	private static function current_user_may_import_custom_code(): bool {
+		$user_id = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
+
+		return 0 === $user_id || current_user_can( 'unfiltered_html' );
+	}
+
+	/** Detects raw custom-code fields before a job can outlive its initiating request. */
+	private static function payload_contains_custom_code( array $data ): bool {
+		$settings = is_array( $data['settings'] ?? null ) ? $data['settings'] : array();
+		foreach ( array( 'head_code', 'body_open_code', 'body_close_code' ) as $key ) {
+			if ( '' !== trim( (string) ( $settings[ $key ] ?? '' ) ) ) {
+				return true;
+			}
+		}
+
+		foreach ( array( 'head_code_blocks', 'body_open_code_blocks', 'body_close_code_blocks' ) as $key ) {
+			$blocks = is_array( $settings[ $key ] ?? null ) ? $settings[ $key ] : array();
+			foreach ( $blocks as $block ) {
+				if ( is_array( $block ) && '' !== trim( (string) ( $block['code'] ?? '' ) ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/** @return array<string,mixed> */
@@ -303,6 +474,13 @@ final class ERankly_Import_Job_Runner {
 				if ( ! is_array( $data ) || 'erankly' !== (string) ( $data['plugin'] ?? '' ) ) {
 					throw new RuntimeException( 'The private import spool marker is invalid.' );
 				}
+				// A restore must land on the snapshot, not merge into it. Rows the backup does not carry were
+				// created after it was taken, so they are removed before the document is replayed. This runs
+				// inside the job, after the spool is durably staged, so an interrupted restore still resumes.
+				if ( ! empty( $job['purge_owned'] ) ) {
+					self::purge_owned_data();
+					$job['purge_owned'] = false;
+				}
 				self::apply_settings( $data, $job['counts'] );
 				self::advance_stage( $job );
 				continue;
@@ -384,6 +562,10 @@ final class ERankly_Import_Job_Runner {
 	/** Applies settings once, loading the canonical sanitizer in cron context. */
 	private static function apply_settings( array $data, array &$counts ): void {
 		if ( isset( $data['settings'] ) && is_array( $data['settings'] ) ) {
+			// The sanitizer reads the defaults and the global metadata maps. A background worker renders no
+			// admin screen first, so both helper bundles have to be loaded explicitly before it runs.
+			erankly_load_default_helpers();
+			erankly_load_content_helpers();
 			if ( ! function_exists( 'erankly_sanitize_settings' ) ) {
 				require_once ERANKLY_PATH . 'includes/admin.php';
 				erankly_admin_load_settings_modules();
@@ -392,8 +574,15 @@ final class ERankly_Import_Job_Runner {
 			erankly_update_plugin_option( ERANKLY_OPTION, $clean );
 			$counts['settings'] = 1;
 		}
-		if ( isset( $data['special_meta'] ) && is_array( $data['special_meta'] ) ) {
-			erankly_update_special_meta_map( $data['special_meta'] );
+		if ( array_key_exists( 'special_meta', $data ) ) {
+			if ( is_array( $data['special_meta'] ) ) {
+				erankly_update_special_meta_map( $data['special_meta'] );
+			} else {
+				$special_meta_sentinel = new stdClass();
+				if ( ! delete_option( ERANKLY_SPECIAL_META_OPTION ) && $special_meta_sentinel !== get_option( ERANKLY_SPECIAL_META_OPTION, $special_meta_sentinel ) ) {
+					throw new RuntimeException( 'EasyRankly special-page metadata could not be cleared during the restore.' );
+				}
+			}
 			$counts['settings'] = 1;
 		}
 
@@ -478,6 +667,52 @@ final class ERankly_Import_Job_Runner {
 			};
 			if ( false !== $updated ) {
 				++$counts[ $stage ];
+			}
+		}
+	}
+
+	/**
+ * Removes every value EasyRankly owns before a backup is replayed over it.
+ *
+ * @throws RuntimeException When a deletion statement fails.
+ */
+	private static function purge_owned_data(): void {
+		global $wpdb;
+
+		$keys         = array_keys( erankly_get_meta_keys() );
+		$placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
+		foreach ( array( $wpdb->postmeta, $wpdb->termmeta, $wpdb->usermeta ) as $table ) {
+			$deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk removal of plugin-owned metadata before a restore.
+				$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The placeholder list and replacements come from the same fixed key map.
+					"DELETE FROM %i WHERE meta_key IN ( {$placeholders} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the fixed meta-key placeholder list is interpolated.
+					array_merge( array( $table ), $keys )
+				)
+			);
+			if ( false === $deleted ) {
+				throw new RuntimeException( 'EasyRankly metadata could not be cleared before the restore.' );
+			}
+		}
+		// A bulk SQL delete leaves the per-object meta caches stale and core exposes no way to invalidate a
+		// single meta group. A restore is a rare, explicitly confirmed operation, so a full flush is the
+		// correct trade here.
+		wp_cache_flush();
+		// The export now always carries this option (as an object or explicit null), so removing it first makes
+		// a restore exact even when the snapshot had no special-page metadata. Older exports without the key
+		// are also correctly treated as an empty map during a full restore.
+		$special_meta_sentinel = new stdClass();
+		if ( ! delete_option( ERANKLY_SPECIAL_META_OPTION ) && $special_meta_sentinel !== get_option( ERANKLY_SPECIAL_META_OPTION, $special_meta_sentinel ) ) {
+			throw new RuntimeException( 'EasyRankly special-page metadata could not be cleared before the restore.' );
+		}
+
+		erankly_ensure_redirect_classes_available();
+		if ( class_exists( 'ERankly_Redirects_Repository' ) && erankly_table_exists( ERankly_Redirects_Repository::get_table_name() ) ) {
+			$table   = ERankly_Redirects_Repository::get_table_name();
+			$deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table cleared before a restore replays it.
+			if ( false === $deleted ) {
+				throw new RuntimeException( 'Redirects could not be cleared before the restore.' );
+			}
+			if ( function_exists( 'erankly_rotate_redirects_cache_generation' ) ) {
+				erankly_rotate_redirects_cache_generation();
 			}
 		}
 	}

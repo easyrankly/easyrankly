@@ -67,13 +67,12 @@ function erankly_settings_toggle_keys(): array {
 		'noindex_paginated_content',
 		'nofollow_paginated',
 		'noindex_feeds',
-		'robots_max_image_preview_large',
 		'robots_nosnippet',
 		'robots_noimageindex',
 		'robots_notranslate',
-		'robots_noodp',
 		'robots_indexifembedded',
 		'enable_redirects',
+		'enable_custom_code',
 	);
 
 	/**

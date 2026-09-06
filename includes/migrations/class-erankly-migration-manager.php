@@ -113,10 +113,8 @@ final class ERankly_Migration_Manager {
 			'settings_found'          => 0,
 			'settings_ready'          => 0,
 			'settings_written'        => 0,
-			'settings_skipped_existing' => 0,
 			'settings_identical'      => 0,
 			'settings_conflicts'      => 0,
-			'settings_invalid'        => 0,
 			'settings_failed'         => 0,
 			'objects_found'           => 0,
 			'posts_found'             => 0,
@@ -132,11 +130,8 @@ final class ERankly_Migration_Manager {
 			'term_fields_written'     => 0,
 			'user_fields_ready'       => 0,
 			'user_fields_written'     => 0,
-			'fields_skipped_existing' => 0,
 			'fields_identical'        => 0,
-			'fields_transformed'      => 0,
 			'fields_unsupported'      => 0,
-			'fields_duplicate'        => 0,
 			'fields_conflicts'        => 0,
 			'fields_invalid'          => 0,
 			'fields_failed'           => 0,
@@ -146,7 +141,6 @@ final class ERankly_Migration_Manager {
 			'redirects_created'       => 0,
 			'redirects_updated'       => 0,
 			'redirects_unchanged'     => 0,
-			'redirects_duplicate'     => 0,
 			'redirects_conflicts'     => 0,
 			'redirects_invalid'       => 0,
 			'redirects_unsupported'   => 0,
@@ -165,18 +159,18 @@ final class ERankly_Migration_Manager {
 			$report['completed_at'] = gmdate( 'c' );
 		}
 		$report['verification']   = $this->build_verification( $report );
-		$report['go_live_gate']   = $this->evaluate_go_live_gate( $report );
-		$report                   = $this->synchronize_verification_with_gate( $report );
 		$reports                  = get_option( self::REPORTS_OPTION, array() );
 		$reports                  = is_array( $reports ) ? $reports : array();
 		$reports[ $report['id'] ] = $report;
 
 		$report_count = count( $reports );
 		while ( $report_count > self::REPORT_LIMIT ) {
-			$expired_report_id = (string) array_key_first( $reports );
+			$expired_report = (array) reset( $reports );
 			array_shift( $reports );
-			if ( '' !== $expired_report_id && class_exists( 'ERankly_Migration_Evidence_Store' ) ) {
-				( new ERankly_Migration_Evidence_Store() )->delete_job( $expired_report_id );
+			// The pre-import backup only exists to undo its own report, so it goes with it.
+			$expired_backup = is_array( $expired_report['backup'] ?? null ) ? (string) ( $expired_report['backup']['path'] ?? '' ) : '';
+			if ( '' !== $expired_backup && class_exists( 'ERankly_Migration_Upload_Store' ) ) {
+				ERankly_Migration_Upload_Store::delete( $expired_backup );
 			}
 			--$report_count;
 		}
@@ -184,29 +178,6 @@ final class ERankly_Migration_Manager {
 		update_option( self::REPORTS_OPTION, $reports, false );
 
 		return $report;
-	}
-
-	/**
- * @param bool                $refresh_rollback Whether to read the live journal state.
- * @return array<string,mixed>
- */
-	public function evaluate_go_live_gate( array $report, bool $refresh_rollback = false ): array {
-		$rollback = is_array( $report['evidence']['rollback'] ?? null ) ? $report['evidence']['rollback'] : array();
-		if ( $refresh_rollback && 'import' === (string) ( $report['mode'] ?? '' ) && function_exists( 'erankly_migration_journal' ) ) {
-			try {
-				$rollback = erankly_migration_journal()->summary( (string) ( $report['id'] ?? '' ) );
-			} catch ( Throwable ) {
-				$rollback = array_merge(
-					$rollback,
-					array(
-						'expired'   => true,
-						'available' => 0,
-					)
-				);
-			}
-		}
-
-		return ( new ERankly_Migration_Go_Live_Gate() )->evaluate( $report, $rollback );
 	}
 
 	/**
@@ -219,7 +190,7 @@ final class ERankly_Migration_Manager {
 		$mode            = (string) ( $report['mode'] ?? '' );
 		$status          = (string) ( $report['status'] ?? 'failed' );
 		$failed          = (int) ( $counts['settings_failed'] ?? 0 ) + (int) ( $counts['fields_failed'] ?? 0 ) + (int) ( $counts['redirects_failed'] ?? 0 );
-		$invalid         = (int) ( $counts['settings_invalid'] ?? 0 ) + (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 ) + (int) ( $counts['redirects_unsupported'] ?? 0 );
+		$invalid         = (int) ( $counts['objects_invalid'] ?? 0 ) + (int) ( $counts['fields_invalid'] ?? 0 ) + (int) ( $counts['redirects_invalid'] ?? 0 ) + (int) ( $counts['redirects_unsupported'] ?? 0 );
 		$conflicts       = (int) ( $counts['settings_conflicts'] ?? 0 ) + (int) ( $counts['fields_conflicts'] ?? 0 ) + (int) ( $counts['redirects_conflicts'] ?? 0 );
 		$warnings        = is_array( $report['warnings'] ?? null ) ? $report['warnings'] : array();
 		$blocking_warnings = array_filter(
@@ -227,9 +198,7 @@ final class ERankly_Migration_Manager {
 			static fn( mixed $warning ): bool => ! is_array( $warning ) || ! isset( $warning['blocking'] ) || (bool) $warning['blocking']
 		);
 		$source_verified = ! empty( $report['source_fingerprint_verified'] );
-		$evidence        = is_array( $report['evidence'] ?? null ) ? $report['evidence'] : array();
-		$invariant_pass  = empty( $evidence ) || 'pass' === (string) ( $evidence['invariant']['status'] ?? '' );
-		$blocked         = 'complete' !== $status || $failed > 0 || ! $source_verified || ! $invariant_pass || ! empty( $blocking_warnings );
+		$blocked         = 'complete' !== $status || $failed > 0 || ! $source_verified || ! empty( $blocking_warnings );
 		$needs_review    = $invalid > 0 || $conflicts > 0;
 
 		if ( $blocked ) {
@@ -268,11 +237,6 @@ final class ERankly_Migration_Manager {
 				'status' => $blocking_warnings ? 'warn' : 'pass',
 				'count'  => count( $blocking_warnings ),
 			),
-			array(
-				'code'   => 'accounting_invariant',
-				'status' => $invariant_pass ? 'pass' : 'fail',
-				'count'  => $invariant_pass ? 0 : 1,
-			),
 		);
 
 		$next_actions = array();
@@ -305,34 +269,6 @@ final class ERankly_Migration_Manager {
 	}
 
 	/**
- * Keeps the legacy summary aligned with the authoritative go-live gate.
- *
- * @return array<string,mixed>
- */
-	private function synchronize_verification_with_gate( array $report ): array {
-		if ( 'import' !== (string) ( $report['mode'] ?? '' ) ) {
-			return $report;
-		}
-
-		$gate  = is_array( $report['go_live_gate'] ?? null ) ? $report['go_live_gate'] : array();
-		$state = sanitize_key( (string) ( $gate['state'] ?? 'blocked' ) );
-		if ( ! isset( $report['verification'] ) || ! is_array( $report['verification'] ) ) {
-			$report['verification'] = array();
-		}
-
-		$report['verification']['ready_to_switch'] = ! empty( $gate['ready_for_cutover'] ) || ! empty( $gate['go_live'] );
-		if ( 'rolled_back' === $state ) {
-			$report['verification']['state'] = 'rolled_back';
-		} elseif ( in_array( $state, array( 'ready_for_cutover', 'go_live' ), true ) ) {
-			$report['verification']['state'] = 'safe';
-		} else {
-			$report['verification']['state'] = 'blocked';
-		}
-
-		return $report;
-	}
-
-	/**
  * Returns a persisted migration report.
  *
  * @return array<string,mixed>|null
@@ -342,11 +278,7 @@ final class ERankly_Migration_Manager {
 		if ( ! is_array( $reports ) || ! isset( $reports[ $report_id ] ) || ! is_array( $reports[ $report_id ] ) ) {
 			return null;
 		}
-		$report                 = $reports[ $report_id ];
-		$report['go_live_gate'] = $this->evaluate_go_live_gate( $report, true );
-		$report                 = $this->synchronize_verification_with_gate( $report );
-
-		return $report;
+		return $reports[ $report_id ];
 	}
 
 	/** @return array<int,array<string,mixed>> */
@@ -355,16 +287,7 @@ final class ERankly_Migration_Manager {
 		if ( ! is_array( $reports ) ) {
 			return array();
 		}
-		$reports = array_reverse( array_values( $reports ) );
-		foreach ( $reports as &$report ) {
-			if ( is_array( $report ) ) {
-				$report['go_live_gate'] = $this->evaluate_go_live_gate( $report, true );
-				$report                 = $this->synchronize_verification_with_gate( $report );
-			}
-		}
-		unset( $report );
-
-		return array_values( array_filter( $reports, 'is_array' ) );
+		return array_values( array_filter( array_reverse( array_values( $reports ) ), 'is_array' ) );
 	}
 
 	/** Replaces one existing report after a privileged verification or rollback action. */
@@ -374,9 +297,7 @@ final class ERankly_Migration_Manager {
 		if ( '' === $report_id || ! is_array( $reports ) || ! isset( $reports[ $report_id ] ) ) {
 			return false;
 		}
-		$report['go_live_gate'] = $this->evaluate_go_live_gate( $report, true );
-		$report                 = $this->synchronize_verification_with_gate( $report );
-		$reports[ $report_id ]  = $report;
+		$reports[ $report_id ] = $report;
 
 		return update_option( self::REPORTS_OPTION, $reports, false );
 	}

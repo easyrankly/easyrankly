@@ -76,4 +76,32 @@
 
   ER.bindCharacterCounter = bindCharacterCounter;
   ER.bindFileDropzone = bindFileDropzone;
+
+  // Term forms: the core submit button is rendered by WordPress after the
+  // EasyRankly fields, so the documentation link is moved into the submit row
+  // to sit beside the button instead of floating detached above it.
+  function moveTermDocLink(link) {
+    var form = link.closest("form");
+
+    if (!form) {
+      return;
+    }
+
+    var submitRow = form.querySelector(".submit, .form-submit");
+
+    if (!submitRow || submitRow.contains(link)) {
+      return;
+    }
+
+    var button = submitRow.querySelector(
+      'button[type="submit"], input[type="submit"]'
+    );
+
+    if (button) {
+      button.insertAdjacentElement("afterend", link);
+      submitRow.classList.add("erankly-has-doc-link");
+    }
+  }
+
+  ER.moveTermDocLink = moveTermDocLink;
 })(window.ERanklyAdmin = window.ERanklyAdmin || {});

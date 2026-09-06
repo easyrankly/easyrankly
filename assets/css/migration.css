@@ -288,52 +288,6 @@
 	max-width: 720px;
 }
 
-#erankly-migration-export-form {
-	scroll-margin-top: 40px;
-}
-
-.erankly-migration-gate {
-	--erankly-migration-gate-color: var(--erankly-color-info);
-	--erankly-migration-gate-surface: var(--erankly-color-info-surface);
-	--erankly-migration-gate-border: var(--erankly-color-info-border);
-	background: var(--erankly-migration-gate-surface);
-	border: 1px solid var(--erankly-migration-gate-border);
-	border-left: 3px solid var(--erankly-migration-gate-color);
-	border-radius: var(--erankly-radius-surface);
-	margin-bottom: var(--erankly-space-5);
-	padding: var(--erankly-space-4);
-}
-
-.erankly-migration-gate--success {
-	--erankly-migration-gate-color: var(--erankly-color-success);
-	--erankly-migration-gate-surface: var(--erankly-color-success-surface);
-	--erankly-migration-gate-border: var(--erankly-color-success-border);
-}
-
-.erankly-migration-gate--warning {
-	--erankly-migration-gate-color: var(--erankly-color-warning);
-	--erankly-migration-gate-surface: var(--erankly-color-warning-surface);
-	--erankly-migration-gate-border: var(--erankly-color-warning-border);
-}
-
-.erankly-migration-gate--error {
-	--erankly-migration-gate-color: var(--erankly-color-error);
-	--erankly-migration-gate-surface: var(--erankly-color-error-surface);
-	--erankly-migration-gate-border: var(--erankly-color-error-border);
-}
-
-.erankly-migration-gate p {
-	margin: 0 0 var(--erankly-space-2);
-}
-
-.erankly-migration-gate ul {
-	margin: var(--erankly-space-3) 0 var(--erankly-space-3) var(--erankly-space-5);
-}
-
-.erankly-migration-gate li {
-	margin-bottom: var(--erankly-space-1);
-}
-
 .erankly-migration-history ul {
 	margin: 0;
 	padding: var(--erankly-space-3) var(--erankly-space-4) var(--erankly-space-3) var(--erankly-space-6);

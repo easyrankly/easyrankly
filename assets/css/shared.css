@@ -52,6 +52,52 @@
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
 
+/* Per-section documentation link (settings rows, editor panels, term forms). */
+.erankly-section-doc-link {
+	font-size: 12px;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.erankly-section-doc-link:hover {
+	text-decoration: underline;
+}
+
+/* Documentation link rendered as the last "field" of editor panels. */
+.erankly-panel-doc-link {
+	font-size: 12px;
+	margin: var(--erankly-space-field) 0 0;
+}
+
+.erankly-panel-doc-link:last-child {
+	margin-bottom: 0;
+}
+
+/*
+ * Term forms: JS moves the documentation link beside the core submit button
+ * (rendered by WordPress after the EasyRankly fields) and tags the row, so
+ * button and link share one line instead of stacking.
+ */
+.erankly-term-doc-link {
+	margin: 0;
+	margin-left: auto;
+	white-space: nowrap;
+}
+
+.erankly-has-doc-link {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--erankly-space-3);
+}
+
+.erankly-has-doc-link .button,
+.erankly-has-doc-link button[type="submit"] {
+	flex-shrink: 1;
+	min-width: 0;
+	width: auto;
+}
+
 /* Popover / suggestion menu surfaces. */
 
 .erankly-editor-variable-popover .components-popover__content {
@@ -59,6 +105,11 @@
 	border: 1px solid var(--erankly-color-border);
 	border-radius: var(--erankly-radius-popover);
 	box-shadow: var(--erankly-shadow-popover);
+	/* WP core sizes popover contents with width: min-content, which lets the
+	 * variable menu grow past its anchor field. The menu gets the field's
+	 * width inline (see editor-shared.js); keep the wrapper from fighting it. */
+	min-width: 0;
+	width: auto;
 }
 
 .erankly-variable-menu,

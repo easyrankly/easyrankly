@@ -222,7 +222,8 @@
     );
 
     function getTabLabel(tab) {
-      return tab.textContent;
+      var label = tab.querySelector(".erankly-settings-nav-label");
+      return (label || tab).textContent;
     }
 
     function findInnerTab(target) {

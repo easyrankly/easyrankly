@@ -8,10 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Rank Math Free/PRO adapter. */
 final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter {
 
-	private static function enabled_module_value( mixed $value ): bool {
-		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'yes', 'true', 'active', 'enabled' ), true );
-	}
-
 	public function slug(): string {
 		return 'rankmath';
 	}
@@ -29,72 +25,12 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		);
 	}
 
-	public function edition(): string {
-		return defined( 'RANK_MATH_PRO_VERSION' ) || ! empty( $this->installed_plugins( array( 'seo-by-rank-math-pro/rank-math-pro.php' ) ) ) ? 'pro' : 'free';
-	}
-
-	public function modules(): array {
-		$stored  = get_option( 'rank_math_modules', array() );
-		$modules = array();
-		foreach ( is_array( $stored ) ? $stored : array() as $key => $value ) {
-			$name = is_int( $key ) ? (string) $value : ( self::enabled_module_value( $value ) ? (string) $key : '' );
-			$name = sanitize_key( $name );
-			if ( '' !== $name ) {
-				$modules[] = $name;
-			}
-		}
-		if ( 'pro' === $this->edition() ) {
-			$modules[] = 'pro';
-		}
-		if ( $this->redirect_table_has_rows() ) {
-			$modules[] = 'redirections';
-		}
-
-		return array_values( array_unique( $modules ) );
-	}
-
-	public function module_support(): array {
-		$mapped  = array( 'pro', 'schema', 'rich-snippet', 'redirections', 'advanced-robots', 'image-seo' );
-		$support = array();
-		foreach ( $this->modules() as $module ) {
-			// Modules outside the adapter contract are intentionally ignored. Their
-			// enabled state is still recorded in the source profile, but it must not
-			// create a blocking warning when no EasyRankly-owned value is imported.
-			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'ignored';
-		}
-		return $support;
-	}
-
 	/** Rank Math keeps its public storage contract in the 1.0 line. */
 	protected function supported_versions(): array {
 		return array(
 			'min' => '0.9.0',
 			'max' => '1.999.999',
 		);
-	}
-
-	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
-	protected function export_source_profile( string $format ): array {
-		if ( 'rankmath-metadata-csv' === $format ) {
-			return array(
-				'edition'        => 'pro',
-				'modules'        => array( 'pro', 'schema', 'advanced-robots' ),
-				'module_support' => array(
-					'pro'             => 'supported',
-					'schema'          => 'supported',
-					'advanced-robots' => 'supported',
-				),
-			);
-		}
-		if ( 'rankmath-redirects-csv' === $format ) {
-			return array(
-				'edition'        => 'free-or-pro',
-				'modules'        => array( 'redirections' ),
-				'module_support' => array( 'redirections' => 'supported' ),
-			);
-		}
-
-		return parent::export_source_profile( $format );
 	}
 
 	/** Declares every Rank Math surface consumed by this adapter. */
@@ -152,10 +88,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	}
 
 	public function global_settings(): array {
-		if ( $this->uses_export_file() ) {
-			return array();
-		}
-
 		$titles  = $this->option_array( 'rank-math-options-titles' );
 		$general = $this->option_array( 'rank-math-options-general' );
 		$sitemap = $this->option_array( 'rank-math-options-sitemap' );
@@ -335,13 +267,13 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 		if ( array_key_exists( 'noindex_archive_subpages', $titles ) ) {
 			$settings['noindex_paginated'] = $this->enabled( $titles['noindex_archive_subpages'] ) ? 1 : 0;
 		}
-		if ( in_array( 'sitemap', $this->modules(), true ) || $sitemap ) {
+		if ( $sitemap ) {
 			$settings['enable_sitemap'] = 1;
 		}
 		if ( array_key_exists( 'include_images', $sitemap ) ) {
 			$settings['enable_image_sitemap'] = $this->enabled( $sitemap['include_images'] ) ? 1 : 0;
 		}
-		if ( in_array( 'redirections', $this->modules(), true ) ) {
+		if ( $this->redirect_table_has_rows() ) {
 			$settings['enable_redirects']        = 1;
 
 			$fallback = sanitize_key( (string) ( $general['redirections_fallback'] ?? 'default' ) );
@@ -365,10 +297,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
 	}
 
 	public function is_available(): bool {
-		if ( $this->uses_export_file() ) {
-			return 'supported' === (string) $this->profile()['storage_status'];
-		}
-
 		return $this->has_meta( 'post', $this->keys(), array( 'rank_math_schema_', 'rank_math_primary_' ) )
 			|| $this->has_meta( 'term', $this->keys(), array( 'rank_math_schema_' ) )
 			|| $this->has_meta( 'user', $this->keys() )
@@ -403,10 +331,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function content_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$stages = array( 'post', 'term', 'user' );
 		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'post' ) );
 		$stage  = in_array( $stage, $stages, true ) ? $stage : 'post';
@@ -527,10 +451,6 @@ final class ERankly_Migration_Adapter_RankMath extends ERankly_Migration_Adapter
  * @throws RuntimeException When the Rank Math redirect query fails.
  */
 	public function redirect_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'rank_math_redirections';

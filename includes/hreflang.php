@@ -50,9 +50,9 @@ function erankly_get_navigable_hreflang_alternates(): array {
 	$alternates  = erankly_get_provider_alternates( true );
 
 	/**
- * Filters the visitor-navigable language alternates. Expected shape: array( 'it-IT' =>
- * 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
- */
+	 * Filters the visitor-navigable language alternates. Expected shape: array( 'it-IT' =>
+	 * 'https://example.com/it/pagina/', 'x-default' => 'https://example.com/' ).
+	 */
 	$alternates = apply_filters( 'erankly_navigable_hreflang_alternates', $alternates, $context, $provider_id );
 
 	return erankly_clean_hreflang_alternates( $alternates );

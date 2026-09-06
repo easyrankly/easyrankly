@@ -33,67 +33,12 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		);
 	}
 
-	/** Returns Lite or Pro from installed code and Pro-only storage. */
-	public function edition(): string {
-		$pro = ! empty( $this->installed_plugins( array( 'all-in-one-seo-pack-pro/all_in_one_seo_pack.php' ) ) )
-			|| $this->table_has_rows( 'aioseo_terms' )
-			|| $this->table_has_rows( 'aioseo_redirects' );
-
-		return $pro ? 'pro' : 'lite';
-	}
-
-	public function modules(): array {
-		$modules = array( 'search-appearance', 'social', 'schema', 'robots' );
-		if ( $this->table_has_rows( 'aioseo_terms' ) ) {
-			$modules[] = 'term-seo';
-		}
-		if ( $this->table_has_rows( 'aioseo_redirects' ) ) {
-			$modules[] = 'redirects';
-		}
-		if ( $this->table_column_has_values( 'aioseo_posts', 'local_seo' ) ) {
-			$modules[] = 'local-seo';
-		}
-		if ( $this->table_column_has_values( 'aioseo_posts', 'videos' ) ) {
-			$modules[] = 'video-sitemap';
-		}
-		if ( 'pro' === $this->edition() ) {
-			$modules[] = 'pro';
-		}
-
-		return array_values( array_unique( $modules ) );
-	}
-
-	public function module_support(): array {
-		$mapped  = array( 'search-appearance', 'social', 'schema', 'robots', 'term-seo', 'redirects', 'pro' );
-		$support = array();
-		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, $mapped, true ) ? 'supported' : 'ignored';
-		}
-		return $support;
-	}
-
 	/** Covers AIOSEO 3 postmeta and the compatible v4/v5 table family. */
 	protected function supported_versions(): array {
 		return array(
 			'min' => '3.0.0',
 			'max' => '5.999.999',
 		);
-	}
-
-	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
-	protected function export_source_profile( string $format ): array {
-		if ( in_array( $format, array( 'aioseo-redirects-csv', 'aioseo-redirects-json' ), true ) ) {
-			return array(
-				'edition'        => 'pro',
-				'modules'        => array( 'pro', 'redirects' ),
-				'module_support' => array(
-					'pro'       => 'supported',
-					'redirects' => 'supported',
-				),
-			);
-		}
-
-		return parent::export_source_profile( $format );
 	}
 
 	/** Declares every AIOSEO surface and required table signature. */
@@ -147,10 +92,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	public function global_settings(): array {
-		if ( $this->uses_export_file() ) {
-			return array();
-		}
-
 		$options = array_replace_recursive( $this->option_array( 'aioseo_options' ), $this->option_array( 'aioseo_options_localized' ) );
 		$dynamic = array_replace_recursive( $this->option_array( 'aioseo_options_dynamic' ), $this->option_array( 'aioseo_options_dynamic_localized' ) );
 		if ( ! $options && ! $dynamic ) {
@@ -412,7 +353,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		foreach ( array(
 			'noimageindex' => 'robots_noimageindex',
 			'notranslate'  => 'robots_notranslate',
-			'noodp'        => 'robots_noodp',
 		) as $source_key => $target ) {
 			if ( array_key_exists( $source_key, $global_robots ) ) {
 				$settings[ $target ] = $this->enabled( $global_robots[ $source_key ] ) ? 1 : 0;
@@ -429,8 +369,7 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 		if ( isset( $global_robots['maxImagePreview'] ) ) {
 			$max_image_preview = sanitize_key( (string) $global_robots['maxImagePreview'] );
 			if ( in_array( $max_image_preview, array( 'none', 'standard', 'large' ), true ) ) {
-				$settings['robots_max_image_preview']       = $max_image_preview;
-				$settings['robots_max_image_preview_large'] = 'large' === $max_image_preview ? 1 : 0;
+				$settings['robots_max_image_preview'] = $max_image_preview;
 			}
 		}
 		$attachment_redirect = (string) $this->nested_value( $dynamic, 'searchAppearance.postTypes.attachment.redirectAttachmentUrls', '' );
@@ -448,10 +387,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
 	}
 
 	public function is_available(): bool {
-		if ( $this->uses_export_file() ) {
-			return 'supported' === (string) $this->profile()['storage_status'];
-		}
-
 		return $this->table_has_rows( 'aioseo_posts' )
 			|| $this->table_has_rows( 'aioseo_terms' )
 			|| $this->table_has_rows( 'aioseo_redirects' )
@@ -506,10 +441,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function content_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$stages = array( 'aioseo_posts', 'aioseo_terms', 'v3_postmeta' );
 		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'aioseo_posts' ) );
 		$stage  = in_array( $stage, $stages, true ) ? $stage : 'aioseo_posts';
@@ -614,10 +545,6 @@ final class ERankly_Migration_Adapter_AIOSEO extends ERankly_Migration_Adapter {
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function redirect_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$page    = $this->source_table_batch( 'aioseo_redirects', absint( $cursor['after_id'] ?? 0 ), $limit );
 		$records = array();
 

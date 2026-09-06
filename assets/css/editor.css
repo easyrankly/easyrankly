@@ -61,10 +61,9 @@
 	padding: 0;
 }
 
-.erankly-editor-variable-menu {
-	min-width: 280px;
-	width: min(340px, calc(100vw - var(--erankly-space-6)));
-}
+/* The suggestion menu is exactly as wide as its field: editor-shared.js pins it
+ * to the anchor's width inline, mirroring the settings pages where the menu is
+ * absolutely positioned inside the field. */
 
 /* Align the switch with the top of its label, even when the label wraps. */
 .erankly-panel .components-toggle-control .components-base-control__field,

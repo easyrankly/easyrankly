@@ -78,7 +78,6 @@ function erankly_render_local_business_settings( array $settings ): void {
 	<div class="erankly-local-business" data-erankly-local-business>
 		<div class="erankly-field erankly-checkboxes">
 			<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_local_business]" value="1" <?php checked( $enabled ); ?> data-erankly-local-business-toggle> <?php esc_html_e( 'Add one physical business location for search engines', 'easyrankly' ); ?></label>
-			<p class="description"><?php esc_html_e( 'Search engines can read its address, opening hours and contact details. Use the same details as your Google Business Profile.', 'easyrankly' ); ?></p>
 		</div>
 		<div class="erankly-local-business-fields" data-erankly-local-business-fields <?php echo $enabled ? '' : 'hidden'; ?>>
 			<div class="erankly-inline-fields erankly-inline-fields-two-columns">
@@ -293,6 +292,7 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 							<div class="erankly-field">
 								<label for="<?php echo esc_attr( $id_prefix ); ?>-article-type"><?php esc_html_e( 'Article schema type', 'easyrankly' ); ?></label>
 								<input id="<?php echo esc_attr( $id_prefix ); ?>-article-type" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[<?php echo esc_attr( $setting_key ); ?>][<?php echo esc_attr( $key ); ?>][article_type]" value="<?php echo esc_attr( $article_type ); ?>" placeholder="<?php echo esc_attr( 'post' === $key ? 'BlogPosting' : __( 'None', 'easyrankly' ) ); ?>">
+								<p class="description"><?php esc_html_e( 'Type none to emit no Article schema for this content type.', 'easyrankly' ); ?></p>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -638,7 +638,6 @@ function erankly_render_global_advanced_robot_preservation( string $setting_key,
 		'snippet_directive',
 		'image_directive',
 		'notranslate',
-		'noodp',
 		'indexifembedded',
 		'max_snippet',
 		'max_video_preview',

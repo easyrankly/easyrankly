@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once ERANKLY_PATH . 'admin/field-renderers.php';
+require_once ERANKLY_PATH . 'admin/settings/section-links.php';
 
 function erankly_register_meta_box(): void {
 	$screen = get_current_screen();
@@ -240,11 +241,9 @@ function erankly_render_post_social_fields( WP_Post $post ): void {
 			'' !== $legacy_image_url ? $legacy_image_url : ( '' !== $social_image_placeholder ? $social_image_placeholder : erankly_default_social_image_placeholder() )
 		);
 		?>
-		<details class="erankly-social-image-alt-override"<?php echo '' !== $twitter_image_alt ? ' open' : ''; ?>>
-			<summary><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></summary>
-			<input id="erankly-twitter-image-alt" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>" aria-label="<?php esc_attr_e( 'X image alt text override', 'easyrankly' ); ?>">
-			<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
-		</details>
+		<label for="erankly-twitter-image-alt"><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></label>
+		<input id="erankly-twitter-image-alt" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>">
+		<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
 	</div>
 	<?php do_action( 'erankly_post_social_fields_after', $post ); ?>
 	<?php
@@ -267,32 +266,34 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 	$exclude_archive          = erankly_get_post_meta_bool( $post->ID, 'exclude_archive' );
 	$exclude_from_news        = erankly_get_post_meta_bool( $post->ID, 'exclude_from_news' );
 	?>
+	<?php if ( $simplified_mode ) : ?>
 	<div class="erankly-field erankly-checkboxes">
-		<?php if ( $simplified_mode ) : ?>
-			<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
-			<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
-			<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
-			<span class="description"><?php esc_html_e( 'Adds noindex and removes this page from the sitemap; other robots rules stay unchanged.', 'easyrankly' ); ?></span>
-		<?php else : ?>
-			<?php erankly_render_robots_directive_select( 'erankly_index_directive', $index_directive, __( 'Indexing', 'easyrankly' ), __( 'Index', 'easyrankly' ), __( 'Noindex', 'easyrankly' ) ); ?>
-			<?php erankly_render_robots_directive_select( 'erankly_follow_directive', $follow_directive, __( 'Link following', 'easyrankly' ), __( 'Follow', 'easyrankly' ), __( 'Nofollow', 'easyrankly' ) ); ?>
-			<?php erankly_render_robots_directive_select( 'erankly_archive_directive', $archive_directive, __( 'Cached copy', 'easyrankly' ), __( 'Allow archive', 'easyrankly' ), __( 'Noarchive', 'easyrankly' ) ); ?>
-			<?php erankly_render_robots_directive_select( 'erankly_snippet_directive', $snippet_directive, __( 'Text snippet', 'easyrankly' ), __( 'Allow snippet', 'easyrankly' ), __( 'Nosnippet', 'easyrankly' ) ); ?>
-			<?php erankly_render_robots_directive_select( 'erankly_image_directive', $image_directive, __( 'Image indexing', 'easyrankly' ), __( 'Allow image indexing', 'easyrankly' ), __( 'Noimageindex', 'easyrankly' ) ); ?>
-			<label><?php esc_html_e( 'Max snippet', 'easyrankly' ); ?> <input class="small-text" type="number" min="-1" name="erankly_max_snippet" value="<?php echo esc_attr( (string) get_post_meta( $post->ID, '_erankly_max_snippet', true ) ); ?>"></label><br>
-			<label><?php esc_html_e( 'Max video preview', 'easyrankly' ); ?> <input class="small-text" type="number" min="-1" name="erankly_max_video_preview" value="<?php echo esc_attr( (string) get_post_meta( $post->ID, '_erankly_max_video_preview', true ) ); ?>"></label><br>
-			<label><?php esc_html_e( 'Max image preview', 'easyrankly' ); ?> <select name="erankly_max_image_preview"><option value="inherit"><?php esc_html_e( 'Inherit', 'easyrankly' ); ?></option>
-			<?php
-			foreach ( array( 'none', 'standard', 'large' ) as $preview ) :
-				?>
-				<option value="<?php echo esc_attr( $preview ); ?>" <?php selected( get_post_meta( $post->ID, '_erankly_max_image_preview', true ), $preview ); ?>><?php echo esc_html( $preview ); ?></option><?php endforeach; ?></select></label><br>
-			<label><input type="checkbox" class="erankly-toggle" name="erankly_indexifembedded" value="1" <?php checked( get_post_meta( $post->ID, '_erankly_indexifembedded', true ), '1' ); ?>> <?php esc_html_e( 'Index if embedded when noindex applies', 'easyrankly' ); ?></label><br>
-			<label><input type="checkbox" class="erankly-toggle" name="erankly_disable_sitemap" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
-		<?php endif; ?>
+		<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
+		<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
+		<span class="description"><?php esc_html_e( 'Adds noindex and removes this page from the sitemap; other robots rules stay unchanged.', 'easyrankly' ); ?></span>
 	</div>
+	<?php else : ?>
+		<?php
+		erankly_render_advanced_robots_fields(
+			array(
+				'index_directive'   => $index_directive,
+				'follow_directive'  => $follow_directive,
+				'archive_directive' => $archive_directive,
+				'snippet_directive' => $snippet_directive,
+				'image_directive'   => $image_directive,
+				'max_snippet'       => get_post_meta( $post->ID, '_erankly_max_snippet', true ),
+				'max_video_preview' => get_post_meta( $post->ID, '_erankly_max_video_preview', true ),
+				'max_image_preview' => get_post_meta( $post->ID, '_erankly_max_image_preview', true ),
+				'indexifembedded'   => get_post_meta( $post->ID, '_erankly_indexifembedded', true ),
+				'disable_sitemap'   => $disable_sitemap,
+			)
+		);
+		?>
+	<?php endif; ?>
 	<fieldset class="erankly-field erankly-checkboxes">
 		<legend><?php esc_html_e( 'Archives', 'easyrankly' ); ?></legend>
-		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude from site search', 'easyrankly' ); ?></label><br>
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_search" value="1" <?php checked( $exclude_search ); ?>> <?php esc_html_e( 'Exclude from site search', 'easyrankly' ); ?></label>
 		<label><input type="checkbox" class="erankly-toggle" name="erankly_exclude_archive" value="1" <?php checked( $exclude_archive ); ?>> <?php esc_html_e( 'Exclude from archives', 'easyrankly' ); ?></label>
 	</fieldset>
 	<?php if ( (bool) erankly_get_setting( 'enable_news_sitemap', 0 ) ) : ?>
@@ -305,6 +306,7 @@ function erankly_render_post_visibility_fields( WP_Post $post ): void {
 
 function erankly_render_robots_directive_select( string $name, string $value, string $label, string $allow_label, string $deny_label ): void {
 	$axis  = str_replace( array( 'erankly_', '_directive' ), '', $name );
+	$id    = 'erankly-' . str_replace( '_', '-', $axis ) . '-directive';
 	$allow = array(
 		'index'   => 'index',
 		'follow'  => 'follow',
@@ -320,13 +322,63 @@ function erankly_render_robots_directive_select( string $name, string $value, st
 		'image'   => 'noimageindex',
 	);
 	?>
-	<label><?php echo esc_html( $label ); ?>
-		<select name="<?php echo esc_attr( $name ); ?>">
+	<div class="erankly-field">
+		<label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label>
+		<select id="<?php echo esc_attr( $id ); ?>" class="widefat" name="<?php echo esc_attr( $name ); ?>">
 			<option value="inherit" <?php selected( $value, 'inherit' ); ?>><?php esc_html_e( 'Inherit', 'easyrankly' ); ?></option>
 			<option value="<?php echo esc_attr( $allow[ $axis ] ); ?>" <?php selected( $value, $allow[ $axis ] ); ?>><?php echo esc_html( $allow_label ); ?></option>
 			<option value="<?php echo esc_attr( $deny[ $axis ] ); ?>" <?php selected( $value, $deny[ $axis ] ); ?>><?php echo esc_html( $deny_label ); ?></option>
 		</select>
-	</label><br>
+	</div>
+	<?php
+}
+
+/**
+ * Renders the advanced (non-simplified) robots controls shared by the post meta box and term forms.
+ *
+ * Reuses the shared field anatomy and the settings page inline grid classes,
+ * so every control gets a block label and a full-width control without any
+ * surface-specific CSS.
+ *
+ * @param array<string,mixed> $values Current values: the five *_directive selects, max_snippet,
+ *                                    max_video_preview, max_image_preview, indexifembedded
+ *                                    and disable_sitemap.
+ */
+function erankly_render_advanced_robots_fields( array $values ): void {
+	$max_snippet_value       = isset( $values['max_snippet'] ) && is_scalar( $values['max_snippet'] ) ? (string) $values['max_snippet'] : '';
+	$max_video_preview_value = isset( $values['max_video_preview'] ) && is_scalar( $values['max_video_preview'] ) ? (string) $values['max_video_preview'] : '';
+	$max_image_preview_value = isset( $values['max_image_preview'] ) && is_scalar( $values['max_image_preview'] ) ? (string) $values['max_image_preview'] : '';
+	?>
+	<div class="erankly-inline-fields erankly-inline-fields-two-columns">
+		<?php
+		erankly_render_robots_directive_select( 'erankly_index_directive', (string) $values['index_directive'], __( 'Indexing', 'easyrankly' ), __( 'Index', 'easyrankly' ), __( 'Noindex', 'easyrankly' ) );
+		erankly_render_robots_directive_select( 'erankly_follow_directive', (string) $values['follow_directive'], __( 'Link following', 'easyrankly' ), __( 'Follow', 'easyrankly' ), __( 'Nofollow', 'easyrankly' ) );
+		erankly_render_robots_directive_select( 'erankly_archive_directive', (string) $values['archive_directive'], __( 'Cached copy', 'easyrankly' ), __( 'Allow archive', 'easyrankly' ), __( 'Noarchive', 'easyrankly' ) );
+		erankly_render_robots_directive_select( 'erankly_snippet_directive', (string) $values['snippet_directive'], __( 'Text snippet', 'easyrankly' ), __( 'Allow snippet', 'easyrankly' ), __( 'Nosnippet', 'easyrankly' ) );
+		erankly_render_robots_directive_select( 'erankly_image_directive', (string) $values['image_directive'], __( 'Image indexing', 'easyrankly' ), __( 'Allow image indexing', 'easyrankly' ), __( 'Noimageindex', 'easyrankly' ) );
+		?>
+		<div class="erankly-field">
+			<label for="erankly-max-snippet"><?php esc_html_e( 'Max snippet', 'easyrankly' ); ?></label>
+			<input id="erankly-max-snippet" class="widefat" type="number" min="-1" name="erankly_max_snippet" value="<?php echo esc_attr( $max_snippet_value ); ?>">
+		</div>
+		<div class="erankly-field">
+			<label for="erankly-max-video-preview"><?php esc_html_e( 'Max video preview', 'easyrankly' ); ?></label>
+			<input id="erankly-max-video-preview" class="widefat" type="number" min="-1" name="erankly_max_video_preview" value="<?php echo esc_attr( $max_video_preview_value ); ?>">
+		</div>
+		<div class="erankly-field">
+			<label for="erankly-max-image-preview"><?php esc_html_e( 'Max image preview', 'easyrankly' ); ?></label>
+			<select id="erankly-max-image-preview" class="widefat" name="erankly_max_image_preview">
+				<option value="inherit" <?php selected( $max_image_preview_value, 'inherit' ); ?>><?php esc_html_e( 'Inherit', 'easyrankly' ); ?></option>
+				<?php foreach ( array( 'none', 'standard', 'large' ) as $preview ) : ?>
+					<option value="<?php echo esc_attr( $preview ); ?>" <?php selected( $max_image_preview_value, $preview ); ?>><?php echo esc_html( $preview ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+	</div>
+	<div class="erankly-field erankly-checkboxes">
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_indexifembedded" value="1" <?php checked( ! empty( $values['indexifembedded'] ) ); ?>> <?php esc_html_e( 'Index if embedded when noindex applies', 'easyrankly' ); ?></label>
+		<label><input type="checkbox" class="erankly-toggle" name="erankly_disable_sitemap" value="1" <?php checked( ! empty( $values['disable_sitemap'] ) ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
+	</div>
 	<?php
 }
 
@@ -386,6 +438,7 @@ function erankly_render_add_term_fields( string $taxonomy ): void {
 	<div class="form-field term-erankly-wrap">
 		<h2><?php esc_html_e( 'EasyRankly', 'easyrankly' ); ?></h2>
 		<?php erankly_render_term_meta_fields( 0, $taxonomy ); ?>
+		<p class="erankly-term-doc-link"><?php erankly_render_section_doc_link( 'term-meta' ); ?></p>
 	</div>
 	<?php
 }
@@ -394,7 +447,10 @@ function erankly_render_edit_term_fields( WP_Term $term ): void {
 	?>
 	<tr class="form-field term-erankly-wrap">
 		<th scope="row"><?php esc_html_e( 'EasyRankly', 'easyrankly' ); ?></th>
-		<td><?php erankly_render_term_meta_fields( $term->term_id, $term->taxonomy ); ?></td>
+		<td>
+			<?php erankly_render_term_meta_fields( $term->term_id, $term->taxonomy ); ?>
+			<p class="erankly-term-doc-link"><?php erankly_render_section_doc_link( 'term-meta' ); ?></p>
+		</td>
 	</tr>
 	<?php
 }
@@ -532,37 +588,37 @@ function erankly_render_term_meta_fields( int $term_id, string $taxonomy ): void
 				'' !== $social_image_url ? $social_image_url : erankly_default_social_image_placeholder()
 			);
 			?>
-			<details class="erankly-social-image-alt-override"<?php echo '' !== $twitter_image_alt ? ' open' : ''; ?>>
-				<summary><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></summary>
-				<input id="erankly-term-twitter-image-alt-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>" aria-label="<?php esc_attr_e( 'X image alt text override', 'easyrankly' ); ?>">
-				<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
-			</details>
+			<label for="erankly-term-twitter-image-alt-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'X image alt text override', 'easyrankly' ); ?></label>
+			<input id="erankly-term-twitter-image-alt-<?php echo esc_attr( $id_suffix ); ?>" class="widefat" type="text" name="erankly_twitter_image_alt" value="<?php echo esc_attr( $twitter_image_alt ); ?>">
+			<span class="description"><?php esc_html_e( 'For a different X image only. If blank, uses that image’s Media Library alt text.', 'easyrankly' ); ?></span>
 		</div>
 		<?php do_action( 'erankly_term_social_fields_after', $term_id, $id_suffix ); ?>
 		<?php endif; ?>
 
+		<?php if ( $simplified_mode ) : ?>
 		<div class="erankly-field erankly-checkboxes">
-			<?php if ( $simplified_mode ) : ?>
-				<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
-				<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
-				<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
-				<span class="description"><?php esc_html_e( 'Adds noindex and removes this term from the sitemap; other robots rules stay unchanged.', 'easyrankly' ); ?></span>
-			<?php else : ?>
-				<?php erankly_render_robots_directive_select( 'erankly_index_directive', $index_directive, __( 'Indexing', 'easyrankly' ), __( 'Index', 'easyrankly' ), __( 'Noindex', 'easyrankly' ) ); ?>
-				<?php erankly_render_robots_directive_select( 'erankly_follow_directive', $follow_directive, __( 'Link following', 'easyrankly' ), __( 'Follow', 'easyrankly' ), __( 'Nofollow', 'easyrankly' ) ); ?>
-				<?php erankly_render_robots_directive_select( 'erankly_archive_directive', $archive_directive, __( 'Cached copy', 'easyrankly' ), __( 'Allow archive', 'easyrankly' ), __( 'Noarchive', 'easyrankly' ) ); ?>
-				<?php erankly_render_robots_directive_select( 'erankly_snippet_directive', $snippet_directive, __( 'Text snippet', 'easyrankly' ), __( 'Allow snippet', 'easyrankly' ), __( 'Nosnippet', 'easyrankly' ) ); ?>
-				<?php erankly_render_robots_directive_select( 'erankly_image_directive', $image_directive, __( 'Image indexing', 'easyrankly' ), __( 'Allow image indexing', 'easyrankly' ), __( 'Noimageindex', 'easyrankly' ) ); ?>
-				<label><?php esc_html_e( 'Max snippet', 'easyrankly' ); ?> <input class="small-text" type="number" min="-1" name="erankly_max_snippet" value="<?php echo esc_attr( (string) get_term_meta( $term_id, '_erankly_max_snippet', true ) ); ?>"></label><br>
-				<label><?php esc_html_e( 'Max video preview', 'easyrankly' ); ?> <input class="small-text" type="number" min="-1" name="erankly_max_video_preview" value="<?php echo esc_attr( (string) get_term_meta( $term_id, '_erankly_max_video_preview', true ) ); ?>"></label><br>
-				<label><?php esc_html_e( 'Max image preview', 'easyrankly' ); ?> <select name="erankly_max_image_preview"><option value="inherit"><?php esc_html_e( 'Inherit', 'easyrankly' ); ?></option>
-				<?php foreach ( array( 'none', 'standard', 'large' ) as $preview ) : ?>
-					<option value="<?php echo esc_attr( $preview ); ?>" <?php selected( get_term_meta( $term_id, '_erankly_max_image_preview', true ), $preview ); ?>><?php echo esc_html( $preview ); ?></option>
-				<?php endforeach; ?></select></label><br>
-				<label><input type="checkbox" class="erankly-toggle" name="erankly_indexifembedded" value="1" <?php checked( get_term_meta( $term_id, '_erankly_indexifembedded', true ), '1' ); ?>> <?php esc_html_e( 'Index if embedded when noindex applies', 'easyrankly' ); ?></label><br>
-				<label><input type="checkbox" class="erankly-toggle" name="erankly_disable_sitemap" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
-			<?php endif; ?>
+			<input type="hidden" name="erankly_existing_index_directive" value="<?php echo esc_attr( $index_directive ); ?>">
+			<input type="hidden" name="erankly_existing_hide" value="<?php echo $hide_from_search_results ? '1' : '0'; ?>">
+			<label><input type="checkbox" class="erankly-toggle" name="erankly_hide_from_search_results" value="1" <?php checked( $hide_from_search_results ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
 		</div>
+		<?php else : ?>
+			<?php
+			erankly_render_advanced_robots_fields(
+				array(
+					'index_directive'   => $index_directive,
+					'follow_directive'  => $follow_directive,
+					'archive_directive' => $archive_directive,
+					'snippet_directive' => $snippet_directive,
+					'image_directive'   => $image_directive,
+					'max_snippet'       => get_term_meta( $term_id, '_erankly_max_snippet', true ),
+					'max_video_preview' => get_term_meta( $term_id, '_erankly_max_video_preview', true ),
+					'max_image_preview' => get_term_meta( $term_id, '_erankly_max_image_preview', true ),
+					'indexifembedded'   => get_term_meta( $term_id, '_erankly_indexifembedded', true ),
+					'disable_sitemap'   => $disable_sitemap,
+				)
+			);
+			?>
+		<?php endif; ?>
 
 	</div>
 	<?php

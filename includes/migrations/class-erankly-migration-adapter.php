@@ -7,9 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Base class implemented by every source plugin adapter. */
 abstract class ERankly_Migration_Adapter {
-	/** Optional official source-plugin export used instead of live database data. */
-	private string $export_file = '';
-
 	/** @var array<int,array<string,mixed>> */
 	protected array $warnings = array();
 
@@ -77,59 +74,6 @@ abstract class ERankly_Migration_Adapter {
 		return $this->warnings;
 	}
 
-	/**
- * Selects a previously validated official export file as the source. The resumable runner persists this path in
- * its checkpoint and restores it before every page. Upload ownership and cleanup intentionally belong to the
- * Phase 5 wizard; adapters only accept local, readable CSV/JSON files.
- *
- * @param string $path Local source export path, or an empty string for DB mode.
- */
-	public function use_export_file( string $path ): bool {
-		if ( '' === $path ) {
-			$this->export_file = '';
-			return true;
-		}
-
-		$real = realpath( $path );
-		$ext  = strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) );
-		if ( false === $real || ! is_file( $real ) || ! is_readable( $real ) || ! in_array( $ext, array( 'csv', 'json' ), true ) ) {
-			return false;
-		}
-
-		$maximum = class_exists( 'ERankly_Migration_Upload_Store' )
-			? ERankly_Migration_Upload_Store::export_max_bytes( $ext )
-			: max( 1024, (int) apply_filters( 'erankly_migration_export_max_bytes', 100 * MB_IN_BYTES ) );
-		$size    = filesize( $real );
-		if ( false === $size || $size < 1 || $size > $maximum ) {
-			return false;
-		}
-
-		$this->export_file = $real;
-		return true;
-	}
-
-	public function uses_export_file(): bool {
-		return '' !== $this->export_file;
-	}
-
-	public function export_file(): string {
-		return $this->export_file;
-	}
-
-	public function edition(): string {
-		return 'free';
-	}
-
-	/** @return array<int,string> */
-	public function modules(): array {
-		return array();
-	}
-
-	/** @return array<string,string> */
-	public function module_support(): array {
-		return array();
-	}
-
 	/** @return array<string,array<string,mixed>> */
 	protected function storage_definitions(): array {
 		return array();
@@ -148,134 +92,8 @@ abstract class ERankly_Migration_Adapter {
 		);
 	}
 
-	/**
- * Returns edition and modules proven by an official export signature. Concrete adapters override this when the
- * export format itself carries a stronger edition signal than the currently installed source code.
- *
- * @return array{edition:string,modules:array<int,string>,module_support:array<string,string>}
- */
-	protected function export_source_profile( string $format ): array {
-		unset( $format );
-
-		return array(
-			'edition'        => $this->edition(),
-			'modules'        => $this->modules(),
-			'module_support' => $this->module_support(),
-		);
-	}
-
-	/**
- * Detects the exact source profile before discovery starts.
- *
- * @return array<string,mixed>
- */
-	public function profile(): array {
-		if ( $this->uses_export_file() ) {
-			$inspection     = class_exists( 'ERankly_Migration_Export_Reader' )
-				? ERankly_Migration_Export_Reader::inspect( $this->export_file, $this->slug() )
-				: array(
-					'status' => 'unsupported',
-					'format' => '',
-					'reason' => 'export_reader_unavailable',
-				);
-			$export_profile = 'supported' === (string) ( $inspection['status'] ?? '' )
-				? $this->export_source_profile( (string) ( $inspection['format'] ?? '' ) )
-				: array(
-					'edition'        => 'unknown',
-					'modules'        => array(),
-					'module_support' => array(),
-				);
-
-			return array(
-				'source'           => $this->slug(),
-				'label'            => $this->label(),
-				'version'          => $this->version(),
-				'version_status'   => 'export',
-				'edition'          => (string) ( $export_profile['edition'] ?? 'unknown' ),
-				'modules'          => is_array( $export_profile['modules'] ?? null ) ? $export_profile['modules'] : array(),
-				'module_support'   => is_array( $export_profile['module_support'] ?? null ) ? $export_profile['module_support'] : array(),
-				'mode'             => 'official_export',
-				'storage_status'   => (string) ( $inspection['status'] ?? 'unsupported' ),
-				'storage_format'   => (string) ( $inspection['format'] ?? '' ),
-				'storage_reason'   => (string) ( $inspection['reason'] ?? '' ),
-				'storage_surfaces' => array(),
-				'capabilities'     => $this->capabilities(),
-			);
-		}
-
-		$surfaces    = array();
-		$present     = 0;
-		$unsupported = false;
-		foreach ( $this->storage_definitions() as $name => $definition ) {
-			$surface    = $this->inspect_storage_surface( (string) $name, $definition );
-			$surfaces[] = $surface;
-			if ( 'supported' === $surface['status'] ) {
-				++$present;
-			} elseif ( 'unsupported' === $surface['status'] ) {
-				$unsupported = true;
-			}
-		}
-
-		$version        = $this->version();
-		$version_status = $this->version_status( $version );
-		$status         = 0 === $present ? 'empty' : 'supported';
-		$reason         = '';
-		if ( $unsupported ) {
-			$status = 'unsupported';
-			$reason = 'unknown_storage_signature';
-		} elseif ( 'unsupported' === $version_status ) {
-			$status = 'unsupported';
-			$reason = 'unsupported_source_version';
-		}
-
-		return array(
-			'source'           => $this->slug(),
-			'label'            => $this->label(),
-			'version'          => $version,
-			'version_status'   => $version_status,
-			'edition'          => $this->edition(),
-			'modules'          => $this->modules(),
-			'module_support'   => $this->module_support(),
-			'mode'             => 'database',
-			'storage_status'   => $status,
-			'storage_format'   => $this->slug() . '-db-v1',
-			'storage_reason'   => $reason,
-			'storage_surfaces' => $surfaces,
-			'capabilities'     => $this->capabilities(),
-		);
-	}
-
-	/** @return array{total:int,surfaces:array<string,int>} */
-	public function inventory(): array {
-		if ( $this->uses_export_file() ) {
-			$count = class_exists( 'ERankly_Migration_Export_Reader' ) ? ERankly_Migration_Export_Reader::count_records( $this->export_file ) : 0;
-			return array(
-				'total'    => $count,
-				'surfaces' => array( 'official_export' => $count ),
-			);
-		}
-
-		$counts = array();
-		foreach ( $this->storage_definitions() as $name => $definition ) {
-			$counts[ (string) $name ] = $this->storage_surface_count( $definition );
-		}
-
-		return array(
-			'total'    => array_sum( $counts ),
-			'surfaces' => $counts,
-		);
-	}
-
 	/** Fingerprints every source value consumed by the adapter. */
 	public function fingerprint(): string {
-		if ( $this->uses_export_file() ) {
-			if ( ! is_file( $this->export_file ) || is_link( $this->export_file ) || ! is_readable( $this->export_file ) ) {
-				return '';
-			}
-			$hash = hash_file( 'sha256', $this->export_file );
-			return is_string( $hash ) ? $hash : '';
-		}
-
 		$anchors = array();
 		foreach ( $this->storage_definitions() as $name => $definition ) {
 			$anchors[ (string) $name ] = $this->storage_surface_fingerprint( $definition );
@@ -665,8 +483,7 @@ abstract class ERankly_Migration_Adapter {
 				'archive',
 				'follow',
 				'index',
-				'noodp',
-			);
+			); // noodp retired: DMOZ shut down in 2017, no engine reads it.
 			foreach ( $known as $candidate ) {
 				if ( $candidate === $normalized || str_ends_with( $normalized, $candidate ) ) {
 					return $candidate;
@@ -725,7 +542,7 @@ abstract class ERankly_Migration_Adapter {
 			}
 		}
 
-		foreach ( array( 'notranslate', 'noodp', 'indexifembedded' ) as $directive ) {
+		foreach ( array( 'notranslate', 'indexifembedded' ) as $directive ) { // noodp retired.
 			$present = in_array( $directive, $tokens, true ) || array_key_exists( $directive, $named_values );
 			if ( $present ) {
 				$result[ $directive ] = ( in_array( $directive, $tokens, true ) || $truthy( $named_values[ $directive ] ?? '' ) ) ? 1 : 0;
@@ -764,7 +581,7 @@ abstract class ERankly_Migration_Adapter {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $key => $child ) {
 				$normalized_key = is_string( $key ) ? preg_replace( '/[^a-z0-9]+/', '', strtolower( $key ) ) : '';
-				$known_keys     = array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'snippet', 'nosnippet', 'imageindex', 'noimageindex', 'notranslate', 'noodp', 'indexifembedded', 'maxsnippet', 'maxvideopreview', 'maximagepreview', 'robots', 'robotsmeta', 'customrobots', 'advancedrobots' );
+				$known_keys     = array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'snippet', 'nosnippet', 'imageindex', 'noimageindex', 'notranslate', 'indexifembedded', 'maxsnippet', 'maxvideopreview', 'maximagepreview', 'robots', 'robotsmeta', 'customrobots', 'advancedrobots' ); // noodp retired.
 				if ( in_array( $normalized_key, $known_keys, true ) || ( '' !== $normalized_key && array_filter( $known_keys, static fn( string $candidate ): bool => str_ends_with( $normalized_key, $candidate ) ) ) ) {
 					return true;
 				}
@@ -782,7 +599,7 @@ abstract class ERankly_Migration_Adapter {
 
 		$tokens = preg_split( '/[^a-z0-9_-]+/', strtolower( (string) $value ) );
 
-		return (bool) array_intersect( is_array( $tokens ) ? $tokens : array(), array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'snippet', 'nosnippet', 'imageindex', 'noimageindex', 'notranslate', 'noodp', 'indexifembedded' ) );
+		return (bool) array_intersect( is_array( $tokens ) ? $tokens : array(), array( 'index', 'noindex', 'follow', 'nofollow', 'archive', 'noarchive', 'snippet', 'nosnippet', 'imageindex', 'noimageindex', 'notranslate', 'indexifembedded' ) ); // noodp retired.
 	}
 
 	/**
@@ -1039,117 +856,28 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/**
- * Inspects one declared storage surface without reading source records.
+ * Returns a cheap change anchor for one certified source surface.
  *
- * @return array<string,mixed>
+ * Row count plus highest identifier is enough to detect the inserts and deletions that would make a run's
+ * counters describe a state that no longer exists. It deliberately avoids per-row checksums: those need
+ * MySQL-only aggregate functions that the SQLite drop-in cannot execute.
+ *
+ * @param array<string,mixed> $definition Certified surface definition.
+ * @return array<string,mixed>|string
  */
-	private function inspect_storage_surface( string $name, array $definition ): array {
-		$type   = sanitize_key( (string) ( $definition['type'] ?? '' ) );
-		$status = 'absent';
-		$detail = '';
-
-		if ( 'meta' === $type ) {
-			$object_type = sanitize_key( (string) ( $definition['object_type'] ?? '' ) );
-			$keys        = is_array( $definition['keys'] ?? null ) ? $definition['keys'] : array();
-			$prefixes    = is_array( $definition['prefixes'] ?? null ) ? $definition['prefixes'] : array();
-			$status      = $this->has_meta( $object_type, $keys, $prefixes ) ? 'supported' : 'absent';
-		} elseif ( 'option' === $type ) {
-			$option = sanitize_key( (string) ( $definition['option'] ?? '' ) );
-			$value  = '' !== $option ? get_option( $option, null ) : null;
-			if ( null !== $value ) {
-				$shape  = (string) ( $definition['shape'] ?? 'mixed' );
-				$valid  = 'array' !== $shape || is_array( $value );
-				$status = $valid ? 'supported' : 'unsupported';
-				$detail = $valid ? '' : 'unexpected_option_shape';
-			}
-		} elseif ( 'table' === $type ) {
-			global $wpdb;
-			$suffix = sanitize_key( (string) ( $definition['suffix'] ?? '' ) );
-			$table  = $wpdb->prefix . $suffix;
-			if ( '' !== $suffix && erankly_table_exists( $table ) ) {
-				$required = array_values( array_filter( array_map( 'sanitize_key', is_array( $definition['columns'] ?? null ) ? $definition['columns'] : array() ) ) );
-				$columns  = $this->table_columns( $table );
-				$missing  = array_values( array_diff( $required, $columns ) );
-				$status   = empty( $missing ) ? 'supported' : 'unsupported';
-				$detail   = empty( $missing ) ? '' : 'missing_columns:' . implode( ',', $missing );
-			}
-		} elseif ( 'post_type' === $type ) {
-			global $wpdb;
-			$post_type = sanitize_key( (string) ( $definition['post_type'] ?? '' ) );
-			if ( '' !== $post_type ) {
-				$exists = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only third-party storage signature.
-					$wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s LIMIT 1", $post_type ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Core table comes from wpdb.
-				);
-				$status = null !== $exists ? 'supported' : 'absent';
-			}
-		}
-
-		return array(
-			'name'   => sanitize_key( $name ),
-			'type'   => $type,
-			'status' => $status,
-			'detail' => sanitize_text_field( $detail ),
-		);
-	}
-
-	private function storage_surface_count( array $definition ): int {
-		global $wpdb;
-
-		$type = sanitize_key( (string) ( $definition['type'] ?? '' ) );
-		if ( 'meta' === $type ) {
-			$query = $this->meta_surface_query( $definition );
-			if ( ! $query ) {
-				return 0;
-			}
-			$sql    = "SELECT COUNT(DISTINCT %i) FROM %i WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the internal placeholder predicate is assembled here; identifiers use %i below.
-			$params = array_merge( array( $query['id_column'], $query['table'] ), $query['params'] );
-			return absint( $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared read-only inventory over an internal metadata predicate.
-		}
-
-		if ( 'table' === $type ) {
-			$suffix = sanitize_key( (string) ( $definition['suffix'] ?? '' ) );
-			$table  = $wpdb->prefix . $suffix;
-			if ( '' === $suffix || ! erankly_table_exists( $table ) ) {
-				return 0;
-			}
-			return absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only third-party inventory.
-		}
-
-		if ( 'option' === $type ) {
-			$value = get_option( sanitize_key( (string) ( $definition['option'] ?? '' ) ), null );
-			return is_array( $value ) ? count( $value ) : ( null === $value ? 0 : 1 );
-		}
-
-		if ( 'post_type' === $type ) {
-			$post_type = sanitize_key( (string) ( $definition['post_type'] ?? '' ) );
-			return '' === $post_type ? 0 : absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s", $post_type ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table read for third-party inventory.
-		}
-
-		return 0;
-	}
-
-	/** @return array<string,mixed>|string */
 	private function storage_surface_fingerprint( array $definition ): array|string {
 		global $wpdb;
 
 		$type = sanitize_key( (string) ( $definition['type'] ?? '' ) );
+
 		if ( 'meta' === $type ) {
 			$query = $this->meta_surface_query( $definition );
 			if ( ! $query ) {
 				return array();
 			}
-			if ( $this->uses_portable_fingerprint() ) {
-				return $this->portable_row_fingerprint(
-					$query['table'],
-					array( $query['row_id_column'], $query['id_column'], 'meta_key', 'meta_value' ),
-					$query['row_id_column'],
-					$query['where'],
-					$query['params']
-				);
-			}
-			$sql    = "SELECT COUNT(*) AS row_count, COALESCE(MAX(%i),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',%i,%i,meta_key,meta_value))),0) AS checksum FROM %i WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the internal placeholder predicate is assembled here; identifiers use %i below.
-			$params = array_merge( array( $query['row_id_column'], $query['row_id_column'], $query['id_column'], $query['table'] ), $query['params'] );
-			$row    = $wpdb->get_row( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared value-sensitive fingerprint over an internal metadata predicate.
+			$sql = "SELECT COUNT(*) AS row_count, COALESCE(MAX(%i),0) AS max_id FROM %i WHERE {$query['where']}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only the internal placeholder predicate is assembled here; identifiers use %i.
+			$row = $wpdb->get_row( $wpdb->prepare( $sql, array_merge( array( $query['row_id_column'], $query['table'] ), $query['params'] ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Prepared anchor over an internal metadata predicate.
+
 			return is_array( $row ) ? $row : array();
 		}
 
@@ -1160,20 +888,15 @@ abstract class ERankly_Migration_Adapter {
 			if ( '' === $suffix || ! erankly_table_exists( $table ) || array_diff( $required, $this->table_columns( $table ) ) ) {
 				return array();
 			}
-			$columns             = array_values( array_unique( array_merge( array( 'id' ), $required, is_array( $definition['fingerprint_columns'] ?? null ) ? array_map( 'sanitize_key', $definition['fingerprint_columns'] ) : array() ) ) );
-			$columns             = array_values( array_intersect( $columns, $this->table_columns( $table ) ) );
-			if ( $this->uses_portable_fingerprint() ) {
-				return $this->portable_row_fingerprint( $table, $columns, 'id' );
-			}
-			$column_placeholders = implode( ',', array_fill( 0, count( $columns ), '%i' ) );
-			$sql                 = "SELECT COUNT(*) AS row_count, COALESCE(MAX(id),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',{$column_placeholders}))),0) AS checksum FROM %i"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholder count matches the certified column list below.
-			$row                 = $wpdb->get_row( $wpdb->prepare( $sql, array_merge( $columns, array( $table ) ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Every certified column and table identifier is escaped through %i.
+			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT COUNT(*) AS row_count, COALESCE(MAX(id),0) AS max_id FROM %i', $table ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Source anchor read.
+
 			return is_array( $row ) ? $row : array();
 		}
 
 		if ( 'option' === $type ) {
 			$value   = get_option( sanitize_key( (string) ( $definition['option'] ?? '' ) ), null );
 			$encoded = wp_json_encode( $value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
 			return hash( 'sha256', false === $encoded ? '' : $encoded );
 		}
 
@@ -1182,87 +905,12 @@ abstract class ERankly_Migration_Adapter {
 			if ( '' === $post_type ) {
 				return array();
 			}
-			if ( $this->uses_portable_fingerprint() ) {
-				return $this->portable_row_fingerprint(
-					$wpdb->posts,
-					array( 'ID', 'post_title', 'post_name', 'post_status', 'post_modified_gmt' ),
-					'ID',
-					'post_type = %s',
-					array( $post_type )
-				);
-			}
-			$row = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) AS row_count, COALESCE(MAX(ID),0) AS max_id, COALESCE(BIT_XOR(CRC32(CONCAT_WS('|',ID,post_title,post_name,post_status,post_modified_gmt))),0) AS checksum FROM {$wpdb->posts} WHERE post_type = %s", $post_type ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table read for source fingerprint.
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) AS row_count, COALESCE(MAX(ID),0) AS max_id FROM {$wpdb->posts} WHERE post_type = %s", $post_type ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table read for the source anchor.
+
 			return is_array( $row ) ? $row : array();
 		}
 
 		return array();
-	}
-
-	/** Detects database layers that do not provide MySQL checksum functions. */
-	private function uses_portable_fingerprint(): bool {
-		global $wpdb;
-
-		return false !== stripos( get_class( $wpdb ), 'sqlite' ) || defined( 'SQLITE_DB_DROPIN_VERSION' ) || defined( 'SQLITE_DB_VERSION' );
-	}
-
-	/**
- * Builds a deterministic SHA-256 fingerprint in bounded database pages. This path keeps WordPress Studio/SQLite
- * compatible without loading a whole source surface into memory. Length-prefixing every scalar prevents row and
- * column boundary collisions in the incremental hash.
- *
- * @param array<int,string>   $columns   Certified columns to hash.
- * @return array{row_count:int,max_id:int,checksum:string}
- */
-	private function portable_row_fingerprint( string $table, array $columns, string $id_column, string $where = '', array $params = array() ): array {
-		global $wpdb;
-
-		$columns = array_values( array_unique( array_filter( array_map( 'sanitize_key', $columns ) ) ) );
-		$id_column = sanitize_key( $id_column );
-		if ( '' === $table || '' === $id_column || ! in_array( $id_column, array_map( 'strtolower', $columns ), true ) ) {
-			return array(
-				'row_count' => 0,
-				'max_id'    => 0,
-				'checksum'  => hash( 'sha256', '' ),
-			);
-		}
-
-		$batch_size         = 500;
-		$after_id           = 0;
-		$row_count          = 0;
-		$context            = hash_init( 'sha256' );
-		$column_placeholders = implode( ',', array_fill( 0, count( $columns ), '%i' ) );
-
-		do {
-			$sql        = "SELECT {$column_placeholders} FROM %i WHERE %i > %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only a trusted identifier placeholder list is assembled.
-			$sql_params = array_merge( $columns, array( $table, $id_column, $after_id ) );
-			if ( '' !== $where ) {
-				$sql         .= " AND ({$where})"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Predicate is built internally by meta_surface_query or a fixed core-table condition.
-				$sql_params = array_merge( $sql_params, $params );
-			}
-			$sql        .= ' ORDER BY %i ASC LIMIT %d';
-			$sql_params  = array_merge( $sql_params, array( $id_column, $batch_size ) );
-			$rows        = $wpdb->get_results( $wpdb->prepare( $sql, $sql_params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- All identifiers and values use matching placeholders.
-			if ( '' !== (string) $wpdb->last_error ) {
-				throw new RuntimeException( 'Source fingerprint page could not be read.' );
-			}
-			$rows = is_array( $rows ) ? array_values( array_filter( $rows, 'is_array' ) ) : array();
-
-			foreach ( $rows as $row ) {
-				$row = array_change_key_case( $row, CASE_LOWER );
-				foreach ( $columns as $column ) {
-					$value = isset( $row[ $column ] ) && is_scalar( $row[ $column ] ) ? (string) $row[ $column ] : '';
-					hash_update( $context, pack( 'N', strlen( $value ) ) . $value );
-				}
-				$after_id = max( $after_id, absint( $row[ $id_column ] ?? 0 ) );
-				++$row_count;
-			}
-		} while ( count( $rows ) === $batch_size );
-
-		return array(
-			'row_count' => $row_count,
-			'max_id'    => $after_id,
-			'checksum'  => hash_final( $context ),
-		);
 	}
 
 	/** @return array{table:string,id_column:string,row_id_column:string,where:string,params:array<int,string>}|array{} */
@@ -1313,7 +961,12 @@ abstract class ERankly_Migration_Adapter {
 	}
 
 	/** Returns known/unversioned/unsupported for the detected source version. */
-	private function version_status( string $version ): string {
+	/**
+ * Reports whether the detected source version falls inside the certified range.
+ *
+ * @return string One of certified, unversioned or unsupported.
+ */
+	public function version_status( string $version ): string {
 		if ( '' === trim( $version ) ) {
 			return 'unversioned';
 		}

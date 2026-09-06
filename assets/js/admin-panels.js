@@ -49,32 +49,5 @@
     }
   }
 
-  /**
-   * Keeps segment-control pill labels in sync with their radios.
-   *
-   * @param {HTMLElement} control Segment control wrapper.
-   * @return void
-   */
-  function bindSegmentControl(control) {
-    var radios = control.querySelectorAll('input[type="radio"]');
-
-    function syncActive() {
-      radios.forEach(function (radio) {
-        var label = radio.closest(".erankly-tab");
-
-        if (label) {
-          label.classList.toggle("is-active", radio.checked);
-          label.classList.toggle("nav-tab-active", radio.checked);
-        }
-      });
-    }
-
-    radios.forEach(function (radio) {
-      radio.addEventListener("change", syncActive);
-    });
-    syncActive();
-  }
-
   ER.bindExpandablePanel = bindExpandablePanel;
-  ER.bindSegmentControl = bindSegmentControl;
 })(window.ERanklyAdmin = window.ERanklyAdmin || {});

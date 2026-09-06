@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once ERANKLY_PATH . 'admin/settings/nav-icons.php';
+
 function erankly_register_settings(): void {
 	erankly_load_default_helpers();
 
@@ -68,12 +70,22 @@ function erankly_sanitize_settings( mixed $input ): array {
 		$global_special_meta = erankly_get_global_entity_meta_map( 'global_special_meta' );
 	}
 
+	$organization_logo_url    = isset( $input['organization_logo_url'] ) ? erankly_sanitize_url_template( $input['organization_logo_url'] ) : $defaults['organization_logo_url'];
+	$default_social_image_url = isset( $input['default_social_image_url'] ) ? erankly_sanitize_url_template( $input['default_social_image_url'] ) : '';
+	$organization_logo        = isset( $input['organization_logo'] ) ? absint( $input['organization_logo'] ) : $defaults['organization_logo'];
+	$default_og_image         = isset( $input['default_og_image'] ) ? absint( $input['default_og_image'] ) : 0;
+	// A concrete URL that diverges from the stored attachment drops the stale
+	// media ID: the URL always wins at runtime, so the ID must not linger as
+	// a hidden second source of truth.
+	$organization_logo = erankly_drop_stale_media_id( $organization_logo, $organization_logo_url );
+	$default_og_image  = erankly_drop_stale_media_id( $default_og_image, $default_social_image_url );
+
 	$settings = array(
 		'organization_name'              => isset( $input['organization_name'] ) ? erankly_sanitize_text( $input['organization_name'] ) : $defaults['organization_name'],
 		'website_name'                   => isset( $input['website_name'] ) ? erankly_sanitize_text( $input['website_name'] ) : $defaults['website_name'],
 		'website_description'            => isset( $input['website_description'] ) ? erankly_sanitize_textarea( $input['website_description'] ) : $defaults['website_description'],
-		'organization_logo'              => isset( $input['organization_logo'] ) ? absint( $input['organization_logo'] ) : $defaults['organization_logo'],
-		'organization_logo_url'          => isset( $input['organization_logo_url'] ) ? erankly_sanitize_url_template( $input['organization_logo_url'] ) : $defaults['organization_logo_url'],
+		'organization_logo'              => $organization_logo,
+		'organization_logo_url'          => $organization_logo_url,
 		'organization_description'       => isset( $input['organization_description'] ) ? erankly_sanitize_textarea( $input['organization_description'] ) : '',
 		'organization_email'             => isset( $input['organization_email'] ) ? sanitize_email( (string) $input['organization_email'] ) : '',
 		'organization_phone'             => isset( $input['organization_phone'] ) ? erankly_sanitize_phone( $input['organization_phone'] ) : '',
@@ -86,8 +98,8 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'organization_postal_code'       => isset( $input['organization_postal_code'] ) ? erankly_sanitize_text( $input['organization_postal_code'] ) : '',
 		'organization_country'           => isset( $input['organization_country'] ) ? erankly_sanitize_country_code( $input['organization_country'] ) : '',
 		'social_profiles'                => isset( $input['social_profiles'] ) ? erankly_sanitize_url_list( $input['social_profiles'] ) : '',
-		'default_og_image'               => isset( $input['default_og_image'] ) ? absint( $input['default_og_image'] ) : 0,
-		'default_social_image_url'       => isset( $input['default_social_image_url'] ) ? erankly_sanitize_url_template( $input['default_social_image_url'] ) : '',
+		'default_og_image'               => $default_og_image,
+		'default_social_image_url'       => $default_social_image_url,
 		'default_og_title'               => $default_og_title,
 		'default_og_description'         => $default_og_description,
 		'default_twitter_title'          => $default_twitter_title,
@@ -95,9 +107,9 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'social_defaults_linked'         => $social_defaults_linked ? 1 : 0,
 		'twitter_site'                   => isset( $input['twitter_site'] ) ? erankly_sanitize_twitter_handle( $input['twitter_site'] ) : '',
 		'global_post_type_meta_linked'   => ! empty( $input['global_post_type_meta_linked'] ) ? 1 : 0,
-		'global_post_type_meta'          => isset( $input['global_post_type_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_post_type_meta'], array_keys( erankly_get_public_post_types() ), ! empty( $input['global_post_type_meta_linked'] ) ) : array(),
+		'global_post_type_meta'          => isset( $input['global_post_type_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_post_type_meta'], array_keys( erankly_get_public_post_types() ), ! empty( $input['global_post_type_meta_linked'] ), false, true ) : array(),
 		'global_taxonomy_meta_linked'    => ! empty( $input['global_taxonomy_meta_linked'] ) ? 1 : 0,
-		'global_taxonomy_meta'           => isset( $input['global_taxonomy_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_taxonomy_meta'], array_keys( erankly_get_public_taxonomies() ), ! empty( $input['global_taxonomy_meta_linked'] ) ) : array(),
+		'global_taxonomy_meta'           => isset( $input['global_taxonomy_meta'] ) ? erankly_sanitize_global_entity_meta( $input['global_taxonomy_meta'], array_keys( erankly_get_public_taxonomies() ), ! empty( $input['global_taxonomy_meta_linked'] ), false, true ) : array(),
 		'global_special_meta'            => $global_special_meta,
 		'schema_identity'                => 'person' === $identity ? 'person' : 'organization',
 		'schema_person_user_id'          => $person_user_id,
@@ -127,17 +139,52 @@ function erankly_sanitize_settings( mixed $input ): array {
 		'noindex_feeds'                  => ! empty( $input['noindex_feeds'] ) ? 1 : 0,
 		'paginated_title_format'         => isset( $input['paginated_title_format'] ) ? erankly_sanitize_text( $input['paginated_title_format'] ) : '',
 		'attachment_redirect'            => ( isset( $input['attachment_redirect'] ) && in_array( $input['attachment_redirect'], array( 'parent', 'file', 'none' ), true ) ) ? $input['attachment_redirect'] : 'none',
-		'robots_max_image_preview_large' => ! empty( $input['robots_max_image_preview_large'] ) ? 1 : 0,
 		'robots_max_image_preview'       => ( isset( $input['robots_max_image_preview'] ) && in_array( $input['robots_max_image_preview'], array( '', 'none', 'standard', 'large' ), true ) ) ? $input['robots_max_image_preview'] : '',
 		'robots_max_snippet'             => isset( $input['robots_max_snippet'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_snippet'] ) : '',
 		'robots_max_video_preview'       => isset( $input['robots_max_video_preview'] ) ? erankly_sanitize_robots_preview_value( $input['robots_max_video_preview'] ) : '',
 		'robots_nosnippet'               => ! empty( $input['robots_nosnippet'] ) ? 1 : 0,
 		'robots_noimageindex'            => ! empty( $input['robots_noimageindex'] ) ? 1 : 0,
 		'robots_notranslate'             => ! empty( $input['robots_notranslate'] ) ? 1 : 0,
-		'robots_noodp'                   => ! empty( $input['robots_noodp'] ) ? 1 : 0,
 		'robots_indexifembedded'         => ! empty( $input['robots_indexifembedded'] ) ? 1 : 0,
 		'enable_redirects'               => ! empty( $input['enable_redirects'] ) ? 1 : 0,
+		'enable_custom_code'             => erankly_sanitize_custom_code_toggle( $input['enable_custom_code'] ?? 0 ),
+		'head_code_blocks'               => erankly_sanitize_custom_code_blocks_field( $input['head_code_blocks'] ?? null, 'head_code_blocks' ),
+		'body_open_code_blocks'          => erankly_sanitize_custom_code_blocks_field( $input['body_open_code_blocks'] ?? null, 'body_open_code_blocks' ),
+		'body_close_code_blocks'         => erankly_sanitize_custom_code_blocks_field( $input['body_close_code_blocks'] ?? null, 'body_close_code_blocks' ),
+		// Legacy single snippets: preserved for the frontend fallback, then
+		// auto-migrated to full-visibility blocks below on privileged saves.
+		'head_code'                      => erankly_sanitize_custom_code_field( $input['head_code'] ?? null, 'head_code' ),
+		'body_open_code'                 => erankly_sanitize_custom_code_field( $input['body_open_code'] ?? null, 'body_open_code' ),
+		'body_close_code'                => erankly_sanitize_custom_code_field( $input['body_close_code'] ?? null, 'body_close_code' ),
 	);
+
+	// One-time migration: any stored legacy snippet becomes an appended
+	// full-visibility block, so pre-block installs keep printing it with
+	// per-location targeting from the first resave on — even if blocks were
+	// already added in the meantime. Runs only for privileged/system contexts
+	// (the block/legacy sanitizers above already preserved stored values for
+	// low-privilege users). Respects the per-location block cap.
+	$can_migrate_code = ! function_exists( 'get_current_user_id' ) || 0 === (int) get_current_user_id() || current_user_can( 'unfiltered_html' );
+
+	if ( $can_migrate_code ) {
+		foreach ( array( 'head_code' => 'head_code_blocks', 'body_open_code' => 'body_open_code_blocks', 'body_close_code' => 'body_close_code_blocks' ) as $legacy_key => $blocks_key ) {
+			$legacy_code = trim( (string) $settings[ $legacy_key ] );
+
+			if ( '' === $legacy_code ) {
+				continue;
+			}
+
+			$existing = is_array( $settings[ $blocks_key ] ) ? array_values( $settings[ $blocks_key ] ) : array();
+
+			if ( count( $existing ) >= erankly_custom_code_max_blocks() ) {
+				continue;
+			}
+
+			$existing[]             = erankly_custom_code_migrated_block( $legacy_code );
+			$settings[ $blocks_key ] = $existing;
+			$settings[ $legacy_key ] = '';
+		}
+	}
 
 	$stored = erankly_get_plugin_option( ERANKLY_OPTION, array() );
 	$stored = is_array( $stored ) ? $stored : array();
@@ -216,14 +263,12 @@ function erankly_settings_autosave_panels(): array {
 		'general'  => array( 'keys' => erankly_general_panel_setting_keys() ),
 		'advanced' => array(
 			'keys' => array(
-				'robots_max_image_preview_large',
 				'robots_max_image_preview',
 				'robots_max_snippet',
 				'robots_max_video_preview',
 				'robots_nosnippet',
 				'robots_noimageindex',
 				'robots_notranslate',
-				'robots_noodp',
 				'robots_indexifembedded',
 				'robots_txt_extra',
 				'noindex_paginated',
@@ -247,6 +292,14 @@ function erankly_settings_autosave_panels(): array {
 			'keys' => array(
 				'enable_redirects',
 				'enable_sitemap',
+				'enable_custom_code',
+			),
+		),
+		'custom-code' => array(
+			'keys' => array(
+				'head_code_blocks',
+				'body_open_code_blocks',
+				'body_close_code_blocks',
 			),
 		),
 		'settings' => array(
@@ -379,7 +432,7 @@ function erankly_normalize_settings_tabs( mixed $tabs, array $screen_context ): 
 		return array();
 	}
 
-	$reserved = array( 'general', 'features', 'social', 'schema', 'sitemap', 'settings', 'advanced', 'import-export', 'redirects', 'special-pages' );
+	$reserved = array( 'general', 'features', 'social', 'schema', 'sitemap', 'custom-code', 'settings', 'advanced', 'import-export', 'redirects', 'special-pages' );
 	$scope    = (string) ( $screen_context['scope'] ?? 'site' );
 	$clean    = array();
 
@@ -490,6 +543,6 @@ function erankly_render_settings_nav_link( string $slug, string $label, string $
 	$panel     = 'settings-' . $slug;
 	$is_active = $panel === $active_panel;
 	?>
-	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo esc_html( $label ); ?></a>
+	<a class="erankly-settings-nav-item<?php echo $is_active ? ' is-active' : ''; ?>" id="erankly-settings-tab-<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( erankly_settings_tab_url( $slug ) ); ?>" data-erankly-tab="<?php echo esc_attr( $panel ); ?>" <?php echo $is_active ? 'aria-current="page"' : ''; ?> <?php echo $hidden ? 'hidden' : ''; ?>><?php echo erankly_nav_icon( $slug ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static inline SVG from erankly_nav_icons(). ?><span class="erankly-settings-nav-label"><?php echo esc_html( $label ); ?></span></a>
 	<?php
 }

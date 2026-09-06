@@ -8,20 +8,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once ERANKLY_PATH . 'includes/migrations/runtime-database.php';
 require_once ERANKLY_PATH . 'includes/migrations/runtime-redirects.php';
 require_once ERANKLY_PATH . 'includes/migrations/runtime-variables.php';
-require_once ERANKLY_PATH . 'includes/migrations/runtime-rollbacks.php';
+require_once ERANKLY_PATH . 'includes/migrations/runtime-backup.php';
 
 $erankly_migration_files = array(
 	'class-erankly-migration-adapter.php',
-	'class-erankly-migration-export-reader.php',
 	'class-erankly-migration-upload-store.php',
-	'class-erankly-migration-go-live-gate.php',
 	'class-erankly-migration-manager.php',
-	'class-erankly-migration-job-store.php',
-	'class-erankly-migration-evidence-store.php',
-	'class-erankly-migration-journal.php',
-	'class-erankly-migration-auditor.php',
-	'class-erankly-migration-live-verifier.php',
-	'class-erankly-migration-verification-job.php',
 	'class-erankly-migration-source-changed-exception.php',
 	'class-erankly-migration-job-runner.php',
 );
@@ -31,6 +23,70 @@ foreach ( $erankly_migration_files as $erankly_migration_file ) {
 }
 
 unset( $erankly_migration_file, $erankly_migration_files );
+
+/**
+ * Acquires the short-lived gate used while either data-transfer worker creates
+ * its durable checkpoint. Native restores and third-party migrations mutate
+ * the same settings, metadata and redirect data, so checking their separate
+ * active-job options without this gate would leave a start-time race.
+ *
+ * @return string Lock token, or an empty string when another start is active.
+ */
+function erankly_acquire_data_transfer_start_lock(): string {
+	global $wpdb;
+
+	$key   = 'erankly_data_transfer_start_lock_v1';
+	$token = wp_generate_uuid4();
+	$lock  = array(
+		'token'   => $token,
+		'expires' => time() + 300,
+	);
+
+	if ( add_option( $key, $lock, '', 'no' ) ) {
+		return $token;
+	}
+
+	$existing = get_option( $key, array() );
+	if ( is_array( $existing ) && (int) ( $existing['expires'] ?? 0 ) >= time() ) {
+		return '';
+	}
+
+	$updated = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic compare-and-swap prevents two transfer starts from passing the cross-worker check together.
+		$wpdb->prepare(
+			'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s',
+			$wpdb->options,
+			maybe_serialize( $lock ),
+			$key,
+			maybe_serialize( $existing )
+		)
+	);
+	if ( 1 === $updated ) {
+		wp_cache_delete( $key, 'options' );
+	}
+
+	return 1 === $updated ? $token : '';
+}
+
+/** Releases the data-transfer start gate only when this request owns it. */
+function erankly_release_data_transfer_start_lock( string $token ): void {
+	global $wpdb;
+
+	$key      = 'erankly_data_transfer_start_lock_v1';
+	$existing = get_option( $key, array() );
+	if ( ! is_array( $existing ) || ! hash_equals( (string) ( $existing['token'] ?? '' ), $token ) ) {
+		return;
+	}
+
+	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conditional delete cannot release a successor's start gate.
+		$wpdb->prepare(
+			'DELETE FROM %i WHERE option_name = %s AND option_value = %s',
+			$wpdb->options,
+			$key,
+			maybe_serialize( $existing )
+		)
+	);
+	wp_cache_delete( $key, 'options' );
+}
 
 /**
  * Loads one source adapter only when a request actually selects it.
@@ -86,26 +142,4 @@ function erankly_migration_job_runner(): ERankly_Migration_Job_Runner {
 	}
 
 	return $runner;
-}
-
-/** Returns the shared conditional rollback journal. */
-function erankly_migration_journal(): ERankly_Migration_Journal {
-	static $journal = null;
-
-	if ( null === $journal ) {
-		$journal = new ERankly_Migration_Journal();
-	}
-
-	return $journal;
-}
-
-/** Returns the shared complete exception ledger. */
-function erankly_migration_evidence_store(): ERankly_Migration_Evidence_Store {
-	static $store = null;
-
-	if ( null === $store ) {
-		$store = new ERankly_Migration_Evidence_Store();
-	}
-
-	return $store;
 }

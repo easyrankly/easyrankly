@@ -105,6 +105,8 @@ function erankly_admin_enqueue_block_editor_assets(): void {
  * Editor so both load the same presentational controls and field builders.
  */
 function erankly_enqueue_editor_shared_assets(): void {
+	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
+
 	erankly_enqueue_shared_styles();
 
 	wp_enqueue_style(
@@ -131,6 +133,7 @@ function erankly_enqueue_editor_shared_assets(): void {
 		'erankly-editor-shared',
 		'eranklyEditorShared',
 		array(
+			'docLinks'   => erankly_section_doc_links(),
 			'panelOrder' => array_values(
 				array_filter(
 					(array) apply_filters(

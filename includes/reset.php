@@ -126,9 +126,7 @@ function erankly_reset_site_data(): void {
 	if ( ! class_exists( 'ERankly_Migration_Upload_Store' ) ) {
 		require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-upload-store.php';
 	}
-	if ( ! class_exists( 'ERankly_Migration_Verification_Job' ) ) {
-		require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-verification-job.php';
-	}
+	require_once ERANKLY_PATH . 'includes/migrations/legacy-cleanup.php';
 	require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 	if ( ! ERankly_Migration_Upload_Store::purge_all() ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private migration uploads during reset.', 'easyrankly' ) );
@@ -136,13 +134,11 @@ function erankly_reset_site_data(): void {
 	if ( ! ERankly_Import_Job_Runner::purge_all() ) {
 		throw new RuntimeException( esc_html__( 'EasyRankly could not remove private import uploads during reset.', 'easyrankly' ) );
 	}
-	if ( ! ERankly_Migration_Verification_Job::purge_all() ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not remove live-verification checkpoints during reset.', 'easyrankly' ) );
+	if ( ! erankly_migration_purge_legacy_state( true ) ) {
+		throw new RuntimeException( esc_html__( 'EasyRankly could not remove retired migration state during reset.', 'easyrankly' ) );
 	}
 
 	wp_unschedule_hook( ERANKLY_MIGRATION_CRON_HOOK );
-	wp_unschedule_hook( ERANKLY_MIGRATION_ROLLBACK_CRON_HOOK );
-	wp_unschedule_hook( ERANKLY_MIGRATION_VERIFY_CRON_HOOK );
 	wp_unschedule_hook( ERANKLY_IMPORT_CRON_HOOK );
 	$active_migration = get_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION, array() );
 	if ( is_array( $active_migration ) && ! empty( $active_migration['id'] ) ) {
@@ -153,13 +149,7 @@ function erankly_reset_site_data(): void {
 	if ( is_array( $active_import ) && ! empty( $active_import['id'] ) ) {
 		delete_option( 'erankly_import_lock_' . substr( hash( 'sha256', (string) $active_import['id'] ), 0, 24 ) );
 	}
-	$migration_reports = get_option( 'erankly_migration_reports_v1', array() );
-	foreach ( is_array( $migration_reports ) ? array_keys( $migration_reports ) : array() as $migration_report_id ) {
-		$rollback_suffix = substr( hash( 'sha256', (string) $migration_report_id ), 0, 24 );
-		delete_option( 'erankly_migration_rollback_' . $rollback_suffix );
-		delete_option( 'erankly_migration_rollback_lock_' . $rollback_suffix );
-	}
-
+	delete_option( 'erankly_data_transfer_start_lock_v1' );
 	delete_option( ERANKLY_SPECIAL_META_OPTION );
 	delete_option( 'erankly_redirects_db_version' );
 	$redirect_prefix_options = get_option( 'erankly_redirects_runtime_rules_prefix_index', array() );
@@ -179,31 +169,6 @@ function erankly_reset_site_data(): void {
 	delete_option( ERANKLY_MIGRATION_ACTIVE_JOB_OPTION );
 	delete_option( ERANKLY_IMPORT_ACTIVE_JOB_OPTION );
 	delete_option( ERANKLY_IMPORT_LAST_RESULT_OPTION );
-	delete_option( 'erankly_migration_queue_db_version' );
-	delete_option( 'erankly_migration_journal_db_version' );
-	delete_option( 'erankly_migration_evidence_db_version' );
-
-	$dropped_migration_queue = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes temporary migration staging storage.
-		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_migration_queue' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset intentionally drops plugin-owned staging storage.
-	);
-	if ( false === $dropped_migration_queue ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not remove migration staging storage during reset.', 'easyrankly' ) );
-	}
-
-	$dropped_migration_journal = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes plugin-owned rollback history.
-		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_migration_changes' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset intentionally drops plugin-owned rollback storage.
-	);
-	if ( false === $dropped_migration_journal ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not remove migration rollback storage during reset.', 'easyrankly' ) );
-	}
-
-	$dropped_migration_evidence = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the complete migration exception ledger.
-		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_migration_exceptions' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset intentionally drops plugin-owned exception evidence.
-	);
-	if ( false === $dropped_migration_evidence ) {
-		throw new RuntimeException( esc_html__( 'EasyRankly could not remove migration exception evidence during reset.', 'easyrankly' ) );
-	}
-
 	$dropped_redirects = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset removes the plugin-owned redirects table; it is recreated on demand next time the module boots.
 		$wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'erankly_redirects' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Reset intentionally drops plugin-owned storage.
 	);
@@ -334,7 +299,10 @@ function erankly_reset_render_panel(): void {
 	<?php do_action( 'erankly_reset_panel' ); ?>
 
 	<div class="erankly-settings-section">
-		<h3 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h3>
+		<div class="erankly-section-title-row">
+			<h3 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h3>
+			<?php erankly_render_section_doc_link( 'reset' ); ?>
+		</div>
 		<section class="erankly-card">
 			<p class="description"><?php esc_html_e( 'This permanently deletes all settings, redirects, and SEO metadata. Back up first.', 'easyrankly' ); ?></p>
 			<?php if ( $is_network ) : ?>

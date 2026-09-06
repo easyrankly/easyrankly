@@ -134,11 +134,20 @@ function erankly_should_suppress_sitemaps(): bool {
 	$suppress = erankly_detect_external_seo_head_owner();
 
 	/**
- * Filters whether EasyRankly suppresses its own sitemap output when an external SEO plugin is active. Return
- * false to allow EasyRankly's video/news sitemaps to run alongside another SEO plugin.
- *
- * @param bool $suppress True to suppress EasyRankly sitemaps.
- */
+	 * Filters whether EasyRankly suppresses sitemap integration when another
+	 * SEO plugin owns the output. This is the unambiguous public hook.
+	 *
+	 * @param bool $suppress True to suppress EasyRankly sitemap integration.
+	 */
+	$suppress = (bool) apply_filters( 'erankly_suppress_sitemaps_with_external_seo', $suppress );
+
+	/**
+	 * Legacy compatibility hook. Despite its historical name, its boolean is
+	 * still the suppression state. New integrations should use
+	 * `erankly_suppress_sitemaps_with_external_seo` above.
+	 *
+	 * @param bool $suppress True to suppress EasyRankly sitemaps.
+	 */
 	return (bool) apply_filters( 'erankly_enable_sitemaps_with_external_seo', $suppress );
 }
 

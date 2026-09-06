@@ -31,77 +31,12 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		return is_array( $options ) && isset( $options['version'] ) && is_scalar( $options['version'] ) ? sanitize_text_field( (string) $options['version'] ) : '';
 	}
 
-	public function edition(): string {
-		$premium = defined( 'WPSEO_PREMIUM_VERSION' )
-			|| ! empty( $this->installed_plugins( array( 'wordpress-seo-premium/wp-seo-premium.php' ) ) )
-			|| is_array( get_option( 'wpseo-premium-redirects-base' ) )
-			|| is_array( get_option( 'wpseo-premium-redirects-export-plain' ) )
-			|| is_array( get_option( 'wpseo-premium-redirects-export-regex' ) )
-			|| $this->has_meta( 'post', array( '_yoast_wpseo_redirect' ) );
-
-		return $premium ? 'premium' : 'free';
-	}
-
-	public function modules(): array {
-		$plugins = $this->installed_plugins(
-			array(
-				'wordpress-seo-premium/wp-seo-premium.php',
-				'wpseo-news/wpseo-news.php',
-				'wpseo-video/video-seo.php',
-				'wpseo-woocommerce/wpseo-woocommerce.php',
-				'local-seo-for-wordpress/local-seo.php',
-				'wpseo-local/local-seo.php',
-			)
-		);
-		$map     = array(
-			'wordpress-seo-premium/wp-seo-premium.php' => 'premium',
-			'wpseo-news/wpseo-news.php'                => 'news',
-			'wpseo-video/video-seo.php'                => 'video',
-			'wpseo-woocommerce/wpseo-woocommerce.php'  => 'woocommerce',
-			'local-seo-for-wordpress/local-seo.php'    => 'local',
-			'wpseo-local/local-seo.php'                => 'local',
-		);
-		$modules = array();
-		foreach ( array_keys( $plugins ) as $plugin ) {
-			$modules[] = $map[ $plugin ];
-		}
-		if ( 'premium' === $this->edition() ) {
-			$modules[] = 'redirects';
-		}
-
-		return array_values( array_unique( $modules ) );
-	}
-
-	public function module_support(): array {
-		$support = array();
-		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, array( 'premium', 'redirects' ), true ) ? 'supported' : 'ignored';
-		}
-		return $support;
-	}
-
 	/** Yoast versions covered by the certified meta/option signatures. */
 	protected function supported_versions(): array {
 		return array(
 			'min' => '3.0.0',
 			'max' => '28.999.999',
 		);
-	}
-
-	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
-	protected function export_source_profile( string $format ): array {
-		if ( 'yoast-redirects-csv' === $format ) {
-			return array(
-				'edition'        => 'premium',
-				'modules'        => array( 'premium', 'redirects' ),
-				'module_support' => array(
-					'premium'   => 'supported',
-					'redirects' => 'supported',
-				),
-			);
-		}
-
-		return parent::export_source_profile( $format );
 	}
 
 	/** Declares every Yoast storage surface consumed by this adapter. */
@@ -168,10 +103,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 	}
 
 	public function global_settings(): array {
-		if ( $this->uses_export_file() ) {
-			return array();
-		}
-
 		$main   = $this->option_array( 'wpseo' );
 		$titles = $this->option_array( 'wpseo_titles' );
 		$social = $this->option_array( 'wpseo_social' );
@@ -385,18 +316,22 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
 		if ( array_key_exists( 'noindex-subpages-wpseo', $titles ) ) {
 			$settings['noindex_paginated'] = $this->enabled( $titles['noindex-subpages-wpseo'] ) ? 1 : 0;
 		}
-		if ( in_array( 'redirects', $this->modules(), true ) ) {
-			$settings['enable_redirects']        = 1;
+		if ( $this->has_redirect_data() ) {
+			$settings['enable_redirects'] = 1;
 		}
 
 		return $settings;
 	}
 
-	public function is_available(): bool {
-		if ( $this->uses_export_file() ) {
-			return 'supported' === (string) $this->profile()['storage_status'];
-		}
+	/** Reports whether this install holds any Yoast Premium redirect data. */
+	private function has_redirect_data(): bool {
+		return is_array( get_option( 'wpseo-premium-redirects-base' ) )
+			|| is_array( get_option( 'wpseo-premium-redirects-export-plain' ) )
+			|| is_array( get_option( 'wpseo-premium-redirects-export-regex' ) )
+			|| $this->has_meta( 'post', array( '_yoast_wpseo_redirect' ) );
+	}
 
+	public function is_available(): bool {
 		return $this->has_meta( 'post', $this->post_keys(), array( '_yoast_wpseo_primary_', '_yoast_wpseo_schema_' ) )
 			|| $this->has_meta( 'term', $this->post_keys(), array( '_yoast_wpseo_schema_' ) )
 			|| is_array( get_option( 'wpseo_taxonomy_meta' ) )
@@ -482,10 +417,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function content_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$stages = array( 'post', 'term_meta', 'term_option', 'user' );
 		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'post' ) );
 		$stage  = in_array( $stage, $stages, true ) ? $stage : 'post';
@@ -631,10 +562,6 @@ final class ERankly_Migration_Adapter_Yoast extends ERankly_Migration_Adapter {
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function redirect_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$stages = array( 'premium_base', 'legacy_plain', 'legacy_regex', 'post_redirect' );
 		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'premium_base' ) );
 		$stage  = in_array( $stage, $stages, true ) ? $stage : 'premium_base';

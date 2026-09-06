@@ -171,6 +171,11 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 							'features'      => array(
 								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
 								'reloadOnSave' => true,
+								// Both keys restructure the PHP-rendered nav, so any real
+								// value change needs the refresh; the map lets the client
+								// skip it when a save lands with values identical to the
+								// last persisted state (edit + revert before the debounce).
+								'refreshKeys'  => array( 'enable_redirects', 'enable_sitemap', 'enable_custom_code' ),
 							),
 							// Simplified mode drives PHP-rendered markup across the whole
 							// page (Advanced tab visibility, social/visibility defaults
@@ -179,9 +184,15 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 							'settings'      => array(
 								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/settings' ) ),
 								'reloadOnSave' => true,
+								// Only simplified_mode drives PHP-rendered markup;
+								// resolve_placeholders is mirrored client-side into
+								// window.eranklyVariablePreview (see admin-settings.js),
+								// so toggling it alone no longer re-fetches the page.
+								'refreshKeys'  => array( 'simplified_mode' ),
 							),
 							'social'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/social' ) ) ),
 							'schema'        => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/schema' ) ) ),
+							'custom-code'   => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/custom-code' ) ) ),
 							// Multisite-only (a per-site admin's "General" tab there);
 							// its own bespoke route, not part of erankly_settings_autosave_panels()
 							// See erankly_rest_save_special_pages() in easyrankly.php.

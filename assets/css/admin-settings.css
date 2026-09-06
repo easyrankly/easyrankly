@@ -165,33 +165,6 @@
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.erankly-segment-control.erankly-tabs {
-	display: flex;
-	flex-wrap: nowrap;
-	width: 100%;
-}
-
-.erankly-segment-control .erankly-tab {
-	cursor: pointer;
-	flex: 1 1 0;
-	font-variant-numeric: tabular-nums;
-	min-width: 0;
-	position: relative;
-}
-
-.erankly-segment-control .erankly-tab input[type="radio"] {
-	height: 0;
-	margin: 0;
-	opacity: 0;
-	position: absolute;
-	width: 0;
-}
-
-.erankly-segment-control .erankly-tab:has(input:focus-visible) {
-	box-shadow: 0 0 0 2px var(--erankly-color-surface), 0 0 0 4px var(--erankly-tab-color);
-	outline: 2px solid transparent;
-}
-
 /* wp-clearfix ::after becomes a flex item and picks up gap after the last tab. */
 .nav-tab-wrapper.erankly-tabs::after,
 button.erankly-linked-defaults-toggle.erankly-tabs::after {
@@ -294,7 +267,7 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 
 .erankly-schema-panel {
 	background: var(--erankly-color-surface);
-	padding: var(--erankly-space-4) var(--erankly-space-4) 1px;
+	padding: var(--erankly-space-4);
 }
 
 .erankly-local-business-fields {
@@ -644,6 +617,14 @@ button.erankly-linked-defaults-toggle.erankly-tabs .erankly-linked-defaults-opti
 	padding: 0;
 }
 
+/* Control-wrapping labels zero their own bottom margin in the shared field
+   anatomy (admin-core.css), so toggle labels stacked inside one checkbox
+   group would touch. Restore one consistent gap between consecutive labels;
+   the group's own field margin still separates it from the next field. */
+.erankly-checkboxes > label + label {
+	margin-top: var(--erankly-space-2);
+}
+
 /* Single-class on/off toggle: overlays any input[type="checkbox"], no
    extra markup required. appearance:none turns it into a plain box that
    ::before can render the knob on top of. The input[type="checkbox"]
@@ -759,7 +740,11 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	padding-right: var(--erankly-space-3);
 }
 
-.erankly-term-meta-box .erankly-variable-field .widefat {
+/* Term screens sit inside a core tr.form-field row whose input[type=text]
+   width:95% rule outranks .widefat; re-assert full width for every labeled
+   field control, not just the variable-preview ones. */
+.erankly-term-meta-box .erankly-variable-field .widefat,
+.erankly-term-meta-box .erankly-field > .widefat {
 	box-sizing: border-box;
 	max-width: none;
 	width: 100%;
@@ -835,10 +820,14 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	align-items: center;
 	background: var(--erankly-color-surface);
 	cursor: pointer;
-	display: grid;
+	display: flex;
 	gap: var(--erankly-space-2);
-	grid-template-columns: minmax(0, 1fr) auto 16px;
-	padding: 0 var(--erankly-space-2) 0 var(--erankly-space-4);
+	padding: 0 var(--erankly-space-3) 0 var(--erankly-space-4);
+}
+
+.erankly-schema-block-header::after {
+	flex-shrink: 0;
+	margin-left: auto;
 }
 
 .erankly-schema-block-header::-webkit-details-marker {
@@ -859,7 +848,10 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	padding: 0 var(--erankly-space-1);
 }
 
-.erankly-schema-targeting label {
+/* Only toggle/checkbox rows use the tight 4px rhythm; field labels keep
+ * the standard label anatomy (8px to the control). */
+.erankly-schema-targeting > label,
+.erankly-schema-targeting-group label {
 	display: block;
 	margin: var(--erankly-space-1) 0;
 }
@@ -874,7 +866,19 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	display: grid;
 	gap: var(--erankly-space-4);
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	margin-top: var(--erankly-space-3);
+	margin-top: var(--erankly-space-4);
+}
+
+/* The fieldset's own bottom margin separates it from the next section;
+ * field margins inside the grid would double that gap. */
+.erankly-schema-targeting-grid .erankly-field {
+	margin-bottom: 0;
+}
+
+/* widefat textareas are inline-block: WP's line-box descender adds a stray
+ * 4px under each one. Block display keeps the panel's vertical rhythm exact. */
+.erankly-schema-panel textarea.widefat {
+	display: block;
 }
 
 .erankly-schema-title {
@@ -883,11 +887,15 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	padding: var(--erankly-space-3) 0;
 }
 
-.erankly-schema-row-actions {
-	align-items: center;
-	display: flex;
-	gap: var(--erankly-space-2);
-	justify-content: flex-end;
+/* Bare panel help text follows the .erankly-field > .description anatomy:
+ * 4px after the control, no bottom margin (the Delete row owns the 16px). */
+.erankly-schema-panel > p.description {
+	margin: var(--erankly-space-help) 0 0;
+}
+
+/* .erankly-schema-panel > .button beats WP core's .wp-core-ui .button { margin: 0 }. */
+.erankly-schema-panel > .button.erankly-schema-delete {
+	margin: var(--erankly-space-4) 0 0;
 }
 
 .erankly-schema-field {
@@ -949,10 +957,6 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 	.erankly-schema-block-header {
 		padding: 0 var(--erankly-space-3) 0 var(--erankly-space-4);
-	}
-
-	.erankly-schema-row-actions {
-		align-self: start;
 	}
 
 	.erankly-schema-field > label {

@@ -30,7 +30,7 @@
     bindEach("[data-erankly-user-search-wrap]", "bindUserSearch");
     bindEach("[data-erankly-local-business]", "bindLocalBusiness");
     bindEach("[data-erankly-file-dropzone]", "bindFileDropzone");
-    bindEach("[data-erankly-segment-control]", "bindSegmentControl");
+    bindEach(".erankly-term-doc-link", "moveTermDocLink");
 
     bindRoot("bindAllSettingsAutosave");
 

@@ -25,62 +25,12 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		);
 	}
 
-	public function edition(): string {
-		$pro = defined( 'SEOPRESS_PRO_VERSION' )
-			|| ! empty( $this->installed_plugins( array( 'wp-seopress-pro/seopress-pro.php' ) ) )
-			|| $this->has_meta( 'post', array( '_seopress_pro_schemas_manual', '_seopress_pro_rich_snippets_type' ), array( '_seopress_pro_rich_snippets_' ) )
-			|| $this->has_redirect_posts();
-
-		return $pro ? 'pro' : 'free';
-	}
-
-	public function modules(): array {
-		$modules = array( 'titles', 'social', 'robots' );
-		if ( $this->has_meta( 'post', array( '_seopress_pro_schemas_manual', '_seopress_pro_rich_snippets_type' ), array( '_seopress_pro_rich_snippets_' ) ) ) {
-			$modules[] = 'schemas';
-		}
-		if ( $this->has_redirect_posts() || $this->has_meta( 'post', $this->redirect_keys() ) || $this->has_meta( 'term', $this->redirect_keys() ) ) {
-			$modules[] = 'redirects';
-		}
-		if ( 'pro' === $this->edition() ) {
-			$modules[] = 'pro';
-		}
-
-		return array_values( array_unique( $modules ) );
-	}
-
-	public function module_support(): array {
-		$support = array();
-		foreach ( $this->modules() as $module ) {
-			$support[ $module ] = in_array( $module, array( 'titles', 'social', 'robots', 'schemas', 'redirects', 'pro' ), true ) ? 'supported' : 'ignored';
-		}
-		return $support;
-	}
-
 	/** Covers current and legacy SEOPress meta/CPT signatures. */
 	protected function supported_versions(): array {
 		return array(
 			'min' => '3.0.0',
 			'max' => '10.999.999',
 		);
-	}
-
-	/** @return array{edition:string,modules:array<int,string>,module_support:array<string,string>} */
-	protected function export_source_profile( string $format ): array {
-		if ( 'seopress-metadata-csv' === $format ) {
-			return array(
-				'edition'        => 'free-or-pro',
-				'modules'        => array( 'titles', 'social', 'robots', 'redirects' ),
-				'module_support' => array(
-					'titles'    => 'supported',
-					'social'    => 'supported',
-					'robots'    => 'supported',
-					'redirects' => 'supported',
-				),
-			);
-		}
-
-		return parent::export_source_profile( $format );
 	}
 
 	/** Declares every SEOPress surface consumed by this adapter. */
@@ -145,10 +95,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 	}
 
 	public function global_settings(): array {
-		if ( $this->uses_export_file() ) {
-			return array();
-		}
-
 		$titles  = $this->option_array( 'seopress_titles_option_name' );
 		$social  = $this->option_array( 'seopress_social_option_name' );
 		$sitemap = $this->option_array( 'seopress_xml_sitemap_option_name' );
@@ -341,18 +287,14 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
 		} elseif ( array_key_exists( 'seopress_advanced_advanced_attachments', $advanced ) || array_key_exists( 'seopress_advanced_advanced_attachments_file', $advanced ) ) {
 			$settings['attachment_redirect'] = 'none';
 		}
-		if ( in_array( 'redirects', $this->modules(), true ) ) {
-			$settings['enable_redirects']        = 1;
+		if ( $this->has_redirect_posts() || $this->has_meta( 'post', $this->redirect_keys() ) || $this->has_meta( 'term', $this->redirect_keys() ) ) {
+			$settings['enable_redirects'] = 1;
 		}
 
 		return $settings;
 	}
 
 	public function is_available(): bool {
-		if ( $this->uses_export_file() ) {
-			return 'supported' === (string) $this->profile()['storage_status'];
-		}
-
 		return $this->has_meta( 'post', $this->content_keys(), array( '_seopress_pro_rich_snippets_' ) )
 			|| $this->has_meta( 'term', $this->content_keys() )
 			|| $this->has_meta( 'post', $this->redirect_keys() )
@@ -388,10 +330,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function content_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::content_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$stages = array( 'post', 'term' );
 		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'post' ) );
 		$stage  = in_array( $stage, $stages, true ) ? $stage : 'post';
@@ -494,10 +432,6 @@ final class ERankly_Migration_Adapter_SEOPress extends ERankly_Migration_Adapter
  * @return array{records:array<int,array<string,mixed>>,cursor:array<string,mixed>,done:bool}
  */
 	public function redirect_batch( array $cursor, int $limit ): array {
-		if ( $this->uses_export_file() ) {
-			return ERankly_Migration_Export_Reader::redirect_batch( $this->export_file(), $this->slug(), $cursor, $limit );
-		}
-
 		$stages = array( 'post', 'term' );
 		$stage  = sanitize_key( (string) ( $cursor['stage'] ?? 'post' ) );
 		$stage  = in_array( $stage, $stages, true ) ? $stage : 'post';

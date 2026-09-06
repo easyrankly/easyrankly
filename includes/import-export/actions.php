@@ -9,9 +9,6 @@ require_once ERANKLY_PATH . 'includes/migrations.php';
 require_once ERANKLY_PATH . 'includes/migrations/class-erankly-migration-admin-presenter.php';
 require_once ERANKLY_PATH . 'includes/class-erankly-import-job-runner.php';
 
-/** Export file format version. Bumped when the JSON structure changes. */
-define( 'ERANKLY_EXPORT_FORMAT', '3.0' );
-
 /** Default maximum size for a complete EasyRankly JSON import. */
 define( 'ERANKLY_IMPORT_DEFAULT_MAX_BYTES', 10 * 1024 * 1024 );
 
@@ -20,9 +17,6 @@ define( 'ERANKLY_IMPORT_MEMORY_RESERVE_BYTES', 8 * 1024 * 1024 );
 
 /** Coarse first-stage cap for the raw upload relative to available memory. */
 define( 'ERANKLY_IMPORT_RAW_MEMORY_FACTOR', 16 );
-
-/** Maximum supported nesting depth for the EasyRankly export schema. */
-define( 'ERANKLY_IMPORT_JSON_MAX_DEPTH', 64 );
 
 /** Absolute JSON node cap, including containers, keys, and scalar values. */
 define( 'ERANKLY_IMPORT_JSON_MAX_NODES', 500000 );
@@ -61,15 +55,16 @@ function erankly_import_export_max_bytes(): int {
 }
 
 /**
- * Reads a local upload without ever allocating more than the application cap. The caller must still enforce that
- * the path is a genuine PHP upload. The stat check provides a fast rejection, while the bounded read closes the
- * race where the file changes after its size was inspected.
+ * Reads a verified local file without ever allocating more than the application cap. Upload callers still enforce
+ * that the path is a genuine PHP upload; restore callers use the same reader for a private file owned by this
+ * plugin. The stat check provides a fast rejection, while the bounded read closes the race where the file changes
+ * after its size was inspected.
  *
  * @param string $path    Genuine PHP upload temporary path.
  * @param int    $maximum Maximum number of bytes to read.
  * @return array{ok:bool,error:string,contents:string}
  */
-function erankly_import_export_read_bounded_upload( string $path, int $maximum ): array {
+function erankly_import_export_read_bounded_file( string $path, int $maximum ): array {
 	$maximum = max( 1, $maximum );
 
 	if ( '' === $path || ! is_file( $path ) || is_link( $path ) || ! is_readable( $path ) ) {
@@ -118,6 +113,11 @@ function erankly_import_export_read_bounded_upload( string $path, int $maximum )
 		'error'    => '',
 		'contents' => $contents,
 	);
+}
+
+/** Backward-compatible upload-specific name for the bounded local-file reader. */
+function erankly_import_export_read_bounded_upload( string $path, int $maximum ): array {
+	return erankly_import_export_read_bounded_file( $path, $maximum );
 }
 
 /**
@@ -299,10 +299,10 @@ function erankly_import_export_handle_actions(): void {
 		erankly_migration_report_download( $report_id );
 	}
 
-	if ( isset( $_GET['erankly_io_action'] ) && 'migration-exceptions' === sanitize_key( wp_unslash( $_GET['erankly_io_action'] ) ) ) {
+	if ( isset( $_GET['erankly_io_action'] ) && 'migration-backup' === sanitize_key( wp_unslash( $_GET['erankly_io_action'] ) ) ) {
 		$report_id = isset( $_GET['report_id'] ) ? sanitize_text_field( wp_unslash( $_GET['report_id'] ) ) : '';
-		check_admin_referer( 'erankly_migration_exceptions_' . $report_id );
-		erankly_migration_exceptions_download( $report_id );
+		check_admin_referer( 'erankly_migration_backup_' . $report_id );
+		erankly_migration_backup_download( $report_id );
 	}
 
 	if ( ! isset( $_POST['erankly_io_action'] ) ) {
@@ -320,19 +320,14 @@ function erankly_import_export_handle_actions(): void {
 		erankly_import_export_handle_third_party( $source );
 	}
 
-	if ( 'migrate-export' === $action ) {
-		$source = isset( $_POST['erankly_migration_export_source'] ) ? sanitize_key( wp_unslash( $_POST['erankly_migration_export_source'] ) ) : 'auto';
-		erankly_import_export_handle_third_party_export( $source );
-	}
-
 	if ( in_array( $action, array( 'migration-process', 'migration-cancel' ), true ) ) {
 		$job_id = isset( $_POST['erankly_migration_job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['erankly_migration_job_id'] ) ) : '';
 		erankly_import_export_handle_migration_job( $job_id, $action );
 	}
 
-	if ( in_array( $action, array( 'migration-verify-live', 'migration-rollback' ), true ) ) {
+	if ( 'migration-restore-backup' === $action ) {
 		$report_id = isset( $_POST['erankly_migration_report_id'] ) ? sanitize_text_field( wp_unslash( $_POST['erankly_migration_report_id'] ) ) : '';
-		erankly_import_export_handle_migration_evidence_action( $report_id, $action );
+		erankly_import_export_handle_backup_restore( $report_id );
 	}
 
 	// Backward compatibility for forms or integrations created before the
@@ -399,7 +394,14 @@ function erankly_import_export_handle_import(): void {
 	unset( $data );
 	if ( empty( $started['ok'] ) ) {
 		$error  = (string) ( $started['error'] ?? '' );
-		$notice = 'import_already_running' === $error ? 'import-running' : ( 'unsupported_format' === $error ? 'unsupported-format' : 'import-error' );
+		$notice = match ( $error ) {
+			'import_already_running'      => 'import-running',
+			'migration_already_running'   => 'migration-running',
+			'transfer_start_in_progress'  => 'transfer-starting',
+			'unfiltered_html_required'    => 'custom-code-capability',
+			'unsupported_format'          => 'unsupported-format',
+			default                       => 'import-error',
+		};
 		erankly_import_export_redirect( array( 'erankly_io_notice' => $notice ) );
 	}
 	$job       = is_array( $started['job'] ?? null ) ? $started['job'] : array();
@@ -446,60 +448,16 @@ function erankly_import_export_handle_third_party( string $source ): void {
 		$notice = 'migration-started';
 	} elseif ( 'migration_already_running' === $error ) {
 		$notice = 'migration-running';
-	} elseif ( 'unsupported_source_storage' === $error ) {
-		$notice = 'migration-source-unsupported';
+	} elseif ( 'import_already_running' === $error ) {
+		$notice = 'import-running';
+	} elseif ( 'transfer_start_in_progress' === $error ) {
+		$notice = 'transfer-starting';
+	} elseif ( in_array( $error, array( 'backup_write_failed', 'private_storage_unavailable' ), true ) ) {
+		$notice = 'migration-backup-failed';
+	} elseif ( 'backup_too_large' === $error ) {
+		$notice = 'migration-backup-too-large';
 	} else {
 		$notice = 'migration-start-error';
-	}
-
-	erankly_import_export_redirect(
-		array(
-			'erankly_io_notice' => $notice,
-			'report_id'         => (string) ( $job['id'] ?? '' ),
-		)
-	);
-}
-
-/**
- * Validates, privately stages and starts an official-export migration.
- *
- * @param string $requested_source auto or a supported adapter slug.
- */
-function erankly_import_export_handle_third_party_export( string $requested_source ): void {
-	check_admin_referer( 'erankly_io_third_party_export' );
-
-	$file   = isset( $_FILES['erankly_migration_export_file'] ) && is_array( $_FILES['erankly_migration_export_file'] )
-		? $_FILES['erankly_migration_export_file'] // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The upload store validates error, origin, name, size, extension and certified content signature.
-		: array();
-	$staged = ERankly_Migration_Upload_Store::store_http_upload( $file, $requested_source );
-	if ( empty( $staged['ok'] ) ) {
-		erankly_import_export_redirect(
-			array(
-				'erankly_io_notice'    => 'migration-export-invalid',
-				'erankly_upload_error' => sanitize_key( (string) ( $staged['error'] ?? 'upload_failed' ) ),
-			)
-		);
-	}
-
-	$path   = (string) $staged['path'];
-	$source = sanitize_key( (string) $staged['source'] );
-	$mode   = isset( $_POST['erankly_migration_mode'] ) ? sanitize_key( wp_unslash( $_POST['erankly_migration_mode'] ) ) : 'preview';
-	try {
-		$result = erankly_migration_job_runner()->start_from_export( $source, $path, 'preview' === $mode );
-	} catch ( Throwable ) {
-		$result = array(
-			'ok'    => false,
-			'error' => 'migration_start_exception',
-		);
-	}
-
-	$job   = is_array( $result['job'] ?? null ) ? $result['job'] : array();
-	$error = (string) ( $result['error'] ?? '' );
-	if ( ! empty( $result['ok'] ) ) {
-		$notice = 'migration-started';
-	} else {
-		ERankly_Migration_Upload_Store::delete( $path );
-		$notice = 'migration_already_running' === $error ? 'migration-running' : ( 'unsupported_source_storage' === $error ? 'migration-source-unsupported' : 'migration-start-error' );
 	}
 
 	erankly_import_export_redirect(
@@ -547,7 +505,46 @@ function erankly_import_export_handle_migration_job( string $job_id, string $act
 	);
 }
 
-/** Streams a saved migration report as JSON. */
+/**
+ * Restores the automatic pre-import backup of one migration report.
+ *
+ * This is the migration's undo path. It replays the complete backup document through the ordinary import
+ * worker, so recovery uses the same code an administrator would trigger by uploading that file by hand.
+ */
+function erankly_import_export_handle_backup_restore( string $report_id ): void {
+	check_admin_referer( 'erankly_migration_backup_' . $report_id );
+
+	try {
+		$result = erankly_migration_restore_backup( $report_id );
+	} catch ( Throwable ) {
+		$result = array(
+			'ok'    => false,
+			'error' => 'restore_exception',
+		);
+	}
+
+	$error  = (string) ( $result['error'] ?? '' );
+	$notice = 'import-running';
+	if ( empty( $result['ok'] ) ) {
+		$notice = match ( $error ) {
+			'import_already_running'      => 'import-running',
+			'migration_already_running'   => 'migration-running',
+			'transfer_start_in_progress'  => 'transfer-starting',
+			'unfiltered_html_required'    => 'custom-code-capability',
+			'backup_unavailable'          => 'migration-backup-expired',
+			default                       => 'migration-restore-error',
+		};
+	}
+
+	erankly_import_export_redirect(
+		array(
+			'erankly_io_notice' => $notice,
+			'report_id'         => $report_id,
+		)
+	);
+}
+
+/** Streams one retained migration report as a JSON download. */
 function erankly_migration_report_download( string $report_id ): void {
 	$report = erankly_migration_manager()->get_report( $report_id );
 
@@ -568,98 +565,26 @@ function erankly_migration_report_download( string $report_id ): void {
 	exit;
 }
 
-function erankly_migration_exceptions_download( string $report_id ): void {
+/** Streams the stored pre-import backup of one migration report. */
+function erankly_migration_backup_download( string $report_id ): void {
 	$report = erankly_migration_manager()->get_report( $report_id );
-	if ( ! is_array( $report ) ) {
-		wp_die( esc_html__( 'Migration report not found.', 'easyrankly' ), '', array( 'response' => 404 ) );
+	$backup = is_array( $report ) ? erankly_migration_backup_state( $report ) : array();
+	$path   = (string) ( $backup['path'] ?? '' );
+	if ( '' === $path ) {
+		erankly_import_export_redirect(
+			array(
+				'erankly_io_notice' => 'migration-backup-expired',
+				'report_id'         => $report_id,
+			)
+		);
 	}
-	$evidence   = is_array( $report['evidence'] ?? null ) ? $report['evidence'] : array();
-	$exceptions = is_array( $evidence['exceptions'] ?? null ) ? $evidence['exceptions'] : array();
-	$store      = erankly_migration_evidence_store();
 
 	nocache_headers();
-	header( 'Content-Type: text/csv; charset=utf-8' );
-	header( 'Content-Disposition: attachment; filename="easyrankly-migration-exceptions-' . sanitize_file_name( $report_id ) . '.csv"' );
-	$stream = fopen( 'php://output', 'w' );
-	if ( false === $stream ) {
-		wp_die( esc_html__( 'The exception report could not be opened.', 'easyrankly' ), '', array( 'response' => 500 ) );
-	}
-	$columns = array( 'area', 'outcome', 'reference', 'target', 'object_type', 'object_id', 'edit_url' );
-	fputcsv( $stream, $columns );
-	$write_exception = static function ( array $exception ) use ( $stream, $columns ): void {
-		$row = array();
-		foreach ( $columns as $column ) {
-			$value = (string) ( $exception[ $column ] ?? '' );
-			if ( preg_match( '/^[=+\-@]/', $value ) ) {
-				$value = "'" . $value;
-			}
-			$row[] = $value;
-		}
-		fputcsv( $stream, $row );
-	};
-	if ( $store->count( $report_id ) > 0 ) {
-		$after_id = 0;
-		do {
-			$page = $store->page( $report_id, $after_id, 500 );
-			foreach ( $page as $exception ) {
-				$after_id = absint( $exception['id'] ?? $after_id );
-				$write_exception( $exception );
-			}
-			$page_count = count( $page );
-		} while ( 500 === $page_count );
-	} else {
-		foreach ( $exceptions as $exception ) {
-			$write_exception( $exception );
-		}
-	}
-	fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closes a write-only HTTP response stream, not a filesystem artifact.
+	header( 'Content-Type: application/json; charset=utf-8' );
+	header( 'Content-Disposition: attachment; filename=erankly-pre-import-backup-' . gmdate( 'Y-m-d-His' ) . '.json' );
+	header( 'Content-Length: ' . (string) filesize( $path ) );
+	readfile( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Streaming an owned private file avoids loading a large backup into memory.
 	exit;
-}
-
-function erankly_import_export_handle_migration_evidence_action( string $report_id, string $action ): void {
-	check_admin_referer( 'erankly_migration_evidence_' . $report_id );
-	$manager = erankly_migration_manager();
-	$report  = $manager->get_report( $report_id );
-	if ( ! is_array( $report ) || 'import' !== (string) ( $report['mode'] ?? '' ) ) {
-		erankly_import_export_redirect( array( 'erankly_io_notice' => 'migration-evidence-error' ) );
-	}
-
-	if ( 'migration-verify-live' === $action ) {
-		$gate = $manager->evaluate_go_live_gate( $report, true );
-		if ( empty( $gate['can_verify_live'] ) ) {
-			erankly_import_export_redirect(
-				array(
-					'erankly_io_notice' => 'migration-gate-blocked',
-					'report_id'         => $report_id,
-				)
-			);
-		}
-		$source_owns_output = (bool) apply_filters( 'erankly_migration_source_owns_output', erankly_detect_external_seo_head_owner(), sanitize_key( (string) ( $report['source'] ?? '' ) ) );
-		if ( $source_owns_output ) {
-			erankly_import_export_redirect(
-				array(
-					'erankly_io_notice' => 'migration-source-still-active',
-					'report_id'         => $report_id,
-				)
-			);
-		}
-		$queued = ERankly_Migration_Verification_Job::queue( $report_id );
-		$notice = $queued ? 'migration-live-running' : 'migration-evidence-error';
-	} else {
-		$result = erankly_migration_journal()->rollback( $report_id );
-		erankly_migration_record_rollback_result( $report_id, $result );
-		$status = (string) ( $result['status'] ?? '' );
-		$notice = 'running' === $status
-			? 'migration-rollback-running'
-			: ( 'expired' === $status ? 'migration-rollback-expired' : ( 'failed' === $status ? 'migration-rollback-error' : 'migration-rolled-back' ) );
-	}
-
-	erankly_import_export_redirect(
-		array(
-			'erankly_io_notice' => $notice,
-			'report_id'         => $report_id,
-		)
-	);
 }
 
 function erankly_import_export_redirect( array $args ): void {

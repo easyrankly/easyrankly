@@ -19,7 +19,7 @@ Here's what it does:
 * **Core metadata across your site.** SEO titles, meta descriptions, canonical URLs, and robots directives, set up sensibly out of the box, with dynamic variables to fill in titles, social tags, and schema fields automatically.
 * **Great social previews.** Open Graph and Twitter (X) cards with shared image alt text, an optional X-specific override, and Media Library alt-text fallbacks for local images.
 * **Structured data that search engines understand.** A modular JSON-LD schema graph covering your Organization or Person, optional local business details, articles, breadcrumbs, FAQs, and WooCommerce product compatibility, plus reusable custom schema blocks you can target to specific pages.
-* **Sitemaps, when you want them.** An optional XML sitemap index with sitemaps for your content (including images), taxonomies, and authors.
+* **Sitemaps, when you want them.** WordPress's native XML sitemap stays aligned with EasyRankly visibility rules; the optional module adds public custom-post-type archives plus News, Image, and Video sitemaps.
 * **Control over what gets indexed.** Simple noindex, nofollow, noarchive, and sitemap-exclusion controls, per page or across your site.
 * **Smart redirects built in.** An optional redirect manager with a streamlined editor for exact, wildcard, and regular-expression rules, essential query-string controls, permanent and temporary redirects, and gone (410) responses.
 * **Breadcrumbs and robots.txt.** A breadcrumb function for your theme (with optional shorter names per page) and an editable virtual robots.txt.
@@ -50,7 +50,7 @@ Each site refreshes its own rewrite rules when needed, and network resets run in
 
 = Does EasyRankly collect any personal data or phone home? =
 
-EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses, referrers, user agents, languages, or cookie values. Migration verification may make bounded same-origin requests to your own site; it does not phone home.
+EasyRankly does not send site or visitor data to EasyRankly and adds no external analytics or telemetry. Configuration data, including any optional business contact details you enter, and temporary migration files remain on your WordPress installation. When redirects are enabled, EasyRankly stores sampled aggregate hit counts and the last sampled hit time, but it does not store visitor IP addresses, referrers, user agents, languages, or cookie values.
 
 = How do I display breadcrumbs? =
 
@@ -62,13 +62,13 @@ Yes. Extension API v1 includes multilingual provider registration through `erank
 
 = Can I migrate from Yoast SEO, Rank Math, All in One SEO or SEOPress? =
 
-Yes, for supported fields and certified storage signatures. Open Settings > EasyRankly > Import/Export. Edition-aware database adapters read supported data from Yoast SEO, Rank Math, AIOSEO, and SEOPress installations. Supported official exports are format-specific: Yoast redirect CSV, Rank Math metadata or redirect CSV, AIOSEO redirect CSV or JSON, and SEOPress metadata CSV.
+Yes, for supported fields and detected storage layouts. Open Settings > EasyRankly > Import/Export. Edition-aware database adapters read supported data directly from Yoast SEO, Rank Math, AIOSEO, and SEOPress installations on the same WordPress site.
 
-Preview does not modify destination SEO metadata or redirects; it writes only temporary job, staging, and report data. Imports run in resumable background batches, recheck targets before applying them, preserve existing EasyRankly values, and pause if the source changes. Uploaded CSV/JSON files are staged privately and deleted when preview, import, or cancellation reaches a terminal state; if immediate deletion fails, stale-file cleanup retries it. Database migrations can capture and verify a same-origin output baseline and provide a seven-day conditional rollback. Native EasyRankly export/import covers settings, redirects, and registered metadata with size and structural safeguards.
+Preview does not modify destination SEO metadata or redirects; it records only a resumable job checkpoint and report. Imports run in resumable background batches, recheck targets before applying them, preserve existing EasyRankly values, and pause if the source changes. Before a write migration starts, EasyRankly creates a private complete backup of its own settings, redirects, and registered metadata; it remains downloadable and restorable for seven days. Native EasyRankly export/import covers the same data with size and structural safeguards.
 
 == External Services ==
 
-EasyRankly does not send server-side requests to third-party services and does not add analytics, tracking, telemetry, or phone-home calls. During migration verification, it may make bounded server-side requests only to URLs on the exact same origin as the WordPress site; redirects are not followed.
+EasyRankly does not send server-side requests to third-party services and does not add analytics, tracking, telemetry, or phone-home calls.
 
 For posts containing YouTube or Vimeo URLs or embeds, EasyRankly may include provider player URLs in VideoObject structured data and video sitemaps. For YouTube videos without a featured image, it may also include a thumbnail URL derived from the public video ID. EasyRankly does not fetch video metadata or thumbnails server-side and does not use vumbnail.com. A browser or search engine that loads these provider URLs sends its normal request data to the provider. See YouTube terms (https://www.youtube.com/static?template=terms) and privacy policy (https://policies.google.com/privacy), and Vimeo terms (https://vimeo.com/legal) and privacy policy (https://vimeo.com/legal/privacy).
 
@@ -83,7 +83,7 @@ The entire experience has been redesigned around clearer URL-addressable setting
 
 Metadata and structured data now offer substantially greater control. Primary taxonomy terms, advanced robots directives, dedicated Open Graph and X images, richer schema modes, FAQ and HowTo extraction, Event and VideoObject markup, and expanded WooCommerce support make it possible to describe and optimize content with far greater precision.
 
-Redirect management and migration tools have evolved with the same attention to reliability. Redirects now focus on exact, wildcard, and regular-expression matching, essential query-string behavior, automatic rule precedence, response codes, and per-pattern safety limits. Audience targeting, request conditions, scheduling, and manual priority were removed from the public model; incompatible imported rules are skipped or disabled for review instead of being broadened silently. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, live-output verification, and a seven-day conditional rollback journal.
+Redirect management and migration tools have evolved with the same attention to reliability. Redirects now focus on exact, wildcard, and regular-expression matching, essential query-string behavior, automatic rule precedence, response codes, and per-pattern safety limits. Audience targeting, request conditions, scheduling, and manual priority were removed from the public model; incompatible imported rules are skipped or disabled for review instead of being broadened silently. Imports from Yoast SEO, Rank Math, AIOSEO, and SEOPress now include non-writing previews, resumable background processing, and a complete pre-import backup retained for seven days.
 
 Behind the scenes, contextual module loading keeps inactive features from adding unnecessary overhead, while bounded background processing, stronger Multisite support, and dedicated WP-CLI workflows provide a more dependable foundation for sites of every size. EasyRankly 2.0.0 supports WordPress 6.2 and later with PHP 8.0 or newer.
 
