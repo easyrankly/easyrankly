@@ -5,9 +5,10 @@
 	const shared = window.eranklyShared;
 	const {
 		Button,
+		FormTokenField,
+		Notice,
 		SelectControl,
 		TextareaControl,
-		TextControl,
 	} = wp.components;
 	const { useDispatch, useSelect } = wp.data;
 	// PluginDocumentSettingPanel moved from wp.editPost to wp.editor in WP 6.6.
@@ -70,37 +71,59 @@
 		triStateRobots: true,
 	};
 
-	// Mirrors erankly_decode_custom_json_ld(): one object, a list of objects, or
-	// an object carrying @graph. Placeholders are swapped for a string first —
-	// {{post_title}} is not valid JSON on its own.
-	function isValidJsonLd( value ) {
+	function uniqueSchemaTypes( tokens ) {
+		const seen = new Set();
+		const unique = [];
+
+		( Array.isArray( tokens ) ? tokens : [] ).forEach( ( token ) => {
+			const value = String( token || '' ).trim();
+
+			if ( ! value ) {
+				return;
+			}
+
+			const key = value.toLowerCase();
+
+			if ( seen.has( key ) ) {
+				return;
+			}
+
+			seen.add( key );
+			unique.push( value );
+		} );
+
+		return unique;
+	}
+
+	function validateJsonLd( value ) {
+		if ( window.eranklyJsonLd && typeof window.eranklyJsonLd.validate === 'function' ) {
+			return window.eranklyJsonLd.validate( value );
+		}
+
 		const text = String( value || '' ).replace( /{{\s*[a-z0-9_]+\s*}}/gi, 'x' );
-		const hasObject = ( list ) => list.some( ( entry ) => entry && typeof entry === 'object' && ! Array.isArray( entry ) );
-		let parsed;
 
 		if ( text.trim() === '' ) {
-			return true;
+			return { valid: true, code: '', message: '' };
 		}
 
 		try {
-			parsed = JSON.parse( text );
+			JSON.parse( text );
+			return { valid: true, code: '', message: '' };
 		} catch ( error ) {
-			return false;
+			return {
+				valid: false,
+				code: 'syntax',
+				message: __( 'This is not valid JSON, so it cannot be used as JSON-LD.', 'easyrankly' ),
+			};
 		}
+	}
 
-		if ( ! parsed || typeof parsed !== 'object' ) {
-			return false;
-		}
+	function schemaBlocks( value ) {
+		return Array.isArray( value ) ? value.filter( ( block ) => block && typeof block === 'object' ) : [];
+	}
 
-		if ( Array.isArray( parsed ) ) {
-			return hasObject( parsed );
-		}
-
-		if ( Array.isArray( parsed[ '@graph' ] ) ) {
-			return hasObject( parsed[ '@graph' ] );
-		}
-
-		return Object.keys( parsed ).some( ( key ) => key !== '@context' );
+	function blockHasJson( block ) {
+		return !!( block && block.fields && String( block.fields.custom_json || '' ).trim() );
 	}
 
 	// Post-meta data adapter shared builders read and write through.
@@ -149,8 +172,7 @@
 				title: __( 'Search appearance', 'easyrankly' ),
 			},
 			...shared.searchAppearanceFields( { config: panelConfig, data, features: FEATURES } ),
-			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.searchAppearanceExtras', [], { data, config } ) : [] ),
-			el( shared.PanelDocLink, { section: 'editor-search-appearance' } )
+			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.searchAppearanceExtras', [], { data, config } ) : [] )
 		);
 	}
 
@@ -166,8 +188,7 @@
 				title: __( 'Social sharing', 'easyrankly' ),
 			},
 			...shared.socialFields( { config: panelConfig, data, features: FEATURES } ),
-			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.socialExtras', [], { data, config } ) : [] ),
-			el( shared.PanelDocLink, { section: 'editor-social' } )
+			...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.editor.socialExtras', [], { data, config } ) : [] )
 		);
 	}
 
@@ -181,15 +202,245 @@
 				name: 'erankly-visibility',
 				title: __( 'Search visibility', 'easyrankly' ),
 			},
-			...shared.visibilityFields( { config, data, features: FEATURES } ),
-			el( shared.PanelDocLink, { section: 'editor-visibility' } )
+			...shared.visibilityFields( { config, data, features: FEATURES } )
 		);
+	}
+
+	function bindSchemaSaveFocus() {
+		if ( bindSchemaSaveFocus.bound || ! wp.data || typeof wp.data.subscribe !== 'function' ) {
+			return;
+		}
+
+		bindSchemaSaveFocus.bound = true;
+
+		let wasSaving = false;
+
+		wp.data.subscribe( function () {
+			const editor = wp.data.select( 'core/editor' );
+
+			if ( ! editor || typeof editor.isSavingPost !== 'function' ) {
+				return;
+			}
+
+			const saving = editor.isSavingPost();
+
+			if ( saving && ! wasSaving ) {
+				const invalid = document.querySelector(
+					'.erankly-panel--schema textarea[aria-invalid="true"], .erankly-panel--schema .erankly-is-invalid textarea'
+				);
+
+				if ( invalid ) {
+					const panel = invalid.closest( '.components-panel__body' );
+					const toggle = panel && ! panel.classList.contains( 'is-opened' )
+						? panel.querySelector( '.components-panel__body-toggle' )
+						: null;
+
+					if ( toggle ) {
+						toggle.click();
+					}
+
+					window.setTimeout( function () {
+						invalid.focus();
+					}, 0 );
+				}
+			}
+
+			wasSaving = saving;
+		} );
 	}
 
 	function SchemaPanel() {
 		const data = usePostData();
-		const blocks = Array.isArray( data.get( 'schema_blocks' ) ) ? data.get( 'schema_blocks' ) : [];
-		const disabledTypes = Array.isArray( data.get( 'schema_disabled_types' ) ) ? data.get( 'schema_disabled_types' ).join( ', ' ) : '';
+		bindSchemaSaveFocus();
+		const blocks = schemaBlocks( data.get( 'schema_blocks' ) );
+		const mode = data.get( 'schema_mode' ) || 'default';
+		const disabledTypes = uniqueSchemaTypes(
+			Array.isArray( data.get( 'schema_disabled_types' ) ) ? data.get( 'schema_disabled_types' ) : []
+		);
+		const hasCustom = blocks.some( blockHasJson );
+		const suggestions = Array.isArray( config.schemaTypeSuggestions ) ? config.schemaTypeSuggestions : [];
+		const docUrl = String( config.schemaDocUrl || '' );
+		const isDisabled = 'disabled' === mode;
+
+		function setMode( value ) {
+			data.set( 'schema_mode', value );
+		}
+
+		function setBlocks( nextBlocks ) {
+			data.set( 'schema_blocks', nextBlocks );
+		}
+
+		function addBlock() {
+			if ( 'default' === mode ) {
+				setMode( 'merge' );
+			}
+
+			setBlocks( [ ...blocks, { type: 'custom', fields: { custom_json: '' } } ] );
+		}
+
+		const notices = [];
+
+		if ( 'default' === mode && hasCustom ) {
+			notices.push(
+				el(
+					Notice,
+					{
+						isDismissible: false,
+						key: 'default-custom',
+						status: 'warning',
+					},
+					__( 'This content already has custom JSON-LD. Automatic schema ignores those blocks until you switch to Automatic + custom schema.', 'easyrankly' ),
+					el(
+						'p',
+						{ key: 'default-custom-action' },
+						el(
+							Button,
+							{
+								onClick: () => setMode( 'merge' ),
+								variant: 'secondary',
+							},
+							__( 'Use Automatic + custom schema', 'easyrankly' )
+						)
+					)
+				)
+			);
+		}
+
+		if ( 'replace' === mode && ! hasCustom ) {
+			notices.push(
+				el(
+					Notice,
+					{
+						isDismissible: false,
+						key: 'replace-empty',
+						status: 'warning',
+					},
+					__( 'Custom schema only emits the JSON-LD added below. No automatic or site-wide schema will be output. Add a JSON-LD block, or this page will have no EasyRankly structured data.', 'easyrankly' )
+				)
+			);
+		}
+
+		if ( isDisabled ) {
+			notices.push(
+				el(
+					Notice,
+					{
+						isDismissible: false,
+						key: 'disabled',
+						status: 'info',
+					},
+					__( 'No EasyRankly JSON-LD will be emitted for this content, including automatic, site-wide, and custom blocks.', 'easyrankly' )
+				)
+			);
+		}
+
+		const fields = [
+			el( SelectControl, {
+				__next40pxDefaultSize: true,
+				help: __( 'Automatic schema is the generated graph plus site-wide blocks. Custom schema only uses the JSON-LD on this content. Disable schema turns all EasyRankly JSON-LD off.', 'easyrankly' ),
+				key: 'schema-mode',
+				label: __( 'Schema mode', 'easyrankly' ),
+				onChange: setMode,
+				options: [
+					{ label: __( 'Automatic schema', 'easyrankly' ), value: 'default' },
+					{ label: __( 'Automatic + custom schema', 'easyrankly' ), value: 'merge' },
+					{ label: __( 'Custom schema only', 'easyrankly' ), value: 'replace' },
+					{ label: __( 'Disable schema', 'easyrankly' ), value: 'disabled' },
+				],
+				value: mode,
+			} ),
+		];
+
+		if ( docUrl ) {
+			fields.push(
+				el(
+					'p',
+					{ key: 'schema-doc' },
+					el(
+						'a',
+						{
+							className: 'erankly-section-doc-link',
+							href: docUrl,
+							rel: 'noopener noreferrer',
+							target: '_blank',
+						},
+						__( 'Learn more', 'easyrankly' )
+					)
+				)
+			);
+		}
+
+		if ( isDisabled ) {
+			fields.push( ...notices );
+		} else {
+			fields.push( ...notices );
+			fields.push(
+				el( FormTokenField, {
+					__next40pxDefaultSize: true,
+					autoCapitalize: 'none',
+					autoComplete: 'off',
+					help: __( 'Hides matching nodes from the automatic graph and from site-wide schema blocks. Custom JSON-LD on this content is never suppressed.', 'easyrankly' ),
+					key: 'disabled-types',
+					label: __( 'Suppress generated schema types', 'easyrankly' ),
+					onChange: ( values ) => data.set( 'schema_disabled_types', uniqueSchemaTypes( values ) ),
+					placeholder: __( 'Add a schema type', 'easyrankly' ),
+					suggestions,
+					tokenizeOnSpace: false,
+					value: disabledTypes,
+				} )
+			);
+
+			blocks.forEach( ( block, index ) => {
+				const json = block && block.fields ? ( block.fields.custom_json || '' ) : '';
+				const result = validateJsonLd( json );
+				const errorId = 'erankly-schema-block-error-' + index;
+
+				fields.push(
+					el(
+						Fragment,
+						{ key: 'schema-block-' + index },
+						el( TextareaControl, {
+							className: result.valid ? undefined : 'erankly-is-invalid',
+							help: result.valid
+								? __( 'One JSON-LD object, an array of objects, or an object with @graph. Every node needs a valid @type or @id.', 'easyrankly' )
+								: result.message,
+							label: `${ __( 'Custom JSON-LD', 'easyrankly' ) } ${ index + 1 }`,
+							onChange: ( value ) => {
+								const nextBlocks = [ ...blocks ];
+								nextBlocks[ index ] = { type: 'custom', fields: { custom_json: value } };
+								setBlocks( nextBlocks );
+							},
+							rows: 10,
+							value: json,
+							'aria-describedby': result.valid ? undefined : errorId,
+							'aria-invalid': result.valid ? 'false' : 'true',
+						} ),
+						! result.valid && el(
+							'p',
+							{
+								className: 'erankly-schema-json-error',
+								id: errorId,
+								role: 'alert',
+							},
+							result.message
+						),
+						el( Button, {
+							isDestructive: true,
+							onClick: () => setBlocks( blocks.filter( ( unused, blockIndex ) => blockIndex !== index ) ),
+							variant: 'link',
+						}, __( 'Remove schema block', 'easyrankly' ) )
+					)
+				);
+			} );
+
+			fields.push(
+				el( Button, {
+					key: 'add-schema',
+					onClick: addBlock,
+					variant: 'secondary',
+				}, __( 'Add JSON-LD schema', 'easyrankly' ) )
+			);
+		}
 
 		return el(
 			PluginDocumentSettingPanel,
@@ -198,60 +449,7 @@
 				name: 'erankly-schema',
 				title: __( 'Schema', 'easyrankly' ),
 			},
-			el( SelectControl, {
-				__next40pxDefaultSize: true,
-				label: __( 'Schema mode', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'schema_mode', value ),
-				options: [
-					{ label: __( 'Automatic schema', 'easyrankly' ), value: 'default' },
-					{ label: __( 'Automatic + custom schema', 'easyrankly' ), value: 'merge' },
-					{ label: __( 'Custom schema only', 'easyrankly' ), value: 'replace' },
-					{ label: __( 'Disable schema', 'easyrankly' ), value: 'disabled' },
-				],
-				value: data.get( 'schema_mode' ) || 'default',
-			} ),
-			el( TextControl, {
-				label: __( 'Suppress automatic schema types', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'schema_disabled_types', value.split( /[,\n]+/ ).map( ( item ) => item.trim() ).filter( Boolean ) ),
-				placeholder: 'Article, Product, FAQPage',
-				value: disabledTypes,
-			} ),
-			...blocks.map( ( block, index ) => {
-				const json = block && block.fields ? ( block.fields.custom_json || '' ) : '';
-				// The REST meta sanitizer drops a block it cannot decode, so an
-				// unparseable paste is reported here rather than disappearing
-				// the next time the editor reloads.
-				const isValid = isValidJsonLd( json );
-
-				return el(
-				Fragment,
-				{ key: `schema-block-${ index }` },
-				el( TextareaControl, {
-					className: isValid ? undefined : 'erankly-is-invalid',
-					help: isValid
-						? __( 'One JSON-LD object, array or @graph.', 'easyrankly' )
-						: __( 'This is not valid JSON-LD and will not be saved. Use one JSON-LD object, an array of objects, or an object with @graph.', 'easyrankly' ),
-					label: `${ __( 'Custom JSON-LD', 'easyrankly' ) } ${ index + 1 }`,
-					onChange: ( value ) => {
-						const nextBlocks = [ ...blocks ];
-						nextBlocks[ index ] = { type: 'custom', fields: { custom_json: value } };
-						data.set( 'schema_blocks', nextBlocks );
-					},
-					rows: 10,
-					value: json,
-				} ),
-				el( Button, {
-					isDestructive: true,
-					onClick: () => data.set( 'schema_blocks', blocks.filter( ( unused, blockIndex ) => blockIndex !== index ) ),
-					variant: 'link',
-				}, __( 'Remove schema block', 'easyrankly' ) )
-				);
-			} ),
-			el( Button, {
-				onClick: () => data.set( 'schema_blocks', [ ...blocks, { type: 'custom', fields: { custom_json: '' } } ] ),
-				variant: 'secondary',
-			}, __( 'Add JSON-LD schema', 'easyrankly' ) ),
-			el( shared.PanelDocLink, { section: 'editor-schema' } )
+			...fields
 		);
 	}
 

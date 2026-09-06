@@ -128,10 +128,19 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 		}
 	}
 	if ( ! $simplified_mode ) {
-		// The field is a text input, but preg_split() fatals on PHP 8 when the
-		// request sends an array instead, so the type is checked before use.
-		$raw_disabled_types = isset( $_POST['erankly_schema_disabled_types'] ) ? wp_unslash( $_POST['erankly_schema_disabled_types'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; type-checked and sanitized via erankly_sanitize_registered_meta() below.
-		$disabled_types     = is_string( $raw_disabled_types ) ? preg_split( '/[\r\n,]+/', $raw_disabled_types ) : array();
+		$GLOBALS['erankly_schema_blocks_previous'] = get_post_meta( $post_id, '_erankly_schema_blocks', true );
+		$raw_disabled_types = isset( $_POST['erankly_schema_disabled_types'] ) ? wp_unslash( $_POST['erankly_schema_disabled_types'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta().
+		if ( is_string( $raw_disabled_types ) ) {
+			$disabled_types = preg_split( '/[\r\n,]+/', $raw_disabled_types );
+		} elseif ( is_array( $raw_disabled_types ) ) {
+			$disabled_types = $raw_disabled_types;
+		} else {
+			$disabled_types = array();
+		}
+		$extra_disabled = isset( $_POST['erankly_schema_disabled_types_extra'] ) ? wp_unslash( $_POST['erankly_schema_disabled_types_extra'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; split and sanitized below.
+		if ( is_string( $extra_disabled ) && '' !== trim( $extra_disabled ) ) {
+			$disabled_types = array_merge( is_array( $disabled_types ) ? $disabled_types : array(), preg_split( '/[\r\n,]+/', $extra_disabled ) );
+		}
 		$complex_fields     = array(
 			'_erankly_primary_terms'         => isset( $_POST['erankly_primary_terms'] ) ? wp_unslash( $_POST['erankly_primary_terms'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta() below.
 			'_erankly_schema_blocks'         => isset( $_POST['erankly_schema_blocks'] ) ? wp_unslash( $_POST['erankly_schema_blocks'] ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitized by erankly_sanitize_registered_meta() below.

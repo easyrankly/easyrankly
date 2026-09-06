@@ -7,6 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once ERANKLY_PATH . 'includes/schema-content.php';
 
+if ( ! function_exists( 'erankly_should_emit_breadcrumb_schema' ) ) {
+	require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
+}
+
 function erankly_render_schema(): void {
 	$graph = erankly_get_schema_graph();
 
@@ -32,50 +36,58 @@ function erankly_render_schema(): void {
 		| JSON_HEX_QUOT
 	);
 	echo '</script>' . "\n";
+	erankly_render_schema_merge_warning_comment();
 }
 
 /** @return array<int,array<string,mixed>> */
 function erankly_get_schema_graph(): array {
+	erankly_clear_schema_merge_warnings();
+
 	$post_id     = is_singular() ? get_queried_object_id() : 0;
 	$schema_mode = $post_id > 0 ? erankly_get_post_meta_string( $post_id, 'schema_mode' ) : 'default';
+	$schema_mode = in_array( $schema_mode, array( 'default', 'merge', 'replace', 'disabled' ), true ) ? $schema_mode : 'default';
 
 	if ( 'disabled' === $schema_mode ) {
 		return array();
 	}
 
-	// "Custom schema only" discards the automatic graph, so it is never built:
-	// assembling it would parse the post content for FAQ, HowTo and embedded
-	// video markup only to throw the result away a few lines later.
+	// Automatic graph is skipped in "custom only" so FAQ/HowTo/video parsing is
+	// not wasted. Global blocks are also excluded there: "only" means per-post.
 	$automatic = 'replace' === $schema_mode ? array() : erankly_automatic_schema_graph( $post_id );
-	$global    = erankly_get_global_schema_graph();
+	$global    = 'replace' === $schema_mode ? array() : erankly_get_global_schema_graph();
 	$custom    = ( $post_id > 0 && in_array( $schema_mode, array( 'merge', 'replace' ), true ) )
 		? erankly_post_custom_schema_graph( $post_id )
 		: array();
 
 	if ( $post_id > 0 ) {
-		// Suppression covers everything EasyRankly emits on its own for this
-		// page — the breadcrumb trail and site-wide blocks targeting it
-		// included — but never the JSON-LD authored on this post, which is
-		// edited on the same screen as the suppression field.
+		// Suppression covers generated output for this page — automatic graph
+		// and site-wide blocks — but never the JSON-LD authored on this post.
 		$disabled_types = get_post_meta( $post_id, '_erankly_schema_disabled_types', true );
 		$disabled_types = is_array( $disabled_types ) ? $disabled_types : array();
 		$automatic      = erankly_filter_schema_graph_types( $automatic, $disabled_types );
 		$global         = erankly_filter_schema_graph_types( $global, $disabled_types );
 	}
 
-	// A suppressed or disabled node leaves "@id" pointers behind (publisher,
-	// isPartOf, mainEntityOfPage, breadcrumb) and a reference to a node that is
-	// not in the graph is an error for validators. Only the generated nodes are
-	// pruned: authored JSON-LD may legitimately point at an entity defined
-	// elsewhere.
-	$automatic = erankly_prune_dangling_schema_references(
-		$automatic,
-		erankly_collect_schema_node_ids( array_merge( $automatic, $custom, $global ) )
-	);
+	// A suppressed node leaves "@id" pointers behind. Only generated nodes are
+	// pruned: authored JSON-LD may point at an entity defined elsewhere.
+	$known_ids = erankly_collect_schema_node_ids( array_merge( $automatic, $custom, $global ) );
+	$automatic = erankly_prune_dangling_schema_references( $automatic, $known_ids );
 
-	$graph = apply_filters( 'erankly_schema', array_filter( array_merge( $automatic, $custom, $global ) ) );
+	// Merge order encodes precedence: automatic < global < per-post custom.
+	$graph = apply_filters( 'erankly_schema', array_filter( array_merge( $automatic, $global, $custom ) ) );
+	$graph = is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
 
-	return is_array( $graph ) ? erankly_dedupe_schema_graph( $graph ) : array();
+	if ( function_exists( 'erankly_maybe_log_schema_merge_warnings' ) ) {
+		erankly_maybe_log_schema_merge_warnings();
+	}
+
+	$warnings = function_exists( 'erankly_get_schema_merge_warnings' ) ? erankly_get_schema_merge_warnings() : array();
+
+	if ( array() !== $warnings ) {
+		do_action( 'erankly_schema_merge_warnings', $warnings );
+	}
+
+	return $graph;
 }
 
 /**
@@ -91,7 +103,9 @@ function erankly_automatic_schema_graph( int $post_id ): array {
 	}
 
 	$graph         = erankly_schema_foundational_graph();
-	$breadcrumbs   = function_exists( 'erankly_schema_breadcrumb_list' ) ? erankly_schema_breadcrumb_list() : array();
+	$breadcrumbs   = function_exists( 'erankly_schema_breadcrumb_list' ) && erankly_should_emit_breadcrumb_schema()
+		? erankly_schema_breadcrumb_list()
+		: array();
 	$breadcrumb_id = ! empty( $breadcrumbs ) && isset( $breadcrumbs['@id'] ) ? (string) $breadcrumbs['@id'] : '';
 
 	if ( ! is_singular() ) {
@@ -308,26 +322,53 @@ function erankly_schema_foundational_graph(): array {
 /**
  * Removes duplicate schema graph nodes in the same JSON-LD graph.
  *
+ * Nodes that share an "@id" are merged rather than first-wins discarded: @type
+ * values are unioned, compatible objects are merged recursively, arrays are
+ * concatenated and deduplicated, and later layers win scalar conflicts.
+ * Identical nodes without "@id" are still collapsed by content hash.
+ *
+ * Precedence when this runs after array_merge( automatic, global, custom ):
+ * per-post custom overlays global custom, which overlays automatic nodes.
+ *
  * @return array<int,array<string,mixed>>
  */
 function erankly_dedupe_schema_graph( array $graph ): array {
-	$seen   = array();
-	$unique = array();
+	$by_id  = array();
+	$no_id  = array();
+	$order  = array();
 
 	foreach ( $graph as $schema ) {
 		if ( ! is_array( $schema ) || empty( $schema ) ) {
 			continue;
 		}
 
-		$id  = isset( $schema['@id'] ) && is_string( $schema['@id'] ) ? trim( $schema['@id'] ) : '';
-		$key = '' !== $id ? 'id:' . $id : 'hash:' . md5( (string) wp_json_encode( $schema ) );
+		$id = isset( $schema['@id'] ) && is_string( $schema['@id'] ) ? trim( $schema['@id'] ) : '';
 
-		if ( isset( $seen[ $key ] ) ) {
+		if ( '' === $id ) {
+			$key = 'hash:' . md5( (string) wp_json_encode( $schema ) );
+
+			if ( isset( $no_id[ $key ] ) ) {
+				continue;
+			}
+
+			$no_id[ $key ] = $schema;
+			$order[]       = array( 'hash', $key );
 			continue;
 		}
 
-		$seen[ $key ] = true;
-		$unique[]     = $schema;
+		if ( ! isset( $by_id[ $id ] ) ) {
+			$by_id[ $id ] = $schema;
+			$order[]      = array( 'id', $id );
+			continue;
+		}
+
+		$by_id[ $id ] = erankly_merge_schema_nodes( $by_id[ $id ], $schema );
+	}
+
+	$unique = array();
+
+	foreach ( $order as $item ) {
+		$unique[] = 'id' === $item[0] ? $by_id[ $item[1] ] : $no_id[ $item[1] ];
 	}
 
 	return $unique;
@@ -495,15 +536,18 @@ function erankly_schema_person(): array {
 /** @return array<string,mixed> */
 function erankly_schema_website(): array {
 	$schema = array(
-		'@type'           => 'WebSite',
-		'@id'             => home_url( '/#website' ),
-		'url'             => home_url( '/' ),
-		'name'            => erankly_get_website_name(),
-		'publisher'       => array(
+		'@type'     => 'WebSite',
+		'@id'       => home_url( '/#website' ),
+		'url'       => home_url( '/' ),
+		'name'      => erankly_get_website_name(),
+		'publisher' => array(
 			'@id' => erankly_schema_identity_id(),
 		),
-		'potentialAction' => erankly_schema_website_search_action(),
 	);
+
+	if ( erankly_get_setting( 'enable_website_search_action', 0 ) ) {
+		$schema['potentialAction'] = erankly_schema_website_search_action();
+	}
 
 	$description = erankly_get_website_description();
 
@@ -538,6 +582,11 @@ function erankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ):
 		if ( 'none' === strtolower( $configured_type ) ) {
 			return array();
 		}
+		if ( 'QAPage' === $configured_type ) {
+			// QAPage requires a Question mainEntity. Until a dedicated builder
+			// exists, fall back to WebPage rather than emit an incomplete type.
+			$configured_type = 'WebPage';
+		}
 		if ( '' !== $configured_type ) {
 			$type = $configured_type;
 		}
@@ -563,6 +612,12 @@ function erankly_schema_webpage( int $post_id = 0, string $breadcrumb_id = '' ):
 	if ( '' !== $breadcrumb_id ) {
 		$schema['breadcrumb'] = array(
 			'@id' => $breadcrumb_id,
+		);
+	}
+
+	if ( 'ProfilePage' === $type ) {
+		$schema['mainEntity'] = array(
+			'@id' => erankly_schema_identity_id(),
 		);
 	}
 
@@ -665,8 +720,8 @@ function erankly_schema_faq( int $post_id = 0 ): array {
 		$entities = array();
 
 		foreach ( $items as $item ) {
-			$question = isset( $item['question'] ) ? erankly_trim_text( (string) $item['question'], 120 ) : '';
-			$answer   = isset( $item['answer'] ) ? erankly_trim_text( (string) $item['answer'], 500 ) : '';
+			$question = isset( $item['question'] ) ? trim( (string) $item['question'] ) : '';
+			$answer   = isset( $item['answer'] ) ? trim( (string) $item['answer'] ) : '';
 
 			if ( '' === $question || '' === $answer ) {
 				continue;
@@ -736,15 +791,15 @@ function erankly_schema_local_business_for_page( int $post_id ): array {
 		return array();
 	}
 
-	$path = erankly_sanitize_relative_path( erankly_get_setting( 'local_business_page_path', '' ) );
+	$page_id = erankly_get_local_business_page_id( $post_id );
 
-	if ( '' === $path ) {
+	if ( $page_id <= 0 || $page_id !== $post_id ) {
 		return array();
 	}
 
-	$page = get_page_by_path( trim( $path, '/' ), OBJECT, 'page' );
+	$page = get_post( $page_id );
 
-	if ( ! $page instanceof WP_Post || 'publish' !== $page->post_status || $page->ID !== $post_id ) {
+	if ( ! $page instanceof WP_Post || 'publish' !== $page->post_status ) {
 		return array();
 	}
 
@@ -770,6 +825,7 @@ function erankly_schema_local_business_for_page( int $post_id ): array {
 			'@id'                => trailingslashit( $url ) . '#localbusiness',
 			'name'               => $name,
 			'url'                => $url,
+			'inLanguage'         => get_bloginfo( 'language' ),
 			'address'            => $address,
 			'parentOrganization' => array(
 				'@id' => home_url( '/#organization' ),
@@ -929,136 +985,29 @@ function erankly_get_global_schema_graph(): array {
 }
 
 function erankly_global_schema_block_matches_request( array $block ): bool {
-	if ( empty( $block['enabled'] ) ) {
-		return false;
-	}
-
-	$contexts = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? $block['target_contexts'] : array();
-
-	if ( empty( $contexts ) ) {
-		return false;
-	}
-
-	if ( in_array( 'front_page', $contexts, true ) && is_front_page() ) {
-		return true;
-	}
-
-	if ( in_array( 'posts_page', $contexts, true ) && is_home() && ! is_front_page() ) {
-		return true;
-	}
-
-	if ( in_array( 'search', $contexts, true ) && is_search() ) {
-		return true;
-	}
-
-	if ( in_array( 'post_type_archive', $contexts, true ) && erankly_global_schema_matches_post_type_archive( $block ) ) {
-		return true;
-	}
-
-	if ( in_array( 'singular', $contexts, true ) && erankly_global_schema_matches_singular( $block ) ) {
-		return true;
-	}
-
-	return false;
+	return erankly_targeted_block_matches_request( $block );
 }
 
 function erankly_global_schema_matches_post_type_archive( array $block ): bool {
-	if ( ! is_post_type_archive() ) {
-		return false;
-	}
-
-	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? $block['target_post_types'] : array();
-
-	if ( empty( $target_post_types ) ) {
-		return false;
-	}
-
-	$current_post_type = get_query_var( 'post_type' );
-
-	if ( is_array( $current_post_type ) ) {
-		foreach ( $current_post_type as $post_type ) {
-			if ( in_array( (string) $post_type, $target_post_types, true ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	if ( is_string( $current_post_type ) && '' !== $current_post_type ) {
-		return in_array( $current_post_type, $target_post_types, true );
-	}
-
-	$queried = get_queried_object();
-
-	return $queried instanceof WP_Post_Type && in_array( $queried->name, $target_post_types, true );
+	return erankly_targeted_block_matches_post_type_archive( $block );
 }
 
 function erankly_global_schema_matches_singular( array $block ): bool {
-	if ( ! is_singular() ) {
-		return false;
-	}
-
-	$post_id = get_queried_object_id();
-
-	if ( $post_id <= 0 ) {
-		return false;
-	}
-
-	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? $block['target_post_types'] : array();
-	$post_type         = get_post_type( $post_id );
-
-	if ( empty( $target_post_types ) || ! is_string( $post_type ) || ! in_array( $post_type, $target_post_types, true ) ) {
-		return false;
-	}
-
-	if ( erankly_schema_target_list_contains_post( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', $post_id ) ) {
-		return false;
-	}
-
-	$include_items = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
-
-	if ( '' === trim( $include_items ) ) {
-		return true;
-	}
-
-	return erankly_schema_target_list_contains_post( $include_items, $post_id );
+	return erankly_targeted_block_matches_singular( $block );
 }
 
 function erankly_schema_target_list_contains_post( string $value, int $post_id ): bool {
-	$items = preg_split( '/[\r\n,]+/', $value );
-
-	if ( ! is_array( $items ) || $post_id <= 0 ) {
-		return false;
-	}
-
-	$post = get_post( $post_id );
-	$slug = $post instanceof WP_Post ? $post->post_name : '';
-
-	foreach ( $items as $item ) {
-		$item = trim( (string) $item );
-
-		if ( '' === $item ) {
-			continue;
-		}
-
-		if ( ctype_digit( $item ) && absint( $item ) === $post_id ) {
-			return true;
-		}
-
-		if ( '' !== $slug && sanitize_title( $item ) === $slug ) {
-			return true;
-		}
-	}
-
-	return false;
+	return erankly_target_list_contains_item( $value, 'post', $post_id );
 }
 
 /** @return array<int,array<string,mixed>> */
 function erankly_schema_from_configured_block( array $block, int $post_id ): array {
-	$type = isset( $block['type'] ) ? (string) $block['type'] : '';
+	$type    = isset( $block['type'] ) ? (string) $block['type'] : '';
+	$schemas = 'custom' === $type ? erankly_configured_custom_schemas( $block, $post_id ) : array();
 
-	return 'custom' === $type ? erankly_configured_custom_schemas( $block, $post_id ) : array();
+	$filtered = apply_filters( 'erankly_schema_from_configured_block', $schemas, $block, $post_id );
+
+	return is_array( $filtered ) ? $filtered : array();
 }
 
 /** @return array<int,array<string,mixed>> */
@@ -1070,7 +1019,8 @@ function erankly_configured_custom_schemas( array $block, int $post_id ): array 
 	}
 
 	$schemas = array();
-	$decoded = erankly_decode_custom_json_ld( erankly_replace_json_ld_variables( $json, $post_id ) );
+	$replaced = erankly_replace_json_ld_variables( $json, $post_id );
+	$decoded  = erankly_decode_custom_json_ld( $replaced );
 
 	foreach ( $decoded as $schema ) {
 		if ( ! empty( $schema ) ) {

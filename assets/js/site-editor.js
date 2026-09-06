@@ -191,21 +191,18 @@
 				{ className: 'erankly-panel erankly-panel--appearance', name: 'erankly-special-appearance', title: __( 'Search appearance', 'easyrankly' ) },
 				selector,
 				...shared.searchAppearanceFields( { config, data, features } ),
-				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.searchAppearanceExtras', [], { context, data, config } ) : [] ),
-				el( shared.PanelDocLink, { section: 'editor-search-appearance' } )
+				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.searchAppearanceExtras', [], { context, data, config } ) : [] )
 			),
 			! config.simplifiedMode && el(
 				PluginDocumentSettingPanel,
 				{ className: 'erankly-panel erankly-panel--social', name: 'erankly-special-social', title: __( 'Social sharing', 'easyrankly' ) },
 				...shared.socialFields( { config, data, features } ),
-				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.socialExtras', [], { context, data, config } ) : [] ),
-				el( shared.PanelDocLink, { section: 'editor-social' } )
+				...( wp.hooks && wp.hooks.applyFilters ? wp.hooks.applyFilters( 'erankly.siteEditor.socialExtras', [], { context, data, config } ) : [] )
 			),
 			el(
 				PluginDocumentSettingPanel,
 				{ className: 'erankly-panel erankly-panel--visibility', name: 'erankly-special-visibility', title: __( 'Search visibility', 'easyrankly' ) },
-				...shared.visibilityFields( { config, data, features } ),
-				el( shared.PanelDocLink, { section: 'editor-visibility' } )
+				...shared.visibilityFields( { config, data, features } )
 			)
 		);
 	}

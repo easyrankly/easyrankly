@@ -54,7 +54,17 @@ EasyRankly does not send site or visitor data to EasyRankly and adds no external
 
 = How do I display breadcrumbs? =
 
-Enable breadcrumbs under Settings > EasyRankly > Features, then call `erankly_breadcrumbs()` in your theme template. The function echoes its HTML by default; pass `array( 'echo' => false )` to return it without printing. You can customise the items and final markup with the `erankly_breadcrumb_items` and `erankly_breadcrumbs_html` filters. The legacy `easyrankly_breadcrumbs()` function and supported `easyrankly_*` hook aliases remain available for backward compatibility.
+Enable breadcrumbs under Settings > EasyRankly > Schema, then add a visible trail with the EasyRankly Breadcrumbs block, the `[erankly_breadcrumbs]` shortcode, or `erankly_breadcrumbs()` in your theme. The function echoes its HTML by default; pass `array( 'echo' => false )` to return it without printing. You can customise the items and final markup with the `erankly_breadcrumb_items` and `erankly_breadcrumbs_html` filters. The legacy `easyrankly_breadcrumbs()` function and `[easyrankly_breadcrumbs]` shortcode remain available.
+
+Breadcrumb JSON-LD is separate from the visible trail. By default it is emitted only when a visible trail is present, so structured data matches what people see. You can emit JSON-LD always, or turn it off, from the Schema settings.
+
+= Does EasyRankly add a sitelinks search box? =
+
+No. Google retired the sitelinks search box. WebSite `SearchAction` is optional and off by default. Existing sites can re-enable it under Settings > EasyRankly > Schema.
+
+= Are FAQ rich results included? =
+
+EasyRankly can still emit FAQPage Schema.org markup from FAQ blocks and accordion content. Google no longer shows FAQ rich results for most sites as of 2026, so the markup is for Schema.org consumers rather than a guaranteed Google enhancement.
 
 = Is there an extension API? =
 

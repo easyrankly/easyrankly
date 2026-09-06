@@ -204,3 +204,13 @@
 .erankly-panel .components-notice:last-child {
 	margin-bottom: 0;
 }
+
+.erankly-panel textarea.erankly-is-invalid,
+.erankly-panel .erankly-is-invalid textarea {
+	border-color: var(--erankly-color-error);
+}
+
+.erankly-panel .erankly-schema-json-error {
+	color: var(--erankly-color-error);
+	margin: 0 0 var(--erankly-space-field);
+}

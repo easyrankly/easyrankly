@@ -672,6 +672,25 @@ textarea.erankly-is-invalid {
 	border-color: var(--erankly-color-error);
 }
 
+.erankly-schema-type-tokens {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--erankly-space-2);
+	margin-bottom: var(--erankly-space-3);
+}
+
+.erankly-post-type-schema-row {
+	border: 0;
+	margin: 0 0 var(--erankly-space-section);
+	min-width: 0;
+	padding: 0;
+}
+
+.erankly-post-type-schema-row > legend {
+	float: none;
+	padding: 0;
+}
+
 /* TEMP: nasconde la sezione "Useful resources" finché il sito non è pronto — da rimuovere */
 .erankly-settings-nav-section[aria-labelledby="erankly-settings-nav-useful-resources"] {
 	display: none;

@@ -103,11 +103,12 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			array(
 				'nonce'  => wp_create_nonce( 'wp_rest' ),
 				'i18n'   => array(
-					'saving'  => __( 'Saving…', 'easyrankly' ),
-					'saved'   => __( 'Saved', 'easyrankly' ),
-					'warning' => __( 'Saved with warnings', 'easyrankly' ),
-					'retry'   => __( 'Saving failed. Retrying…', 'easyrankly' ),
-					'error'   => __( 'Could not save. Reload the page.', 'easyrankly' ),
+					'saving'     => __( 'Saving…', 'easyrankly' ),
+					'saved'      => __( 'Saved', 'easyrankly' ),
+					'warning'    => __( 'Saved with warnings', 'easyrankly' ),
+					'retry'      => __( 'Saving failed. Retrying…', 'easyrankly' ),
+					'error'      => __( 'Could not save. Reload the page.', 'easyrankly' ),
+					'incomplete' => __( 'Saved, but the configuration is incomplete.', 'easyrankly' ),
 				),
 				'panels' => apply_filters(
 					'erankly_settings_autosave_client_panels',

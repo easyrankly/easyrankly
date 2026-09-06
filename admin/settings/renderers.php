@@ -53,52 +53,79 @@ function erankly_render_organization_details( array $settings ): void {
 	<?php
 }
 function erankly_render_local_business_settings( array $settings ): void {
-	$types        = erankly_get_local_business_types();
-	$pages        = get_pages(
-		array(
-			'post_status' => 'publish',
-			'sort_column' => 'menu_order,post_title',
-		)
-	);
-	$hours        = isset( $settings['local_business_hours'] ) && is_array( $settings['local_business_hours'] ) ? $settings['local_business_hours'] : erankly_default_opening_hours();
-	$enabled      = ! empty( $settings['enable_local_business'] );
-	$type         = isset( $settings['local_business_type'] ) ? (string) $settings['local_business_type'] : 'LocalBusiness';
-	$page_path    = isset( $settings['local_business_page_path'] ) ? (string) $settings['local_business_page_path'] : '';
-	$page_options = array();
-	foreach ( $pages as $page ) {
-		$path = erankly_sanitize_relative_path( '/' . get_page_uri( $page ) . '/' );
-		if ( '' !== $path ) {
-			$page_options[ $path ] = get_the_title( $page ) . ' (' . $path . ')';
-		}
-	}
+	$types     = erankly_get_local_business_types();
+	$hours     = isset( $settings['local_business_hours'] ) && is_array( $settings['local_business_hours'] ) ? $settings['local_business_hours'] : erankly_default_opening_hours();
+	$enabled   = ! empty( $settings['enable_local_business'] );
+	$type      = isset( $settings['local_business_type'] ) ? (string) $settings['local_business_type'] : 'LocalBusiness';
+	$page_path = isset( $settings['local_business_page_path'] ) ? (string) $settings['local_business_page_path'] : '';
+	$page_map  = isset( $settings['local_business_pages'] ) && is_array( $settings['local_business_pages'] )
+		? array_map( 'absint', $settings['local_business_pages'] )
+		: array();
+	$choices   = function_exists( 'erankly_get_local_business_site_choices' ) ? erankly_get_local_business_site_choices() : array();
+	$gaps      = function_exists( 'erankly_local_business_requirement_gaps' ) ? erankly_local_business_requirement_gaps( $settings ) : array();
 	?>
 	<div class="erankly-local-business" data-erankly-local-business>
 		<div class="erankly-field erankly-checkboxes">
 			<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_local_business]" value="1" <?php checked( $enabled ); ?> data-erankly-local-business-toggle> <?php esc_html_e( 'Add one physical business location for search engines', 'easyrankly' ); ?></label>
 		</div>
 		<div class="erankly-local-business-fields" data-erankly-local-business-fields <?php echo $enabled ? '' : 'hidden'; ?>>
-			<div class="erankly-inline-fields erankly-inline-fields-two-columns">
-				<div class="erankly-field">
-					<label for="erankly-local-business-type"><?php esc_html_e( 'Business type', 'easyrankly' ); ?></label>
-					<select id="erankly-local-business-type" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_type]" data-erankly-local-business-type>
-						<?php foreach ( $types as $type_key => $type_label ) : ?>
-							<option value="<?php echo esc_attr( $type_key ); ?>" <?php selected( $type, $type_key ); ?>><?php echo esc_html( $type_label ); ?></option>
-						<?php endforeach; ?>
-					</select>
+			<?php if ( $enabled && ! empty( $gaps ) ) : ?>
+				<div class="notice notice-error inline" role="alert">
+					<p>
+						<strong><?php esc_html_e( 'Incomplete configuration', 'easyrankly' ); ?></strong>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %s: comma-separated missing field names. */
+								__( 'Local business schema will not be emitted until these fields are set: %s.', 'easyrankly' ),
+								implode( ', ', $gaps )
+							)
+						);
+						?>
+					</p>
 				</div>
-				<div class="erankly-field">
-					<label for="erankly-local-business-page"><?php esc_html_e( 'Location page', 'easyrankly' ); ?></label>
-					<select id="erankly-local-business-page" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_page_path]">
-						<option value=""><?php esc_html_e( 'Select a published page', 'easyrankly' ); ?></option>
-						<?php if ( '' !== $page_path && ! isset( $page_options[ $page_path ] ) ) : ?>
-							<option value="<?php echo esc_attr( $page_path ); ?>" selected><?php echo esc_html( sprintf( /* translators: %s: saved relative page path. */ __( 'Saved path unavailable on this site (%s)', 'easyrankly' ), $page_path ) ); ?></option>
-						<?php endif; ?>
-						<?php foreach ( $page_options as $path => $label ) : ?>
-							<option value="<?php echo esc_attr( $path ); ?>" <?php selected( $page_path, $path ); ?>><?php echo esc_html( $label ); ?></option>
-						<?php endforeach; ?>
-					</select>
-					<p class="description"><?php esc_html_e( 'The relative path is shared across Multisite sites.', 'easyrankly' ); ?></p>
-				</div>
+			<?php endif; ?>
+			<div class="erankly-field">
+				<label for="erankly-local-business-type"><?php esc_html_e( 'Business type', 'easyrankly' ); ?></label>
+				<select id="erankly-local-business-type" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_type]" data-erankly-local-business-type>
+					<?php foreach ( $types as $type_key => $type_label ) : ?>
+						<option value="<?php echo esc_attr( $type_key ); ?>" <?php selected( $type, $type_key ); ?>><?php echo esc_html( $type_label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<input type="hidden" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_page_path]" value="<?php echo esc_attr( $page_path ); ?>">
+			<div class="erankly-field">
+				<span class="erankly-field-label"><?php esc_html_e( 'Location page', 'easyrankly' ); ?></span>
+				<p class="description"><?php esc_html_e( 'Choose a published page on each site. The association uses the page ID, so changing the slug later does not break the output. Address and contact details stay shared.', 'easyrankly' ); ?></p>
+				<?php foreach ( $choices as $site ) : ?>
+					<?php
+					$blog_id     = absint( $site['blog_id'] ?? 0 );
+					$selected_id = isset( $page_map[ $blog_id ] ) ? absint( $page_map[ $blog_id ] ) : 0;
+					$field_id    = 'erankly-local-business-page-' . $blog_id;
+					$site_label  = sprintf(
+						/* translators: 1: site name, 2: language, 3: site path. */
+						__( '%1$s (%2$s) — %3$s', 'easyrankly' ),
+						(string) ( $site['name'] ?? '' ),
+						(string) ( $site['language'] ?? '' ),
+						(string) ( $site['path'] ?? '/' )
+					);
+					?>
+					<div class="erankly-field">
+						<label for="<?php echo esc_attr( $field_id ); ?>"><?php echo esc_html( $site_label ); ?></label>
+						<select id="<?php echo esc_attr( $field_id ); ?>" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_pages][<?php echo esc_attr( (string) $blog_id ); ?>]">
+							<option value=""><?php esc_html_e( 'Select a published page', 'easyrankly' ); ?></option>
+							<?php foreach ( (array) ( $site['pages'] ?? array() ) as $page_option ) : ?>
+								<?php
+								$page_id    = absint( $page_option['id'] ?? 0 );
+								$page_title = (string) ( $page_option['title'] ?? '' );
+								$page_path_label = (string) ( $page_option['path'] ?? '' );
+								$page_label = trim( $page_title . ' (' . $page_path_label . ')' );
+								?>
+								<option value="<?php echo esc_attr( (string) $page_id ); ?>" <?php selected( $selected_id, $page_id ); ?>><?php echo esc_html( $page_label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+				<?php endforeach; ?>
 			</div>
 			<details class="erankly-settings-details">
 				<summary><?php esc_html_e( 'Location details and opening hours', 'easyrankly' ); ?></summary>
@@ -158,7 +185,10 @@ function erankly_render_opening_hours_fields( array $hours ): void {
 			?>
 			<div class="erankly-opening-hours-row" data-erankly-opening-day>
 				<strong><?php echo esc_html( $label ); ?></strong>
-				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][closed]" value="1" <?php checked( $closed ); ?> data-erankly-day-closed> <?php esc_html_e( 'Closed', 'easyrankly' ); ?></label>
+				<label>
+					<input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[local_business_hours][<?php echo esc_attr( $day ); ?>][closed]" value="1" <?php checked( $closed ); ?> data-erankly-day-closed aria-label="<?php echo esc_attr( sprintf( /* translators: %s: weekday name. */ __( '%s closed', 'easyrankly' ), $label ) ); ?>">
+					<?php esc_html_e( 'Closed', 'easyrankly' ); ?>
+				</label>
 				<div class="erankly-opening-intervals" data-erankly-opening-intervals <?php echo $closed ? 'hidden' : ''; ?>>
 					<?php foreach ( array( 0, 1 ) as $index ) : ?>
 						<?php
@@ -307,19 +337,19 @@ function erankly_render_post_type_schema_types(): void {
 			$webpage_type = erankly_get_post_type_schema_type( $post_type, 'webpage_type' );
 			$article_type = erankly_get_post_type_schema_type( $post_type, 'article_type' );
 			?>
-			<div class="erankly-post-type-schema-row">
-				<h4 class="erankly-post-type-schema-label"><?php echo esc_html( $object->labels->singular_name ); ?></h4>
+			<fieldset class="erankly-post-type-schema-row">
+				<legend class="erankly-post-type-schema-label" id="<?php echo esc_attr( $id_prefix ); ?>-legend"><?php echo esc_html( $object->labels->singular_name ); ?></legend>
 				<div class="erankly-inline-fields erankly-inline-fields-two-columns">
 					<div class="erankly-field">
-						<label for="<?php echo esc_attr( $id_prefix ); ?>-webpage"><?php esc_html_e( 'Page type', 'easyrankly' ); ?></label>
-						<?php erankly_render_schema_type_select( $id_prefix . '-webpage', $name_prefix . '[webpage_type]', $webpage_types, '' !== $webpage_type ? $webpage_type : 'WebPage' ); ?>
+						<label id="<?php echo esc_attr( $id_prefix ); ?>-webpage-label" for="<?php echo esc_attr( $id_prefix ); ?>-webpage"><?php esc_html_e( 'Page type', 'easyrankly' ); ?></label>
+						<?php erankly_render_schema_type_select( $id_prefix . '-webpage', $name_prefix . '[webpage_type]', $webpage_types, '' !== $webpage_type ? $webpage_type : 'WebPage', array( $id_prefix . '-legend', $id_prefix . '-webpage-label' ) ); ?>
 					</div>
 					<div class="erankly-field">
-						<label for="<?php echo esc_attr( $id_prefix ); ?>-article"><?php esc_html_e( 'Article type', 'easyrankly' ); ?></label>
-						<?php erankly_render_schema_type_select( $id_prefix . '-article', $name_prefix . '[article_type]', $article_types, '' !== $article_type ? $article_type : 'none' ); ?>
+						<label id="<?php echo esc_attr( $id_prefix ); ?>-article-label" for="<?php echo esc_attr( $id_prefix ); ?>-article"><?php esc_html_e( 'Article type', 'easyrankly' ); ?></label>
+						<?php erankly_render_schema_type_select( $id_prefix . '-article', $name_prefix . '[article_type]', $article_types, '' !== $article_type ? $article_type : 'none', array( $id_prefix . '-legend', $id_prefix . '-article-label' ) ); ?>
 					</div>
 				</div>
-			</div>
+			</fieldset>
 		<?php endforeach; ?>
 	</div>
 	<p class="description"><?php esc_html_e( 'Article, Blog posting and News article are equivalent for Google: the choice that matters is whether an article node is emitted at all. Leave it off for content that is not an article, such as landing pages.', 'easyrankly' ); ?></p>
@@ -331,13 +361,15 @@ function erankly_render_post_type_schema_types(): void {
  * option, so a value imported from another SEO plugin is not dropped the first time the panel is saved.
  *
  * @param array<string,string> $choices Value => label.
+ * @param array<int,string>    $labelled_by Optional element IDs for aria-labelledby.
  */
-function erankly_render_schema_type_select( string $id, string $name, array $choices, string $value ): void {
+function erankly_render_schema_type_select( string $id, string $name, array $choices, string $value, array $labelled_by = array() ): void {
 	if ( '' !== $value && ! isset( $choices[ $value ] ) ) {
 		$choices[ $value ] = $value;
 	}
+	$labelled_by = array_values( array_filter( array_map( 'sanitize_html_class', $labelled_by ) ) );
 	?>
-	<select id="<?php echo esc_attr( $id ); ?>" class="widefat" name="<?php echo esc_attr( $name ); ?>">
+	<select id="<?php echo esc_attr( $id ); ?>" class="widefat" name="<?php echo esc_attr( $name ); ?>"<?php echo ! empty( $labelled_by ) ? ' aria-labelledby="' . esc_attr( implode( ' ', $labelled_by ) ) . '"' : ''; ?>>
 		<?php foreach ( $choices as $choice => $label ) : ?>
 			<option value="<?php echo esc_attr( (string) $choice ); ?>" <?php selected( $value, (string) $choice ); ?>><?php echo esc_html( $label ); ?></option>
 		<?php endforeach; ?>

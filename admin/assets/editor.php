@@ -29,7 +29,16 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 	require_once ERANKLY_PATH . 'admin/meta-box.php';
 	erankly_enqueue_editor_shared_assets();
 	erankly_enqueue_accordion_faq_schema_assets();
+	wp_enqueue_script(
+		'erankly-schema-jsonld',
+		ERANKLY_URL . 'assets/js/schema-jsonld.js',
+		array( 'wp-i18n' ),
+		ERANKLY_VERSION,
+		true
+	);
+	wp_set_script_translations( 'erankly-schema-jsonld', 'easyrankly', ERANKLY_PATH . 'languages' );
 	$editor_deps = array(
+		'erankly-schema-jsonld',
 		'erankly-editor-shared',
 		'wp-api-fetch',
 		'wp-block-editor',
@@ -50,6 +59,8 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 		true
 	);
 	wp_set_script_translations( 'erankly-editor', 'easyrankly', ERANKLY_PATH . 'languages' );
+	require_once ERANKLY_PATH . 'admin/settings/section-links.php';
+	$doc_urls = erankly_section_doc_links();
 	wp_localize_script(
 		'erankly-editor',
 		'eranklyEditor',
@@ -69,6 +80,10 @@ function erankly_admin_enqueue_block_editor_assets(): void {
 			'socialImagePlaceholder'        => erankly_get_post_global_social_placeholder( $post->ID, 'default_social_image_url', 2048 ),
 			'variableExamples'              => erankly_get_admin_variable_examples( $post ),
 			'variables'                     => erankly_get_variable_groups(),
+			'schemaTypeSuggestions'         => function_exists( 'erankly_get_schema_type_suggestions_for_post' )
+				? erankly_get_schema_type_suggestions_for_post( (int) $post->ID )
+				: array(),
+			'schemaDocUrl'                  => (string) ( $doc_urls['editor-schema'] ?? '' ),
 		)
 	);
 	do_action(
@@ -111,7 +126,6 @@ function erankly_enqueue_editor_shared_assets(): void {
 		'erankly-editor-shared',
 		'eranklyEditorShared',
 		array(
-			'docLinks'   => erankly_section_doc_links(),
 			'panelOrder' => array_values(
 				array_filter(
 					(array) apply_filters(

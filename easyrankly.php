@@ -191,6 +191,7 @@ if ( is_admin() ) {
 
 /** Boots the plugin after all plugins are available for compatibility checks. */
 function erankly_bootstrap(): void {
+	require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
 	add_action( 'admin_notices', 'erankly_render_invalid_json_ld_notice' );
 	add_action( 'admin_notices', 'erankly_render_multilingual_provider_notices' );
 	add_action( 'network_admin_notices', 'erankly_render_multilingual_provider_notices' );
@@ -200,9 +201,11 @@ function erankly_bootstrap(): void {
 	add_action( ERANKLY_MIGRATION_CRON_HOOK, 'erankly_process_migration_job' );
 	add_action( ERANKLY_IMPORT_CRON_HOOK, 'erankly_process_import_job' );
 	add_action( 'init', 'erankly_register_meta' );
+	add_action( 'init', 'erankly_register_breadcrumb_integrations', 5 );
 	add_action( 'init', 'erankly_register_rewrites' );
 	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );
 	add_action( 'init', 'erankly_maybe_migrate_post_type_schema', 16 );
+	add_action( 'init', 'erankly_maybe_migrate_local_business_pages', 17 );
 	add_action( 'init', 'erankly_maybe_flush_after_upgrade', 20 );
 	add_action( 'init', 'erankly_maybe_flush_rewrite_rules', 30 );
 
@@ -363,15 +366,7 @@ function erankly_bootstrap_frontend_modules(): void {
 	erankly_load_content_helpers();
 	require_once ERANKLY_PATH . 'includes/meta-render.php';
 
-	if ( (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
-		require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
-	} elseif ( ! function_exists( 'erankly_breadcrumbs' ) ) {
-		/** Preserves the public template API while the breadcrumb module is off. */
-		function erankly_breadcrumbs( array $args = array() ): string {
-			unset( $args );
-			return '';
-		}
-	}
+	require_once ERANKLY_PATH . 'includes/breadcrumbs.php';
 
 	if ( ! function_exists( 'easyrankly_breadcrumbs' ) && function_exists( 'erankly_breadcrumbs' ) ) {
 		// Legacy public function kept for backward compatibility.
@@ -918,10 +913,28 @@ function erankly_rest_save_settings_panel( WP_REST_Request $request ) {
 		);
 	}
 
+	$notices  = function_exists( 'get_settings_errors' ) ? get_settings_errors( ERANKLY_OPTION ) : array();
+	$errors   = array();
+	$warnings = array();
+
+	foreach ( $notices as $notice ) {
+		$message = isset( $notice['message'] ) ? (string) $notice['message'] : '';
+		if ( '' === $message ) {
+			continue;
+		}
+		if ( isset( $notice['type'] ) && 'error' === $notice['type'] ) {
+			$errors[] = $message;
+		} else {
+			$warnings[] = $message;
+		}
+	}
+
 	return new WP_REST_Response(
 		array(
-			'saved'    => true,
-			'warnings' => wp_list_pluck( get_settings_errors( ERANKLY_OPTION ), 'message' ),
+			'saved'      => true,
+			'incomplete' => array() !== $errors,
+			'errors'     => $errors,
+			'warnings'   => $warnings,
 		),
 		200
 	);

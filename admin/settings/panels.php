@@ -316,9 +316,25 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 					</div>
 					<div class="erankly-card">
 					<div class="erankly-field erankly-checkboxes">
-							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_breadcrumbs]" value="1" <?php checked( $settings['enable_breadcrumbs'], 1 ); ?>> <?php esc_html_e( 'Emit breadcrumb structured data', 'easyrankly' ); ?></label>
-							<p class="description"><?php esc_html_e( 'Adds a BreadcrumbList node to the page schema and enables the Breadcrumb name field in the editor. A visible trail still requires calling erankly_breadcrumbs() in your theme.', 'easyrankly' ); ?></p>
+							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_breadcrumbs]" value="1" <?php checked( $settings['enable_breadcrumbs'], 1 ); ?>> <?php esc_html_e( 'Enable breadcrumbs', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Turns on the visible trail (block, shortcode, or erankly_breadcrumbs() in the theme) and the Breadcrumb name field in the editor. JSON-LD is controlled separately below so markup is not emitted without a matching visible trail.', 'easyrankly' ); ?></p>
 					</div>
+					<div class="erankly-field">
+						<label for="erankly-breadcrumb-jsonld-mode"><?php esc_html_e( 'Breadcrumb JSON-LD', 'easyrankly' ); ?></label>
+						<select id="erankly-breadcrumb-jsonld-mode" class="widefat" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[breadcrumb_jsonld_mode]">
+							<option value="when_visible" <?php selected( (string) ( $settings['breadcrumb_jsonld_mode'] ?? 'when_visible' ), 'when_visible' ); ?>><?php esc_html_e( 'Only when a visible trail is present (recommended)', 'easyrankly' ); ?></option>
+							<option value="always" <?php selected( (string) ( $settings['breadcrumb_jsonld_mode'] ?? '' ), 'always' ); ?>><?php esc_html_e( 'Always emit BreadcrumbList JSON-LD', 'easyrankly' ); ?></option>
+							<option value="off" <?php selected( (string) ( $settings['breadcrumb_jsonld_mode'] ?? '' ), 'off' ); ?>><?php esc_html_e( 'Do not emit breadcrumb JSON-LD', 'easyrankly' ); ?></option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'A visible trail can be added with the EasyRankly Breadcrumbs block, the [erankly_breadcrumbs] shortcode, or by calling erankly_breadcrumbs() in the theme (or add_theme_support( \'erankly-breadcrumbs\' )). Google expects structured data to match what people see.', 'easyrankly' ); ?>
+						</p>
+					</div>
+					<div class="erankly-field erankly-checkboxes">
+							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_website_search_action]" value="1" <?php checked( ! empty( $settings['enable_website_search_action'] ) ); ?>> <?php esc_html_e( 'Add WebSite SearchAction', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Optional. Google retired the sitelinks search box in 2024, so this is off by default. Existing sites that already stored the action can turn it back on here.', 'easyrankly' ); ?></p>
+					</div>
+					<p class="description"><?php esc_html_e( 'FAQPage markup may still be emitted from FAQ blocks or accordions. Google no longer shows FAQ rich results for most sites as of 2026.', 'easyrankly' ); ?></p>
 						<?php erankly_render_local_business_settings( $settings ); ?>
 					</div>
 				</div>

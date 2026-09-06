@@ -363,10 +363,24 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 		}
 
 		list( $handle, $file ) = $registry[ $module ];
+		$module_deps = array();
+
+		if ( 'schema' === $module ) {
+			wp_enqueue_script(
+				'erankly-schema-jsonld',
+				ERANKLY_URL . 'assets/js/schema-jsonld.js',
+				array( 'wp-i18n' ),
+				ERANKLY_VERSION,
+				true
+			);
+			wp_set_script_translations( 'erankly-schema-jsonld', 'easyrankly', ERANKLY_PATH . 'languages' );
+			$module_deps[] = 'erankly-schema-jsonld';
+		}
+
 		wp_enqueue_script(
 			$handle,
 			ERANKLY_URL . 'assets/js/' . $file,
-			array(),
+			$module_deps,
 			ERANKLY_VERSION,
 			true
 		);

@@ -347,26 +347,87 @@ function erankly_render_advanced_robots_fields( array $values ): void {
 }
 function erankly_render_post_schema_fields( WP_Post $post ): void {
 	$mode           = erankly_get_post_meta_string( $post->ID, 'schema_mode' );
+	$mode           = in_array( $mode, array( 'default', 'merge', 'replace', 'disabled' ), true ) ? $mode : 'default';
 	$blocks         = get_post_meta( $post->ID, '_erankly_schema_blocks', true );
 	$disabled_types = get_post_meta( $post->ID, '_erankly_schema_disabled_types', true );
 	$blocks         = is_array( $blocks ) ? $blocks : array();
+	$disabled_types = is_array( $disabled_types ) ? $disabled_types : array();
+	$suggestions    = function_exists( 'erankly_get_schema_type_suggestions_for_post' )
+		? erankly_get_schema_type_suggestions_for_post( (int) $post->ID )
+		: array();
+	$has_custom     = false;
+	foreach ( $blocks as $block ) {
+		if ( is_array( $block ) && erankly_schema_block_has_content( $block ) ) {
+			$has_custom = true;
+			break;
+		}
+	}
+	$doc_urls = function_exists( 'erankly_section_doc_links' ) ? erankly_section_doc_links() : array();
+	$doc_url  = (string) ( $doc_urls['editor-schema'] ?? '' );
 	?>
+	<div class="erankly-post-schema" data-erankly-post-schema data-erankly-schema-mode="<?php echo esc_attr( $mode ); ?>">
 	<div class="erankly-field">
 		<label for="erankly-schema-mode"><?php esc_html_e( 'Schema mode', 'easyrankly' ); ?></label>
-		<select id="erankly-schema-mode" name="erankly_schema_mode">
+		<select id="erankly-schema-mode" name="erankly_schema_mode" data-erankly-schema-mode-select>
 			<option value="default" <?php selected( $mode, 'default' ); ?>><?php esc_html_e( 'Automatic schema', 'easyrankly' ); ?></option>
 			<option value="merge" <?php selected( $mode, 'merge' ); ?>><?php esc_html_e( 'Automatic + custom schema', 'easyrankly' ); ?></option>
 			<option value="replace" <?php selected( $mode, 'replace' ); ?>><?php esc_html_e( 'Custom schema only', 'easyrankly' ); ?></option>
-			<option value="disabled" <?php selected( $mode, 'disabled' ); ?>><?php esc_html_e( 'Disable schema for this content', 'easyrankly' ); ?></option>
+			<option value="disabled" <?php selected( $mode, 'disabled' ); ?>><?php esc_html_e( 'Disable schema', 'easyrankly' ); ?></option>
 		</select>
+		<?php if ( '' !== $doc_url ) : ?>
+			<p><a class="erankly-section-doc-link" href="<?php echo esc_url( $doc_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Learn more', 'easyrankly' ); ?></a></p>
+		<?php endif; ?>
 	</div>
-	<div class="erankly-field">
-		<label for="erankly-schema-disabled-types"><?php esc_html_e( 'Suppress automatic schema types', 'easyrankly' ); ?></label>
-		<input id="erankly-schema-disabled-types" class="widefat" type="text" name="erankly_schema_disabled_types" value="<?php echo esc_attr( implode( ', ', is_array( $disabled_types ) ? $disabled_types : array() ) ); ?>" placeholder="Article, Product, FAQPage">
-		<p class="description"><?php esc_html_e( 'Comma-separated. Applies to everything EasyRankly generates for this page, including breadcrumbs and site-wide schema blocks, but never to the JSON-LD added below.', 'easyrankly' ); ?></p>
+	<div class="notice notice-info inline" data-erankly-schema-notice="default-custom" role="status" <?php echo ( 'default' === $mode && $has_custom ) ? '' : 'hidden'; ?>>
+		<p><?php esc_html_e( 'This content already has custom JSON-LD. Automatic schema ignores those blocks. Switch to Automatic + custom schema to emit them, or remove the unused blocks.', 'easyrankly' ); ?></p>
+		<p><button type="button" class="button button-secondary" data-erankly-schema-switch-merge><?php esc_html_e( 'Use Automatic + custom schema', 'easyrankly' ); ?></button></p>
+	</div>
+	<div class="notice notice-warning inline" data-erankly-schema-notice="replace-empty" role="status" <?php echo ( 'replace' === $mode && ! $has_custom ) ? '' : 'hidden'; ?>>
+		<p><?php esc_html_e( 'Custom schema only emits the JSON-LD added below. No automatic or site-wide schema will be output. Add a JSON-LD block, or this page will have no EasyRankly structured data.', 'easyrankly' ); ?></p>
+	</div>
+	<div class="notice notice-info inline" data-erankly-schema-notice="disabled" role="status" <?php echo 'disabled' === $mode ? '' : 'hidden'; ?>>
+		<p><?php esc_html_e( 'No EasyRankly JSON-LD will be emitted for this content, including automatic, site-wide, and custom blocks.', 'easyrankly' ); ?></p>
+	</div>
+	<div class="erankly-field" data-erankly-schema-generated-controls>
+		<span class="erankly-field-label" id="erankly-schema-disabled-types-label"><?php esc_html_e( 'Suppress generated schema types', 'easyrankly' ); ?></span>
+		<p class="description"><?php esc_html_e( 'Hides matching nodes from the automatic graph and from site-wide schema blocks. Custom JSON-LD on this content is never suppressed. Comparison is case-insensitive.', 'easyrankly' ); ?></p>
+		<div class="erankly-schema-type-tokens" role="group" aria-labelledby="erankly-schema-disabled-types-label">
+			<?php
+			$selected_lower = array_map( 'strtolower', $disabled_types );
+			foreach ( $suggestions as $type ) :
+				$type = (string) $type;
+				$checkbox_id = 'erankly-schema-disabled-' . sanitize_html_class( strtolower( $type ) );
+				?>
+				<label>
+					<input type="checkbox" class="erankly-toggle" name="erankly_schema_disabled_types[]" value="<?php echo esc_attr( $type ); ?>" id="<?php echo esc_attr( $checkbox_id ); ?>" <?php checked( in_array( strtolower( $type ), $selected_lower, true ) ); ?>>
+					<?php echo esc_html( $type ); ?>
+				</label>
+			<?php endforeach; ?>
+		</div>
+		<?php
+		$extra_types = array();
+		foreach ( $disabled_types as $type ) {
+			$type = (string) $type;
+			if ( '' === $type ) {
+				continue;
+			}
+			$known = false;
+			foreach ( $suggestions as $suggestion ) {
+				if ( 0 === strcasecmp( $type, (string) $suggestion ) ) {
+					$known = true;
+					break;
+				}
+			}
+			if ( ! $known ) {
+				$extra_types[] = $type;
+			}
+		}
+		?>
+		<label for="erankly-schema-disabled-types-extra" class="screen-reader-text"><?php esc_html_e( 'Additional schema types to suppress', 'easyrankly' ); ?></label>
+		<input id="erankly-schema-disabled-types-extra" class="widefat" type="text" name="erankly_schema_disabled_types_extra" value="<?php echo esc_attr( implode( ', ', $extra_types ) ); ?>" placeholder="<?php esc_attr_e( 'Additional types, comma-separated', 'easyrankly' ); ?>">
 	</div>
 	<?php // data-erankly-next-index seeds the Add button: without it the first added block reuses index 0 and overwrites the block already stored. ?>
-	<div class="erankly-schema-builder" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $blocks ) ); ?>">
+	<div class="erankly-schema-builder" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $blocks ) ); ?>" data-erankly-schema-custom-controls>
 		<div class="erankly-schema-blocks <?php echo empty( $blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks>
 			<?php foreach ( $blocks as $index => $block ) : ?>
 				<?php erankly_render_schema_block( is_array( $block ) ? $block : array(), (string) $index, 'erankly_schema_blocks' ); ?>
@@ -374,6 +435,7 @@ function erankly_render_post_schema_fields( WP_Post $post ): void {
 		</div>
 		<template data-erankly-schema-template><?php erankly_render_schema_block( array(), '__INDEX__', 'erankly_schema_blocks' ); ?></template>
 		<p class="erankly-schema-actions"><button type="button" class="button button-secondary" data-erankly-add-schema><?php esc_html_e( 'Add JSON-LD schema', 'easyrankly' ); ?></button></p>
+	</div>
 	</div>
 	<?php
 }

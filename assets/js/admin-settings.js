@@ -91,6 +91,7 @@
     }
     bindEach(root, "[data-erankly-linked-defaults]", "bindLinkedDefaults");
     bindEach(root, "[data-erankly-schema-builder]", "bindSchemaBuilder");
+    bindEach(root, "[data-erankly-post-schema]", "bindPostSchemaPanel");
     bindEach(root, "[data-erankly-schema-identity]", "bindSchemaIdentityField");
     bindEach(root, "[data-erankly-user-search-wrap]", "bindUserSearch");
     bindEach(root, "[data-erankly-local-business]", "bindLocalBusiness");
@@ -361,6 +362,17 @@
 
           retryCount = 0;
           var warnings = (body && body.warnings) || [];
+          var errors = (body && body.errors) || [];
+          var incomplete = !!(body && body.incomplete);
+
+          if (errors.length || incomplete) {
+            setStatus(
+              errors[0] || i18n.incomplete || "Saved, but the configuration is incomplete.",
+              "error",
+            );
+            return;
+          }
+
           setStatus(
             warnings.length
               ? i18n.warning || "Saved with warnings"

@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // meta.php is always loaded, so their functions stay globally available.
 require_once ERANKLY_PATH . 'includes/title-description.php';
 require_once ERANKLY_PATH . 'includes/hreflang.php';
+require_once ERANKLY_PATH . 'includes/schema-jsonld.php';
 
 /**
  * Returns the registered EasyRankly meta keys mapped to their value type. Shared by meta registration and the
@@ -127,38 +128,32 @@ function erankly_register_meta(): void {
 
 	foreach ( $meta as $key => $type ) {
 		$rest_schema = erankly_get_registered_meta_rest_schema( $key, $type );
-
-		register_post_meta(
-			'',
-			$key,
-			array(
-				'type'              => $type,
-				'single'            => true,
-				'show_in_rest'      => $rest_schema,
-				'auth_callback'     => static function ( bool $allowed, string $meta_key, int $object_id ): bool {
-					unset( $allowed, $meta_key );
-					return $object_id > 0 ? current_user_can( 'edit_post', $object_id ) : current_user_can( 'edit_posts' );
-				},
-				'sanitize_callback' => 'erankly_sanitize_registered_meta',
-			)
+		$args        = array(
+			'type'              => $type,
+			'single'            => true,
+			'show_in_rest'      => $rest_schema,
+			'auth_callback'     => static function ( bool $allowed, string $meta_key, int $object_id ): bool {
+				unset( $allowed, $meta_key );
+				return $object_id > 0 ? current_user_can( 'edit_post', $object_id ) : current_user_can( 'edit_posts' );
+			},
+			'sanitize_callback' => 'erankly_sanitize_registered_meta',
 		);
 
-		register_term_meta(
-			'',
-			$key,
-			array(
-				'type'              => $type,
-				'single'            => true,
-				'show_in_rest'      => $rest_schema,
-				'auth_callback'     => static function ( bool $allowed, string $meta_key, int $object_id ): bool {
-					unset( $allowed, $meta_key );
-					// edit_term is the contextual meta capability; the generic
-					// edit_terms check does not resolve for custom taxonomies.
-					return $object_id > 0 && current_user_can( 'edit_term', $object_id );
-				},
-				'sanitize_callback' => 'erankly_sanitize_registered_meta',
-			)
-		);
+		if ( 'array' === $type ) {
+			$args['default'] = array();
+		}
+
+		register_post_meta( '', $key, $args );
+
+		$term_args                  = $args;
+		$term_args['auth_callback'] = static function ( bool $allowed, string $meta_key, int $object_id ): bool {
+			unset( $allowed, $meta_key );
+			// edit_term is the contextual meta capability; the generic
+			// edit_terms check does not resolve for custom taxonomies.
+			return $object_id > 0 && current_user_can( 'edit_term', $object_id );
+		};
+
+		register_term_meta( '', $key, $term_args );
 	}
 
 	$user_meta = array(
@@ -190,12 +185,22 @@ function erankly_register_meta(): void {
 	foreach ( $user_meta as $key ) {
 		$type = $meta[ $key ];
 
+		$default = '';
+		if ( 'array' === $type || 'object' === $type ) {
+			$default = array();
+		} elseif ( 'boolean' === $type ) {
+			$default = false;
+		} elseif ( 'integer' === $type ) {
+			$default = 0;
+		}
+
 		register_meta(
 			'user',
 			$key,
 			array(
 				'type'              => $type,
 				'single'            => true,
+				'default'           => $default,
 				'show_in_rest'      => erankly_get_registered_meta_rest_schema( $key, $type ),
 				'auth_callback'     => static function ( bool $allowed, string $meta_key, int $object_id ): bool {
 					unset( $allowed, $meta_key );
@@ -207,6 +212,73 @@ function erankly_register_meta(): void {
 	}
 }
 
+add_action( 'rest_api_init', 'erankly_register_schema_blocks_rest_guards' );
+
+/**
+ * Prevents Gutenberg from wiping or rejecting schema blocks when the editor holds null.
+ */
+function erankly_register_schema_blocks_rest_guards(): void {
+	add_filter( 'rest_request_before_callbacks', 'erankly_rest_drop_null_schema_blocks', 10, 3 );
+	add_filter( 'update_post_metadata', 'erankly_skip_null_schema_blocks_meta', 10, 4 );
+
+	$post_types = get_post_types( array( 'show_in_rest' => true ) );
+
+	foreach ( $post_types as $post_type ) {
+		add_filter( "rest_pre_insert_{$post_type}", 'erankly_rest_stash_schema_blocks_previous', 10, 2 );
+	}
+}
+
+/**
+ * @param mixed                 $response Result to send to the client.
+ * @param array<string,mixed>   $handler  Route handler.
+ * @param WP_REST_Request       $request  Request.
+ * @return mixed
+ */
+function erankly_rest_drop_null_schema_blocks( mixed $response, array $handler, WP_REST_Request $request ): mixed {
+	unset( $handler );
+
+	$meta = $request->get_param( 'meta' );
+
+	if ( is_array( $meta ) && array_key_exists( '_erankly_schema_blocks', $meta ) && null === $meta['_erankly_schema_blocks'] ) {
+		unset( $meta['_erankly_schema_blocks'] );
+		$request->set_param( 'meta', $meta );
+	}
+
+	return $response;
+}
+
+/**
+ * @param mixed  $check      Whether to allow updating.
+ * @param int    $object_id  Object ID.
+ * @param string $meta_key   Meta key.
+ * @param mixed  $meta_value Meta value.
+ * @return mixed
+ */
+function erankly_skip_null_schema_blocks_meta( mixed $check, int $object_id, string $meta_key, mixed $meta_value ): mixed {
+	unset( $object_id );
+
+	if ( '_erankly_schema_blocks' === $meta_key && null === $meta_value ) {
+		return true;
+	}
+
+	return $check;
+}
+
+/**
+ * @param stdClass        $prepared Prepared post data.
+ * @param WP_REST_Request $request  Request.
+ * @return stdClass
+ */
+function erankly_rest_stash_schema_blocks_previous( stdClass $prepared, WP_REST_Request $request ): stdClass {
+	$id = isset( $request['id'] ) ? absint( $request['id'] ) : 0;
+
+	if ( $id > 0 ) {
+		$GLOBALS['erankly_schema_blocks_previous'] = get_post_meta( $id, '_erankly_schema_blocks', true );
+	}
+
+	return $prepared;
+}
+
 /** @return bool|array<string,mixed> */
 function erankly_get_registered_meta_rest_schema( string $key, string $type ): bool|array {
 	if ( 'array' !== $type && 'object' !== $type ) {
@@ -215,16 +287,24 @@ function erankly_get_registered_meta_rest_schema( string $key, string $type ): b
 		$schema = array( 'type' => $type );
 
 		if ( '_erankly_schema_blocks' === $key ) {
-			$schema['items'] = array( 'type' => 'object' );
+			$schema = erankly_schema_blocks_rest_schema();
 		} elseif ( '_erankly_schema_disabled_types' === $key ) {
-			$schema['items'] = array( 'type' => 'string' );
+			$schema['items']   = array( 'type' => 'string' );
+			$schema['default'] = array();
 		} elseif ( '_erankly_primary_terms' === $key ) {
 			$schema['additionalProperties'] = array( 'type' => 'integer' );
 		} elseif ( 'object' === $type ) {
 			$schema['additionalProperties'] = true;
 		}
 
-		$schema = array( 'schema' => $schema );
+		$prepare = static function ( mixed $value ): mixed {
+			return is_array( $value ) ? $value : array();
+		};
+
+		$schema = array(
+			'schema'            => $schema,
+			'prepare_callback'  => $prepare,
+		);
 	}
 
 	/** Filters the REST schema used when registering a meta key. */
@@ -282,7 +362,9 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 		case '_erankly_schema_mode':
 			return erankly_sanitize_meta_enum( $value, array( 'default', 'merge', 'replace', 'disabled' ) );
 		case '_erankly_schema_blocks':
-			return erankly_sanitize_schema_blocks( $value, false );
+			$previous = $GLOBALS['erankly_schema_blocks_previous'] ?? array();
+
+			return erankly_sanitize_schema_blocks( $value, false, is_array( $previous ) ? $previous : array() );
 		case '_erankly_schema_disabled_types':
 			return erankly_sanitize_schema_type_list( $value );
 		case '_erankly_og_image_id':
@@ -338,39 +420,55 @@ function erankly_sanitize_primary_terms( mixed $value ): array {
  */
 function erankly_sanitize_schema_type_list( mixed $value ): array {
 	$types = array();
+	$seen  = array();
 
 	foreach ( is_array( $value ) ? $value : array() as $type ) {
 		$type = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $type );
 
-		if ( is_string( $type ) && '' !== $type ) {
-			$types[] = $type;
+		if ( ! is_string( $type ) || '' === $type ) {
+			continue;
 		}
+
+		$key = strtolower( $type );
+
+		if ( isset( $seen[ $key ] ) ) {
+			continue;
+		}
+
+		$seen[ $key ] = true;
+		$types[]      = $type;
 	}
 
-	return array_values( array_unique( $types ) );
+	return array_values( $types );
 }
 
 /**
  * Sanitizes repeatable schema blocks.
  *
- * @param bool  $is_global Whether to sanitize global targeting fields.
+ * @param bool                              $is_global Whether to sanitize global targeting fields.
+ * @param array<int,array<string,mixed>>    $previous  Previously stored blocks, used when incoming JSON is invalid.
  * @return array<int,array<string,mixed>>
  */
-function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false ): array {
+function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false, array $previous = array() ): array {
+	if ( null === $value ) {
+		return $previous;
+	}
+
 	// The Settings API already unslashes the input; unslashing again would
 	// corrupt backslashes inside custom JSON-LD (e.g. \" or \uXXXX escapes).
 	$value      = is_array( $value ) ? $value : array();
-	$contexts   = array_fill_keys( array( 'front_page', 'posts_page', 'singular', 'post_type_archive', 'search' ), true );
+	$contexts   = erankly_target_context_allowlist();
 	$post_types = array_fill_keys( array_keys( erankly_get_public_post_types() ), true );
 	$blocks     = array();
 
-	foreach ( $value as $block ) {
+	foreach ( $value as $index => $block ) {
 		if ( ! is_array( $block ) ) {
 			continue;
 		}
 
+		$type  = isset( $block['type'] ) ? sanitize_key( (string) $block['type'] ) : 'custom';
 		$clean = array(
-			'type'   => 'custom',
+			'type'   => '' !== $type ? $type : 'custom',
 			'fields' => array(),
 		);
 
@@ -403,13 +501,48 @@ function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false )
 
 			$clean['target_contexts']   = array_values( array_unique( $clean['target_contexts'] ) );
 			$clean['target_post_types'] = array_values( array_unique( $clean['target_post_types'] ) );
+
+			if ( empty( $clean['target_contexts'] ) ) {
+				$clean['enabled'] = 0;
+				erankly_add_schema_targeting_settings_error();
+			} elseif (
+				array( 'post_type_archive' ) === $clean['target_contexts']
+				&& empty( $clean['target_post_types'] )
+			) {
+				$clean['enabled'] = 0;
+				erankly_add_schema_targeting_settings_error( 'post_type_archive' );
+			}
 		}
 
-		$clean['fields']['custom_json'] = isset( $block['fields']['custom_json'] ) ? erankly_sanitize_textarea( $block['fields']['custom_json'] ) : '';
+		$incoming_json = isset( $block['fields']['custom_json'] ) ? erankly_sanitize_textarea( $block['fields']['custom_json'] ) : '';
+		$previous_json = '';
 
-		if ( '' !== trim( (string) $clean['fields']['custom_json'] ) && ! erankly_is_valid_custom_json_ld( (string) $clean['fields']['custom_json'] ) ) {
-			erankly_add_schema_json_settings_error();
-			continue;
+		if ( isset( $previous[ $index ]['fields']['custom_json'] ) ) {
+			$previous_json = (string) $previous[ $index ]['fields']['custom_json'];
+		}
+
+		if ( '' !== trim( $incoming_json ) ) {
+			$validation = erankly_validate_custom_json_ld( $incoming_json );
+
+			if ( ! $validation['valid'] ) {
+				erankly_add_schema_json_settings_error( $validation['message'] );
+
+				if ( '' !== trim( $previous_json ) && erankly_validate_custom_json_ld( $previous_json )['valid'] ) {
+					$incoming_json = $previous_json;
+				} else {
+					continue;
+				}
+			}
+		}
+
+		$clean['fields']['custom_json'] = $incoming_json;
+
+		$fields = isset( $block['fields'] ) && is_array( $block['fields'] ) ? $block['fields'] : array();
+		$fields = apply_filters( 'erankly_sanitize_schema_block_fields', $clean['fields'], $fields, $is_global, $block );
+
+		if ( is_array( $fields ) ) {
+			$clean['fields'] = $fields;
+			$clean['fields']['custom_json'] = $incoming_json;
 		}
 
 		if ( ! erankly_schema_block_has_content( $clean ) ) {
@@ -452,7 +585,15 @@ function erankly_schema_block_has_content( array $block ): bool {
 
 /** The message shown when custom JSON-LD is rejected, shared by the settings screen and the editors. */
 function erankly_invalid_json_ld_message(): string {
-	return __( 'Custom JSON-LD was not saved because it is not valid. Use one JSON-LD object, an array of objects, or an object with @graph.', 'easyrankly' );
+	return __( 'Custom JSON-LD was not saved because it is not valid JSON-LD. Every node needs a valid @type or @id. Use one object, an array of objects, or an object with @graph.', 'easyrankly' );
+}
+
+function erankly_schema_targeting_error_message( string $code = '' ): string {
+	if ( 'post_type_archive' === $code ) {
+		return __( 'A schema block that targets only post type archives was saved as disabled because no post types were selected.', 'easyrankly' );
+	}
+
+	return __( 'A schema block without a valid context was saved as disabled. Choose at least one place where it should appear.', 'easyrankly' );
 }
 
 /**
@@ -460,23 +601,40 @@ function erankly_invalid_json_ld_message(): string {
  * rejected while saving a post or a term used to disappear without a word; the queued notice covers the
  * editors and the REST meta writer, which never reach settings_errors().
  */
-function erankly_add_schema_json_settings_error(): void {
+function erankly_add_schema_json_settings_error( string $message = '' ): void {
 	static $added = false;
 
 	if ( $added ) {
 		return;
 	}
 
-	$added = true;
+	$added   = true;
+	$message = '' !== $message ? $message : erankly_invalid_json_ld_message();
 
 	if ( function_exists( 'add_settings_error' ) ) {
-		add_settings_error( ERANKLY_OPTION, 'erankly_invalid_json_ld', erankly_invalid_json_ld_message(), 'error' );
+		add_settings_error( ERANKLY_OPTION, 'erankly_invalid_json_ld', $message, 'error' );
 	}
 
 	$user_id = get_current_user_id();
 
 	if ( $user_id > 0 ) {
-		set_transient( 'erankly_invalid_json_ld_' . $user_id, 1, 5 * MINUTE_IN_SECONDS );
+		set_transient( 'erankly_invalid_json_ld_' . $user_id, $message, 5 * MINUTE_IN_SECONDS );
+	}
+}
+
+function erankly_add_schema_targeting_settings_error( string $code = '' ): void {
+	static $added = array();
+
+	$key = '' === $code ? 'contexts' : $code;
+
+	if ( isset( $added[ $key ] ) ) {
+		return;
+	}
+
+	$added[ $key ] = true;
+
+	if ( function_exists( 'add_settings_error' ) ) {
+		add_settings_error( ERANKLY_OPTION, 'erankly_schema_targeting_' . $key, erankly_schema_targeting_error_message( $code ), 'error' );
 	}
 }
 
@@ -484,7 +642,9 @@ function erankly_add_schema_json_settings_error(): void {
 function erankly_render_invalid_json_ld_notice(): void {
 	$user_id = get_current_user_id();
 
-	if ( $user_id <= 0 || ! get_transient( 'erankly_invalid_json_ld_' . $user_id ) ) {
+	$notice = get_transient( 'erankly_invalid_json_ld_' . $user_id );
+
+	if ( ! $notice ) {
 		return;
 	}
 
@@ -499,55 +659,35 @@ function erankly_render_invalid_json_ld_notice(): void {
 		}
 	}
 
+	$message = is_string( $notice ) && '' !== $notice ? $notice : erankly_invalid_json_ld_message();
+
 	printf(
-		'<div class="notice notice-error"><p>%s</p></div>',
-		esc_html( erankly_invalid_json_ld_message() )
+		'<div class="notice notice-error" id="erankly-invalid-json-ld-notice" role="alert"><p>%s</p></div>',
+		esc_html( $message )
 	);
 }
 
 function erankly_is_valid_custom_json_ld( string $json ): bool {
-	return ! empty( erankly_decode_custom_json_ld( $json ) );
+	return erankly_validate_custom_json_ld( $json )['valid'];
 }
 
 /**
  * Decodes custom JSON-LD into graph entries. Supports one object, an array of objects, or an object containing
+ * @graph. Nodes that fail Schema.org-minimum validation are rejected as a document, not silently dropped.
  *
- * @graph.
  * @return array<int,array<string,mixed>>
  */
 function erankly_decode_custom_json_ld( string $json ): array {
-	$decoded = json_decode( $json, true );
+	$result = erankly_validate_custom_json_ld( $json );
 
-	if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) ) {
-		return array();
-	}
-
-	return erankly_normalize_custom_json_ld_data( $decoded );
+	return $result['valid'] ? $result['nodes'] : array();
 }
 
 /** @return array<int,array<string,mixed>> */
 function erankly_normalize_custom_json_ld_data( array $decoded ): array {
-	if ( isset( $decoded['@graph'] ) && is_array( $decoded['@graph'] ) ) {
-		$decoded = $decoded['@graph'];
-	}
-
-	if ( erankly_array_is_list( $decoded ) ) {
-		$schemas = array();
-
-		foreach ( $decoded as $schema ) {
-			if ( is_array( $schema ) && ! erankly_array_is_list( $schema ) ) {
-				unset( $schema['@context'] );
-
-				if ( ! empty( $schema ) ) {
-					$schemas[] = $schema;
-				}
-			}
-		}
-
-		return $schemas;
-	}
-
-	unset( $decoded['@context'] );
-
-	return empty( $decoded ) ? array() : array( $decoded );
+	return erankly_validate_json_ld_nodes(
+		isset( $decoded['@graph'] ) && is_array( $decoded['@graph'] )
+			? $decoded['@graph']
+			: ( erankly_array_is_list( $decoded ) ? $decoded : array( $decoded ) )
+	)['nodes'];
 }

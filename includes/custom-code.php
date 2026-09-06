@@ -98,149 +98,25 @@ function erankly_get_matching_custom_code( string $blocks_key, string $legacy_ke
 }
 
 /**
- * Whether one code block targets the current request. Semantics intentionally
- * mirror erankly_global_schema_block_matches_request(): empty contexts never
- * match; singular/archive matches additionally require the post type (and
- * honor include/exclude ID/slug lists for singular). Kept self-contained so
- * custom code works even when the schema module file is not loaded (e.g. an
- * external SEO plugin owns head output).
+ * Whether one code block targets the current request. Shares targeting with
+ * global schema blocks via erankly_targeted_block_matches_request(), which
+ * lives in the always-loaded helpers so custom code still works when the
+ * frontend schema renderer is off.
  */
 function erankly_custom_code_block_matches_request( array $block ): bool {
-	$contexts = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? $block['target_contexts'] : array();
-
-	if ( empty( $contexts ) ) {
-		return false;
-	}
-
-	if ( in_array( 'taxonomy', $contexts, true ) && ( is_category() || is_tag() || is_tax() ) ) {
-		return true;
-	}
-
-	if ( in_array( 'author', $contexts, true ) && is_author() ) {
-		return true;
-	}
-
-	if ( in_array( 'date', $contexts, true ) && is_date() ) {
-		return true;
-	}
-
-	if ( in_array( '404', $contexts, true ) && is_404() ) {
-		return true;
-	}
-
-	if ( in_array( 'front_page', $contexts, true ) && is_front_page() ) {
-		return true;
-	}
-
-	if ( in_array( 'posts_page', $contexts, true ) && is_home() && ! is_front_page() ) {
-		return true;
-	}
-
-	if ( in_array( 'search', $contexts, true ) && is_search() ) {
-		return true;
-	}
-
-	if ( in_array( 'post_type_archive', $contexts, true ) && erankly_custom_code_matches_post_type_archive( $block ) ) {
-		return true;
-	}
-
-	if ( in_array( 'singular', $contexts, true ) && erankly_custom_code_matches_singular( $block ) ) {
-		return true;
-	}
-
-	return false;
+	return erankly_targeted_block_matches_request( $block );
 }
 
 function erankly_custom_code_matches_post_type_archive( array $block ): bool {
-	if ( ! is_post_type_archive() ) {
-		return false;
-	}
-
-	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? $block['target_post_types'] : array();
-
-	if ( empty( $target_post_types ) ) {
-		return false;
-	}
-
-	$current_post_type = get_query_var( 'post_type' );
-
-	if ( is_array( $current_post_type ) ) {
-		foreach ( $current_post_type as $post_type ) {
-			if ( in_array( (string) $post_type, $target_post_types, true ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	if ( is_string( $current_post_type ) && '' !== $current_post_type ) {
-		return in_array( $current_post_type, $target_post_types, true );
-	}
-
-	$queried = get_queried_object();
-
-	return $queried instanceof WP_Post_Type && in_array( $queried->name, $target_post_types, true );
+	return erankly_targeted_block_matches_post_type_archive( $block );
 }
 
 function erankly_custom_code_matches_singular( array $block ): bool {
-	if ( ! is_singular() ) {
-		return false;
-	}
-
-	$post_id = get_queried_object_id();
-
-	if ( $post_id <= 0 ) {
-		return false;
-	}
-
-	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? $block['target_post_types'] : array();
-	$post_type         = get_post_type( $post_id );
-
-	if ( empty( $target_post_types ) || ! is_string( $post_type ) || ! in_array( $post_type, $target_post_types, true ) ) {
-		return false;
-	}
-
-	if ( erankly_custom_code_target_list_contains_post( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', $post_id ) ) {
-		return false;
-	}
-
-	$include_items = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
-
-	if ( '' === trim( $include_items ) ) {
-		return true;
-	}
-
-	return erankly_custom_code_target_list_contains_post( $include_items, $post_id );
+	return erankly_targeted_block_matches_singular( $block );
 }
 
 function erankly_custom_code_target_list_contains_post( string $value, int $post_id ): bool {
-	$items = preg_split( '/[\r\n,]+/', $value );
-
-	if ( ! is_array( $items ) || $post_id <= 0 ) {
-		return false;
-	}
-
-	$post = get_post( $post_id );
-	$slug = $post instanceof WP_Post ? $post->post_name : '';
-
-	foreach ( $items as $item ) {
-		$item = trim( (string) $item );
-
-		if ( '' === $item ) {
-			continue;
-		}
-
-		if ( ctype_digit( $item ) && absint( $item ) === $post_id ) {
-			return true;
-		}
-
-		if ( '' !== $slug && sanitize_title( $item ) === $slug ) {
-			return true;
-		}
-	}
-
-	return false;
+	return erankly_target_list_contains_item( $value, 'post', $post_id );
 }
 
 /** Prints the HEAD snippets verbatim (once per request). */

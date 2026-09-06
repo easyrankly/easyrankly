@@ -21,7 +21,6 @@ function erankly_get_webpage_schema_types(): array {
 		'ContactPage'    => __( 'Contact page', 'easyrankly' ),
 		'ProfilePage'    => __( 'Profile page', 'easyrankly' ),
 		'CollectionPage' => __( 'Collection page', 'easyrankly' ),
-		'QAPage'         => __( 'Q&A page', 'easyrankly' ),
 		'none'           => __( 'No page schema', 'easyrankly' ),
 	);
 
@@ -261,4 +260,47 @@ function erankly_sanitize_opening_hours( mixed $value ): array {
 	}
 
 	return $hours;
+}
+
+/**
+ * Sanitizes the per-site LocalBusiness page map. Keys are blog IDs, values are published page IDs.
+ *
+ * @return array<int,int>
+ */
+function erankly_sanitize_local_business_pages( mixed $value ): array {
+	$value = is_array( $value ) ? $value : array();
+	$clean = array();
+
+	foreach ( $value as $blog_id => $page_id ) {
+		$blog_id = absint( $blog_id );
+		$page_id = absint( $page_id );
+
+		if ( $blog_id <= 0 || $page_id <= 0 ) {
+			continue;
+		}
+
+		$switched = is_multisite() && get_current_blog_id() !== $blog_id;
+
+		if ( $switched ) {
+			switch_to_blog( $blog_id );
+		}
+
+		$page = get_post( $page_id );
+
+		if ( $page instanceof WP_Post && 'page' === $page->post_type && 'publish' === $page->post_status ) {
+			$clean[ $blog_id ] = $page_id;
+		}
+
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	return $clean;
+}
+
+function erankly_sanitize_breadcrumb_jsonld_mode( mixed $value ): string {
+	$value = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+
+	return in_array( $value, array( 'off', 'when_visible', 'always' ), true ) ? $value : 'when_visible';
 }

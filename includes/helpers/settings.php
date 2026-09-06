@@ -63,6 +63,7 @@ function erankly_settings_toggle_keys(): array {
 		'enable_image_sitemap',
 		'enable_video_sitemap',
 		'enable_breadcrumbs',
+		'enable_website_search_action',
 		'noindex_paginated',
 		'noindex_paginated_content',
 		'nofollow_paginated',
@@ -271,4 +272,70 @@ function erankly_maybe_migrate_settings(): void {
 	}
 
 	erankly_update_plugin_option( 'erankly_migrated_title_defaults_v1', true );
+}
+
+/**
+ * Migrates the shared LocalBusiness path into a per-blog page ID map.
+ */
+function erankly_maybe_migrate_local_business_pages(): void {
+	if ( erankly_get_plugin_option( 'erankly_migrated_local_business_pages_v1', false ) ) {
+		return;
+	}
+
+	erankly_load_default_helpers();
+	$settings = erankly_get_stored_settings();
+
+	if ( empty( $settings ) ) {
+		erankly_update_plugin_option( 'erankly_migrated_local_business_pages_v1', true );
+
+		return;
+	}
+
+	$existing = isset( $settings['local_business_pages'] ) && is_array( $settings['local_business_pages'] )
+		? array_filter( array_map( 'absint', $settings['local_business_pages'] ) )
+		: array();
+
+	if ( ! empty( $existing ) ) {
+		erankly_update_plugin_option( 'erankly_migrated_local_business_pages_v1', true );
+
+		return;
+	}
+
+	$path = erankly_sanitize_relative_path( $settings['local_business_page_path'] ?? '' );
+
+	if ( '' === $path ) {
+		erankly_update_plugin_option( 'erankly_migrated_local_business_pages_v1', true );
+
+		return;
+	}
+
+	$map   = array();
+	$sites = is_multisite() ? get_sites( array( 'number' => 200 ) ) : array( (object) array( 'blog_id' => get_current_blog_id() ) );
+
+	foreach ( $sites as $site ) {
+		$blog_id  = absint( is_object( $site ) ? $site->blog_id : $site );
+		$switched = is_multisite() && get_current_blog_id() !== $blog_id;
+
+		if ( $switched ) {
+			switch_to_blog( $blog_id );
+		}
+
+		$page = get_page_by_path( trim( $path, '/' ), OBJECT, 'page' );
+
+		if ( $page instanceof WP_Post && 'publish' === $page->post_status ) {
+			$map[ $blog_id ] = (int) $page->ID;
+		}
+
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	if ( ! empty( $map ) ) {
+		$settings['local_business_pages'] = $map;
+		erankly_update_plugin_settings( $settings, '', true );
+		erankly_clear_settings_cache();
+	}
+
+	erankly_update_plugin_option( 'erankly_migrated_local_business_pages_v1', true );
 }

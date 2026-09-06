@@ -299,8 +299,241 @@ function erankly_custom_code_max_total_bytes(): int {
 }
 
 /** @return array<string,bool> */
+function erankly_target_context_allowlist(): array {
+	return array_fill_keys(
+		array( 'front_page', 'posts_page', 'singular', 'post_type_archive', 'search', 'taxonomy', 'author', 'date', '404' ),
+		true
+	);
+}
+
+/** @return array<string,bool> */
 function erankly_custom_code_context_allowlist(): array {
-	return array_fill_keys( array( 'front_page', 'posts_page', 'singular', 'post_type_archive', 'search', 'taxonomy', 'author', 'date', '404' ), true );
+	return erankly_target_context_allowlist();
+}
+
+/**
+ * Contexts whose include/exclude ID-or-slug lists apply.
+ *
+ * @return array<int,string>
+ */
+function erankly_target_contexts_using_include_exclude(): array {
+	return array( 'singular', 'taxonomy', 'author' );
+}
+
+/**
+ * Contexts that require a post type selection to have an effect.
+ *
+ * @return array<int,string>
+ */
+function erankly_target_contexts_using_post_types(): array {
+	return array( 'singular', 'post_type_archive' );
+}
+
+/**
+ * Whether a targeted block (global schema or custom code) matches the current request.
+ *
+ * Empty context lists never match. Include/exclude lists apply only to singular, taxonomy, and author
+ * archives. Post type filters apply only to singular content and post type archives.
+ */
+function erankly_targeted_block_matches_request( array $block ): bool {
+	if ( empty( $block['enabled'] ) ) {
+		return false;
+	}
+
+	$contexts = isset( $block['target_contexts'] ) && is_array( $block['target_contexts'] ) ? $block['target_contexts'] : array();
+
+	if ( empty( $contexts ) ) {
+		return false;
+	}
+
+	if ( in_array( 'taxonomy', $contexts, true ) && ( is_category() || is_tag() || is_tax() ) ) {
+		return erankly_targeted_block_matches_term( $block );
+	}
+
+	if ( in_array( 'author', $contexts, true ) && is_author() ) {
+		return erankly_targeted_block_matches_author( $block );
+	}
+
+	if ( in_array( 'date', $contexts, true ) && is_date() ) {
+		return true;
+	}
+
+	if ( in_array( '404', $contexts, true ) && is_404() ) {
+		return true;
+	}
+
+	if ( in_array( 'front_page', $contexts, true ) && is_front_page() ) {
+		return true;
+	}
+
+	if ( in_array( 'posts_page', $contexts, true ) && is_home() && ! is_front_page() ) {
+		return true;
+	}
+
+	if ( in_array( 'search', $contexts, true ) && is_search() ) {
+		return true;
+	}
+
+	if ( in_array( 'post_type_archive', $contexts, true ) && erankly_targeted_block_matches_post_type_archive( $block ) ) {
+		return true;
+	}
+
+	if ( in_array( 'singular', $contexts, true ) && erankly_targeted_block_matches_singular( $block ) ) {
+		return true;
+	}
+
+	return false;
+}
+
+function erankly_targeted_block_matches_post_type_archive( array $block ): bool {
+	if ( ! is_post_type_archive() ) {
+		return false;
+	}
+
+	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? $block['target_post_types'] : array();
+
+	if ( empty( $target_post_types ) ) {
+		return false;
+	}
+
+	$current_post_type = get_query_var( 'post_type' );
+
+	if ( is_array( $current_post_type ) ) {
+		foreach ( $current_post_type as $post_type ) {
+			if ( in_array( (string) $post_type, $target_post_types, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	if ( is_string( $current_post_type ) && '' !== $current_post_type ) {
+		return in_array( $current_post_type, $target_post_types, true );
+	}
+
+	$queried = get_queried_object();
+
+	return $queried instanceof WP_Post_Type && in_array( $queried->name, $target_post_types, true );
+}
+
+function erankly_targeted_block_matches_singular( array $block ): bool {
+	if ( ! is_singular() ) {
+		return false;
+	}
+
+	$post_id = get_queried_object_id();
+
+	if ( $post_id <= 0 ) {
+		return false;
+	}
+
+	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? $block['target_post_types'] : array();
+	$post_type         = get_post_type( $post_id );
+
+	if ( ! is_string( $post_type ) || '' === $post_type ) {
+		return false;
+	}
+
+	if ( ! empty( $target_post_types ) && ! in_array( $post_type, $target_post_types, true ) ) {
+		return false;
+	}
+
+	if ( erankly_target_list_contains_item( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', 'post', $post_id ) ) {
+		return false;
+	}
+
+	$include_items = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
+
+	if ( '' === trim( $include_items ) ) {
+		return true;
+	}
+
+	return erankly_target_list_contains_item( $include_items, 'post', $post_id );
+}
+
+function erankly_targeted_block_matches_term( array $block ): bool {
+	$term = get_queried_object();
+
+	if ( ! $term instanceof WP_Term ) {
+		return false;
+	}
+
+	if ( erankly_target_list_contains_item( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', 'term', (int) $term->term_id ) ) {
+		return false;
+	}
+
+	$include_items = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
+
+	if ( '' === trim( $include_items ) ) {
+		return true;
+	}
+
+	return erankly_target_list_contains_item( $include_items, 'term', (int) $term->term_id );
+}
+
+function erankly_targeted_block_matches_author( array $block ): bool {
+	$author_id = get_queried_object_id();
+
+	if ( $author_id <= 0 ) {
+		return false;
+	}
+
+	if ( erankly_target_list_contains_item( isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '', 'author', $author_id ) ) {
+		return false;
+	}
+
+	$include_items = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
+
+	if ( '' === trim( $include_items ) ) {
+		return true;
+	}
+
+	return erankly_target_list_contains_item( $include_items, 'author', $author_id );
+}
+
+/**
+ * @param string $value    Newline or comma-separated IDs and slugs.
+ * @param string $kind     post, term, or author.
+ * @param int    $object_id Current object ID.
+ */
+function erankly_target_list_contains_item( string $value, string $kind, int $object_id ): bool {
+	$items = preg_split( '/[\r\n,]+/', $value );
+
+	if ( ! is_array( $items ) || $object_id <= 0 ) {
+		return false;
+	}
+
+	$slug = '';
+
+	if ( 'post' === $kind ) {
+		$post = get_post( $object_id );
+		$slug = $post instanceof WP_Post ? $post->post_name : '';
+	} elseif ( 'term' === $kind ) {
+		$term = get_term( $object_id );
+		$slug = $term instanceof WP_Term ? $term->slug : '';
+	} elseif ( 'author' === $kind ) {
+		$user = get_userdata( $object_id );
+		$slug = $user instanceof WP_User ? $user->user_nicename : '';
+	}
+
+	foreach ( $items as $item ) {
+		$item = trim( (string) $item );
+
+		if ( '' === $item ) {
+			continue;
+		}
+
+		if ( ctype_digit( $item ) && absint( $item ) === $object_id ) {
+			return true;
+		}
+
+		if ( '' !== $slug && sanitize_title( $item ) === $slug ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**

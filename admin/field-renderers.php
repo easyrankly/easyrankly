@@ -121,7 +121,7 @@ function erankly_render_schema_block( array $block, string $index, string $name_
 		<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][type]" value="custom">
 		<div class="erankly-schema-panel" data-erankly-schema-panel>
 			<?php if ( $is_global ) : ?>
-				<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled ); ?>
+				<?php erankly_render_schema_targeting_fields( $block, $index, $name_prefix, $enabled, '', true ); ?>
 			<?php endif; ?>
 			<?php erankly_render_schema_textarea_field( $index, $name_prefix, 'custom_json', __( 'JSON-LD code', 'easyrankly' ), $custom_json, 10 ); ?>
 			<p class="description">
@@ -164,24 +164,28 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 			<fieldset class="erankly-schema-targeting-group">
 				<legend><?php esc_html_e( 'Apply on', 'easyrankly' ); ?></legend>
 				<?php foreach ( $contexts as $context => $label ) : ?>
-					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_contexts][]" value="<?php echo esc_attr( $context ); ?>" <?php checked( in_array( $context, $target_contexts, true ) ); ?>> <?php echo esc_html( $label ); ?></label>
+					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_contexts][]" value="<?php echo esc_attr( $context ); ?>" <?php checked( in_array( $context, $target_contexts, true ) ); ?> data-erankly-target-context="<?php echo esc_attr( $context ); ?>"> <?php echo esc_html( $label ); ?></label>
 				<?php endforeach; ?>
+				<p class="description"><?php esc_html_e( 'Choose at least one context. A block with no context is saved as disabled and is never emitted.', 'easyrankly' ); ?></p>
 			</fieldset>
-			<fieldset class="erankly-schema-targeting-group">
+			<fieldset class="erankly-schema-targeting-group" data-erankly-targeting-for="post-types">
 				<legend><?php esc_html_e( 'Post types', 'easyrankly' ); ?></legend>
+				<p class="description"><?php esc_html_e( 'Applies to singular content and post type archives. Leave empty to match every public type in those contexts. Post type archives with no types selected are saved as disabled.', 'easyrankly' ); ?></p>
 				<?php foreach ( erankly_get_public_post_types() as $post_type => $object ) : ?>
 					<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][target_post_types][]" value="<?php echo esc_attr( $post_type ); ?>" <?php checked( in_array( $post_type, $target_post_types, true ) ); ?>> <?php echo esc_html( $object->labels->singular_name ); ?></label>
 				<?php endforeach; ?>
 			</fieldset>
 		</div>
-		<div class="erankly-schema-targeting-grid">
+		<div class="erankly-schema-targeting-grid" data-erankly-targeting-for="include-exclude">
 			<div class="erankly-field">
 				<label for="<?php echo esc_attr( $include_items_id ); ?>"><?php esc_html_e( 'Include IDs or slugs', 'easyrankly' ); ?></label>
 				<textarea id="<?php echo esc_attr( $include_items_id ); ?>" class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][include_items]"><?php echo esc_textarea( $include_items ); ?></textarea>
+				<p class="description"><?php esc_html_e( 'Optional. Limits the block to matching singular posts, terms, or authors. Has no effect on front page, search, date archives, or 404.', 'easyrankly' ); ?></p>
 			</div>
 			<div class="erankly-field">
 				<label for="<?php echo esc_attr( $exclude_items_id ); ?>"><?php esc_html_e( 'Exclude IDs or slugs', 'easyrankly' ); ?></label>
 				<textarea id="<?php echo esc_attr( $exclude_items_id ); ?>" class="widefat" rows="3" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][exclude_items]"><?php echo esc_textarea( $exclude_items ); ?></textarea>
+				<p class="description"><?php esc_html_e( 'Optional. Skips matching singular posts, terms, or authors.', 'easyrankly' ); ?></p>
 			</div>
 		</div>
 	</fieldset>
@@ -217,7 +221,6 @@ function erankly_render_schema_textarea_field( string $index, string $name_prefi
 			<textarea id="<?php echo esc_attr( $field_id ); ?>" class="widefat" rows="<?php echo esc_attr( (string) $rows ); ?>" name="<?php echo esc_attr( $name_prefix ); ?>[<?php echo esc_attr( $index ); ?>][fields][<?php echo esc_attr( $key ); ?>]" aria-describedby="<?php echo esc_attr( $error_id ); ?>" data-erankly-json-ld-input><?php echo esc_textarea( $value ); ?></textarea>
 			<?php erankly_render_variable_picker(); ?>
 		</div>
-		<?php // Invalid JSON-LD is dropped on save, so it is flagged while typing rather than silently discarded. ?>
 		<p class="erankly-schema-json-error" id="<?php echo esc_attr( $error_id ); ?>" data-erankly-json-ld-error role="alert" hidden><?php echo esc_html( erankly_invalid_json_ld_message() ); ?></p>
 	</div>
 	<?php

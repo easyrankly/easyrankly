@@ -1,0 +1,15 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "easyrankly/breadcrumbs",
+	"title": "EasyRankly Breadcrumbs",
+	"category": "theme",
+	"icon": "arrow-right-alt",
+	"description": "Visible breadcrumb trail. Pair this with EasyRankly breadcrumb JSON-LD so structured data matches what people see.",
+	"keywords": [ "breadcrumb", "schema", "seo" ],
+	"textdomain": "easyrankly",
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ]
+	}
+}

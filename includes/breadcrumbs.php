@@ -276,3 +276,117 @@ function erankly_schema_breadcrumb_list(): array {
 
 	return apply_filters( 'erankly_schema_breadcrumb_list', $schema, $items );
 }
+
+/**
+ * Whether BreadcrumbList JSON-LD should be emitted for the current request.
+ *
+ * Visual trail and structured data are separate: Google's structured-data
+ * policies expect markup to match what people see. The default `when_visible`
+ * mode therefore emits JSON-LD only when a trail is actually rendered.
+ */
+function erankly_should_emit_breadcrumb_schema(): bool {
+	if ( ! (bool) erankly_get_setting( 'enable_breadcrumbs', 1 ) ) {
+		return false;
+	}
+
+	$mode = function_exists( 'erankly_sanitize_breadcrumb_jsonld_mode' )
+		? erankly_sanitize_breadcrumb_jsonld_mode( erankly_get_setting( 'breadcrumb_jsonld_mode', 'when_visible' ) )
+		: 'when_visible';
+
+	if ( 'off' === $mode ) {
+		return false;
+	}
+
+	if ( 'always' === $mode ) {
+		return true;
+	}
+
+	return erankly_has_visible_breadcrumbs();
+}
+
+/**
+ * Detects a visible EasyRankly breadcrumb trail: shortcode, block, or theme support.
+ */
+function erankly_has_visible_breadcrumbs(): bool {
+	$visible = current_theme_supports( 'erankly-breadcrumbs' );
+
+	if ( is_singular() ) {
+		$post = get_post();
+
+		if ( $post instanceof WP_Post ) {
+			if (
+				has_shortcode( $post->post_content, 'erankly_breadcrumbs' )
+				|| has_shortcode( $post->post_content, 'easyrankly_breadcrumbs' )
+			) {
+				$visible = true;
+			}
+
+			if ( function_exists( 'has_block' ) && has_block( 'easyrankly/breadcrumbs', $post ) ) {
+				$visible = true;
+			}
+		}
+	}
+
+	return (bool) apply_filters( 'erankly_has_visible_breadcrumbs', $visible );
+}
+
+/** @param array<string,mixed>|string $atts Shortcode attributes. */
+function erankly_breadcrumbs_shortcode( $atts = array() ): string {
+	unset( $atts );
+
+	return erankly_breadcrumbs( array( 'echo' => false ) );
+}
+
+function erankly_render_breadcrumbs_block( array $attributes = array(), string $content = '' ): string {
+	unset( $attributes, $content );
+
+	return erankly_breadcrumbs( array( 'echo' => false ) );
+}
+
+function erankly_register_breadcrumb_integrations(): void {
+	add_shortcode( 'erankly_breadcrumbs', 'erankly_breadcrumbs_shortcode' );
+	add_shortcode( 'easyrankly_breadcrumbs', 'erankly_breadcrumbs_shortcode' );
+
+	if ( ! function_exists( 'register_block_type' ) ) {
+		return;
+	}
+
+	$block_dir = ERANKLY_PATH . 'blocks/breadcrumbs';
+
+	wp_register_script(
+		'erankly-breadcrumbs-block',
+		ERANKLY_URL . 'blocks/breadcrumbs/index.js',
+		array( 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-block-editor' ),
+		ERANKLY_VERSION,
+		true
+	);
+	wp_set_script_translations( 'erankly-breadcrumbs-block', 'easyrankly', ERANKLY_PATH . 'languages' );
+
+	if ( file_exists( $block_dir . '/block.json' ) ) {
+		register_block_type(
+			$block_dir,
+			array(
+				'render_callback'      => 'erankly_render_breadcrumbs_block',
+				'editor_script_handles' => array( 'erankly-breadcrumbs-block' ),
+			)
+		);
+
+		return;
+	}
+
+	register_block_type(
+		'easyrankly/breadcrumbs',
+		array(
+			'api_version'     => 3,
+			'title'           => __( 'EasyRankly Breadcrumbs', 'easyrankly' ),
+			'description'     => __( 'Visible breadcrumb trail that matches EasyRankly structured data when JSON-LD is set to emit with a visible trail.', 'easyrankly' ),
+			'category'        => 'theme',
+			'icon'            => 'arrow-right-alt',
+			'render_callback' => 'erankly_render_breadcrumbs_block',
+			'supports'        => array(
+				'html'  => false,
+				'align' => array( 'wide', 'full' ),
+			),
+		)
+	);
+}

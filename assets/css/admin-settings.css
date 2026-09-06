@@ -321,6 +321,10 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	gap: var(--erankly-space-2);
 }
 
+.erankly-opening-intervals[hidden] {
+	display: none;
+}
+
 .erankly-opening-intervals > span {
 	align-items: center;
 	display: inline-flex;

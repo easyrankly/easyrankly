@@ -459,7 +459,102 @@ function erankly_schema_event( int $post_id ): array {
 		return array();
 	}
 
+	$schema = erankly_schema_event_finalize( $schema );
+
+	if ( empty( $schema ) ) {
+		return array();
+	}
+
 	return apply_filters( 'erankly_schema_event', array_filter( $schema ), $post_id );
+}
+
+/**
+ * Drops events that cannot carry a valid ISO-8601 startDate and a usable location.
+ * Incomplete events are omitted rather than published as if they were rich-result ready.
+ *
+ * @param array<string,mixed> $schema Event node.
+ * @return array<string,mixed>
+ */
+function erankly_schema_event_finalize( array $schema ): array {
+	$start = isset( $schema['startDate'] ) ? (string) $schema['startDate'] : '';
+
+	if ( '' === $start ) {
+		return array();
+	}
+
+	$end = isset( $schema['endDate'] ) ? (string) $schema['endDate'] : '';
+
+	if ( '' !== $end ) {
+		$start_ts = strtotime( $start );
+		$end_ts   = strtotime( $end );
+
+		if ( false === $end_ts || ( false !== $start_ts && $end_ts < $start_ts ) ) {
+			unset( $schema['endDate'] );
+		}
+	}
+
+	if ( ! erankly_schema_event_has_valid_location( $schema ) ) {
+		return array();
+	}
+
+	return $schema;
+}
+
+/**
+ * Google Event structured data requires location: a Place (name and/or address) or a VirtualLocation with a URL.
+ *
+ * @param array<string,mixed> $schema Event node.
+ */
+function erankly_schema_event_has_valid_location( array $schema ): bool {
+	$location = $schema['location'] ?? null;
+
+	if ( is_array( $location ) && isset( $location[0] ) && erankly_array_is_list( $location ) ) {
+		foreach ( $location as $item ) {
+			if ( is_array( $item ) && erankly_schema_event_location_item_is_valid( $item ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	return is_array( $location ) && erankly_schema_event_location_item_is_valid( $location );
+}
+
+/**
+ * @param array<string,mixed> $location Location node.
+ */
+function erankly_schema_event_location_item_is_valid( array $location ): bool {
+	$type = isset( $location['@type'] ) ? trim( (string) $location['@type'] ) : '';
+	$url  = isset( $location['url'] ) ? trim( (string) $location['url'] ) : '';
+	$name = isset( $location['name'] ) ? trim( (string) $location['name'] ) : '';
+	$addr = $location['address'] ?? null;
+
+	if ( 'VirtualLocation' === $type ) {
+		return '' !== $url;
+	}
+
+	if ( 'Place' === $type || 'PostalAddress' === $type || '' === $type ) {
+		if ( '' !== $name || '' !== $url ) {
+			return true;
+		}
+
+		if ( ! is_array( $addr ) ) {
+			return false;
+		}
+
+		foreach ( $addr as $key => $value ) {
+			if ( '@type' === $key ) {
+				continue;
+			}
+
+			if ( is_array( $value ) || ( is_scalar( $value ) && '' !== trim( (string) $value ) ) ) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /** @return array<int,string> */
@@ -479,29 +574,32 @@ function erankly_schema_event_from_tec( int $post_id ): array {
 	$start = (string) get_post_meta( $post_id, '_EventStartDate', true );
 	$end   = (string) get_post_meta( $post_id, '_EventEndDate', true );
 
-	if ( '' === $start ) {
+	$start_iso = erankly_schema_event_datetime( $start );
+
+	if ( '' === $start_iso ) {
 		return array();
 	}
 
 	$permalink = (string) get_permalink( $post_id );
 	$schema    = array(
-		'@type'               => 'Event',
-		'@id'                 => $permalink . '#event',
-		'name'                => get_the_title( $post_id ),
-		'startDate'           => erankly_schema_event_datetime( $start ),
-		'url'                 => $permalink,
-		'mainEntityOfPage'    => array(
+		'@type'            => 'Event',
+		'@id'              => $permalink . '#event',
+		'name'             => get_the_title( $post_id ),
+		'startDate'        => $start_iso,
+		'url'              => $permalink,
+		'mainEntityOfPage' => array(
 			'@id' => erankly_get_canonical() . '#webpage',
 		),
-		'organizer'           => array(
+		'organizer'        => array(
 			'@id' => erankly_schema_identity_id(),
 		),
-		'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
-		'eventStatus'         => 'https://schema.org/EventScheduled',
+		'eventStatus'      => 'https://schema.org/EventScheduled',
 	);
 
-	if ( '' !== $end ) {
-		$schema['endDate'] = erankly_schema_event_datetime( $end );
+	$end_iso = '' !== $end ? erankly_schema_event_datetime( $end ) : '';
+
+	if ( '' !== $end_iso ) {
+		$schema['endDate'] = $end_iso;
 	}
 
 	$description = erankly_get_description();
@@ -525,7 +623,15 @@ function erankly_schema_event_from_tec( int $post_id ): array {
 	$location = erankly_schema_event_location_from_tec( $post_id );
 
 	if ( ! empty( $location ) ) {
-		$schema['location'] = $location;
+		$schema['location']             = $location;
+		$schema['eventAttendanceMode'] = 'https://schema.org/OfflineEventAttendanceMode';
+	} elseif ( erankly_schema_event_is_virtual( $post_id ) ) {
+		$virtual_url = $event_url !== '' ? esc_url_raw( $event_url ) : $permalink;
+		$schema['location'] = array(
+			'@type' => 'VirtualLocation',
+			'url'   => $virtual_url,
+		);
+		$schema['eventAttendanceMode'] = 'https://schema.org/OnlineEventAttendanceMode';
 	}
 
 	return $schema;
@@ -542,12 +648,18 @@ function erankly_schema_event_generic( int $post_id, string $post_type ): array 
 		return array();
 	}
 
+	$start_iso = erankly_schema_event_datetime( $start );
+
+	if ( '' === $start_iso ) {
+		return array();
+	}
+
 	$permalink = (string) get_permalink( $post_id );
 	$schema    = array(
 		'@type'            => 'Event',
 		'@id'              => $permalink . '#event',
 		'name'             => get_the_title( $post_id ),
-		'startDate'        => erankly_schema_event_datetime( $start ),
+		'startDate'        => $start_iso,
 		'url'              => $permalink,
 		'mainEntityOfPage' => array(
 			'@id' => erankly_get_canonical() . '#webpage',
@@ -555,10 +667,13 @@ function erankly_schema_event_generic( int $post_id, string $post_type ): array 
 		'organizer'        => array(
 			'@id' => erankly_schema_identity_id(),
 		),
+		'eventStatus'      => 'https://schema.org/EventScheduled',
 	);
 
-	if ( '' !== $end ) {
-		$schema['endDate'] = erankly_schema_event_datetime( $end );
+	$end_iso = '' !== $end ? erankly_schema_event_datetime( $end ) : '';
+
+	if ( '' !== $end_iso ) {
+		$schema['endDate'] = $end_iso;
 	}
 
 	$description = erankly_get_description();
@@ -571,6 +686,20 @@ function erankly_schema_event_generic( int $post_id, string $post_type ): array 
 
 	if ( '' !== $image ) {
 		$schema['image'] = $image;
+	}
+
+	$location = erankly_schema_event_location_generic( $post_id );
+
+	if ( ! empty( $location ) ) {
+		$schema['location']            = $location;
+		$schema['eventAttendanceMode'] = 'https://schema.org/OfflineEventAttendanceMode';
+	} elseif ( erankly_schema_event_is_virtual( $post_id ) ) {
+		$virtual_url                    = $permalink;
+		$schema['location']             = array(
+			'@type' => 'VirtualLocation',
+			'url'   => $virtual_url,
+		);
+		$schema['eventAttendanceMode'] = 'https://schema.org/OnlineEventAttendanceMode';
 	}
 
 	return $schema;
@@ -589,7 +718,7 @@ function erankly_schema_event_meta_value( int $post_id, array $keys ): string {
 	return '';
 }
 
-/** Normalises an event datetime string to ISO 8601 when possible. */
+/** Normalises an event datetime string to ISO 8601. Returns an empty string when the value is not a date. */
 function erankly_schema_event_datetime( string $value ): string {
 	$value = trim( $value );
 
@@ -599,7 +728,40 @@ function erankly_schema_event_datetime( string $value ): string {
 
 	$timestamp = strtotime( $value );
 
-	return false !== $timestamp ? gmdate( DATE_W3C, $timestamp ) : $value;
+	return false !== $timestamp ? gmdate( DATE_W3C, $timestamp ) : '';
+}
+
+function erankly_schema_event_is_virtual( int $post_id ): bool {
+	$flags = array( '_EventVirtual', '_ecp_virtual', 'event_virtual', 'virtual' );
+
+	foreach ( $flags as $key ) {
+		$value = get_post_meta( $post_id, $key, true );
+
+		if ( ! empty( $value ) && 'no' !== strtolower( (string) $value ) && '0' !== (string) $value ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/** @return array<string,mixed> */
+function erankly_schema_event_location_generic( int $post_id ): array {
+	$name = erankly_schema_event_meta_value(
+		$post_id,
+		array( '_EventVenue', 'event_location', 'venue', 'location' )
+	);
+
+	if ( '' === $name ) {
+		return array();
+	}
+
+	return array_filter(
+		array(
+			'@type' => 'Place',
+			'name'  => $name,
+		)
+	);
 }
 
 /** @return array<string,mixed> */
@@ -685,13 +847,17 @@ function erankly_schema_video_objects( int $post_id ): array {
 		$object = array(
 			'@type'            => 'VideoObject',
 			'@id'              => $canonical . '#video-' . substr( md5( $video_url ), 0, 8 ),
-			'name'             => is_string( $title ) ? $title : '',
+			'name'             => erankly_schema_video_name( is_string( $title ) ? $title : '', (int) $index, count( $video_urls ) ),
 			'thumbnailUrl'     => $thumbnail_url,
 			'uploadDate'       => is_string( $upload_date ) ? $upload_date : '',
 			'mainEntityOfPage' => array(
 				'@id' => $canonical . '#webpage',
 			),
 		);
+
+		if ( '' === $object['name'] || '' === $object['thumbnailUrl'] || '' === $object['uploadDate'] ) {
+			continue;
+		}
 
 		if ( '' !== $description ) {
 			$object['description'] = $description;
@@ -720,6 +886,25 @@ function erankly_schema_video_objects( int $post_id ): array {
 	$objects = apply_filters( 'erankly_schema_video_objects', $objects, $post_id );
 
 	return is_array( $objects ) ? array_values( array_filter( $objects ) ) : array();
+}
+
+/**
+ * Distinguishes multiple videos on one page. A single video keeps the post title;
+ * later videos append a 1-based index so each VideoObject has a unique name.
+ */
+function erankly_schema_video_name( string $title, int $index, int $total ): string {
+	$title = trim( $title );
+
+	if ( $total <= 1 || $index < 1 ) {
+		return $title;
+	}
+
+	return sprintf(
+		/* translators: 1: post title, 2: 1-based video index. */
+		__( '%1$s (video %2$d)', 'easyrankly' ),
+		$title,
+		$index + 1
+	);
 }
 
 /** @return array<string,mixed> */

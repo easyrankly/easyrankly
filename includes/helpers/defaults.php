@@ -268,6 +268,10 @@ function erankly_sanitize_schema_type_name( mixed $value ): string {
 		return 'none';
 	}
 
+	if ( 'QAPage' === $value ) {
+		return 'WebPage';
+	}
+
 	return 1 === preg_match( '/^[A-Z][A-Za-z0-9]{0,99}$/', $value ) ? $value : '';
 }
 
@@ -396,6 +400,7 @@ function erankly_default_settings(): array {
 		'enable_local_business'          => 0,
 		'local_business_type'            => 'LocalBusiness',
 		'local_business_page_path'       => '',
+		'local_business_pages'           => array(),
 		'local_business_price_range'     => '',
 		'local_business_latitude'        => '',
 		'local_business_longitude'       => '',
@@ -403,6 +408,7 @@ function erankly_default_settings(): array {
 		'local_business_cuisine'         => '',
 		'local_business_hours'           => erankly_default_opening_hours(),
 		'global_schema_blocks'           => array(),
+		'enable_website_search_action'   => 0,
 		'simplified_mode'                => 1,
 		'resolve_placeholders'           => 1,
 		'enable_sitemap'                 => 0,
@@ -412,6 +418,7 @@ function erankly_default_settings(): array {
 		'enable_image_sitemap'           => 0,
 		'enable_video_sitemap'           => 0,
 		'enable_breadcrumbs'             => 1,
+		'breadcrumb_jsonld_mode'         => 'when_visible',
 		'robots_txt_extra'               => '',
 		'noindex_paginated'              => 0,
 		'noindex_paginated_content'      => 0,

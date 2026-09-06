@@ -184,8 +184,26 @@ function erankly_render_settings_page(): void {
 	?>
 	<div class="wrap erankly-settings">
 		<?php
+		$user_id        = get_current_user_id();
+		$stored_notices = $user_id > 0 ? get_transient( 'erankly_settings_notices_' . $user_id ) : false;
+		if ( is_array( $stored_notices ) ) {
+			delete_transient( 'erankly_settings_notices_' . $user_id );
+			foreach ( $stored_notices as $notice ) {
+				if ( ! is_array( $notice ) || empty( $notice['message'] ) ) {
+					continue;
+				}
+				$type = isset( $notice['type'] ) && 'error' === $notice['type'] ? 'error' : 'warning';
+				printf(
+					'<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>',
+					esc_attr( $type ),
+					esc_html( (string) $notice['message'] )
+				);
+			}
+		}
 		if ( is_network_admin() ) {
-			if ( isset( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag for the save confirmation notice.
+			if ( isset( $_GET['erankly_settings_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag for incomplete-save notice.
+				echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Settings were saved, but the configuration is incomplete.', 'easyrankly' ) . '</p></div>';
+			} elseif ( isset( $_GET['updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag for the save confirmation notice.
 				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'easyrankly' ) . '</p></div>';
 			}
 		} else {

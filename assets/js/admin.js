@@ -26,6 +26,7 @@
     }
     bindEach("[data-erankly-linked-defaults]", "bindLinkedDefaults");
     bindEach("[data-erankly-schema-builder]", "bindSchemaBuilder");
+    bindEach("[data-erankly-post-schema]", "bindPostSchemaPanel");
     bindEach("[data-erankly-schema-identity]", "bindSchemaIdentityField");
     bindEach("[data-erankly-user-search-wrap]", "bindUserSearch");
     bindEach("[data-erankly-local-business]", "bindLocalBusiness");

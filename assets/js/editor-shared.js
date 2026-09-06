@@ -1068,32 +1068,7 @@
 		return fields;
 	}
 
-	// Bottom-of-panel documentation link. URLs come from the shared bundle's
-	// docLinks map (erankly_section_doc_links() in PHP); empty entries keep the
-	// "#" placeholder until documentation URLs are filled in.
-	function PanelDocLink( { section } ) {
-		const links = ( window.eranklyEditorShared && window.eranklyEditorShared.docLinks ) || {};
-		const url = links[ section ] || '#';
-
-		return el(
-			'p',
-			{ className: 'erankly-panel-doc-link' },
-			el(
-				'a',
-				{
-					className: 'erankly-section-doc-link',
-					'data-erankly-doc-section': section,
-					href: url,
-					rel: 'noopener noreferrer',
-					target: '_blank',
-				},
-				__( 'Learn more' )
-			)
-		);
-	}
-
 	window.eranklyShared = {
-		PanelDocLink,
 		SocialImageControl,
 		VariableControl,
 		getRobotsDirectiveInconsistencies,
