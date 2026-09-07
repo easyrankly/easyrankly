@@ -277,14 +277,25 @@
       });
 
       // Close the accordion on outside click or Escape, mirroring a native dropdown.
-      document.addEventListener("click", function (e) {
-        if (
-          sidebarNav.classList.contains("is-expanded") &&
-          !sidebarNav.contains(e.target)
-        ) {
-          setSidebarExpanded(false);
-        }
-      });
+      // Registered once: bindSettingsTabs() runs again on every settings-root
+      // refresh, and a per-call listener stacked up one more handler per save,
+      // each still closing over an already detached sidebar.
+      if (!document.eranklySidebarDismissBound) {
+        document.eranklySidebarDismissBound = true;
+
+        document.addEventListener("click", function (e) {
+          var nav = document.querySelector("[data-erankly-sidebar-nav]");
+
+          if (nav && nav.classList.contains("is-expanded") && !nav.contains(e.target)) {
+            nav.classList.remove("is-expanded");
+            var toggle = document.querySelector("[data-erankly-sidebar-toggle]");
+
+            if (toggle) {
+              toggle.setAttribute("aria-expanded", "false");
+            }
+          }
+        });
+      }
 
       sidebarNav.addEventListener("keydown", function (e) {
         if (

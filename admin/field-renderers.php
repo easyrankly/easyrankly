@@ -141,8 +141,9 @@ function erankly_render_schema_targeting_fields( array $block, string $index, st
 	$target_post_types = isset( $block['target_post_types'] ) && is_array( $block['target_post_types'] ) ? array_map( 'sanitize_key', $block['target_post_types'] ) : array();
 	$include_items     = isset( $block['include_items'] ) ? (string) $block['include_items'] : '';
 	$exclude_items     = isset( $block['exclude_items'] ) ? (string) $block['exclude_items'] : '';
-	$include_items_id  = 'erankly-schema-' . sanitize_html_class( $index ) . '-include-items';
-	$exclude_items_id  = 'erankly-schema-' . sanitize_html_class( $index ) . '-exclude-items';
+	$name_hash         = sanitize_html_class( md5( $name_prefix ) );
+	$include_items_id  = 'erankly-schema-' . sanitize_html_class( $index ) . '-' . $name_hash . '-include-items';
+	$exclude_items_id  = 'erankly-schema-' . sanitize_html_class( $index ) . '-' . $name_hash . '-exclude-items';
 	$contexts          = array(
 		'front_page'        => __( 'Front page', 'easyrankly' ),
 		'posts_page'        => __( 'Posts page', 'easyrankly' ),

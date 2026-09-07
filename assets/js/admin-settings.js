@@ -139,8 +139,34 @@
           throw new Error("erankly-settings-refresh-missing-root");
         }
 
+        // The status element lives inside the replaced root, so the "Saved"
+        // that triggered this refresh was thrown away with it and the user
+        // never saw the confirmation. Carry it over to the new node.
+        var previousStatus = root.querySelector(
+          "[data-erankly-autosave-status]",
+        );
+        var carried = previousStatus
+          ? {
+              text: previousStatus.textContent,
+              success: previousStatus.classList.contains("is-success"),
+              warning: previousStatus.classList.contains("is-warning"),
+              error: previousStatus.classList.contains("is-error"),
+            }
+          : null;
+
         root.replaceWith(nextRoot);
         bindSettingsReplacement(nextRoot);
+
+        var nextStatus = nextRoot.querySelector(
+          "[data-erankly-autosave-status]",
+        );
+
+        if (carried && carried.text && nextStatus) {
+          nextStatus.textContent = carried.text;
+          nextStatus.classList.toggle("is-success", carried.success);
+          nextStatus.classList.toggle("is-warning", carried.warning);
+          nextStatus.classList.toggle("is-error", carried.error);
+        }
       })
       .catch(function () {
         window.location.reload();
@@ -389,6 +415,14 @@
         .then(function (body) {
           if (body === null) {
             return;
+          }
+
+          // The slot was only ever released on 4xx and on network failure, so
+          // after a successful save it stayed taken: the pagehide flusher then
+          // believed a save was still running and fired a duplicate keepalive
+          // POST on every tab switch.
+          if (seq === saveSeq) {
+            saveInFlight = false;
           }
 
           retryCount = 0;

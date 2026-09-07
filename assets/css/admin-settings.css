@@ -896,6 +896,11 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	margin-top: var(--erankly-space-4);
 }
 
+/* display: grid qui batte lo stylesheet user agent [hidden] { display: none }: serve una regola esplicita per lo stato hidden impostato dal JS. */
+.erankly-schema-targeting-grid[hidden] {
+	display: none;
+}
+
 /* The fieldset's own bottom margin separates it from the next section;
  * field margins inside the grid would double that gap. */
 .erankly-schema-targeting-grid .erankly-field {

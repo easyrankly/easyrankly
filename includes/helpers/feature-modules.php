@@ -13,7 +13,9 @@ function erankly_redirects_enabled(): bool {
 }
 
 function erankly_sitemap_enabled(): bool {
-	return (bool) erankly_get_setting( 'enable_sitemap', 0 );
+	// Same idiom as the two toggles above. Behaviour is identical -- (bool) $x and ! empty( $x ) only differ for
+	// an undefined variable, and erankly_get_setting() always returns one -- so this is consistency, not a fix.
+	return ! empty( erankly_get_setting( 'enable_sitemap', 0 ) );
 }
 
 function erankly_custom_code_enabled(): bool {
