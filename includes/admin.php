@@ -121,18 +121,58 @@ function erankly_admin_resolve_settings_tab( string $requested_tab ): string {
 }
 
 function erankly_admin_register_settings_page(): void {
-	add_options_page(
+	$hook = add_options_page(
 		__( 'EasyRankly', 'easyrankly' ),
 		__( 'EasyRankly', 'easyrankly' ),
 		'manage_options',
 		'erankly',
 		'erankly_admin_render_settings_page'
 	);
+
+	erankly_admin_hook_settings_tab_canonicalization( $hook );
+}
+
+/**
+ * Hooks the canonical tab redirect on a settings screen.
+ *
+ * @param string|false $hook Page hook suffix returned by the menu registration.
+ */
+function erankly_admin_hook_settings_tab_canonicalization( $hook ): void {
+	if ( ! is_string( $hook ) || '' === $hook ) {
+		return;
+	}
+
+	add_action( 'load-' . $hook, 'erankly_admin_canonicalize_settings_tab' );
+}
+
+/**
+ * Sends the browser to the tab that will actually render.
+ *
+ * The resolver silently substitutes a tab that is not available here (a disabled module, Redirects in Network
+ * Admin, or Advanced while Simplified mode is on). Without this the address bar kept naming the requested tab
+ * while a different panel was on screen, so bookmarks and copied links pointed at a page that never renders.
+ */
+function erankly_admin_canonicalize_settings_tab(): void {
+	$requested = erankly_admin_requested_settings_tab();
+
+	if ( '' === $requested ) {
+		return;
+	}
+
+	$resolved = erankly_admin_resolve_settings_tab( $requested );
+
+	// A resolved tab that would itself resolve elsewhere would bounce forever.
+	if ( '' === $resolved || $resolved === $requested || erankly_admin_resolve_settings_tab( $resolved ) !== $resolved ) {
+		return;
+	}
+
+	wp_safe_redirect( add_query_arg( 'erankly_tab', $resolved ) );
+	exit;
 }
 
 /** Registers the Network Admin settings menu. */
 function erankly_admin_register_network_settings_page(): void {
-	add_submenu_page(
+	$hook = add_submenu_page(
 		'settings.php',
 		__( 'EasyRankly', 'easyrankly' ),
 		__( 'EasyRankly', 'easyrankly' ),
@@ -140,6 +180,8 @@ function erankly_admin_register_network_settings_page(): void {
 		'erankly',
 		'erankly_admin_render_settings_page'
 	);
+
+	erankly_admin_hook_settings_tab_canonicalization( $hook );
 }
 
 /**

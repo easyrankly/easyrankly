@@ -545,6 +545,32 @@ function erankly_target_list_contains_item( string $value, string $kind, int $ob
  *
  * @return array<int,array<string,mixed>>
  */
+/**
+ * Reports a code snippet stored disabled because its targeting can never match a request.
+ *
+ * Reported once per reason per save, mirroring the schema builder: a panel with ten snippets should not stack
+ * ten identical notices.
+ *
+ * @param string $code Reason: '' for no context at all, 'post_type_archive' for archives with no post type.
+ */
+function erankly_add_custom_code_targeting_settings_error( string $code = '' ): void {
+	static $added = array();
+
+	$key = '' === $code ? 'contexts' : $code;
+
+	if ( isset( $added[ $key ] ) || ! function_exists( 'add_settings_error' ) ) {
+		return;
+	}
+
+	$added[ $key ] = true;
+
+	$message = 'post_type_archive' === $code
+		? __( 'A code snippet that targets only post type archives was saved as disabled because no post types were selected.', 'easyrankly' )
+		: __( 'A code snippet without a context was saved as disabled. Choose at least one place where it should run.', 'easyrankly' );
+
+	add_settings_error( ERANKLY_OPTION, 'erankly_custom_code_targeting_' . $key, $message, 'error' );
+}
+
 function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 	$value      = is_array( $value ) ? array_values( $value ) : array();
 	$contexts   = erankly_custom_code_context_allowlist();
@@ -603,6 +629,20 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 
 		$clean['target_contexts']   = array_values( array_unique( $clean['target_contexts'] ) );
 		$clean['target_post_types'] = array_values( array_unique( $clean['target_post_types'] ) );
+
+		// Same contract as the schema builder this targeting UI (and its copy) is shared with: a block whose
+		// targeting can never match is stored disabled. It used to be saved enabled, so the panel showed an
+		// active snippet that the matcher -- correctly fail-closed -- never emitted, with nothing said.
+		if ( empty( $clean['target_contexts'] ) ) {
+			$clean['enabled'] = 0;
+			erankly_add_custom_code_targeting_settings_error();
+		} elseif (
+			array( 'post_type_archive' ) === $clean['target_contexts']
+			&& empty( $clean['target_post_types'] )
+		) {
+			$clean['enabled'] = 0;
+			erankly_add_custom_code_targeting_settings_error( 'post_type_archive' );
+		}
 
 		// Raw snippet: capability-gated, UTF-8 cleaned, per-block and
 		// per-location byte caps keep the autoloaded settings option bounded.
