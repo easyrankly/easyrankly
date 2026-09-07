@@ -13,12 +13,15 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 						<div class="erankly-card">
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_redirects]" value="1" <?php checked( $redirects_enabled ); ?>> <?php esc_html_e( 'Enable the redirect manager', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Turns the manager on for every site in the network. Each site keeps its own rules, and the Redirects tab appears in that site\'s admin — not here.', 'easyrankly' ); ?></p>
 						</div>
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_sitemap]" value="1" <?php checked( $sitemap_enabled ); ?>> <?php esc_html_e( 'Enable the sitemap module', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Adds the Sitemap tab and the specialised image, video and news sitemaps. This does not switch sitemaps off: WordPress keeps serving /wp-sitemap.xml either way, and EasyRankly keeps excluding noindex content from it.', 'easyrankly' ); ?></p>
 						</div>
 						<div class="erankly-field erankly-checkboxes">
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[enable_custom_code]" value="1" <?php checked( $custom_code_enabled ); ?>> <?php esc_html_e( 'Enable custom code', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Switching this off stops the snippets from being printed; it does not delete them. Turning it back on restores exactly what was saved.', 'easyrankly' ); ?></p>
 						</div>
 						<?php
 						do_action( 'erankly_settings_features_modules', $settings );
@@ -475,9 +478,11 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 					<div class="erankly-card">
 					<div class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[simplified_mode]" value="1" <?php checked( $settings['simplified_mode'], 1 ); ?>> <?php esc_html_e( 'Simplified mode', 'easyrankly' ); ?></label>
+						<p class="description"><?php esc_html_e( 'Hides the Advanced tab, the advanced Schema sections and the Social and Schema panels in the editor, and reduces the robots directives to a single switch. Advanced values you already saved stay active — they are hidden, not cleared.', 'easyrankly' ); ?></p>
 					</div>
 					<div class="erankly-field erankly-checkboxes">
 						<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[resolve_placeholders]" value="1" <?php checked( ! empty( $settings['resolve_placeholders'] ) ); ?>> <?php esc_html_e( 'Show resolved values for variables', 'easyrankly' ); ?></label>
+						<p class="description"><?php esc_html_e( 'Preview only: resolves {{variables}} to their current values inside the admin. It changes nothing about what visitors and crawlers receive.', 'easyrankly' ); ?></p>
 					</div>
 					</div>
 				</div>
@@ -564,6 +569,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[noindex_paginated_content]" value="1" <?php checked( $settings['noindex_paginated_content'], 1 ); ?>> <?php esc_html_e( 'Noindex paginated posts, pages, and comments', 'easyrankly' ); ?></label>
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[nofollow_paginated]" value="1" <?php checked( $settings['nofollow_paginated'], 1 ); ?>> <?php esc_html_e( 'Nofollow all paginated content', 'easyrankly' ); ?></label>
 							<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[noindex_feeds]" value="1" <?php checked( $settings['noindex_feeds'], 1 ); ?>> <?php esc_html_e( 'Send noindex for RSS feeds', 'easyrankly' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Despite sitting here, this is not about pagination: it sends an X-Robots-Tag header on RSS feeds and is independent of paginated archives.', 'easyrankly' ); ?></p>
 						</div>
 						<div class="erankly-field">
 						<label for="erankly-paginated-title-format"><?php esc_html_e( 'Paginated title suffix', 'easyrankly' ); ?></label>
