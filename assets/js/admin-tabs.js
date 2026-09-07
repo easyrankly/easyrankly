@@ -361,14 +361,31 @@
   function syncLinkedDefaultFields(container, sourceField) {
     var fieldName = (sourceField && getLinkedFieldName(sourceField)) || "title";
     var fields = getLinkedDefaultFields(container, fieldName);
+    var isCheckbox = !!sourceField && sourceField.type === "checkbox";
     var value = sourceField ? sourceField.value : "";
+    var checked = !!sourceField && sourceField.checked;
 
     fields.forEach(function (field) {
-      if (field === sourceField || field.value === value) {
+      if (field === sourceField) {
         return;
       }
 
-      field.value = value;
+      // Visibility directives are checkboxes: copying .value would propagate
+      // the constant "1" and leave every checked state untouched.
+      if (isCheckbox && field.type === "checkbox") {
+        if (field.checked === checked) {
+          return;
+        }
+
+        field.checked = checked;
+      } else {
+        if (field.value === value) {
+          return;
+        }
+
+        field.value = value;
+      }
+
       field.dispatchEvent(new Event("input", { bubbles: true }));
       field.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -387,16 +404,6 @@
       container.querySelectorAll(".erankly-default-tab-panel"),
     );
     var source = getLinkedDefaultSource(container);
-    var title = source
-      ? source.querySelector(
-          '[data-erankly-linked-field="title"], [name*="[title]"]',
-        )
-      : null;
-    var description = source
-      ? source.querySelector(
-          '[data-erankly-linked-field="description"], [name*="[description]"]',
-        )
-      : null;
     var target = source ? source.getAttribute("data-erankly-panel") : "";
     var actionLabel = "";
     var stateChanged = container.classList.contains("is-linked") !== isLinked;
@@ -481,13 +488,24 @@
     }
 
     if (isLinked && shouldSync) {
-      if (title) {
-        syncLinkedDefaultFields(container, title);
-      }
+      // Unifying applies the *visible* tab to every entity. Only title and
+      // description used to be copied, so the visibility checkboxes stayed
+      // divergent in the payload and the server fell back to the first
+      // entity's row -- silently discarding directives set on another tab.
+      // Syncing every linked field keeps UI, payload and sanitizer aligned.
+      var linkedSourceFields = source
+        ? Array.prototype.slice.call(
+            source.querySelectorAll("input, textarea"),
+          )
+        : [];
 
-      if (description) {
-        syncLinkedDefaultFields(container, description);
-      }
+      linkedSourceFields.forEach(function (field) {
+        if (!getLinkedFieldName(field)) {
+          return;
+        }
+
+        syncLinkedDefaultFields(container, field);
+      });
     }
   }
 
@@ -516,10 +534,12 @@
           return;
         }
 
-        field.addEventListener("input", function () {
-          if (container.classList.contains("is-linked")) {
-            syncLinkedDefaultFields(container, field);
-          }
+        ["input", "change"].forEach(function (eventName) {
+          field.addEventListener(eventName, function () {
+            if (container.classList.contains("is-linked")) {
+              syncLinkedDefaultFields(container, field);
+            }
+          });
         });
       });
 

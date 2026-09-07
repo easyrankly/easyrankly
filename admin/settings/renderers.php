@@ -265,6 +265,7 @@ function erankly_render_global_meta_defaults( string $setting_key, array $object
 			</button>
 			<span class="screen-reader-text" aria-live="polite" data-erankly-linked-status><?php echo esc_html( $is_linked ? $toggle_on_label : $toggle_off_label ); ?></span>
 		</div>
+		<p class="description erankly-linked-defaults-help"><?php esc_html_e( 'Switching this on copies the tab you are viewing — templates and visibility alike — onto every other type.', 'easyrankly' ); ?></p>
 		<?php
 		$is_first = true;
 		foreach ( $objects as $key => $object ) :
@@ -622,16 +623,18 @@ function erankly_render_global_visibility_defaults( string $setting_key, string 
 		<legend><?php esc_html_e( 'Visibility defaults', 'easyrankly' ); ?></legend>
 		<div class="erankly-checkbox-options">
 			<?php if ( $is_simple ) : ?>
-				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[hide_from_search_results]" value="1" <?php checked( $is_hidden ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
-				<?php ?>
-				<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[nofollow]" value="<?php echo $nofollow ? '1' : '0'; ?>">
-				<input type="hidden" name="<?php echo esc_attr( $name_prefix ); ?>[noarchive]" value="<?php echo $noarchive ? '1' : '0'; ?>">
+				<label><input type="checkbox" class="erankly-toggle" data-erankly-linked-field="hide_from_search_results" name="<?php echo esc_attr( $name_prefix ); ?>[hide_from_search_results]" value="1" <?php checked( $is_hidden ); ?>> <?php esc_html_e( 'Hide from search results', 'easyrankly' ); ?></label>
+				<input type="hidden" data-erankly-linked-field="nofollow" name="<?php echo esc_attr( $name_prefix ); ?>[nofollow]" value="<?php echo $nofollow ? '1' : '0'; ?>">
+				<input type="hidden" data-erankly-linked-field="noarchive" name="<?php echo esc_attr( $name_prefix ); ?>[noarchive]" value="<?php echo $noarchive ? '1' : '0'; ?>">
 			<?php else : ?>
-				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[noindex]" value="1" <?php checked( $noindex ); ?>> <?php esc_html_e( 'Noindex', 'easyrankly' ); ?></label>
-				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[nofollow]" value="1" <?php checked( $nofollow ); ?>> <?php esc_html_e( 'Nofollow', 'easyrankly' ); ?></label>
-				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[noarchive]" value="1" <?php checked( $noarchive ); ?>> <?php esc_html_e( 'Noarchive', 'easyrankly' ); ?></label>
+				<label><input type="checkbox" class="erankly-toggle" data-erankly-linked-field="noindex" name="<?php echo esc_attr( $name_prefix ); ?>[noindex]" value="1" <?php checked( $noindex ); ?>> <?php esc_html_e( 'Noindex', 'easyrankly' ); ?></label>
+				<label><input type="checkbox" class="erankly-toggle" data-erankly-linked-field="nofollow" name="<?php echo esc_attr( $name_prefix ); ?>[nofollow]" value="1" <?php checked( $nofollow ); ?>> <?php esc_html_e( 'Nofollow', 'easyrankly' ); ?></label>
+				<label><input type="checkbox" class="erankly-toggle" data-erankly-linked-field="noarchive" name="<?php echo esc_attr( $name_prefix ); ?>[noarchive]" value="1" <?php checked( $noarchive ); ?>> <?php esc_html_e( 'Noarchive', 'easyrankly' ); ?></label>
 				<?php if ( $show_disable_sitemap ) : ?>
-				<label><input type="checkbox" class="erankly-toggle" name="<?php echo esc_attr( $name_prefix ); ?>[disable_sitemap]" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
+				<label><input type="checkbox" class="erankly-toggle" data-erankly-linked-field="disable_sitemap" name="<?php echo esc_attr( $name_prefix ); ?>[disable_sitemap]" value="1" <?php checked( $disable_sitemap ); ?>> <?php esc_html_e( 'Disable sitemap', 'easyrankly' ); ?></label>
+				<?php else : ?>
+				<?php // No checkbox for this entity (author archives): without a field the panel would submit an empty directive and silently clear the stored flag. ?>
+				<input type="hidden" data-erankly-linked-field="disable_sitemap" name="<?php echo esc_attr( $name_prefix ); ?>[disable_sitemap]" value="<?php echo $disable_sitemap ? '1' : '0'; ?>">
 				<?php endif; ?>
 			<?php endif; ?>
 		</div>
