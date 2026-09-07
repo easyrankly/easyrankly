@@ -286,6 +286,31 @@
         setPath(data, path, field.value);
       });
 
+      // Pass 3: a repeatable collection whose blocks were all deleted has no
+      // fields left in the DOM, so passes 1-2 never created its key at all.
+      // The server-side merge treats an absent key as "not part of this
+      // payload" and keeps the stored list, so the builder looked empty and
+      // said "Saved" while the store -- and the frontend -- still had every
+      // block. Only fill the gap: a collection that still has fields keeps
+      // the exact shape passes 1-2 built for it.
+      Array.prototype.forEach.call(
+        panel.querySelectorAll("[data-erankly-collection]"),
+        function (node) {
+          var path = parseName(node.getAttribute("data-erankly-collection") || "");
+
+          if (!path || !path.length) {
+            return;
+          }
+
+          var parent = navigateTo(data, path.slice(0, -1));
+          var key = path[path.length - 1];
+
+          if (undefined === parent[key]) {
+            parent[key] = [];
+          }
+        },
+      );
+
       return data;
     }
 

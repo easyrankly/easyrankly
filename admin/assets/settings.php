@@ -96,6 +96,18 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			)
 		);
 	}
+	if ( in_array( 'schema', $asset_modules, true ) ) {
+		wp_localize_script(
+			'erankly-admin',
+			'eranklySchemaBuilder',
+			array(
+				'i18n' => array(
+					// Removing the last block now really clears the stored list, so the click is destructive.
+					'confirmRemove' => __( 'Delete this block? It is removed from the site as soon as the panel saves.', 'easyrankly' ),
+				),
+			)
+		);
+	}
 	if ( $is_settings && in_array( 'settings', $asset_modules, true ) ) {
 		wp_localize_script(
 			'erankly-admin',

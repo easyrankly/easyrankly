@@ -414,40 +414,169 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 	}
 
 	erankly_load_sitemap_helpers();
-	$lines = array_filter( array_map( 'trim', explode( "\n", $output ) ) );
 
-	if ( $is_public ) {
-		$lines[] = 'User-agent: *';
-		$lines[] = 'Disallow: /wp-admin/';
-		$lines[] = 'Allow: /wp-admin/admin-ajax.php';
-	} else {
-		$lines[] = 'User-agent: *';
-		$lines[] = 'Disallow: /';
+	$parsed = erankly_robots_txt_parse_groups( explode( "\n", $output ) );
+
+	// Core's do_robots() already prints the wildcard group, and it derives the admin paths from site_url(). On a
+	// subdirectory Multisite that path is "/en/wp-admin/", so hardcoding "/wp-admin/" appended a second, wrong
+	// pair of rules to every sub-site. Deriving the prefix the same way core does makes our rules identical to
+	// the ones already present, so the group-scoped dedupe below drops them instead of duplicating them.
+	$site_path = untrailingslashit( (string) ( wp_parse_url( site_url(), PHP_URL_PATH ) ?? '' ) );
+
+	$required = $is_public
+		? array(
+			'Disallow: ' . $site_path . '/wp-admin/',
+			'Allow: ' . $site_path . '/wp-admin/admin-ajax.php',
+		)
+		: array( 'Disallow: /' );
+
+	$wildcard = null;
+
+	foreach ( $parsed['groups'] as $index => $group ) {
+		if ( in_array( '*', $group['agents'], true ) ) {
+			$wildcard = $index;
+			break;
+		}
+	}
+
+	if ( null === $wildcard ) {
+		// Empty $output (the settings preview calls this filter directly) has no group to extend.
+		$parsed['groups'][] = array(
+			'agents' => array( '*' ),
+			'rules'  => array(),
+		);
+
+		$wildcard = array_key_last( $parsed['groups'] );
+	}
+
+	foreach ( $required as $rule ) {
+		if ( ! in_array( $rule, $parsed['groups'][ $wildcard ]['rules'], true ) ) {
+			$parsed['groups'][ $wildcard ]['rules'][] = $rule;
+		}
 	}
 
 	if ( $is_public && erankly_sitemap_enabled() && ! erankly_should_suppress_sitemaps() ) {
 		// Core wp_sitemaps serves the main sitemap index at /wp-sitemap.xml.
-		$lines[] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/wp-sitemap.xml' ) );
+		$parsed['globals'][] = 'Sitemap: ' . esc_url_raw( erankly_get_sitemap_url( '/wp-sitemap.xml' ) );
 	}
 
 	$custom = trim( (string) erankly_get_setting( 'robots_txt_extra', '' ) );
 
 	if ( '' !== $custom ) {
-		foreach ( explode( "\n", $custom ) as $custom_line ) {
-			$custom_line = trim( $custom_line );
+		$extra = erankly_robots_txt_parse_groups( explode( "\n", $custom ) );
 
-			if ( '' !== $custom_line ) {
-				$lines[] = $custom_line;
-			}
+		// Rules typed without a User-agent header of their own belong to the wildcard group: that is where they
+		// ended up when the extra lines were simply appended to the flat list.
+		foreach ( $extra['preamble'] as $rule ) {
+			$parsed['groups'][ $wildcard ]['rules'][] = $rule;
 		}
+
+		$parsed['groups']  = array_merge( $parsed['groups'], $extra['groups'] );
+		$parsed['globals'] = array_merge( $parsed['globals'], $extra['globals'] );
 	}
 
-	$lines = array_values( array_unique( $lines ) );
+	$lines = erankly_robots_txt_render_groups( $parsed );
 
 	/** @param bool              $is_public Whether the site is public. */
 	$lines = apply_filters( 'erankly_robots_txt_lines', $lines, $is_public );
 
 	return implode( "\n", array_map( 'trim', (array) $lines ) ) . "\n";
+}
+
+/**
+ * Splits robots.txt lines into User-agent groups plus file-level directives.
+ *
+ * robots.txt is positional: every rule belongs to the User-agent header above it. Deduplicating the flat line
+ * list (as this module used to do with array_unique()) silently deletes a repeated `User-agent: *` header and
+ * re-attaches its rules to whatever group came before, so the grouping has to be rebuilt before any dedupe.
+ *
+ * @param array<int,string> $lines Raw robots.txt lines.
+ * @return array{preamble:array<int,string>,groups:array<int,array{agents:array<int,string>,rules:array<int,string>}>,globals:array<int,string>}
+ */
+function erankly_robots_txt_parse_groups( array $lines ): array {
+	$preamble  = array();
+	$groups    = array();
+	$globals   = array();
+	$current   = null;
+	$in_header = false;
+
+	foreach ( $lines as $line ) {
+		$line = trim( $line );
+
+		if ( '' === $line ) {
+			continue;
+		}
+
+		$separator = strpos( $line, ':' );
+		$directive = false === $separator ? '' : strtolower( trim( substr( $line, 0, $separator ) ) );
+
+		if ( 'user-agent' === $directive ) {
+			// Consecutive User-agent lines share a single group; only a rule line closes the header.
+			if ( null === $current || ! $in_header ) {
+				$groups[]  = array(
+					'agents' => array(),
+					'rules'  => array(),
+				);
+				$current   = array_key_last( $groups );
+				$in_header = true;
+			}
+
+			$groups[ $current ]['agents'][] = trim( substr( $line, $separator + 1 ) );
+			continue;
+		}
+
+		// Sitemap and Host are file-level: they belong to no group and may appear anywhere.
+		if ( in_array( $directive, array( 'sitemap', 'host' ), true ) ) {
+			$globals[] = $line;
+			continue;
+		}
+
+		if ( null === $current ) {
+			$preamble[] = $line;
+			continue;
+		}
+
+		$in_header                     = false;
+		$groups[ $current ]['rules'][] = $line;
+	}
+
+	return array(
+		'preamble' => $preamble,
+		'groups'   => $groups,
+		'globals'  => $globals,
+	);
+}
+
+/**
+ * Flattens parsed robots.txt groups back into lines, deduplicating within each group only.
+ *
+ * @param array{preamble:array<int,string>,groups:array<int,array{agents:array<int,string>,rules:array<int,string>}>,globals:array<int,string>} $parsed Parsed groups.
+ * @return array<int,string>
+ */
+function erankly_robots_txt_render_groups( array $parsed ): array {
+	$lines = array_values( array_unique( $parsed['preamble'] ) );
+
+	foreach ( $parsed['groups'] as $group ) {
+		$agents = array_values( array_unique( $group['agents'] ) );
+
+		if ( empty( $agents ) ) {
+			continue;
+		}
+
+		foreach ( $agents as $agent ) {
+			$lines[] = 'User-agent: ' . $agent;
+		}
+
+		foreach ( array_values( array_unique( $group['rules'] ) ) as $rule ) {
+			$lines[] = $rule;
+		}
+	}
+
+	foreach ( array_values( array_unique( $parsed['globals'] ) ) as $global ) {
+		$lines[] = $global;
+	}
+
+	return $lines;
 }
 
 /**

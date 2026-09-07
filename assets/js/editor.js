@@ -214,6 +214,7 @@
 		bindSchemaSaveFocus.bound = true;
 
 		let wasSaving = false;
+		let invalidSchemaDraft = null;
 
 		wp.data.subscribe( function () {
 			const editor = wp.data.select( 'core/editor' );
@@ -230,6 +231,16 @@
 				);
 
 				if ( invalid ) {
+					const meta = editor.getEditedPostAttribute( 'meta' ) || {};
+					const currentBlocks = Array.isArray( meta[ META_MAP.schema_blocks ] )
+						? meta[ META_MAP.schema_blocks ]
+						: [];
+
+					// The server keeps the previous valid value. Keep a separate
+					// editor draft so the REST response cannot make invalid input
+					// disappear before the author has a chance to correct it.
+					invalidSchemaDraft = JSON.parse( JSON.stringify( currentBlocks ) );
+
 					const panel = invalid.closest( '.components-panel__body' );
 					const toggle = panel && ! panel.classList.contains( 'is-opened' )
 						? panel.querySelector( '.components-panel__body-toggle' )
@@ -243,6 +254,32 @@
 						invalid.focus();
 					}, 0 );
 				}
+			}
+
+			if ( ! saving && wasSaving && invalidSchemaDraft ) {
+				const draft = invalidSchemaDraft;
+				const meta = editor.getEditedPostAttribute( 'meta' ) || {};
+				const savedBlocks = Array.isArray( meta[ META_MAP.schema_blocks ] )
+					? meta[ META_MAP.schema_blocks ]
+					: [];
+
+				invalidSchemaDraft = null;
+
+				if ( JSON.stringify( savedBlocks ) !== JSON.stringify( draft ) ) {
+					wp.data.dispatch( 'core/editor' ).editPost( {
+						meta: { [ META_MAP.schema_blocks ]: draft },
+					} );
+				}
+
+				window.setTimeout( function () {
+					const restored = document.querySelector(
+						'.erankly-panel--schema textarea[aria-invalid="true"], .erankly-panel--schema .erankly-is-invalid textarea'
+					);
+
+					if ( restored ) {
+						restored.focus();
+					}
+				}, 0 );
 			}
 
 			wasSaving = saving;

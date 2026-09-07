@@ -138,6 +138,26 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 		$this->assertSame( 'Kept', json_decode( $clean[0]['fields']['custom_json'], true )['name'] );
 	}
 
+	public function test_valid_json_clears_stale_invalid_notice(): void {
+		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $user_id );
+		set_transient( 'erankly_invalid_json_ld_' . $user_id, 'Stale error', 5 * MINUTE_IN_SECONDS );
+
+		$clean = erankly_sanitize_schema_blocks(
+			array(
+				array(
+					'type'   => 'custom',
+					'fields' => array(
+						'custom_json' => '{"@type":"Thing","name":"Valid"}',
+					),
+				),
+			)
+		);
+
+		$this->assertCount( 1, $clean );
+		$this->assertFalse( get_transient( 'erankly_invalid_json_ld_' . $user_id ) );
+	}
+
 	public function test_xss_payload_is_kept_as_json_string(): void {
 		$json  = '{"@type":"Thing","name":"</script><script>alert(1)</script>"}';
 		$clean = erankly_sanitize_schema_blocks(

@@ -86,6 +86,32 @@ function erankly_settings_toggle_keys(): array {
 }
 
 /**
+ * Setting keys backed by a repeatable block builder.
+ *
+ * These render as a list of blocks, so deleting every block leaves no field behind and the key disappears from
+ * the submission entirely. Without this list the merge below would read that absence as "untouched" and restore
+ * the stored blocks, which is how a cleared Custom code panel kept printing its snippets on the frontend.
+ *
+ * @return array<int,string>
+ */
+function erankly_settings_collection_keys(): array {
+	$keys = array(
+		'global_schema_blocks',
+		'head_code_blocks',
+		'body_open_code_blocks',
+		'body_close_code_blocks',
+	);
+
+	/**
+ * Filters setting keys backed by repeatable block builders. Add-ons must register keys they render as a
+ * block list so clearing the list actually clears the stored value.
+ */
+	$keys = apply_filters( 'erankly_settings_collection_keys', $keys );
+
+	return is_array( $keys ) ? array_values( array_filter( $keys, 'is_string' ) ) : array();
+}
+
+/**
  * @param string $panel Panel slug such as "features" or "general".
  * @return array<int,string>
  */
@@ -117,12 +143,23 @@ function erankly_merge_settings_submission( array $input, string $panel = '' ): 
 	$raw_keys = array_keys( $input );
 
 	if ( '' !== $panel ) {
-		$panel_keys  = erankly_settings_panel_keys( $panel );
-		$toggle_keys = array_fill_keys( erankly_settings_toggle_keys(), true );
+		$panel_keys      = erankly_settings_panel_keys( $panel );
+		$toggle_keys     = array_fill_keys( erankly_settings_toggle_keys(), true );
+		$collection_keys = array_fill_keys( erankly_settings_collection_keys(), true );
 
 		foreach ( $panel_keys as $key ) {
-			if ( isset( $toggle_keys[ $key ] ) && ! array_key_exists( $key, $input ) ) {
+			if ( array_key_exists( $key, $input ) ) {
+				continue;
+			}
+
+			if ( isset( $toggle_keys[ $key ] ) ) {
 				$input[ $key ] = 0;
+				continue;
+			}
+
+			// An emptied block builder submits no field at all: absence means "cleared", not "unchanged".
+			if ( isset( $collection_keys[ $key ] ) ) {
+				$input[ $key ] = array();
 			}
 		}
 	}

@@ -874,11 +874,11 @@
 			{ marginBottom: 4 },
 			el( FormTokenField, {
 				__experimentalExpandOnFocus: true,
-				__experimentalShowHowTo: false,
 				__experimentalValidateInput: validateInput,
 				__next40pxDefaultSize: true,
 				autoCapitalize: 'none',
 				autoComplete: 'off',
+				help: '',
 				label: __( 'Robots directives', 'easyrankly' ),
 				messages: {
 					__experimentalInvalid: __( 'Unknown robots rule.', 'easyrankly' ),

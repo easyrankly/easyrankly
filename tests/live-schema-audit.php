@@ -50,10 +50,21 @@ function erankly_live_fetch( string $url ): string {
 	);
 
 	if ( is_wp_error( $response ) ) {
-		return '';
+		throw new RuntimeException( 'Frontend request failed for ' . $url . ': ' . $response->get_error_message() );
 	}
 
-	return (string) wp_remote_retrieve_body( $response );
+	$status = (int) wp_remote_retrieve_response_code( $response );
+	$body   = (string) wp_remote_retrieve_body( $response );
+
+	if ( $status < 200 || $status >= 300 ) {
+		throw new RuntimeException( 'Frontend request returned HTTP ' . $status . ' for ' . $url . '.' );
+	}
+
+	if ( '' === trim( $body ) ) {
+		throw new RuntimeException( 'Frontend request returned an empty body for ' . $url . '.' );
+	}
+
+	return $body;
 }
 
 function erankly_live_jsonld_scripts( string $html ): array {
@@ -862,6 +873,9 @@ try {
 
 	erankly_update_plugin_settings( is_array( $original ) ? $original : array(), '', true );
 	erankly_clear_settings_cache();
+	if ( $admin_id > 0 ) {
+		delete_transient( 'erankly_invalid_json_ld_' . $admin_id );
+	}
 	echo 'RESTORE  Original settings and fixtures restored.' . PHP_EOL;
 }
 

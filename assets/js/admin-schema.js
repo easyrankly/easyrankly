@@ -112,6 +112,20 @@
     if (removeButton) {
       removeButton.addEventListener("click", function (event) {
         event.stopPropagation();
+
+        // Clearing the last block now really empties the stored collection
+        // (serialize() sends an explicit empty list), so this click deletes
+        // content instead of just hiding it. Surfaces that do not localize
+        // the string keep the previous no-prompt behaviour.
+        var builderStrings = (window.eranklySchemaBuilder || {}).i18n || {};
+
+        if (
+          builderStrings.confirmRemove &&
+          !window.confirm(builderStrings.confirmRemove)
+        ) {
+          return;
+        }
+
         var builder = block.closest("[data-erankly-schema-builder]");
 
         // Dispatch before detaching: the event needs to still bubble

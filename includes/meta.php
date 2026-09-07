@@ -454,6 +454,10 @@ function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false, 
 		return $previous;
 	}
 
+	if ( ! $is_global ) {
+		erankly_clear_schema_json_settings_error();
+	}
+
 	// The Settings API already unslashes the input; unslashing again would
 	// corrupt backslashes inside custom JSON-LD (e.g. \" or \uXXXX escapes).
 	$value      = is_array( $value ) ? $value : array();
@@ -619,6 +623,15 @@ function erankly_add_schema_json_settings_error( string $message = '' ): void {
 
 	if ( $user_id > 0 ) {
 		set_transient( 'erankly_invalid_json_ld_' . $user_id, $message, 5 * MINUTE_IN_SECONDS );
+	}
+}
+
+/** Clears a stale invalid-JSON notice before a new per-content validation pass. */
+function erankly_clear_schema_json_settings_error(): void {
+	$user_id = get_current_user_id();
+
+	if ( $user_id > 0 ) {
+		delete_transient( 'erankly_invalid_json_ld_' . $user_id );
 	}
 }
 

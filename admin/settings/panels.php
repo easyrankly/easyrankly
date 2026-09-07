@@ -78,7 +78,7 @@ function erankly_render_custom_code_builder( string $title, string $description,
 							</div>
 							<div class="erankly-schema-builder erankly-card" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $blocks ) ); ?>">
 								<p class="description"><?php echo esc_html( $description ); ?></p>
-								<div class="erankly-schema-blocks <?php echo empty( $blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks>
+								<div class="erankly-schema-blocks <?php echo empty( $blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks data-erankly-collection="<?php echo esc_attr( $name ); ?>">
 									<?php foreach ( $blocks as $index => $block ) : ?>
 										<?php erankly_render_custom_code_block( is_array( $block ) ? $block : array(), (string) $index, $name, $can_unfiltered ); ?>
 									<?php endforeach; ?>
@@ -353,7 +353,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 						<?php erankly_render_section_doc_link( 'custom-schema' ); ?>
 					</div>
 					<div class="erankly-schema-builder erankly-card" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $global_schema_blocks ) ); ?>">
-						<div class="erankly-schema-blocks <?php echo empty( $global_schema_blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks>
+						<div class="erankly-schema-blocks <?php echo empty( $global_schema_blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks data-erankly-collection="<?php echo esc_attr( $global_schema_name ); ?>">
 							<?php foreach ( $global_schema_blocks as $index => $block ) : ?>
 								<?php erankly_render_schema_block( is_array( $block ) ? $block : array(), (string) $index, $global_schema_name, true ); ?>
 							<?php endforeach; ?>
