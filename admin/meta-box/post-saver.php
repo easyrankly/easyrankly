@@ -64,6 +64,20 @@ function erankly_save_meta_box( int $post_id, WP_Post $post ): void {
 			update_post_meta( $post_id, $key, wp_slash( $value ) );
 		}
 	}
+	// The attachment id is the frontend's fallback for an empty URL. The classic form has no id field, so a
+	// cleared URL has to drop the companion id too: otherwise "remove the image" left an imported id behind
+	// and the picture kept being emitted.
+	$image_id_companions = array(
+		'_erankly_og_image_url'      => '_erankly_og_image_id',
+		'_erankly_twitter_image_url' => '_erankly_twitter_image_id',
+	);
+
+	foreach ( $image_id_companions as $url_key => $id_key ) {
+		if ( isset( $fields[ $url_key ] ) && '' === (string) get_post_meta( $post_id, $url_key, true ) ) {
+			delete_post_meta( $post_id, $id_key );
+		}
+	}
+
 	$hide_from_search_results = $simplified_mode && isset( $_POST['erankly_hide_from_search_results'] );
 	$existing_index_directive = isset( $_POST['erankly_existing_index_directive'] ) ? sanitize_key( wp_unslash( $_POST['erankly_existing_index_directive'] ) ) : 'inherit';
 	$existing_hide            = ! empty( $_POST['erankly_existing_hide'] );

@@ -488,7 +488,19 @@
 		);
 	}
 
-	function SocialImageControl( { label = '', onChange, placeholder = '', value = '', variables = {} } ) {
+	function SocialImageControl( { label = '', onChange, onMediaChange, placeholder = '', value = '', variables = {} } ) {
+		// The attachment id is the frontend's fallback whenever the URL is empty, so it has to travel with the
+		// URL. Writing only the URL meant Remove (and a hand-cleared field) left an imported id behind and the
+		// image kept being emitted; a URL the picker did not produce no longer describes that id either.
+		const setMedia = ( url, id ) => {
+			if ( 'function' === typeof onMediaChange ) {
+				onMediaChange( url, id );
+				return;
+			}
+
+			onChange( url );
+		};
+
 		return el( VariableControl, {
 			extraActions: [
 				el(
@@ -496,7 +508,7 @@
 					{ key: 'select' },
 					el( MediaUpload, {
 						allowedTypes: [ 'image' ],
-						onSelect: ( media ) => onChange( media.url || '' ),
+						onSelect: ( media ) => setMedia( media.url || '', media && media.id ? Number( media.id ) : 0 ),
 						render: ( { open } ) => el(
 							Button,
 							{ onClick: open, variant: 'secondary' },
@@ -506,12 +518,12 @@
 				),
 				value && el(
 					Button,
-					{ isDestructive: true, key: 'remove', onClick: () => onChange( '' ), variant: 'tertiary' },
+					{ isDestructive: true, key: 'remove', onClick: () => setMedia( '', 0 ), variant: 'tertiary' },
 					__( 'Remove', 'easyrankly' )
 				),
 			],
 			label: label || __( 'Social image URL', 'easyrankly' ),
-			onChange,
+			onChange: ( url ) => setMedia( url, 0 ),
 			placeholder,
 			value,
 			variables,
@@ -673,7 +685,10 @@
 			fields.push( el( SocialImageControl, {
 				key: 'og_image',
 				label: __( 'Open Graph image URL', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'og_image_url', value ),
+				onMediaChange: ( url, id ) => {
+					data.set( 'og_image_url', url );
+					data.set( 'og_image_id', id );
+				},
 				placeholder: config.socialImagePlaceholder,
 				value: data.get( 'og_image_url' ),
 				variables: config.variables,
@@ -689,7 +704,10 @@
 			fields.push( el( SocialImageControl, {
 				key: 'twitter_image',
 				label: __( 'X (Twitter) image URL', 'easyrankly' ),
-				onChange: ( value ) => data.set( 'twitter_image_url', value ),
+				onMediaChange: ( url, id ) => {
+					data.set( 'twitter_image_url', url );
+					data.set( 'twitter_image_id', id );
+				},
 				placeholder: config.socialImagePlaceholder,
 				value: data.get( 'twitter_image_url' ),
 				variables: config.variables,
@@ -698,7 +716,10 @@
 		} else {
 			fields.push( el( SocialImageControl, {
 				key: 'image',
-				onChange: ( value ) => data.set( 'social_image_url', value ),
+				onMediaChange: ( url, id ) => {
+					data.set( 'social_image_url', url );
+					data.set( 'og_image_id', id );
+				},
 				placeholder: config.socialImagePlaceholder,
 				value: data.get( 'social_image_url' ),
 				variables: config.variables,

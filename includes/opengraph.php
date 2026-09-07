@@ -61,7 +61,7 @@ function erankly_render_opengraph_tags(): void {
 		'og:url'              => $url,
 		'og:image'            => $image,
 		'og:image:alt'        => '' !== $image ? $image_alt : '',
-		'twitter:card'        => erankly_get_twitter_card_type(),
+		'twitter:card'        => erankly_get_twitter_card_type( '' !== $twitter_image ? $twitter_image : $image ),
 		'twitter:site'        => $twitter_site,
 		'twitter:title'       => $twitter_title,
 		'twitter:description' => $twitter_desc,
@@ -190,7 +190,12 @@ function erankly_get_twitter_description( string $fallback = '' ): string {
 	return (string) apply_filters( 'erankly_twitter_description', $description );
 }
 
-function erankly_get_twitter_card_type(): string {
+/**
+ * Resolves the X card type for the current request.
+ *
+ * @param string $image Image X will actually show (its own, or the Open Graph one it falls back to).
+ */
+function erankly_get_twitter_card_type( string $image = '' ): string {
 	$card_type = '';
 
 	if ( is_singular() ) {
@@ -209,7 +214,15 @@ function erankly_get_twitter_card_type(): string {
 		$card_type = 'summary_large_image';
 	}
 
-	return (string) apply_filters( 'erankly_twitter_card_type', $card_type );
+	// summary_large_image declares a card X cannot build without a picture, and the default applied to every
+	// URL: a term with no image announced a large card and shipped no image with it. Degrade to the card that
+	// actually matches what is being sent.
+	if ( '' === $image ) {
+		$card_type = 'summary';
+	}
+
+	/** @param string $image Image X will actually show, empty when there is none. */
+	return (string) apply_filters( 'erankly_twitter_card_type', $card_type, $image );
 }
 
 function erankly_get_twitter_site(): string {
