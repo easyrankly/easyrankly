@@ -126,7 +126,8 @@ function erankly_get_woocommerce_product_data( int $post_id ): array {
 /**
  * Determines whether EasyRankly's sitemaps should be suppressed. When a known SEO plugin that ships its own
  * sitemap system is active the virtual video/news sitemaps served by EasyRankly must not run concurrently. Site
- * admins can override with the {@see 'erankly_enable_sitemaps_with_external_seo'} filter.
+ * admins can override with the {@see 'erankly_suppress_sitemaps_with_external_seo'} filter -- the legacy
+ * `erankly_enable_sitemaps_with_external_seo` name still runs but reads as the opposite of what it receives.
  *
  * @return bool True when EasyRankly should suppress its own sitemap output.
  */

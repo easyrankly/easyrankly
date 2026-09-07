@@ -194,6 +194,22 @@ function erankly_sanitize_settings( mixed $input ): array {
 		}
 	}
 
+	// Identity = Person with no user selected used to save silently and emit a Person node built from the
+	// organization name and the home URL. Report it the same way an incomplete Local Business is reported: the
+	// graph now falls back to Organization until a user is chosen.
+	if (
+		'person' === ( $settings['schema_identity'] ?? 'organization' )
+		&& absint( $settings['schema_person_user_id'] ?? 0 ) < 1
+		&& function_exists( 'add_settings_error' )
+	) {
+		add_settings_error(
+			ERANKLY_OPTION,
+			'erankly_schema_person_without_user',
+			__( 'Identity is set to Person but no user is selected, so the organization is described instead. Pick a user to publish a Person.', 'easyrankly' ),
+			'error'
+		);
+	}
+
 	return $settings;
 }
 function erankly_sanitize_robots_preview_value( mixed $value ): string {

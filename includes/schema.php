@@ -141,7 +141,7 @@ function erankly_automatic_schema_graph( int $post_id ): array {
 		// LocalBusiness references the Organization via parentOrganization. Ensure that
 		// node exists even when the primary identity is a Person (duplicates are removed
 		// later by erankly_dedupe_schema_graph()).
-		if ( 'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) ) {
+		if ( 'person' === erankly_get_schema_identity() ) {
 			$graph[] = erankly_schema_organization();
 		}
 
@@ -311,7 +311,7 @@ function erankly_filter_schema_graph_types( array $graph, array $disabled_types 
  * @return array<int,array<string,mixed>>
  */
 function erankly_schema_foundational_graph(): array {
-	$identity = (string) erankly_get_setting( 'schema_identity', 'organization' );
+	$identity = erankly_get_schema_identity();
 
 	return array(
 		'person' === $identity ? erankly_schema_person() : erankly_schema_organization(),
@@ -374,8 +374,24 @@ function erankly_dedupe_schema_graph( array $graph ): array {
 	return $unique;
 }
 
+/**
+ * The identity the stored settings can actually describe.
+ *
+ * A Person needs a WordPress user behind it. With Identity set to Person and no user selected, the graph used
+ * to emit a Person node built from the organization name and the site home URL: a Person that is not a person,
+ * handed to Google as if it were one. Falling back to Organization keeps every @id reference in the graph
+ * resolvable instead of leaving a dangling publisher.
+ */
+function erankly_get_schema_identity(): string {
+	if ( 'person' !== (string) erankly_get_setting( 'schema_identity', 'organization' ) ) {
+		return 'organization';
+	}
+
+	return absint( erankly_get_setting( 'schema_person_user_id', 0 ) ) > 0 ? 'person' : 'organization';
+}
+
 function erankly_schema_identity_id(): string {
-	$type = (string) erankly_get_setting( 'schema_identity', 'organization' );
+	$type = erankly_get_schema_identity();
 
 	return home_url( 'person' === $type ? '/#person' : '/#organization' );
 }
@@ -691,7 +707,7 @@ function erankly_schema_article_author( int $author_id ): array {
 	$identity_user_id = absint( erankly_get_setting( 'schema_person_user_id', 0 ) );
 
 	if (
-		'person' === (string) erankly_get_setting( 'schema_identity', 'organization' ) &&
+		'person' === erankly_get_schema_identity() &&
 		$identity_user_id > 0 &&
 		$identity_user_id === $author_id
 	) {
