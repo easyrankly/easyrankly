@@ -528,6 +528,13 @@ final class ERankly_Redirects_Repository {
 		global $wpdb;
 
 		$old = $this->find_by_id( $id );
+
+		// $wpdb->query() returns 0 (not false) when nothing matched, so "false !== $result" reported success for
+		// an id that never existed: the no-JS fallback then showed "Redirect deleted." for a missing row.
+		if ( ! $old ) {
+			return false;
+		}
+
 		$sql = $wpdb->prepare(
 			'DELETE FROM %i WHERE id = %d',
 			$this->table_name,
@@ -536,12 +543,12 @@ final class ERankly_Redirects_Repository {
 
 		$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom redirect table query prepared above.
 
-		if ( $old && isset( $old['source_hash'] ) ) {
+		if ( isset( $old['source_hash'] ) ) {
 			$this->delete_cached_exact( (string) $old['source_hash'] );
 		}
 		$this->invalidate_runtime_rules();
 
-		return false !== $result;
+		return false !== $result && $result > 0;
 	}
 
 	public function toggle_active( int $id ): bool {

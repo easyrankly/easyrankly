@@ -100,12 +100,13 @@
 	opacity: 0.4;
 }
 
-.erankly-redirects-table th.sortable.asc .sorting-indicator::after {
+/* Only the column actually sorted gets a filled arrow; "sortable" alone stays the neutral next-click hint. */
+.erankly-redirects-table th.sorted.asc .sorting-indicator::after {
 	content: "\2191";
 	opacity: 1;
 }
 
-.erankly-redirects-table th.sortable.desc .sorting-indicator::after {
+.erankly-redirects-table th.sorted.desc .sorting-indicator::after {
 	content: "\2193";
 	opacity: 1;
 }

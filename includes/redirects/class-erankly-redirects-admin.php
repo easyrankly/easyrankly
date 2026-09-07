@@ -147,7 +147,9 @@ final class ERankly_Redirects_Admin {
 				'toggle'  => __( 'The redirect status could not be changed.', 'easyrankly' ),
 			);
 			$message  = $messages[ $error ] ?? __( 'An error occurred.', 'easyrankly' );
-			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+			// "inline" keeps the notice here: wp-admin/js/common.js relocates every notice without it to just
+			// after the first <h1> of the .wrap, which in this layout is the 220px navigation sidebar.
+			echo '<div class="notice notice-error is-dismissible inline"><p>' . esc_html( $message ) . '</p></div>';
 			return;
 		}
 
@@ -164,7 +166,7 @@ final class ERankly_Redirects_Admin {
 		$message  = $messages[ $notice ] ?? '';
 
 		if ( '' !== $message ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible inline"><p>' . esc_html( $message ) . '</p></div>';
 		}
 	}
 
@@ -426,10 +428,23 @@ final class ERankly_Redirects_Admin {
 			$args['s'] = $search;
 		}
 
-		$url     = add_query_arg( $args, admin_url( 'options-general.php' ) );
-		$classes = array( 'erankly-redirects-col-optional', 'sortable', $is_active ? $active_order : 'desc' );
+		$url = add_query_arg( $args, admin_url( 'options-general.php' ) );
+
+		// WordPress marks the column actually sorted with "sorted"; "sortable" plus a direction is only the hint
+		// for the next click. Emitting "desc" on every column made the stylesheet paint a filled arrow on both
+		// Hits columns at once, as if the table were sorted by each of them.
+		$classes = array( 'erankly-redirects-col-optional', 'sortable' );
+
+		if ( $is_active ) {
+			$classes[] = 'sorted';
+			$classes[] = $active_order;
+		} else {
+			$classes[] = $next_order;
+		}
+
+		$aria_sort = $is_active ? ( 'asc' === $active_order ? 'ascending' : 'descending' ) : 'none';
 		?>
-		<th class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>">
+		<th scope="col" aria-sort="<?php echo esc_attr( $aria_sort ); ?>" class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>">
 			<a href="<?php echo esc_url( $url ); ?>">
 				<span><?php echo esc_html( $label ); ?></span>
 				<span class="sorting-indicator"></span>

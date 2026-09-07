@@ -97,6 +97,25 @@
 
 	// Delete via REST, removing the row in place so the current search term and
 	// pagination position are preserved (no page reload).
+	// Removing the last row left the column headers hanging over an empty
+	// <tbody>: the server-rendered "No redirects found." row only exists on a
+	// fresh page load, so it has to be recreated here.
+	function renderEmptyStateIfNeeded(body) {
+		if (!body || body.tagName !== 'TBODY' || body.querySelector('tr')) {
+			return;
+		}
+
+		var table = body.closest('table');
+		var columns = table ? table.querySelectorAll('thead th').length : 0;
+		var emptyRow = document.createElement('tr');
+		var cell = document.createElement('td');
+
+		cell.setAttribute('colspan', String(columns || 7));
+		cell.textContent = config.emptyTable || 'No redirects found.';
+		emptyRow.appendChild(cell);
+		body.appendChild(emptyRow);
+	}
+
 	document.addEventListener('click', function (event) {
 		var link = event.target.closest('.erankly-redirects-delete');
 
@@ -133,7 +152,10 @@
 		postToRest(config.restUrlDelete, id)
 			.then(function () {
 				if (row) {
+					var body = row.parentNode;
+
 					row.remove();
+					renderEmptyStateIfNeeded(body);
 				}
 			})
 			.catch(function () {

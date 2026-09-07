@@ -179,6 +179,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'activeNo'      => __( 'No', 'easyrankly' ),
 				'toggleError'   => __( 'The redirect status could not be changed.', 'easyrankly' ),
 				'deleteError'   => __( 'The redirect could not be deleted.', 'easyrankly' ),
+				'emptyTable'    => __( 'No redirects found.', 'easyrankly' ),
 				/* translators: %s: Redirect destination URL. */
 				'testMatched'   => __( 'Matches. Destination: %s', 'easyrankly' ),
 				'testMatchedStatus' => __( 'Matches. This response has no destination.', 'easyrankly' ),
