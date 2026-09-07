@@ -6,8 +6,10 @@
  * Run: studio wp eval-file wp-content/plugins/easyrankly/tests/live-schema-audit.php
  */
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Dev-only CLI audit script (excluded from releases via .distignore); procedural fixture variables are short-lived and never load in production.
+
 if ( ! defined( 'ABSPATH' ) ) {
-	fwrite( STDERR, "Run this file with studio wp eval-file.\n" );
+	fwrite( STDERR, "Run this file with studio wp eval-file.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- CLI-only STDERR notice via eval-file; WP_Filesystem is not appropriate here.
 	exit( 1 );
 }
 
@@ -33,11 +35,11 @@ if ( $admin_id > 0 ) {
 
 function erankly_live_fail( array &$failures, string $message ): void {
 	$failures[] = $message;
-	echo 'FAIL  ' . $message . PHP_EOL;
+	echo 'FAIL  ' . $message . PHP_EOL; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI-only audit output, not browser HTML.
 }
 
 function erankly_live_pass( string $message ): void {
-	echo 'PASS  ' . $message . PHP_EOL;
+	echo 'PASS  ' . $message . PHP_EOL; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI-only audit output, not browser HTML.
 }
 
 function erankly_live_fetch( string $url ): string {
@@ -50,18 +52,18 @@ function erankly_live_fetch( string $url ): string {
 	);
 
 	if ( is_wp_error( $response ) ) {
-		throw new RuntimeException( 'Frontend request failed for ' . $url . ': ' . $response->get_error_message() );
+		throw new RuntimeException( 'Frontend request failed for ' . $url . ': ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message for CLI debugging, not HTML output.
 	}
 
 	$status = (int) wp_remote_retrieve_response_code( $response );
 	$body   = (string) wp_remote_retrieve_body( $response );
 
 	if ( $status < 200 || $status >= 300 ) {
-		throw new RuntimeException( 'Frontend request returned HTTP ' . $status . ' for ' . $url . '.' );
+		throw new RuntimeException( 'Frontend request returned HTTP ' . $status . ' for ' . $url . '.' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message for CLI debugging, not HTML output.
 	}
 
 	if ( '' === trim( $body ) ) {
-		throw new RuntimeException( 'Frontend request returned an empty body for ' . $url . '.' );
+		throw new RuntimeException( 'Frontend request returned an empty body for ' . $url . '.' ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message for CLI debugging, not HTML output.
 	}
 
 	return $body;
