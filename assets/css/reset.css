@@ -54,3 +54,8 @@
 	gap: var(--erankly-space-2);
 	justify-content: flex-end;
 }
+
+/* Locks the page behind an open modal: the dialog is fixed, the body was not. */
+body.erankly-modal-open {
+	overflow: hidden;
+}

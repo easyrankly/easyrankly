@@ -97,6 +97,12 @@
     bindEach(root, "[data-erankly-local-business]", "bindLocalBusiness");
     bindEach(root, "[data-erankly-file-dropzone]", "bindFileDropzone");
 
+    // The Reset modal lives inside the replaced root: without re-binding it the
+    // button opened a detached node and nothing happened until a full reload.
+    if (typeof ER.bindResetConfirmModal === "function") {
+      ER.bindResetConfirmModal();
+    }
+
     bindAllSettingsAutosave(root);
   }
 

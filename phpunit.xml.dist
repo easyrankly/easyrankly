@@ -6,9 +6,9 @@
 >
 	<testsuites>
 		<testsuite name="EasyRankly">
-			<file>tests/test-robots-and-custom-code.php</file>
-			<file>tests/test-schema.php</file>
-			<file>tests/test-sitemap.php</file>
+			<directory suffix=".php">tests</directory>
+			<exclude>tests/bootstrap.php</exclude>
+			<exclude>tests/live-schema-audit.php</exclude>
 		</testsuite>
 	</testsuites>
 </phpunit>

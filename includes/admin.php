@@ -166,9 +166,13 @@ function erankly_admin_render_settings_page(): void {
 	$tab          = erankly_admin_requested_settings_tab();
 	$resolved_tab = erankly_admin_resolve_settings_tab( $tab );
 
-	if ( 'import-export' === $tab ) {
+	// Load against the *resolved* tab: assets already do. Keying off the raw
+	// query value meant a bookmark to a tab that resolves elsewhere (Advanced
+	// with Simplified mode on resolves to Settings) rendered the Settings panel
+	// without its Reset module, while the Reset scripts were enqueued anyway.
+	if ( 'import-export' === $resolved_tab ) {
 		erankly_admin_load_import_export_module();
-	} elseif ( 'settings' === $tab ) {
+	} elseif ( 'settings' === $resolved_tab ) {
 		erankly_admin_load_reset_module();
 	}
 
