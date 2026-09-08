@@ -42,6 +42,24 @@ final class ERankly_Sitemap_Test extends WP_UnitTestCase {
 		$this->assertNotFalse( has_filter( 'wp_sitemaps_users_query_args', 'erankly_filter_core_sitemap_users_query_args' ) );
 	}
 
+	public function test_core_post_url_list_is_cached_in_the_current_generation(): void {
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'erankly_test_doc',
+				'post_status' => 'publish',
+			)
+		);
+		update_option( ERANKLY_SITEMAP_CACHE_VERSION_OPTION, wp_rand( 10000, PHP_INT_MAX ), false );
+
+		$provider = new WP_Sitemaps_Posts();
+		$urls     = $provider->get_url_list( 1, 'erankly_test_doc' );
+		$cached   = get_transient( erankly_get_sitemap_cache_key( 'core_posts_erankly_test_doc_1' ) );
+
+		$this->assertNotEmpty( $urls );
+		$this->assertIsArray( $cached );
+		$this->assertSame( $urls, $cached['urls'] );
+	}
+
 	public function test_post_sitemap_excludes_password_noindex_and_non_self_canonical(): void {
 		$included = self::factory()->post->create(
 			array(

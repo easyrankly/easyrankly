@@ -6,7 +6,6 @@
 
 .erankly-settings form {
 	margin-top: 0;
-	max-width: 920px;
 }
 
 .erankly-settings-layout {
@@ -290,6 +289,7 @@
 .erankly-field > .erankly-field-label,
 .erankly-field > legend,
 .erankly-schema-field > label,
+.erankly-code-field > label,
 .erankly-redirects-form label > span {
 	display: block;
 	margin: 0 0 var(--erankly-space-label);
@@ -299,6 +299,7 @@
 .erankly-field > .erankly-field-label,
 .erankly-field > legend,
 .erankly-schema-field > label,
+.erankly-code-field > label,
 .erankly-redirects-form label > span {
 	font-weight: 600;
 }

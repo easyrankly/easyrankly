@@ -60,7 +60,7 @@ final class ERankly_Redirects_Rest {
 		);
 	}
 
-	/** Capability check shared by both routes. */
+	/** Capability check shared by all three routes. */
 	public function check_permission(): bool {
 		return current_user_can( 'manage_options' );
 	}

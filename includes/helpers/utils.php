@@ -105,8 +105,10 @@ function erankly_send_response( string $body, string $content_type ) {
 		exit;
 	}
 
-	// Parse before output so malformed or externally declared XML never reaches
-	// the response stream.
+	// Keep the final parse even though EasyRankly builds the base XML internally:
+	// sitemap entries and URLs pass through public extension filters, so the
+	// completed document is not fully trusted. Conditional ETag hits return above
+	// without paying this cost; fresh responses favor fail-closed XML output.
 	$previous_errors              = libxml_use_internal_errors( true );
 	$document                     = new DOMDocument();
 	$document->preserveWhiteSpace = true; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native DOMDocument property name.

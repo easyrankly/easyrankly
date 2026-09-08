@@ -28,7 +28,6 @@ function erankly_get_meta_keys(): array {
 		'_erankly_twitter_title'         => 'string',
 		'_erankly_twitter_description'   => 'string',
 		'_erankly_twitter_card_type'     => 'string',
-		'_erankly_social_image_url'      => 'string',
 		'_erankly_og_image_url'          => 'string',
 		'_erankly_og_image_alt'          => 'string',
 		'_erankly_twitter_image_url'     => 'string',
@@ -85,8 +84,7 @@ function erankly_importable_meta_keys( string $object_type ): array {
 	unset(
 		$keys['_erankly_noindex'],
 		$keys['_erankly_nofollow'],
-		$keys['_erankly_noarchive'],
-		$keys['_erankly_social_image_url']
+		$keys['_erankly_noarchive']
 	);
 
 	if ( 'post' === $object_type ) {
@@ -322,7 +320,6 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 			return erankly_sanitize_url_template( $value );
 		case '_erankly_breadcrumb_name':
 			return erankly_sanitize_text( $value );
-		case '_erankly_social_image_url':
 		case '_erankly_og_image_url':
 		case '_erankly_twitter_image_url':
 			return erankly_sanitize_url_template( $value );
@@ -381,6 +378,63 @@ function erankly_sanitize_registered_meta( mixed $value, string $meta_key ): mix
 			return (bool) $value;
 		default:
 			return apply_filters( 'erankly_sanitize_extension_meta', $value, $meta_key );
+	}
+}
+
+/** Migrates one object's retired shared image into both modern network-specific fields. */
+function erankly_migrate_legacy_social_image_for_object( string $object_type, int $object_id ): void {
+	if ( $object_id < 1 || ! in_array( $object_type, array( 'post', 'term' ), true ) ) {
+		return;
+	}
+
+	$legacy = trim( (string) get_metadata( $object_type, $object_id, '_erankly_social_image_url', true ) );
+	if ( '' !== $legacy ) {
+		foreach ( array( '_erankly_og_image_url', '_erankly_twitter_image_url' ) as $target_key ) {
+			if ( '' === trim( (string) get_metadata( $object_type, $object_id, $target_key, true ) ) ) {
+				update_metadata( $object_type, $object_id, $target_key, wp_slash( $legacy ) );
+			}
+		}
+	}
+
+	delete_metadata( $object_type, $object_id, '_erankly_social_image_url' );
+}
+
+/**
+ * Advances the legacy social-image migration in bounded batches. Frontend and
+ * editor reads also migrate their current object immediately, so no URL is lost
+ * while a large site works through the queue.
+ */
+function erankly_migrate_legacy_social_image_meta(): void {
+	if ( (bool) get_option( 'erankly_legacy_social_image_migrated', false ) ) {
+		return;
+	}
+
+	global $wpdb;
+	$limit    = 200;
+	$post_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s LIMIT %d",
+			'_erankly_social_image_url',
+			$limit
+		)
+	); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded one-time metadata migration.
+	$term_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT term_id FROM {$wpdb->termmeta} WHERE meta_key = %s LIMIT %d",
+			'_erankly_social_image_url',
+			$limit
+		)
+	); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded one-time metadata migration.
+
+	foreach ( $post_ids as $post_id ) {
+		erankly_migrate_legacy_social_image_for_object( 'post', absint( $post_id ) );
+	}
+	foreach ( $term_ids as $term_id ) {
+		erankly_migrate_legacy_social_image_for_object( 'term', absint( $term_id ) );
+	}
+
+	if ( count( $post_ids ) < $limit && count( $term_ids ) < $limit ) {
+		update_option( 'erankly_legacy_social_image_migrated', 1, false );
 	}
 }
 

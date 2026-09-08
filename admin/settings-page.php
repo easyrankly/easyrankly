@@ -159,9 +159,6 @@ function erankly_sanitize_settings( mixed $input ): array {
 				continue;
 			}
 			$existing = is_array( $settings[ $blocks_key ] ) ? array_values( $settings[ $blocks_key ] ) : array();
-			if ( count( $existing ) >= erankly_custom_code_max_blocks() ) {
-				continue;
-			}
 			$existing[]             = erankly_custom_code_migrated_block( $legacy_code );
 			$settings[ $blocks_key ] = $existing;
 			$settings[ $legacy_key ] = '';

@@ -1,6 +1,8 @@
 (function (ER) {
   "use strict";
 
+  var documentClickBound = false;
+
   function closeVariablePicker(field) {
     var menu = field.querySelector("[data-erankly-variable-menu]");
     var control = field.querySelector('input:not([type="search"]), textarea');
@@ -15,6 +17,13 @@
       control.setAttribute("aria-expanded", "false");
       control.removeAttribute("aria-activedescendant");
     }
+
+    field
+      .querySelectorAll('[data-erankly-variable][aria-selected="true"]')
+      .forEach(function (option) {
+        option.setAttribute("aria-selected", "false");
+        option.classList.remove("is-active");
+      });
   }
 
   // Reads the "word" the caret currently sits in (from the previous whitespace
@@ -56,6 +65,14 @@
         }
       });
 
+    field
+      .querySelectorAll("[data-erankly-variable-group]")
+      .forEach(function (group) {
+        group.hidden = !group.querySelector(
+          "[data-erankly-variable]:not([hidden])",
+        );
+      });
+
     return visible;
   }
 
@@ -80,21 +97,17 @@
     control.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  // Shows a resolved friendly value (e.g. the real site name or tagline, or
-  // the first post's title as a stand-in for {{post_title}} on fields that
-  // aren't tied to any single post) over a {{variable}} field while it's
-  // blurred, and reveals the raw token again on focus so it stays editable.
-  // Only touches the overlay text node, never control.value itself. The
-  // autosave serializer (bindSettingsAutosave) reads field.value straight
-  // off the DOM, so swapping the real value would risk saving the resolved
-  // text instead of the token on a mistimed autosave. Any token with no
-  // example (e.g. a post type with no published posts yet) is left as-is.
-  function resolveVariablePreviewText(
-    raw,
-    examples,
-    siteName,
-    siteDescription,
-  ) {
+  var VARIABLE_TOKEN_PATTERN = /{{\s*([a-z0-9_]+)\s*}}/gi;
+
+  // Label drawn in place of a token that has no example value to stand in for
+  // it (e.g. {{term_description}} on a term with an empty description).
+  function getVariableUnavailableLabel() {
+    var config = window.eranklyVariablePreview;
+
+    return (config && config.unavailableLabel) || "Preview not available";
+  }
+
+  function buildVariablePreviewValues(examples, siteName, siteDescription) {
     var resolved = examples ? Object.assign({}, examples) : {};
 
     if (siteName && !Object.prototype.hasOwnProperty.call(resolved, "site_name")) {
@@ -108,15 +121,100 @@
       resolved.site_description = siteDescription;
     }
 
-    return raw.replace(/{{\s*([a-z0-9_]+)\s*}}/gi, function (match, key) {
+    return resolved;
+  }
+
+  // Shows a resolved friendly value (e.g. the real site name or tagline, or
+  // the first post's title as a stand-in for {{post_title}} on fields that
+  // aren't tied to any single post) over a {{variable}} field while it's
+  // blurred, and reveals the raw token again on focus so it stays editable.
+  // Only touches the overlay text node, never control.value itself. The
+  // autosave serializer (bindSettingsAutosave) reads field.value straight
+  // off the DOM, so swapping the real value would risk saving the resolved
+  // text instead of the token on a mistimed autosave. Any token with no
+  // example (e.g. a post type with no published posts yet) previews as the
+  // "Preview not available" label instead of the literal token.
+  function resolveVariablePreviewText(
+    raw,
+    examples,
+    siteName,
+    siteDescription,
+  ) {
+    var resolved = buildVariablePreviewValues(
+      examples,
+      siteName,
+      siteDescription,
+    );
+
+    return raw.replace(VARIABLE_TOKEN_PATTERN, function (match, key) {
       var normalizedKey = key.toLowerCase();
 
       if (Object.prototype.hasOwnProperty.call(resolved, normalizedKey)) {
         return resolved[normalizedKey];
       }
 
-      return match;
+      return getVariableUnavailableLabel();
     });
+  }
+
+  // Paints the overlay as DOM nodes rather than one text run so unresolvable
+  // tokens can carry their own colour. Returns false when raw holds no token
+  // at all, i.e. there is nothing to preview and the field shows itself.
+  function renderVariablePreview(
+    preview,
+    raw,
+    examples,
+    siteName,
+    siteDescription,
+  ) {
+    var resolved = buildVariablePreviewValues(
+      examples,
+      siteName,
+      siteDescription,
+    );
+    var pattern = new RegExp(VARIABLE_TOKEN_PATTERN.source, "gi");
+    var text = document.createElement("span");
+    var lastIndex = 0;
+    var found = false;
+    var match;
+
+    text.className = "erankly-variable-preview-text";
+
+    while ((match = pattern.exec(raw)) !== null) {
+      var normalizedKey = match[1].toLowerCase();
+
+      if (match.index > lastIndex) {
+        text.appendChild(
+          document.createTextNode(raw.slice(lastIndex, match.index)),
+        );
+      }
+
+      if (Object.prototype.hasOwnProperty.call(resolved, normalizedKey)) {
+        text.appendChild(document.createTextNode(resolved[normalizedKey]));
+      } else {
+        var unavailable = document.createElement("span");
+
+        unavailable.className = "erankly-variable-preview-unavailable";
+        unavailable.textContent = getVariableUnavailableLabel();
+        text.appendChild(unavailable);
+      }
+
+      found = true;
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (!found) {
+      return false;
+    }
+
+    if (lastIndex < raw.length) {
+      text.appendChild(document.createTextNode(raw.slice(lastIndex)));
+    }
+
+    preview.textContent = "";
+    preview.appendChild(text);
+
+    return true;
   }
 
   function bindVariablePreview(field, control) {
@@ -140,17 +238,17 @@
 
     function update() {
       var raw = control.value;
-      var resolved = raw
-        ? resolveVariablePreviewText(
-            raw,
-            examples,
-            config.siteName,
-            config.siteDescription,
-          )
-        : raw;
 
-      if (resolved !== raw) {
-        preview.textContent = resolved;
+      if (
+        raw &&
+        renderVariablePreview(
+          preview,
+          raw,
+          examples,
+          config.siteName,
+          config.siteDescription,
+        )
+      ) {
         field.classList.add("erankly-is-previewing");
       } else {
         field.classList.remove("erankly-is-previewing");
@@ -182,17 +280,25 @@
 
     bindVariablePreview(field, control);
 
+    if (control.id) {
+      menu.id = control.id + "-variables";
+    } else if (!menu.id) {
+      menu.id = "erankly-variable-listbox";
+    }
+    control.setAttribute("role", "combobox");
+    control.setAttribute("aria-autocomplete", "list");
+    control.setAttribute("aria-controls", menu.id);
+    control.setAttribute("aria-haspopup", "listbox");
+    control.setAttribute("aria-expanded", "false");
+
     // Give each option a stable id so aria-activedescendant can point at it.
     field
       .querySelectorAll("[data-erankly-variable]")
       .forEach(function (option, index) {
         if (!option.id) {
-          option.id =
-            "erankly-variable-option-" +
-            Math.random().toString(36).slice(2) +
-            "-" +
-            index;
+          option.id = menu.id + "-option-" + index;
         }
+        option.setAttribute("aria-selected", "false");
       });
 
     // Per-field open state. `visibleOptions` is the currently matching list and
@@ -203,12 +309,14 @@
     function highlight(index) {
       if (activeIndex >= 0 && visibleOptions[activeIndex]) {
         visibleOptions[activeIndex].classList.remove("is-active");
+        visibleOptions[activeIndex].setAttribute("aria-selected", "false");
       }
 
       activeIndex = index;
 
       if (index >= 0 && visibleOptions[index]) {
         visibleOptions[index].classList.add("is-active");
+        visibleOptions[index].setAttribute("aria-selected", "true");
         control.setAttribute(
           "aria-activedescendant",
           visibleOptions[index].id || "",
@@ -297,14 +405,27 @@
       closeVariablePicker(field);
     });
 
+  }
+
+  function bindVariablePickerDocumentListener() {
+    if (documentClickBound) {
+      return;
+    }
+
+    documentClickBound = true;
     document.addEventListener("click", function (event) {
-      if (event.target !== control && !menu.contains(event.target)) {
-        closeVariablePicker(field);
-      }
+      document
+        .querySelectorAll("[data-erankly-variable-field]")
+        .forEach(function (field) {
+          if (!field.contains(event.target)) {
+            closeVariablePicker(field);
+          }
+        });
     });
   }
 
   function bindVariablePickers(container) {
+    bindVariablePickerDocumentListener();
     container
       .querySelectorAll("[data-erankly-variable-field]")
       .forEach(bindVariablePicker);
@@ -316,6 +437,7 @@
   ER.insertVariable = insertVariable;
   ER.resolveVariablePreviewText = resolveVariablePreviewText;
   ER.bindVariablePreview = bindVariablePreview;
+  ER.renderVariablePreview = renderVariablePreview;
   ER.bindVariablePicker = bindVariablePicker;
   ER.bindVariablePickers = bindVariablePickers;
 })(window.ERanklyAdmin = window.ERanklyAdmin || {});

@@ -10,6 +10,11 @@
 $tests_dir = getenv( 'WP_TESTS_DIR' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local bootstrap variable; file is dev-only and excluded from releases.
 $tests_dir = is_string( $tests_dir ) && '' !== $tests_dir ? $tests_dir : '/tmp/wordpress-tests-lib'; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- See above.
 
+$polyfills_dir = getenv( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local bootstrap variable.
+if ( ! defined( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' ) && is_string( $polyfills_dir ) && '' !== $polyfills_dir ) {
+	define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', $polyfills_dir );
+}
+
 if ( ! file_exists( $tests_dir . '/includes/functions.php' ) ) {
 	fwrite( STDERR, "WordPress test suite not found. Set WP_TESTS_DIR.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- CLI-only failure notice before WordPress loads; no WP_Filesystem available.
 	exit( 1 );

@@ -7,12 +7,38 @@
 
   function updateSchemaBuilderState(builder) {
     var list = builder
-      ? builder.querySelector("[data-erankly-schema-blocks]")
+      ? builder.querySelector(
+          "[data-erankly-schema-blocks], [data-erankly-code-blocks]",
+        )
       : null;
-    var hasBlocks = list && list.querySelector("[data-erankly-schema-block]");
+    var blocks = list
+      ? list.querySelectorAll(
+          "[data-erankly-schema-block], [data-erankly-code-block]",
+        )
+      : [];
+    var hasBlocks = blocks.length > 0;
 
     if (list) {
       list.classList.toggle("is-empty", !hasBlocks);
+    }
+
+    if (builder) {
+      var maxBlocks = parseInt(
+        builder.getAttribute("data-erankly-max-blocks"),
+        10,
+      );
+      var atLimit = maxBlocks > 0 && blocks.length >= maxBlocks;
+      var addButton = builder.querySelector(
+        "[data-erankly-add-schema], [data-erankly-add-code]",
+      );
+      var notice = builder.querySelector("[data-erankly-block-limit-notice]");
+
+      if (addButton) {
+        addButton.disabled = atLimit;
+      }
+      if (notice) {
+        notice.hidden = !atLimit;
+      }
     }
   }
 
@@ -58,7 +84,9 @@
       return false;
     }
 
-    var block = input.closest("[data-erankly-schema-block]");
+    var block = input.closest(
+      "[data-erankly-schema-block], [data-erankly-code-block]",
+    );
 
     if (block && typeof setSchemaBlockExpanded === "function") {
       setSchemaBlockExpanded(block, true);
@@ -97,7 +125,11 @@
   }
 
   function bindSchemaBlock(block) {
-    var removeButton = block.querySelector("[data-erankly-remove-schema]");
+    var removeButton = block.querySelector(
+      "[data-erankly-remove-schema], [data-erankly-remove-code]",
+    );
+    var nameInput = block.querySelector("[data-erankly-code-name]");
+    var title = block.querySelector("[data-erankly-code-title]");
 
     bindJsonLdValidation(block);
     bindSchemaTargeting(block);
@@ -107,6 +139,16 @@
     // Guard so one missing module cannot break Add/Delete on those screens.
     if (typeof ER.bindVariablePickers === "function") {
       ER.bindVariablePickers(block);
+    }
+
+    if (nameInput && title) {
+      var updateTitle = function () {
+        title.textContent = String(nameInput.value || "").trim() ||
+          nameInput.getAttribute("placeholder") ||
+          "Code snippet";
+      };
+      nameInput.addEventListener("input", updateTitle);
+      updateTitle();
     }
 
     if (removeButton) {
@@ -126,7 +168,9 @@
           return;
         }
 
-        var builder = block.closest("[data-erankly-schema-builder]");
+        var builder = block.closest(
+          "[data-erankly-schema-builder], [data-erankly-code-builder]",
+        );
 
         // Dispatch before detaching: the event needs to still bubble
         // through an attached ancestor to reach the autosave listener.
@@ -139,12 +183,20 @@
   }
 
   function bindSchemaBuilder(builder) {
-    var list = builder.querySelector("[data-erankly-schema-blocks]");
-    var template = builder.querySelector("[data-erankly-schema-template]");
-    var addButton = builder.querySelector("[data-erankly-add-schema]");
+    var list = builder.querySelector(
+      "[data-erankly-schema-blocks], [data-erankly-code-blocks]",
+    );
+    var template = builder.querySelector(
+      "[data-erankly-schema-template], [data-erankly-code-template]",
+    );
+    var addButton = builder.querySelector(
+      "[data-erankly-add-schema], [data-erankly-add-code]",
+    );
 
     builder
-      .querySelectorAll("[data-erankly-schema-block]")
+      .querySelectorAll(
+        "[data-erankly-schema-block], [data-erankly-code-block]",
+      )
       .forEach(bindSchemaBlock);
     updateSchemaBuilderState(builder);
 
@@ -153,6 +205,24 @@
     }
 
     addButton.addEventListener("click", function () {
+	  var maxBlocks = parseInt(
+	    builder.getAttribute("data-erankly-max-blocks"),
+	    10,
+	  );
+	  var currentCount = list.querySelectorAll(
+	    "[data-erankly-schema-block], [data-erankly-code-block]",
+	  ).length;
+	  if (maxBlocks > 0 && currentCount >= maxBlocks) {
+	    updateSchemaBuilderState(builder);
+	    var limitNotice = builder.querySelector(
+	      "[data-erankly-block-limit-notice]",
+	    );
+	    if (limitNotice && typeof limitNotice.focus === "function") {
+	      limitNotice.setAttribute("tabindex", "-1");
+	      limitNotice.focus();
+	    }
+	    return;
+	  }
       var nextIndex =
         parseInt(builder.getAttribute("data-erankly-next-index"), 10) || 0;
       var html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));

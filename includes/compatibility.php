@@ -198,7 +198,7 @@ function erankly_compatibility_notice_external_seo(): void {
 		<p>
 			<?php
 			esc_html_e(
-				'EasyRankly: another SEO plugin is active. Head metadata (title, meta description, canonical, Open Graph, Schema.org) and sitemap output are disabled to avoid conflicts. Redirects and breadcrumbs continue to work.',
+				'EasyRankly: another SEO plugin is active. Head metadata, title changes, robots meta directives (including pagination and preview limits), Open Graph, Schema.org, and sitemap output are disabled to avoid conflicts. robots.txt, redirects, and breadcrumbs continue to work.',
 				'easyrankly'
 			);
 			?>

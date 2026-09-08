@@ -1,7 +1,7 @@
 === EasyRankly ===
 Contributors: easyrankly
 Tags: seo, schema, sitemap, redirects
-Requires at least: 6.2
+Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.0
 Stable tag: 2.0.0
@@ -69,6 +69,8 @@ EasyRankly can still emit FAQPage Schema.org markup from FAQ blocks and accordio
 = Is there an extension API? =
 
 Yes. Extension API v1 includes multilingual provider registration through `erankly_register_multilingual_provider()`, neutral SEO-state reads, localised-value reads and writes, and filtered hreflang output. Localised-value reads and writes are available only on single-site installations; the provider and SEO-state contracts support provider-defined site topologies. These contracts remain in core for add-ons even when they are not called by the core UI.
+
+Add-ons that place a checkbox in the Features panel should call `erankly_register_settings_feature_module()`. It registers the renderer, server/client autosave allowlists, unchecked-toggle handling and optional repeatable collection keys together, so a visible field cannot drift out of sync with the save pipeline.
 
 = Can I migrate from Yoast SEO, Rank Math, All in One SEO or SEOPress? =
 

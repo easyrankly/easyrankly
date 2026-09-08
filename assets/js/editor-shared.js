@@ -149,8 +149,11 @@
 	}
 
 	// Resolves variables whose preview value is known in this editor
-	// (site-level keys, dates, and the currently edited post or sample).
-	// Unrecognized tokens are left as-is so the field never silently drops data.
+	// (site-level keys, dates, and the currently edited post or sample). A token
+	// with nothing to stand in for it previews as the same "Preview not
+	// available" marker the settings screens use (assets/js/admin-variables.js),
+	// so the two admin surfaces don't disagree about the empty case. The stored
+	// value is untouched: the raw token comes back on focus.
 	function resolveDisplayVariables( text, { postTitle = '', siteName = '', siteDescription = '', examples = null } = {} ) {
 		const resolved = examples ? { ...examples } : {};
 
@@ -179,7 +182,7 @@
 				return resolved[ normalizedKey ];
 			}
 
-			return match;
+			return __( 'Preview not available', 'easyrankly' );
 		} );
 	}
 
@@ -674,8 +677,9 @@
 				label: __( 'X (Twitter) card type', 'easyrankly' ),
 				onChange: ( value ) => data.set( 'twitter_card_type', value ),
 				options: [
-					{ label: __( 'Default (summary_large_image)', 'easyrankly' ), value: '' },
-					{ label: 'summary', value: 'summary' },
+					{ label: __( 'Automatic (large image when available)', 'easyrankly' ), value: '' },
+					{ label: __( 'Summary', 'easyrankly' ), value: 'summary' },
+					{ label: __( 'Summary with large image', 'easyrankly' ), value: 'summary_large_image' },
 				],
 				value: data.get( 'twitter_card_type' ),
 			} ) );

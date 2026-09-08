@@ -1,13 +1,12 @@
 <?php
 /** One renderer per settings tab panel; markup contract (data-erankly-*) shared with admin.js. */
 defined( 'ABSPATH' ) || exit;
-function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $custom_code_enabled, string $active_panel ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
+function erankly_render_settings_panel_features( array $settings, bool $redirects_enabled, bool $sitemap_enabled, bool $custom_code_enabled ): void {
 	?>
-				<div class="erankly-tab-panel<?php echo 'settings-features' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-features" role="tabpanel" aria-labelledby="erankly-settings-tab-features" data-erankly-settings-panel="settings-features" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> <?php echo 'settings-features' === $active_panel ? '' : 'hidden'; ?>>
+				<div class="erankly-tab-panel is-active" id="erankly-settings-panel-features" role="region" aria-labelledby="erankly-settings-tab-features" data-erankly-settings-panel="settings-features">
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Feature modules', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Feature modules', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'feature-modules' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -31,14 +30,22 @@ function erankly_render_settings_panel_features( array $settings, bool $redirect
 				</div>
 	<?php
 }
-function erankly_render_settings_panel_custom_code( array $settings, array $head_blocks, string $head_name, array $body_open_blocks, string $body_open_name, array $body_close_blocks, string $body_close_name ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
+function erankly_render_settings_panel_custom_code( array $head_blocks, string $head_name, array $body_open_blocks, string $body_open_name, array $body_close_blocks, string $body_close_name ): void {
 	$can_unfiltered  = current_user_can( 'unfiltered_html' );
+	$stored_settings = erankly_get_stored_settings();
+	$legacy_pending  = array_filter(
+		array(
+			(string) ( $stored_settings['head_code'] ?? '' ),
+			(string) ( $stored_settings['body_open_code'] ?? '' ),
+			(string) ( $stored_settings['body_close_code'] ?? '' ),
+		),
+		static fn( string $value ): bool => '' !== trim( $value )
+	);
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-custom-code" role="tabpanel" aria-labelledby="erankly-settings-tab-custom-code" data-erankly-settings-panel="settings-custom-code" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-custom-code" role="region" aria-labelledby="erankly-settings-tab-custom-code" data-erankly-settings-panel="settings-custom-code">
 				<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Custom code', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Custom code', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'custom-code' ); ?>
 						</div>
 						<?php if ( ! $can_unfiltered ) : ?>
@@ -46,6 +53,16 @@ function erankly_render_settings_panel_custom_code( array $settings, array $head
 								<p class="description"><?php esc_html_e( 'Your user role cannot save custom code (unfiltered HTML is required). The fields below are read-only.', 'easyrankly' ); ?></p>
 							</div>
 						<?php endif; ?>
+						<div class="erankly-card">
+							<?php if ( ! empty( $legacy_pending ) ) : ?>
+								<p class="notice notice-warning inline"><?php esc_html_e( 'A legacy snippet could not be persisted as a block. It still runs as a fail-safe for this request; reload this panel and check the database if the warning remains.', 'easyrankly' ); ?></p>
+							<?php endif; ?>
+							<?php if ( is_multisite() ) : ?>
+								<p class="description"><?php esc_html_e( 'Snippets are shared network-wide. Include and exclude IDs or slugs are resolved separately on each site, so the same number or slug can refer to different content.', 'easyrankly' ); ?></p>
+							<?php endif; ?>
+							<p class="description"><?php esc_html_e( 'Snippets also run for logged-in visitors, including administrators. WordPress previews and the Customizer are excluded.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Empty snippets are not saved and disappear after reload.', 'easyrankly' ); ?></p>
+						</div>
 					</div>
 					<?php
 						erankly_render_custom_code_builder(
@@ -57,7 +74,7 @@ function erankly_render_settings_panel_custom_code( array $settings, array $head
 							);
 						erankly_render_custom_code_builder(
 							__( 'Start of BODY code', 'easyrankly' ),
-							__( 'Printed right after <body> opens (wp_body_open). Ideal for Tag Manager noscript fallbacks and pixels.', 'easyrankly' ),
+							__( 'Printed right after <body> opens only when the active theme calls wp_body_open(). Ideal for Tag Manager noscript fallbacks and pixels.', 'easyrankly' ),
 							$body_open_blocks,
 							$body_open_name,
 							$can_unfiltered
@@ -77,30 +94,30 @@ function erankly_render_custom_code_builder( string $title, string $description,
 	?>
 						<div class="erankly-settings-section">
 							<div class="erankly-section-title-row">
-								<h3 class="erankly-section-title"><?php echo esc_html( $title ); ?></h3>
+								<h2 class="erankly-section-title"><?php echo esc_html( $title ); ?></h2>
 							</div>
-							<div class="erankly-schema-builder erankly-card" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $blocks ) ); ?>">
+							<div class="erankly-code-builder erankly-card" data-erankly-code-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $blocks ) ); ?>" data-erankly-max-blocks="<?php echo esc_attr( (string) erankly_custom_code_max_blocks() ); ?>">
 								<p class="description"><?php echo esc_html( $description ); ?></p>
-								<div class="erankly-schema-blocks <?php echo empty( $blocks ) ? 'is-empty' : ''; ?>" data-erankly-schema-blocks data-erankly-collection="<?php echo esc_attr( $name ); ?>">
+								<div class="erankly-code-blocks <?php echo empty( $blocks ) ? 'is-empty' : ''; ?>" data-erankly-code-blocks data-erankly-collection="<?php echo esc_attr( $name ); ?>">
 									<?php foreach ( $blocks as $index => $block ) : ?>
 										<?php erankly_render_custom_code_block( is_array( $block ) ? $block : array(), (string) $index, $name, $can_unfiltered ); ?>
 									<?php endforeach; ?>
 								</div>
-								<template data-erankly-schema-template>
+								<template data-erankly-code-template>
 									<?php erankly_render_custom_code_block( array(), '__INDEX__', $name, $can_unfiltered ); ?>
 								</template>
-								<p class="erankly-schema-actions"><button type="button" class="button button-secondary" data-erankly-add-schema><?php esc_html_e( 'Add code', 'easyrankly' ); ?></button></p>
+								<p class="erankly-code-actions"><button type="button" class="button button-secondary" data-erankly-add-code><?php esc_html_e( 'Add code', 'easyrankly' ); ?></button></p>
+								<p class="description" data-erankly-block-limit-notice role="status" hidden><?php echo esc_html( sprintf( __( 'Maximum reached: %d snippets per location.', 'easyrankly' ), erankly_custom_code_max_blocks() ) ); ?></p>
 							</div>
 						</div>
 	<?php
 }
-function erankly_render_settings_panel_general( array $settings, int $schema_person_user_id, $schema_person_user, bool $show_organization_fields, string $active_panel ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
+function erankly_render_settings_panel_general( array $settings, int $schema_person_user_id, $schema_person_user, bool $show_organization_fields ): void {
 	?>
-				<div class="erankly-tab-panel<?php echo 'settings-general' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-general" role="tabpanel" aria-labelledby="erankly-settings-tab-general" data-erankly-settings-panel="settings-general" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?> <?php echo 'settings-general' === $active_panel ? '' : 'hidden'; ?>>
+				<div class="erankly-tab-panel is-active" id="erankly-settings-panel-general" role="region" aria-labelledby="erankly-settings-tab-general" data-erankly-settings-panel="settings-general">
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Site identity', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Site identity', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'site-identity' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -108,7 +125,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 						<label for="erankly-organization-name"><?php esc_html_e( 'Organization or person name', 'easyrankly' ); ?></label>
 						<div class="erankly-variable-field" data-erankly-variable-field>
 							<input id="erankly-organization-name" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[organization_name]" value="<?php echo esc_attr( (string) $settings['organization_name'] ); ?>">
-							<?php erankly_render_variable_picker(); ?>
+							<?php erankly_render_variable_picker( array(), array( 'site' ) ); ?>
 						</div>
 					</div>
 					<div class="erankly-field">
@@ -152,14 +169,18 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 											data-erankly-user-selected-name>
 									</div>
 									<div class="erankly-autocomplete-search" data-erankly-user-search-input-wrap<?php echo ( $schema_person_user instanceof WP_User ) ? ' hidden' : ''; ?>>
-										<input type="search"
+										<input type="text"
+											id="erankly-person-reference-search"
 											class="widefat erankly-user-search-input"
 											placeholder="<?php esc_attr_e( 'Search users…', 'easyrankly' ); ?>"
 											autocomplete="off"
 											aria-autocomplete="list"
+											aria-controls="erankly-person-reference-results"
+											aria-expanded="false"
+											role="combobox"
 											aria-labelledby="erankly-person-reference-label"
 											data-erankly-user-search-input>
-										<ul class="erankly-autocomplete-results" role="listbox" hidden data-erankly-user-results></ul>
+										<ul class="erankly-autocomplete-results" id="erankly-person-reference-results" role="listbox" hidden data-erankly-user-results></ul>
 									</div>
 									<button type="button" class="button" data-erankly-user-remove<?php echo ( $schema_person_user instanceof WP_User ) ? '' : ' hidden'; ?>><?php esc_html_e( 'Remove', 'easyrankly' ); ?></button>
 								</div>
@@ -187,7 +208,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 					</div>
 				<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Post type defaults', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Post type defaults', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'post-type-defaults' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -196,7 +217,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 				</div>
 				<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Taxonomy defaults', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Taxonomy defaults', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'taxonomy-defaults' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -204,9 +225,9 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 					</div>
 				</div>
 						<?php if ( is_multisite() ) : ?>
-								<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
+									<div class="erankly-settings-section">
 									<div class="erankly-section-title-row">
-										<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
+										<h2 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h2>
 										<?php erankly_render_section_doc_link( 'special-pages' ); ?>
 									</div>
 									<div class="erankly-card">
@@ -218,7 +239,7 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 					<?php else : ?>
 						<div class="erankly-settings-section">
 							<div class="erankly-section-title-row">
-								<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
+								<h2 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h2>
 								<?php erankly_render_section_doc_link( 'special-pages' ); ?>
 							</div>
 							<div class="erankly-card">
@@ -230,12 +251,11 @@ function erankly_render_settings_panel_general( array $settings, int $schema_per
 	<?php
 }
 function erankly_render_settings_panel_social( array $settings ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-social" role="tabpanel" aria-labelledby="erankly-settings-tab-social" data-erankly-settings-panel="settings-social" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-social" role="region" aria-labelledby="erankly-settings-tab-social" data-erankly-settings-panel="settings-social">
 				<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Default images', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Default images', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'default-images' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -260,7 +280,7 @@ function erankly_render_settings_panel_social( array $settings ): void {
 							false
 						);
 						?>
-						<p class="description"><?php esc_html_e( 'A set URL takes precedence over the selected media image.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'A set URL takes precedence over the selected media image. The example URL is only a placeholder and is never saved automatically.', 'easyrankly' ); ?></p>
 					</div>
 					<div class="erankly-field">
 						<label for="erankly-default-social-image-url"><?php esc_html_e( 'Default social image URL', 'easyrankly' ); ?></label>
@@ -275,33 +295,34 @@ function erankly_render_settings_panel_social( array $settings ): void {
 							false
 						);
 						?>
-						<p class="description"><?php esc_html_e( 'A set URL takes precedence over the selected media image.', 'easyrankly' ); ?></p>
+							<p class="description"><?php esc_html_e( 'A set URL takes precedence over the selected media image. The example URL is only a placeholder and is never saved automatically.', 'easyrankly' ); ?></p>
 					</div>
 						</div>
 					</div>
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Social defaults', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Social defaults', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'social-defaults' ); ?>
 						</div>
 						<div class="erankly-card">
+							<p class="description"><?php esc_html_e( 'These templates are the default for singular content such as posts and pages. Taxonomy terms use their own title and description fallbacks.', 'easyrankly' ); ?></p>
 							<?php erankly_render_social_meta_defaults( $settings ); ?>
 						</div>
 					</div>
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Social profiles', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Social profiles', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'social-profiles' ); ?>
 						</div>
 						<div class="erankly-card">
 						<div class="erankly-field">
-							<label for="erankly-twitter-site"><?php esc_html_e( 'X (Twitter) Site', 'easyrankly' ); ?></label>
+							<label for="erankly-twitter-site"><?php esc_html_e( 'X (Twitter) site', 'easyrankly' ); ?></label>
 							<input id="erankly-twitter-site" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[twitter_site]" value="<?php echo esc_attr( (string) $settings['twitter_site'] ); ?>" placeholder="@example">
 						</div>
 						<div class="erankly-field">
 							<label for="erankly-social-profiles"><?php esc_html_e( 'Social profiles', 'easyrankly' ); ?></label>
 							<textarea id="erankly-social-profiles" class="widefat" rows="5" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[social_profiles]"><?php echo esc_textarea( (string) $settings['social_profiles'] ); ?></textarea>
-							<p class="description"><?php esc_html_e( 'One absolute URL per line.', 'easyrankly' ); ?></p>
+								<p class="description"><?php esc_html_e( 'One absolute URL per line. This list applies to the site identity. Author-specific social metadata can currently be supplied only by an importer or through the WordPress metadata API; EasyRankly does not add profile fields for it.', 'easyrankly' ); ?></p>
 						</div>
 						</div>
 					</div>
@@ -309,12 +330,11 @@ function erankly_render_settings_panel_social( array $settings ): void {
 	<?php
 }
 function erankly_render_settings_panel_schema( array $settings, array $global_schema_blocks, string $global_schema_name ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-schema" role="tabpanel" aria-labelledby="erankly-settings-tab-schema" data-erankly-settings-panel="settings-schema" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-schema" role="region" aria-labelledby="erankly-settings-tab-schema" data-erankly-settings-panel="settings-schema">
 				<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Information for Google and other search engines', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Information for Google and other search engines', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'search-engines' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -343,7 +363,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 				</div>
 				<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Schema types by content type', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Schema types by content type', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'post-type-defaults' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -352,7 +372,7 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 				</div>
 				<div class="erankly-settings-section" <?php echo ! empty( $settings['simplified_mode'] ) ? 'hidden' : ''; ?>>
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Custom JSON-LD Schema', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Custom JSON-LD Schema', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'custom-schema' ); ?>
 					</div>
 					<div class="erankly-schema-builder erankly-card" data-erankly-schema-builder data-erankly-next-index="<?php echo esc_attr( (string) count( $global_schema_blocks ) ); ?>">
@@ -371,12 +391,11 @@ function erankly_render_settings_panel_schema( array $settings, array $global_sc
 	<?php
 }
 function erankly_render_settings_panel_sitemap( array $settings, string $sitemap_url ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-sitemap" role="tabpanel" aria-labelledby="erankly-settings-tab-sitemap" data-erankly-settings-panel="settings-sitemap" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-sitemap" role="region" aria-labelledby="erankly-settings-tab-sitemap" data-erankly-settings-panel="settings-sitemap">
 				<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'XML sitemap', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'XML sitemap', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'xml-sitemap' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -389,7 +408,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 					</div>
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Google News sitemap', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Google News sitemap', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'news-sitemap' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -432,7 +451,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 					</div>
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Image sitemap', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Image sitemap', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'image-sitemap' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -447,7 +466,7 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 					</div>
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Video sitemap', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Video sitemap', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'video-sitemap' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -463,16 +482,15 @@ function erankly_render_settings_panel_sitemap( array $settings, string $sitemap
 			</div>
 	<?php
 }
-function erankly_render_settings_panel_settings( array $settings, bool $redirects_enabled ): void {
-	$autosave_active = ! is_multisite() || is_network_admin();
+function erankly_render_settings_panel_settings( array $settings ): void {
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-settings" role="tabpanel" aria-labelledby="erankly-settings-tab-settings" data-erankly-settings-panel="settings-settings" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-settings" role="region" aria-labelledby="erankly-settings-tab-settings" data-erankly-settings-panel="settings-settings">
 				<?php if ( function_exists( 'erankly_reset_render_notice' ) ) : ?>
 					<?php erankly_reset_render_notice(); ?>
 				<?php endif; ?>
 				<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Preferences', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Preferences', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'preferences' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -493,13 +511,12 @@ function erankly_render_settings_panel_settings( array $settings, bool $redirect
 	<?php
 }
 function erankly_render_settings_panel_advanced( array $settings ): void {
-	$autosave_active   = ! is_multisite() || is_network_admin();
 	$max_image_preview = isset( $settings['robots_max_image_preview'] ) ? sanitize_key( (string) $settings['robots_max_image_preview'] ) : '';
 	?>
-			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-advanced" role="tabpanel" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced" <?php echo $autosave_active ? 'data-erankly-standalone-panel' : ''; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-advanced" role="region" aria-labelledby="erankly-settings-tab-advanced" data-erankly-settings-panel="settings-advanced">
 				<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Indexing & robots directives', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Indexing & robots directives', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'indexing-robots' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -540,7 +557,7 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 					</div>
 					<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'robots.txt', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'robots.txt', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'robots-txt' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -551,16 +568,17 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						</div>
 						<div class="erankly-field">
 						<label for="erankly-robots-txt-preview"><?php esc_html_e( 'robots.txt preview', 'easyrankly' ); ?></label>
-						<textarea id="erankly-robots-txt-preview" class="widefat code" rows="12" readonly><?php echo esc_textarea( erankly_filter_robots_txt( '', (bool) get_option( 'blog_public' ) ) ); ?></textarea>
+						<textarea id="erankly-robots-txt-preview" class="widefat code" rows="12" readonly><?php echo esc_textarea( erankly_get_robots_txt_preview() ); ?></textarea>
 						<p class="description">
 							<a href="<?php echo esc_url( home_url( '/robots.txt' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open robots.txt', 'easyrankly' ); ?></a>
 						</p>
+						<p class="description"><?php esc_html_e( 'The preview includes all registered robots_txt filters. Plugins that print content directly from the do_robotstxt action can still add request-only output; use the link above for the final response.', 'easyrankly' ); ?></p>
 						</div>
 					</div>
 					</div>
 					<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Pagination', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Pagination', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'pagination' ); ?>
 					</div>
 					<div class="erankly-card">
@@ -575,14 +593,14 @@ function erankly_render_settings_panel_advanced( array $settings ): void {
 						<label for="erankly-paginated-title-format"><?php esc_html_e( 'Paginated title suffix', 'easyrankly' ); ?></label>
 						<div class="erankly-variable-field" data-erankly-variable-field>
 							<input id="erankly-paginated-title-format" class="widefat" type="text" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[paginated_title_format]" value="<?php echo esc_attr( (string) $settings['paginated_title_format'] ); ?>" placeholder="<?php esc_attr_e( 'Page {{page_number}} of {{max_pages}}', 'easyrankly' ); ?>">
-							<?php erankly_render_variable_picker(); ?>
+							<?php erankly_render_variable_picker( array(), array( 'pagination' ) ); ?>
 						</div>
 						</div>
 					</div>
 					</div>
 					<div class="erankly-settings-section">
 					<div class="erankly-section-title-row">
-						<h3 class="erankly-section-title"><?php esc_html_e( 'Attachment pages', 'easyrankly' ); ?></h3>
+						<h2 class="erankly-section-title"><?php esc_html_e( 'Attachment pages', 'easyrankly' ); ?></h2>
 						<?php erankly_render_section_doc_link( 'attachment-pages' ); ?>
 					</div>
 					<div class="erankly-card">

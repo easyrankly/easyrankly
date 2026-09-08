@@ -571,13 +571,34 @@ function erankly_add_custom_code_targeting_settings_error( string $code = '' ): 
 	add_settings_error( ERANKLY_OPTION, 'erankly_custom_code_targeting_' . $key, $message, 'error' );
 }
 
+/** Reports once per save that an empty snippet was intentionally discarded. */
+function erankly_add_empty_custom_code_settings_error(): void {
+	static $added = false;
+
+	if ( $added || ! function_exists( 'add_settings_error' ) ) {
+		return;
+	}
+
+	$added = true;
+	add_settings_error(
+		ERANKLY_OPTION,
+		'erankly_custom_code_empty',
+		__( 'An empty code snippet was not saved. Add code before leaving the panel.', 'easyrankly' ),
+		'warning'
+	);
+}
+
 function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 	$value      = is_array( $value ) ? array_values( $value ) : array();
 	$contexts   = erankly_custom_code_context_allowlist();
 	$post_types = array_fill_keys( array_keys( erankly_get_public_post_types() ), true );
-	$max_blocks      = erankly_custom_code_max_blocks();
+	$legacy_overflow = array_filter(
+		$value,
+		static fn( mixed $block ): bool => is_array( $block ) && ! empty( $block['legacy_migrated'] )
+	);
+	$max_blocks      = erankly_custom_code_max_blocks() + ( $legacy_overflow ? 1 : 0 );
 	$max_bytes       = erankly_custom_code_max_bytes();
-	$remaining_bytes = erankly_custom_code_max_total_bytes();
+	$remaining_bytes = erankly_custom_code_max_total_bytes() + ( $legacy_overflow ? $max_bytes : 0 );
 	$blocks          = array();
 
 	if ( count( $value ) > $max_blocks ) {
@@ -597,9 +618,13 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 		if ( ! is_array( $block ) ) {
 			continue;
 		}
+		$name = isset( $block['name'] ) ? sanitize_text_field( (string) $block['name'] ) : '';
+		$name = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 120 ) : substr( $name, 0, 120 );
 
 		$clean = array(
 			'enabled'           => ! empty( $block['enabled'] ) ? 1 : 0,
+			'name'              => $name,
+			'legacy_migrated'   => ! empty( $block['legacy_migrated'] ) ? 1 : 0,
 			'code'              => '',
 			'target_contexts'   => array(),
 			'target_post_types' => array(),
@@ -649,6 +674,7 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 		$raw = isset( $block['code'] ) ? trim( (string) $block['code'] ) : '';
 
 		if ( '' === $raw ) {
+			erankly_add_empty_custom_code_settings_error();
 			continue;
 		}
 
@@ -658,6 +684,7 @@ function erankly_sanitize_custom_code_blocks( mixed $value ): array {
 		$raw = trim( (string) preg_replace( '/\x00+/', '', (string) $raw ) );
 
 		if ( '' === $raw ) {
+			erankly_add_empty_custom_code_settings_error();
 			continue;
 		}
 
@@ -744,6 +771,8 @@ function erankly_sanitize_custom_code_blocks_field( mixed $raw_input, string $ke
 function erankly_custom_code_migrated_block( string $code ): array {
 	return array(
 		'enabled'           => 1,
+		'name'              => __( 'Migrated code snippet', 'easyrankly' ),
+		'legacy_migrated'   => 1,
 		'code'              => $code,
 		'target_contexts'   => array_keys( erankly_custom_code_context_allowlist() ),
 		'target_post_types' => array_keys( erankly_get_public_post_types() ),
@@ -767,9 +796,35 @@ function erankly_trim_text( string $value, int $limit = 160 ): string {
 	return rtrim( $excerpt, " \t\n\r\0\x0B.,;:-" );
 }
 
-/** Produces a compact SEO string without applying a character limit. */
+/**
+ * Produces a compact SEO string without applying a character limit.
+ *
+ * Templates resolve missing {{variables}} to an empty string, so a pattern such
+ * as "{{term_description}} - {{site_name}}" can leave an orphan separator (or a
+ * pair of them, mid-string) with nothing on one side. Those are cleaned up here
+ * rather than at replacement time: the replacer sees one token at a time and
+ * can't tell whether the surrounding punctuation still has a partner.
+ */
 function erankly_normalize_seo_text( string $value ): string {
 	$value = preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( $value ) ) );
+	if ( is_string( $value ) ) {
+		// Runs of two or more separators collapse onto the first one; a single
+		// separator between two real values is left exactly as authored.
+		$value = preg_replace_callback(
+			'/\s*(-|\||–|—)(?:\s*(?:-|\||–|—))+\s*/u',
+			static function ( array $matches ): string {
+				return ' ' . $matches[1] . ' ';
+			},
+			$value
+		);
+	}
+	if ( is_string( $value ) ) {
+		// Bracketed values that resolved to nothing, e.g. "Title ({{x}})".
+		$value = preg_replace( '/\s*(?:\(\s*\)|\[\s*\])/u', '', $value );
+	}
+	if ( is_string( $value ) ) {
+		$value = preg_replace( '/^(?:\s*(?:-|\||–|—)\s*)+/u', '', $value );
+	}
 	if ( is_string( $value ) ) {
 		$value = preg_replace( '/(?:\s*(?:-|\||–|—)\s*)+$/u', '', $value );
 	}

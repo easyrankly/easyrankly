@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function erankly_default_social_image_placeholder(): string {
-	return home_url( '/social-image.webp' );
+	return 'https://example.com/social-image.jpg';
 }
 
 function erankly_default_organization_name_template(): string {
@@ -22,7 +22,7 @@ function erankly_default_website_description_template(): string {
 }
 
 function erankly_default_organization_logo_placeholder(): string {
-	return home_url( '/organization-logo.webp' );
+	return 'https://example.com/logo.png';
 }
 
 function erankly_default_organization_logo_url_template(): string {

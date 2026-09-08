@@ -1,10 +1,16 @@
 (function (ER) {
   "use strict";
 
+  var userSearchDocumentBound = false;
+
   function bindUserSearch(wrap) {
     var config = window.eranklyUserSearch;
 
     if (!config || !config.restUrl || !config.nonce) {
+      return;
+    }
+
+    if (wrap.getAttribute("data-erankly-user-search-bound") === "true") {
       return;
     }
 
@@ -27,13 +33,18 @@
       return;
     }
 
+    wrap.setAttribute("data-erankly-user-search-bound", "true");
+
     var debounceTimer = null;
     var i18n = config.i18n || {};
 
     function closeResults() {
       resultsList.hidden = true;
       resultsList.innerHTML = "";
+      searchInput.setAttribute("aria-expanded", "false");
     }
+
+    wrap.eranklyCloseUserResults = closeResults;
 
     function selectUser(id, text) {
       idInput.value = id;
@@ -68,6 +79,7 @@
       var url = config.restUrl + "?q=" + encodeURIComponent(query);
 
       resultsList.hidden = false;
+      searchInput.setAttribute("aria-expanded", "true");
       resultsList.innerHTML =
         '<li class="erankly-autocomplete-status erankly-user-result-status">' +
         (i18n.searching || "Searching…") +
@@ -99,6 +111,7 @@
             button.className =
               "erankly-autocomplete-item erankly-user-result-item";
             button.setAttribute("role", "option");
+			button.id = resultsList.id + "-option-" + String(item.id);
             button.setAttribute("tabindex", "-1");
 
             if (item.name) {
@@ -172,6 +185,14 @@
     });
 
     searchInput.addEventListener("keydown", function (e) {
+	  if (e.key === "Enter") {
+	    e.preventDefault();
+	    var firstMatch = resultsList.querySelector('[role="option"]');
+	    if (firstMatch) {
+	      firstMatch.click();
+	    }
+	    return;
+	  }
       if (e.key === "Escape") {
         closeResults();
         return;
@@ -213,11 +234,21 @@
       }
     });
 
-    document.addEventListener("click", function (e) {
-      if (!wrap.contains(e.target)) {
-        closeResults();
-      }
-    });
+	if (!userSearchDocumentBound) {
+	  userSearchDocumentBound = true;
+	  document.addEventListener("click", function (e) {
+	    document
+	      .querySelectorAll("[data-erankly-user-search-wrap]")
+	      .forEach(function (currentWrap) {
+	        if (
+	          !currentWrap.contains(e.target) &&
+	          typeof currentWrap.eranklyCloseUserResults === "function"
+	        ) {
+	          currentWrap.eranklyCloseUserResults();
+	        }
+	      });
+	  });
+	}
   }
 
   function bindLocalBusiness(container) {

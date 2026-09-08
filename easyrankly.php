@@ -4,7 +4,7 @@
  * Plugin URI:  https://easyrankly.com
  * Description: Lightweight, modular, developer-first SEO essentials for WordPress.
  * Version:     2.0.0
- * Requires at least: 6.2
+ * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author:      EasyRankly
  * Author URI:  https://easyrankly.com/
@@ -203,6 +203,7 @@ function erankly_bootstrap(): void {
 	add_action( 'init', 'erankly_register_meta' );
 	add_action( 'init', 'erankly_register_breadcrumb_integrations', 5 );
 	add_action( 'init', 'erankly_register_rewrites' );
+	add_action( 'init', 'erankly_migrate_legacy_social_image_meta', 14 );
 	add_action( 'init', 'erankly_maybe_migrate_settings', 15 );
 	add_action( 'init', 'erankly_maybe_migrate_post_type_schema', 16 );
 	add_action( 'init', 'erankly_maybe_migrate_local_business_pages', 17 );
@@ -241,14 +242,18 @@ function erankly_bootstrap(): void {
 		erankly_load_content_helpers();
 		require_once ERANKLY_PATH . 'includes/sitemap/core.php';
 		add_filter( 'wp_sitemaps_posts_query_args', 'erankly_filter_core_sitemap_posts_query_args', 20, 2 );
+		add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_cache_core_sitemap_posts_url_list', 5, 3 );
 		add_filter( 'wp_sitemaps_posts_pre_url_list', 'erankly_filter_core_sitemap_posts_pre_url_list', 20, 3 );
 		add_filter( 'wp_sitemaps_posts_pre_max_num_pages', 'erankly_filter_core_sitemap_posts_pre_max_num_pages', 20, 2 );
 		add_filter( 'wp_sitemaps_taxonomies_query_args', 'erankly_filter_core_sitemap_terms_query_args', 20, 2 );
+		add_filter( 'wp_sitemaps_taxonomies_pre_url_list', 'erankly_cache_core_sitemap_taxonomies_url_list', 5, 3 );
 		add_filter( 'wp_sitemaps_users_query_args', 'erankly_filter_core_sitemap_users_query_args', 20 );
+		add_filter( 'wp_sitemaps_users_pre_url_list', 'erankly_cache_core_sitemap_users_url_list', 5, 2 );
 		add_filter( 'wp_sitemaps_post_types', 'erankly_filter_core_sitemap_post_types', 20 );
 		add_filter( 'wp_sitemaps_taxonomies', 'erankly_filter_core_sitemap_taxonomies', 20 );
 		add_filter( 'wp_sitemaps_add_provider', 'erankly_filter_core_sitemap_add_provider', 20, 2 );
 		add_filter( 'posts_where', 'erankly_filter_sitemap_posts_where', 20, 2 );
+		add_action( 'template_redirect', 'erankly_start_core_sitemap_output_buffer', 0 );
 
 		add_action( 'save_post', 'erankly_flush_sitemap_cache_for_post' );
 		add_action( 'deleted_post', 'erankly_flush_sitemap_cache_for_deleted_post' );
@@ -268,6 +273,9 @@ function erankly_bootstrap(): void {
 		add_action( 'added_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
 		add_action( 'updated_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
 		add_action( 'deleted_post_meta', 'erankly_flush_sitemap_cache_for_post_meta', 10, 3 );
+		foreach ( array( 'home', 'siteurl', 'permalink_structure', 'show_on_front', 'page_on_front', 'page_for_posts' ) as $sitemap_option ) {
+			add_action( 'update_option_' . $sitemap_option, 'erankly_flush_sitemap_cache' );
+		}
 	}
 
 	if ( erankly_should_serve_sitemaps() ) {

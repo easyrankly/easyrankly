@@ -86,6 +86,50 @@
 	gap: var(--erankly-space-2);
 }
 
+.erankly-redirects-dialog-overlay[hidden] {
+	display: none;
+}
+
+.erankly-redirects-dialog-overlay {
+	align-items: center;
+	background: rgba(0, 0, 0, 0.5);
+	bottom: 0;
+	display: flex;
+	justify-content: center;
+	left: 0;
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 100000;
+}
+
+.erankly-redirects-dialog {
+	background: var(--erankly-color-surface);
+	border-radius: var(--erankly-radius-surface);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+	box-sizing: border-box;
+	margin: var(--erankly-space-4);
+	max-width: 440px;
+	padding: var(--erankly-space-5);
+	width: 100%;
+}
+
+.erankly-redirects-dialog h2 {
+	font-size: 16px;
+	margin: 0 0 var(--erankly-space-3);
+}
+
+.erankly-redirects-dialog-actions {
+	display: flex;
+	gap: var(--erankly-space-2);
+	justify-content: flex-end;
+	margin-top: var(--erankly-space-5);
+}
+
+body.erankly-redirects-dialog-open {
+	overflow: hidden;
+}
+
 /* Sortable column headers */
 .erankly-redirects-table th.sortable a {
 	color: inherit;

@@ -231,7 +231,7 @@ function erankly_migration_render_report(): void {
 	?>
 	<div class="erankly-settings-section erankly-migration-report">
 		<div class="erankly-section-title-row">
-			<h3 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h3>
+			<h2 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h2>
 			<?php erankly_render_section_doc_link( 'migration-assistant' ); ?>
 		</div>
 		<section class="erankly-card erankly-migration-card erankly-migration-card--<?php echo esc_attr( sanitize_key( (string) ( $ui['tone'] ?? 'info' ) ) ); ?>">
@@ -426,7 +426,7 @@ function erankly_migration_render_active_job( array $job ): void {
 	?>
 	<div class="erankly-settings-section erankly-migration-progress">
 		<div class="erankly-section-title-row">
-			<h3 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h3>
+			<h2 class="erankly-section-title"><?php esc_html_e( 'Migration assistant', 'easyrankly' ); ?></h2>
 			<?php erankly_render_section_doc_link( 'migration-assistant' ); ?>
 		</div>
 		<section class="erankly-card erankly-migration-card <?php echo 'paused' === $status ? 'erankly-migration-card--warning' : ''; ?>" aria-busy="<?php echo 'paused' === $status || $cancelling ? 'false' : 'true'; ?>">

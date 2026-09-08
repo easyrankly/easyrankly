@@ -40,6 +40,7 @@ function erankly_render_opengraph_tags(): void {
 	$description   = erankly_get_og_description();
 	$url           = erankly_get_canonical();
 	$image         = erankly_get_og_image();
+	$image_details = erankly_get_social_image_attachment_data( $image );
 	$image_alt     = erankly_get_social_image_alt( 'og', '', $image );
 	$twitter_image = erankly_get_twitter_image( $image );
 	$twitter_alt   = erankly_get_twitter_image_alt( $twitter_image, $image, $image_alt );
@@ -60,6 +61,8 @@ function erankly_render_opengraph_tags(): void {
 		'og:description'      => $description,
 		'og:url'              => $url,
 		'og:image'            => $image,
+		'og:image:width'      => ! empty( $image_details['width'] ) ? (string) $image_details['width'] : '',
+		'og:image:height'     => ! empty( $image_details['height'] ) ? (string) $image_details['height'] : '',
 		'og:image:alt'        => '' !== $image ? $image_alt : '',
 		'twitter:card'        => erankly_get_twitter_card_type( '' !== $twitter_image ? $twitter_image : $image ),
 		'twitter:site'        => $twitter_site,
@@ -240,8 +243,8 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 
 	if ( is_singular() ) {
 		$post_id   = get_queried_object_id();
+		erankly_migrate_legacy_social_image_for_object( 'post', $post_id );
 		$image     = erankly_get_post_meta_string( $post_id, 'twitter_image_url' );
-		$image     = '' !== $image ? $image : erankly_get_post_meta_string( $post_id, 'social_image_url' );
 		$custom_id = absint( get_post_meta( $post_id, '_erankly_twitter_image_id', true ) );
 
 		if ( '' !== $image ) {
@@ -255,8 +258,8 @@ function erankly_get_twitter_image( string $fallback = '' ): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
+			erankly_migrate_legacy_social_image_for_object( 'term', $term->term_id );
 			$image = erankly_get_term_meta_string( $term->term_id, 'twitter_image_url' );
-			$image = '' !== $image ? $image : erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
 
 			if ( '' !== $image ) {
 				$image = esc_url_raw( erankly_replace_variables( $image ) );
@@ -332,10 +335,10 @@ function erankly_get_og_image(): string {
 
 	if ( is_singular() ) {
 		$post_id     = get_queried_object_id();
+		erankly_migrate_legacy_social_image_for_object( 'post', $post_id );
 		$custom_id   = absint( get_post_meta( $post_id, '_erankly_og_image_id', true ) );
 		$featured_id = get_post_thumbnail_id( $post_id );
 		$image       = erankly_get_post_meta_string( $post_id, 'og_image_url' );
-		$image       = '' !== $image ? $image : erankly_get_post_meta_string( $post_id, 'social_image_url' );
 
 		if ( '' !== $image ) {
 			$image = esc_url_raw( erankly_replace_variables( $image, $post_id ) );
@@ -357,8 +360,8 @@ function erankly_get_og_image(): string {
 		$term = get_queried_object();
 
 		if ( $term instanceof WP_Term ) {
+			erankly_migrate_legacy_social_image_for_object( 'term', $term->term_id );
 			$image = erankly_get_term_meta_string( $term->term_id, 'og_image_url' );
-			$image = '' !== $image ? $image : erankly_get_term_meta_string( $term->term_id, 'social_image_url' );
 
 			if ( '' !== $image ) {
 				$image = esc_url_raw( erankly_replace_variables( $image ) );
@@ -391,45 +394,114 @@ function erankly_get_og_image(): string {
 	return $resolved;
 }
 
-/**
- * Returns a Media Library attachment alternative text by its resolved URL. This is deliberately a fallback:
- * explicitly authored social metadata always wins, while selected WordPress images inherit their existing
- * accessibility description without creating duplicate per-network values.
- *
- * @param string $image URL of the resolved social image.
- */
-function erankly_get_social_image_attachment_alt( string $image ): string {
-	static $alts = array();
+/** Resolves a Media Library attachment from full, resized, scaled or CDN-rewritten URLs. */
+function erankly_get_social_image_attachment_id( string $image ): int {
+	static $ids = array();
 
 	$image = trim( $image );
-
-	if (
-		'' === $image
-		|| str_contains( $image, '{{' )
-		|| ! function_exists( 'attachment_url_to_postid' )
-		|| ! function_exists( 'wp_get_upload_dir' )
-		|| ! function_exists( 'wp_parse_url' )
-	) {
-		return '';
+	if ( '' === $image || str_contains( $image, '{{' ) || ! function_exists( 'attachment_url_to_postid' ) ) {
+		return 0;
 	}
+
+	if ( array_key_exists( $image, $ids ) ) {
+		return $ids[ $image ];
+	}
+
+	$attachment_id = attachment_url_to_postid( $image );
+	if ( $attachment_id > 0 ) {
+		$ids[ $image ] = $attachment_id;
+		return $attachment_id;
+	}
+
+	$uploads    = wp_get_upload_dir();
+	$base_url   = isset( $uploads['baseurl'] ) ? trim( (string) $uploads['baseurl'] ) : '';
+	$base_path  = rtrim( (string) wp_parse_url( $base_url, PHP_URL_PATH ), '/' ) . '/';
+	$image_path = rawurldecode( (string) wp_parse_url( $image, PHP_URL_PATH ) );
+	$candidates = array();
+
+	// The URL path remains stable for the common CDN case where only the host is rewritten.
+	if ( '/' !== $base_path && str_starts_with( $image_path, $base_path ) ) {
+		$candidates[] = ltrim( substr( $image_path, strlen( $base_path ) ), '/' );
+	}
+
+	// A year/month + filename candidate disambiguates same-named uploads across
+	// different monthly folders, which a bare basename LIKE match cannot.
+	if ( preg_match( '#(\d{4}/\d{2}/[^/]+)$#', $image_path, $date_match ) ) {
+		$candidates[] = $date_match[1];
+	}
+
+	$basename      = wp_basename( $image_path );
+	$candidates[]  = $basename;
+	$stem          = pathinfo( $basename, PATHINFO_FILENAME );
+	$extension     = pathinfo( $basename, PATHINFO_EXTENSION );
+	$original_stem = preg_replace( '/(?:-scaled|-\d+x\d+)$/', '', $stem );
+	if ( is_string( $original_stem ) && $original_stem !== $stem ) {
+		$candidates[] = $original_stem . ( '' !== $extension ? '.' . $extension : '' );
+	}
+
+	global $wpdb;
+	foreach ( array_values( array_unique( array_filter( $candidates ) ) ) as $candidate ) {
+		$attachment_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND (meta_value = %s OR meta_value LIKE %s) ORDER BY post_id DESC LIMIT 1",
+				$candidate,
+				'%/' . $wpdb->esc_like( $candidate )
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Targeted fallback when core cannot reverse-map an intermediate or CDN URL.
+
+		if ( $attachment_id > 0 ) {
+			break;
+		}
+	}
+
+	/** @param int $attachment_id Resolved attachment ID, or zero. */
+	$ids[ $image ] = max( 0, (int) apply_filters( 'erankly_social_image_attachment_id', $attachment_id, $image ) );
+
+	return $ids[ $image ];
+}
+
+/**
+ * Returns dimensions for the exact intermediate file where possible.
+ *
+ * @return array{id:int,width:int,height:int}
+ */
+function erankly_get_social_image_attachment_data( string $image ): array {
+	$attachment_id = erankly_get_social_image_attachment_id( $image );
+	$data          = array( 'id' => $attachment_id, 'width' => 0, 'height' => 0 );
+
+	if ( $attachment_id < 1 ) {
+		return $data;
+	}
+
+	$metadata = wp_get_attachment_metadata( $attachment_id );
+	$basename = wp_basename( rawurldecode( (string) wp_parse_url( $image, PHP_URL_PATH ) ) );
+	if ( ! is_array( $metadata ) ) {
+		return $data;
+	}
+
+	foreach ( (array) ( $metadata['sizes'] ?? array() ) as $size ) {
+		if ( is_array( $size ) && $basename === (string) ( $size['file'] ?? '' ) ) {
+			$data['width']  = absint( $size['width'] ?? 0 );
+			$data['height'] = absint( $size['height'] ?? 0 );
+			return $data;
+		}
+	}
+
+	$data['width']  = absint( $metadata['width'] ?? 0 );
+	$data['height'] = absint( $metadata['height'] ?? 0 );
+
+	return $data;
+}
+
+/** Returns the Media Library alt text for the resolved social image. */
+function erankly_get_social_image_attachment_alt( string $image ): string {
+	static $alts = array();
 
 	if ( array_key_exists( $image, $alts ) ) {
 		return $alts[ $image ];
 	}
 
-	$uploads    = wp_get_upload_dir();
-	$base_url   = isset( $uploads['baseurl'] ) ? trim( (string) $uploads['baseurl'] ) : '';
-	$base_host  = strtolower( (string) wp_parse_url( $base_url, PHP_URL_HOST ) );
-	$image_host = strtolower( (string) wp_parse_url( $image, PHP_URL_HOST ) );
-	$base_path  = rtrim( (string) wp_parse_url( $base_url, PHP_URL_PATH ), '/' ) . '/';
-	$image_path = (string) wp_parse_url( $image, PHP_URL_PATH );
-
-	if ( '' === $base_host || $image_host !== $base_host || ! str_starts_with( $image_path, $base_path ) ) {
-		$alts[ $image ] = '';
-		return '';
-	}
-
-	$attachment_id  = attachment_url_to_postid( $image );
+	$attachment_id  = erankly_get_social_image_attachment_id( $image );
 	$alt            = $attachment_id > 0 ? (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) : '';
 	$alts[ $image ] = erankly_sanitize_text( $alt );
 

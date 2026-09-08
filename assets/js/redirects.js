@@ -86,6 +86,11 @@
 
 				link.setAttribute('data-active', isActive ? '1' : '0');
 				link.textContent = isActive ? config.disableLabel || 'Disable' : config.enableLabel || 'Enable';
+				var source = link.getAttribute('data-source') || '';
+				var ariaTemplate = isActive
+					? config.disableAria || 'Disable redirect from %s'
+					: config.enableAria || 'Enable redirect from %s';
+				link.setAttribute('aria-label', ariaTemplate.replace('%s', source));
 			})
 			.catch(function () {
 				showRowError(row, config.toggleError || 'The redirect status could not be changed.');
@@ -95,25 +100,49 @@
 			});
 	});
 
-	// Delete via REST, removing the row in place so the current search term and
-	// pagination position are preserved (no page reload).
-	// Removing the last row left the column headers hanging over an empty
-	// <tbody>: the server-rendered "No redirects found." row only exists on a
-	// fresh page load, so it has to be recreated here.
-	function renderEmptyStateIfNeeded(body) {
-		if (!body || body.tagName !== 'TBODY' || body.querySelector('tr')) {
-			return;
+	// The delete link remains a nonce-protected no-JavaScript fallback. With
+	// JavaScript available, an accessible alert dialog confirms the same URL or
+	// performs the REST deletion and reloads the current filtered/sorted view.
+	var pendingDeleteLink = null;
+	var deleteLastFocused = null;
+
+	function deleteModal() {
+		return document.querySelector('[data-erankly-redirect-delete-modal]');
+	}
+
+	function closeDeleteModal() {
+		var modal = deleteModal();
+		if (modal) {
+			modal.hidden = true;
+		}
+		document.body.classList.remove('erankly-redirects-dialog-open');
+		pendingDeleteLink = null;
+		if (deleteLastFocused && typeof deleteLastFocused.focus === 'function') {
+			deleteLastFocused.focus();
+		}
+	}
+
+	function openDeleteModal(link) {
+		var modal = deleteModal();
+		if (!modal) {
+			return false;
 		}
 
-		var table = body.closest('table');
-		var columns = table ? table.querySelectorAll('thead th').length : 0;
-		var emptyRow = document.createElement('tr');
-		var cell = document.createElement('td');
+		pendingDeleteLink = link;
+		deleteLastFocused = document.activeElement;
+		var source = link.getAttribute('data-source') || '';
+		var description = modal.querySelector('[data-erankly-redirect-delete-description]');
+		var cancel = modal.querySelector('[data-erankly-redirect-delete-cancel]');
+		if (description) {
+			description.textContent = (config.deleteConfirm || 'The redirect from %s will be permanently deleted.').replace('%s', source);
+		}
+		modal.hidden = false;
+		document.body.classList.add('erankly-redirects-dialog-open');
+		if (cancel) {
+			cancel.focus();
+		}
 
-		cell.setAttribute('colspan', String(columns || 7));
-		cell.textContent = config.emptyTable || 'No redirects found.';
-		emptyRow.appendChild(cell);
-		body.appendChild(emptyRow);
+		return true;
 	}
 
 	document.addEventListener('click', function (event) {
@@ -123,49 +152,95 @@
 			return;
 		}
 
-		var message = config.deleteConfirm || 'Delete this redirect?';
-
-		if (!window.confirm(message)) {
+		if (openDeleteModal(link)) {
 			event.preventDefault();
-			return;
 		}
+	});
 
-		if (!canUseAjax()) {
-			return;
+	var modal = deleteModal();
+	if (modal) {
+		var cancelDelete = modal.querySelector('[data-erankly-redirect-delete-cancel]');
+		var confirmDelete = modal.querySelector('[data-erankly-redirect-delete-confirm]');
+
+		if (cancelDelete) {
+			cancelDelete.addEventListener('click', closeDeleteModal);
 		}
+		modal.addEventListener('click', function (event) {
+			if (event.target === modal) {
+				closeDeleteModal();
+			}
+		});
 
-		event.preventDefault();
-
-		if (link.classList.contains('erankly-redirects-busy')) {
-			return;
-		}
-
-		var id = parseInt(link.getAttribute('data-id'), 10);
-		var row = link.closest('tr');
-
-		if (!id) {
-			return;
-		}
-
-		link.classList.add('erankly-redirects-busy');
-
-		postToRest(config.restUrlDelete, id)
-			.then(function () {
-				if (row) {
-					var body = row.parentNode;
-
-					row.remove();
-					renderEmptyStateIfNeeded(body);
+		if (confirmDelete) {
+			confirmDelete.addEventListener('click', function () {
+				if (!pendingDeleteLink) {
+					return;
 				}
-			})
-			.catch(function () {
-				link.classList.remove('erankly-redirects-busy');
-				showRowError(row, config.deleteError || 'The redirect could not be deleted.');
+
+				var link = pendingDeleteLink;
+				var id = parseInt(link.getAttribute('data-id'), 10);
+				var row = link.closest('tr');
+
+				if (!canUseAjax()) {
+					window.location.assign(link.href);
+					return;
+				}
+
+				if (!id || link.classList.contains('erankly-redirects-busy')) {
+					return;
+				}
+
+				link.classList.add('erankly-redirects-busy');
+				confirmDelete.disabled = true;
+
+				postToRest(config.restUrlDelete, id)
+					.then(function () {
+						window.location.reload();
+					})
+					.catch(function () {
+						link.classList.remove('erankly-redirects-busy');
+						confirmDelete.disabled = false;
+						closeDeleteModal();
+						showRowError(row, config.deleteError || 'The redirect could not be deleted.');
+					});
 			});
+		}
+	}
+
+	document.addEventListener('keydown', function (event) {
+		var current = deleteModal();
+		if (!current || current.hidden) {
+			return;
+		}
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			closeDeleteModal();
+			return;
+		}
+		if (event.key !== 'Tab') {
+			return;
+		}
+
+		var focusable = Array.prototype.filter.call(
+			current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+			function (node) { return !node.disabled && node.offsetParent !== null; },
+		);
+		if (!focusable.length) {
+			return;
+		}
+		var first = focusable[0];
+		var last = focusable[focusable.length - 1];
+		if (event.shiftKey && document.activeElement === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && document.activeElement === last) {
+			event.preventDefault();
+			first.focus();
+		}
 	});
 
 	// Hide the "Target URL" field for status-only codes (410/451) that carry no Location.
-	var STATUS_ONLY_CODES = ['410', '451'];
+	var STATUS_ONLY_CODES = Array.isArray(config.statusOnlyCodes) ? config.statusOnlyCodes : ['410', '451'];
 
 	function syncTargetField() {
 		var statusSelect = document.getElementById('erankly-redirects-status-code');

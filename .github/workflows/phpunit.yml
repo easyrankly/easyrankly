@@ -1,0 +1,54 @@
+name: PHPUnit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - beta
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Check out plugin
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, intl, mbstring, mysqli, xml
+          coverage: none
+
+      - name: Install development dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Install WordPress test suite
+        run: |
+          git clone --depth=1 https://github.com/WordPress/wordpress-develop.git /tmp/wordpress-develop
+          cp /tmp/wordpress-develop/wp-tests-config-sample.php /tmp/wordpress-develop/wp-tests-config.php
+          sed -i "s/youremptytestdbnamehere/wordpress_test/; s/yourusernamehere/root/; s/yourpasswordhere//; s|localhost|127.0.0.1|" /tmp/wordpress-develop/wp-tests-config.php
+
+      - name: Run plugin tests against MySQL
+        env:
+          WP_TESTS_DIR: /tmp/wordpress-develop/tests/phpunit
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+        run: composer test

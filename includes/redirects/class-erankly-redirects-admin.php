@@ -16,6 +16,51 @@ final class ERankly_Redirects_Admin {
 		$this->repository = $repository;
 	}
 
+	/** @return array<int,string> Translated labels shared by every Redirects control. */
+	public static function status_code_labels(): array {
+		return array(
+			301 => __( '301: Moved permanently', 'easyrankly' ),
+			302 => __( '302: Found (temporary)', 'easyrankly' ),
+			307 => __( '307: Temporary redirect (preserve method)', 'easyrankly' ),
+			308 => __( '308: Permanent redirect (preserve method)', 'easyrankly' ),
+			410 => __( '410: Gone', 'easyrankly' ),
+			451 => __( '451: Unavailable for legal reasons', 'easyrankly' ),
+		);
+	}
+
+	private static function match_type_label( string $match_type ): string {
+		$labels = array(
+			'exact'    => __( 'Exact URL', 'easyrankly' ),
+			'wildcard' => __( 'Wildcard pattern', 'easyrankly' ),
+			'regex'    => __( 'Regular expression', 'easyrankly' ),
+		);
+
+		return $labels[ $match_type ] ?? $match_type;
+	}
+
+	private static function query_mode_label( string $query_mode ): string {
+		$labels = array(
+			'ignore'   => __( 'Any, discarded', 'easyrankly' ),
+			'preserve' => __( 'Any, appended to target', 'easyrankly' ),
+			'exact'    => __( 'Exact required query', 'easyrankly' ),
+		);
+
+		return $labels[ $query_mode ] ?? $query_mode;
+	}
+
+	private static function format_last_hit( string $mysql_date ): string {
+		$date = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $mysql_date, wp_timezone() );
+		if ( ! $date instanceof DateTimeImmutable ) {
+			return $mysql_date;
+		}
+
+		return wp_date(
+			get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
+			$date->getTimestamp(),
+			wp_timezone()
+		);
+	}
+
 	/**
  * Register admin hooks. The menu entry and asset loading are handled by the EasyRankly settings page; this class
  * only processes redirect actions and renders the panel content inside the "Redirects" settings tab.
@@ -70,6 +115,14 @@ final class ERankly_Redirects_Admin {
 		$edit_id       = isset( $_GET['erankly_redirects_edit'] ) ? absint( $_GET['erankly_redirects_edit'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only edit form selection.
 		$edit_redirect = $edit_id > 0 ? $this->repository->find_by_id( $edit_id ) : null;
 		$prefill       = null === $edit_redirect ? $this->read_prefill() : null;
+		$form_state    = $this->consume_form_state();
+		if ( is_array( $form_state ) && (int) ( $form_state['id'] ?? 0 ) === $edit_id && is_array( $form_state['values'] ?? null ) ) {
+			if ( $edit_id > 0 && is_array( $edit_redirect ) ) {
+				$edit_redirect = array_merge( $edit_redirect, $form_state['values'] );
+			} elseif ( 0 === $edit_id ) {
+				$prefill = $form_state['values'];
+			}
+		}
 		$search        = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect search term.
 		$current_page  = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
 		$orderby       = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only table sorting; validated against a column whitelist in the repository.
@@ -77,24 +130,31 @@ final class ERankly_Redirects_Admin {
 		$per_page      = 25;
 		$total_items   = $this->repository->count_redirects( $search );
 		$total_pages   = max( 1, (int) ceil( $total_items / $per_page ) );
+		$current_page  = min( $current_page, $total_pages );
 		$redirects     = $this->repository->list_redirects( $search, $current_page, $per_page, $orderby, $order );
+		$table_state   = $this->table_state_args( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only table state.
+		unset( $table_state['paged'] );
+		if ( $current_page > 1 ) {
+			$table_state['paged'] = $current_page;
+		}
 
 		?>
 			<?php $this->render_notices(); ?>
 
 			<div class="erankly-settings-section">
 				<div class="erankly-section-title-row">
-					<h3 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h3>
+					<h2 class="erankly-section-title"><?php echo $edit_redirect ? esc_html__( 'Edit Redirect', 'easyrankly' ) : esc_html__( 'Add Redirect', 'easyrankly' ); ?></h2>
 					<?php erankly_render_section_doc_link( 'redirect-form' ); ?>
 				</div>
 				<section class="erankly-card">
-					<?php $this->render_redirect_form( $edit_redirect, $prefill ); ?>
+					<p class="description"><?php esc_html_e( 'Redirects do not run for logged-in administrators. Test saved rules in a signed-out or incognito window.', 'easyrankly' ); ?></p>
+					<?php $this->render_redirect_form( $edit_redirect, $prefill, $table_state ); ?>
 				</section>
 			</div>
 
 			<div class="erankly-settings-section erankly-panel-expandable" id="erankly-redirects-table-wrap" data-erankly-expandable>
 				<div class="erankly-section-title-row">
-					<h3 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h3>
+					<h2 class="erankly-section-title"><?php esc_html_e( 'Redirect rules', 'easyrankly' ); ?></h2>
 					<?php erankly_render_section_doc_link( 'redirect-rules' ); ?>
 				</div>
 				<section class="erankly-card">
@@ -102,8 +162,12 @@ final class ERankly_Redirects_Admin {
 					<form method="get" class="erankly-redirects-search">
 						<input type="hidden" name="page" value="<?php echo esc_attr( self::SLUG ); ?>">
 						<input type="hidden" name="erankly_tab" value="redirects">
-						<label for="erankly-redirects-search-source" class="screen-reader-text"><?php esc_html_e( 'Search source path', 'easyrankly' ); ?></label>
-						<input id="erankly-redirects-search-source" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search path…', 'easyrankly' ); ?>">
+						<?php if ( '' !== $orderby ) : ?>
+							<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>">
+							<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
+						<?php endif; ?>
+						<label for="erankly-redirects-search-source" class="screen-reader-text"><?php esc_html_e( 'Search redirect rules', 'easyrankly' ); ?></label>
+						<input id="erankly-redirects-search-source" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search rules…', 'easyrankly' ); ?>">
 						<?php submit_button( __( 'Search', 'easyrankly' ), 'secondary', '', false ); ?>
 						<?php if ( '' !== $search ) : ?>
 							<a class="button" href="<?php echo esc_url( $this->admin_url() ); ?>"><?php esc_html_e( 'Clear', 'easyrankly' ); ?></a>
@@ -111,12 +175,116 @@ final class ERankly_Redirects_Admin {
 					</form>
 					<?php erankly_admin_render_panel_expand_toggle( 'erankly-redirects-table-wrap' ); ?>
 				</div>
+				<?php $this->render_item_count( $current_page, $per_page, count( $redirects ), $total_items ); ?>
 
-				<?php $this->render_redirect_table( $redirects, $orderby, $order, $search ); ?>
+				<?php $this->render_redirect_table( $redirects, $orderby, $order, $search, $table_state ); ?>
 				<?php $this->render_pagination( $current_page, $total_pages, $search, $orderby, $order ); ?>
 				</section>
 			</div>
+
+			<div class="erankly-redirects-dialog-overlay" data-erankly-redirect-delete-modal hidden>
+				<div class="erankly-redirects-dialog" role="alertdialog" aria-modal="true" aria-labelledby="erankly-redirect-delete-title" aria-describedby="erankly-redirect-delete-description">
+					<h2 id="erankly-redirect-delete-title"><?php esc_html_e( 'Delete redirect?', 'easyrankly' ); ?></h2>
+					<p id="erankly-redirect-delete-description" data-erankly-redirect-delete-description></p>
+					<div class="erankly-redirects-dialog-actions">
+						<button type="button" class="button" data-erankly-redirect-delete-cancel><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></button>
+						<button type="button" class="button erankly-btn-danger" data-erankly-redirect-delete-confirm><?php esc_html_e( 'Delete redirect', 'easyrankly' ); ?></button>
+					</div>
+				</div>
+			</div>
 		<?php
+	}
+
+	/** @return array<string,string|int> */
+	private function table_state_args( array $input ): array {
+		$args = array();
+
+		if ( isset( $input['s'] ) && '' !== trim( (string) $input['s'] ) ) {
+			$args['s'] = sanitize_text_field( wp_unslash( (string) $input['s'] ) );
+		}
+		if ( isset( $input['paged'] ) && absint( $input['paged'] ) > 1 ) {
+			$args['paged'] = absint( $input['paged'] );
+		}
+		if ( isset( $input['orderby'] ) && in_array( sanitize_key( (string) $input['orderby'] ), array( 'hit_count', 'last_hit_at' ), true ) ) {
+			$args['orderby'] = sanitize_key( (string) $input['orderby'] );
+			$args['order']   = isset( $input['order'] ) && 'asc' === strtolower( sanitize_key( (string) $input['order'] ) ) ? 'asc' : 'desc';
+		}
+
+		return $args;
+	}
+
+	/** @return array<string,mixed>|null */
+	private function consume_form_state(): ?array {
+		$user_id = get_current_user_id();
+		if ( $user_id < 1 ) {
+			return null;
+		}
+
+		$key   = 'erankly_redirect_form_' . $user_id;
+		$state = get_transient( $key );
+		delete_transient( $key );
+
+		return is_array( $state ) ? $state : null;
+	}
+
+	private function store_form_state( int $id, array $input ): void {
+		$user_id = get_current_user_id();
+		if ( $user_id < 1 ) {
+			return;
+		}
+
+		$match_type   = isset( $input['match_type'] ) ? sanitize_key( (string) $input['match_type'] ) : 'exact';
+		$source_path  = isset( $input['source_path'] ) ? sanitize_text_field( wp_unslash( (string) $input['source_path'] ) ) : '';
+		$source_query = isset( $input['source_query'] ) ? ltrim( sanitize_text_field( wp_unslash( (string) $input['source_query'] ) ), '?' ) : '';
+		$query_mode   = isset( $input['query_mode'] ) ? sanitize_key( (string) $input['query_mode'] ) : 'ignore';
+		$embedded     = 'regex' === $match_type ? '' : ERankly_Redirects_Normalizer::extract_query( $source_path );
+		if ( '' !== $embedded && '' === $source_query ) {
+			$source_query = sanitize_text_field( $embedded );
+			$query_mode   = 'exact';
+			$source_path  = preg_replace( '/[?#].*$/', '', $source_path ) ?? $source_path;
+		}
+
+		set_transient(
+			'erankly_redirect_form_' . $user_id,
+			array(
+				'id'     => $id,
+				'values' => array(
+					'source_path'    => $source_path,
+					'target_url'     => isset( $input['target_url'] ) ? sanitize_text_field( wp_unslash( (string) $input['target_url'] ) ) : '',
+					'status_code'   => isset( $input['status_code'] ) ? absint( $input['status_code'] ) : 301,
+					'match_type'    => $match_type,
+					'query_mode'    => $query_mode,
+					'source_query'  => $source_query,
+					'case_sensitive' => ! empty( $input['case_sensitive'] ) ? 1 : 0,
+					'trailing_slash' => isset( $input['trailing_slash'] ) && 'exact' === $input['trailing_slash'] ? 'exact' : 'ignore',
+					'is_active'      => ! empty( $input['is_active'] ) ? 1 : 0,
+					'note'           => isset( $input['note'] ) ? sanitize_textarea_field( wp_unslash( (string) $input['note'] ) ) : '',
+				),
+			),
+			5 * MINUTE_IN_SECONDS
+		);
+	}
+
+	private function render_item_count( int $current_page, int $per_page, int $visible_items, int $total_items ): void {
+		if ( 0 === $total_items ) {
+			echo '<p class="displaying-num">' . esc_html__( '0 redirects', 'easyrankly' ) . '</p>';
+			return;
+		}
+
+		$first = ( ( $current_page - 1 ) * $per_page ) + 1;
+		$last  = $first + max( 0, $visible_items - 1 );
+		printf(
+			'<p class="displaying-num">%s</p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: first visible redirect, 2: last visible redirect, 3: total matching redirects. */
+					__( 'Showing %1$d–%2$d of %3$d redirects.', 'easyrankly' ),
+					$first,
+					$last,
+					$total_items
+				)
+			)
+		);
 	}
 
 	private function render_notices(): void {
@@ -140,11 +308,20 @@ final class ERankly_Redirects_Admin {
 
 		if ( '' !== $error ) {
 			$messages = array(
-				'invalid' => __( 'Please check the redirect fields and try again.', 'easyrankly' ),
-				'nonce'   => __( 'Security check failed. Please try again.', 'easyrankly' ),
-				'save'    => __( 'The redirect could not be saved. A duplicate source may already exist.', 'easyrankly' ),
-				'delete'  => __( 'The redirect could not be deleted.', 'easyrankly' ),
-				'toggle'  => __( 'The redirect status could not be changed.', 'easyrankly' ),
+				'source_required'       => __( 'Enter a source URL or path.', 'easyrankly' ),
+				'source_too_long'       => __( 'The source URL is too long.', 'easyrankly' ),
+				'source_query_too_long' => __( 'The required query string is too long.', 'easyrankly' ),
+				'target_required'       => __( 'Enter a valid target URL for this redirect code.', 'easyrankly' ),
+				'status_code'           => __( 'Choose a supported HTTP status code.', 'easyrankly' ),
+				'source_wildcard'       => __( 'Enter a valid wildcard source pattern.', 'easyrankly' ),
+				'source_regex'          => __( 'Enter a valid and safe regular expression.', 'easyrankly' ),
+				'source_path'           => __( 'Enter an internal source path beginning with a slash.', 'easyrankly' ),
+				'matching_mode'         => __( 'Choose supported path and query matching modes.', 'easyrankly' ),
+				'invalid'               => __( 'Please check the redirect fields and try again.', 'easyrankly' ),
+				'nonce'                 => __( 'Security check failed. Please try again.', 'easyrankly' ),
+				'save'                  => __( 'The redirect could not be saved. A duplicate matching rule may already exist.', 'easyrankly' ),
+				'delete'                => __( 'The redirect could not be deleted.', 'easyrankly' ),
+				'toggle'                => __( 'The redirect status could not be changed.', 'easyrankly' ),
 			);
 			$message  = $messages[ $error ] ?? __( 'An error occurred.', 'easyrankly' );
 			// "inline" keeps the notice here: wp-admin/js/common.js relocates every notice without it to just
@@ -208,7 +385,7 @@ final class ERankly_Redirects_Admin {
  * @param array<string,mixed>|null $redirect Redirect row (Edit mode).
  * @param array<string,mixed>|null $prefill  Seed values for a NEW redirect (Add mode).
  */
-	private function render_redirect_form( ?array $redirect, ?array $prefill = null ): void {
+	private function render_redirect_form( ?array $redirect, ?array $prefill = null, array $table_state = array() ): void {
 		// $redirect drives Edit mode; $prefill only seeds the fields of a NEW redirect while the form
 		// stays in Add mode ( $id = 0 ). The save still runs through prepare_redirect_data() validation.
 		$source      = $redirect ?? $prefill;
@@ -223,22 +400,8 @@ final class ERankly_Redirects_Admin {
 		$trailing_slash = $source && 'exact' === (string) ( $source['trailing_slash'] ?? '' ) ? 'exact' : 'ignore';
 		$is_active   = $source ? (bool) ( $source['is_active'] ?? true ) : true;
 		$note        = $source ? (string) ( $source['note'] ?? '' ) : '';
-		$code_labels = array(
-			301 => __( '301: Permanent redirect', 'easyrankly' ),
-			302 => __( '302: Temporary redirect', 'easyrankly' ),
-			307 => __( '307: Temporary redirect (new generation)', 'easyrankly' ),
-			308 => __( '308: Permanent redirect (new generation)', 'easyrankly' ),
-		);
-
-		// Basic GSC-oriented choices only. When editing an existing 307/308
-		// rule, retain that method-preserving variant as the temporary/permanent
-		// choice so an unrelated edit cannot downgrade it.
-		$permanent_code = 308 === $status_code ? 308 : 301;
-		$temporary_code = 307 === $status_code ? 307 : 302;
-		$status_codes   = array( $permanent_code, $temporary_code, 410 );
-		if ( $source && ! in_array( $status_code, $status_codes, true ) ) {
-			$status_codes[] = $status_code;
-		}
+		$code_labels   = self::status_code_labels();
+		$status_codes  = ERankly_Redirects_Normalizer::VALID_STATUS_CODES;
 		$advanced_open = 'exact' !== $match_type || 'ignore' !== $query_mode || $case_sensitive || 'exact' === $trailing_slash;
 
 		?>
@@ -246,10 +409,14 @@ final class ERankly_Redirects_Admin {
 			<?php wp_nonce_field( 'erankly_redirects_save_redirect' ); ?>
 			<input type="hidden" name="erankly_redirects_action" value="save_redirect">
 			<input type="hidden" name="redirect_id" value="<?php echo esc_attr( (string) $id ); ?>">
+			<?php foreach ( $table_state as $state_key => $state_value ) : ?>
+				<input type="hidden" name="<?php echo esc_attr( $state_key ); ?>" value="<?php echo esc_attr( (string) $state_value ); ?>">
+			<?php endforeach; ?>
 
 			<label>
 				<span><?php esc_html_e( 'Source URL', 'easyrankly' ); ?></span>
 				<input type="text" name="source_path" value="<?php echo esc_attr( $source_path ); ?>" required placeholder="/old-page">
+				<span class="description"><?php esc_html_e( 'If this value contains a query string, it is moved to “Required query string” and matched exactly.', 'easyrankly' ); ?></span>
 			</label>
 
 			<details class="erankly-settings-details erankly-redirects-advanced"<?php echo $advanced_open ? ' open' : ''; ?>>
@@ -269,9 +436,9 @@ final class ERankly_Redirects_Admin {
 					<div class="erankly-field">
 						<label for="erankly-redirects-query-mode"><?php esc_html_e( 'Query parameters', 'easyrankly' ); ?></label>
 						<select name="query_mode" id="erankly-redirects-query-mode">
-							<option value="ignore" <?php selected( $query_mode, 'ignore' ); ?>><?php esc_html_e( 'Ignore and discard', 'easyrankly' ); ?></option>
-							<option value="preserve" <?php selected( $query_mode, 'preserve' ); ?>><?php esc_html_e( 'Ignore and preserve', 'easyrankly' ); ?></option>
-							<option value="exact" <?php selected( $query_mode, 'exact' ); ?>><?php esc_html_e( 'Match exactly', 'easyrankly' ); ?></option>
+						<option value="ignore" <?php selected( $query_mode, 'ignore' ); ?>><?php esc_html_e( 'Match any query and discard it', 'easyrankly' ); ?></option>
+						<option value="preserve" <?php selected( $query_mode, 'preserve' ); ?>><?php esc_html_e( 'Match any query and append it to the target', 'easyrankly' ); ?></option>
+						<option value="exact" <?php selected( $query_mode, 'exact' ); ?>><?php esc_html_e( 'Match only the required query string', 'easyrankly' ); ?></option>
 						</select>
 					</div>
 
@@ -293,6 +460,7 @@ final class ERankly_Redirects_Admin {
 							<button type="button" class="button" id="erankly-redirects-test-button"><?php esc_html_e( 'Test rule', 'easyrankly' ); ?></button>
 						</div>
 						<p class="description" id="erankly-redirects-test-result" aria-live="polite"></p>
+						<p class="description"><?php esc_html_e( 'This test checks normalization and matching only. It does not reproduce the logged-in administrator exclusion, loop detection, or the final safe redirect.', 'easyrankly' ); ?></p>
 					</div>
 				</div>
 			</details>
@@ -328,19 +496,21 @@ final class ERankly_Redirects_Admin {
 
 			<?php submit_button( $id > 0 ? __( 'Update Redirect', 'easyrankly' ) : __( 'Add Redirect', 'easyrankly' ), 'primary', 'submit', false ); ?>
 			<?php if ( $id > 0 ) : ?>
-				<a class="button" href="<?php echo esc_url( $this->admin_url() ); ?>"><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></a>
+				<a class="button" href="<?php echo esc_url( $this->admin_url( $table_state ) ); ?>"><?php esc_html_e( 'Cancel', 'easyrankly' ); ?></a>
 			<?php endif; ?>
 		</form>
 		<?php
 	}
 
 	/**
- * @param string                         $order     Active sort direction, `asc` or `desc`.
- * @param string                         $search    Current search term, preserved in sort links.
- */
-	private function render_redirect_table( array $redirects, string $orderby, string $order, string $search ): void {
+	 * @param string              $order       Active sort direction, `asc` or `desc`.
+	 * @param string              $search      Current search term, preserved in sort links.
+	 * @param array<string,mixed> $table_state Search, page and sort state preserved by row actions.
+	 */
+	private function render_redirect_table( array $redirects, string $orderby, string $order, string $search, array $table_state ): void {
 		?>
 		<table class="widefat fixed striped erankly-panel-table erankly-redirects-table">
+			<caption class="screen-reader-text"><?php esc_html_e( 'Redirect rules with source, matching details, target, HTTP code, status, sampled hits, and actions.', 'easyrankly' ); ?></caption>
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Source', 'easyrankly' ); ?></th>
@@ -358,16 +528,17 @@ final class ERankly_Redirects_Admin {
 				<?php else : ?>
 					<?php foreach ( $redirects as $redirect ) : ?>
 						<?php
-						$id         = (int) $redirect['id'];
-						$is_active  = ! empty( $redirect['is_active'] );
-						$edit_url   = add_query_arg( array( 'erankly_redirects_edit' => $id ), $this->admin_url() );
+						$id           = (int) $redirect['id'];
+						$is_active    = ! empty( $redirect['is_active'] );
+						$source_label = (string) $redirect['source_path'];
+						$edit_url     = $this->admin_url( array_merge( $table_state, array( 'erankly_redirects_edit' => $id ) ) );
 						$delete_url = wp_nonce_url(
 							add_query_arg(
 								array(
 									'erankly_redirects_action' => 'delete',
 									'redirect_id' => $id,
 								),
-								$this->admin_url()
+								$this->admin_url( $table_state )
 							),
 							'erankly_redirects_delete_' . $id
 						);
@@ -377,14 +548,27 @@ final class ERankly_Redirects_Admin {
 									'erankly_redirects_action' => 'toggle',
 									'redirect_id' => $id,
 								),
-								$this->admin_url()
+								$this->admin_url( $table_state )
 							),
 							'erankly_redirects_toggle_' . $id
 						);
 						?>
 						<tr data-redirect-id="<?php echo esc_attr( (string) $id ); ?>">
 							<td>
-								<code><?php echo esc_html( (string) $redirect['source_path'] ); ?></code>
+							<code><?php echo esc_html( $source_label ); ?></code>
+							<br><span class="description erankly-redirects-match-details">
+								<?php
+								printf(
+									/* translators: 1: path match type, 2: query-string behavior. */
+									esc_html__( 'Path: %1$s · Query: %2$s', 'easyrankly' ),
+									esc_html( self::match_type_label( (string) ( $redirect['match_type'] ?? 'exact' ) ) ),
+									esc_html( self::query_mode_label( (string) ( $redirect['query_mode'] ?? 'ignore' ) ) )
+								);
+								?>
+							</span>
+							<?php if ( 'exact' === (string) ( $redirect['query_mode'] ?? '' ) && '' !== (string) ( $redirect['source_query'] ?? '' ) ) : ?>
+								<br><code class="description">?<?php echo esc_html( (string) $redirect['source_query'] ); ?></code>
+							<?php endif; ?>
 								<?php if ( ! empty( $redirect['note'] ) ) : ?>
 									<br><span class="description erankly-redirects-note"><?php echo esc_html( wp_trim_words( (string) $redirect['note'], 12, '…' ) ); ?></span>
 								<?php endif; ?>
@@ -393,11 +577,11 @@ final class ERankly_Redirects_Admin {
 							<td><?php echo esc_html( (string) (int) $redirect['status_code'] ); ?></td>
 							<td class="erankly-redirects-active-cell"><?php echo $is_active ? esc_html__( 'Yes', 'easyrankly' ) : esc_html__( 'No', 'easyrankly' ); ?></td>
 							<td class="erankly-redirects-col-optional"><?php echo esc_html( number_format_i18n( (int) $redirect['hit_count'] ) ); ?></td>
-							<td class="erankly-redirects-col-optional"><?php echo empty( $redirect['last_hit_at'] ) ? esc_html__( 'Never', 'easyrankly' ) : esc_html( (string) $redirect['last_hit_at'] ); ?></td>
-							<td class="erankly-redirects-actions">
-								<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'easyrankly' ); ?></a>
-								<a class="erankly-redirects-toggle" data-id="<?php echo esc_attr( (string) $id ); ?>" data-active="<?php echo $is_active ? '1' : '0'; ?>" href="<?php echo esc_url( $toggle_url ); ?>"><?php echo $is_active ? esc_html__( 'Disable', 'easyrankly' ) : esc_html__( 'Enable', 'easyrankly' ); ?></a>
-								<a class="button-link-delete erankly-redirects-delete" data-id="<?php echo esc_attr( (string) $id ); ?>" href="<?php echo esc_url( $delete_url ); ?>"><?php esc_html_e( 'Delete', 'easyrankly' ); ?></a>
+						<td class="erankly-redirects-col-optional"><?php echo empty( $redirect['last_hit_at'] ) ? esc_html__( 'Never', 'easyrankly' ) : esc_html( self::format_last_hit( (string) $redirect['last_hit_at'] ) ); ?></td>
+						<td class="erankly-redirects-actions">
+							<a href="<?php echo esc_url( $edit_url ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Edit redirect from %s', 'easyrankly' ), $source_label ) ); ?>"><?php esc_html_e( 'Edit', 'easyrankly' ); ?></a>
+							<a class="erankly-redirects-toggle" data-id="<?php echo esc_attr( (string) $id ); ?>" data-active="<?php echo $is_active ? '1' : '0'; ?>" data-source="<?php echo esc_attr( $source_label ); ?>" aria-label="<?php echo esc_attr( sprintf( $is_active ? __( 'Disable redirect from %s', 'easyrankly' ) : __( 'Enable redirect from %s', 'easyrankly' ), $source_label ) ); ?>" href="<?php echo esc_url( $toggle_url ); ?>"><?php echo $is_active ? esc_html__( 'Disable', 'easyrankly' ) : esc_html__( 'Enable', 'easyrankly' ); ?></a>
+							<a class="button-link-delete erankly-redirects-delete" data-id="<?php echo esc_attr( (string) $id ); ?>" data-source="<?php echo esc_attr( $source_label ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Delete redirect from %s', 'easyrankly' ), $source_label ) ); ?>" href="<?php echo esc_url( $delete_url ); ?>"><?php esc_html_e( 'Delete', 'easyrankly' ); ?></a>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -498,20 +682,26 @@ final class ERankly_Redirects_Admin {
 
 		$id                    = isset( $_POST['redirect_id'] ) ? absint( $_POST['redirect_id'] ) : 0;
 		list( $data, $errors ) = $this->prepare_redirect_data( $_POST );
+		$table_state           = $this->table_state_args( $_POST );
 
 		if ( ! empty( $errors ) ) {
-			$this->redirect_with_error( 'invalid' );
+			$this->store_form_state( $id, $_POST );
+			$args = array_merge( $table_state, array( 'erankly_redirects_error' => (string) reset( $errors ) ) );
+			if ( $id > 0 ) {
+				$args['erankly_redirects_edit'] = $id;
+			}
+			$this->redirect_after_action( $args );
 		}
 
 		if ( $id > 0 ) {
 			$success = $this->repository->update( $id, $data );
-			$this->redirect_after_action( $success ? array( 'erankly_redirects_notice' => 'updated' ) : array( 'erankly_redirects_error' => 'save' ) );
+			$this->redirect_after_action( array_merge( $table_state, $success ? array( 'erankly_redirects_notice' => 'updated' ) : array( 'erankly_redirects_error' => 'save' ) ) );
 
 			return;
 		}
 
 		$created_id = $this->repository->create( $data );
-		$this->redirect_after_action( $created_id > 0 ? array( 'erankly_redirects_notice' => 'created' ) : array( 'erankly_redirects_error' => 'save' ) );
+		$this->redirect_after_action( array_merge( $table_state, $created_id > 0 ? array( 'erankly_redirects_notice' => 'created' ) : array( 'erankly_redirects_error' => 'save' ) ) );
 	}
 
 	private function handle_delete_redirect(): void {
@@ -524,7 +714,7 @@ final class ERankly_Redirects_Admin {
 		check_admin_referer( 'erankly_redirects_delete_' . $id );
 
 		$success = $this->repository->delete( $id );
-		$this->redirect_after_action( $success ? array( 'erankly_redirects_notice' => 'deleted' ) : array( 'erankly_redirects_error' => 'delete' ) );
+		$this->redirect_after_action( array_merge( $this->table_state_args( $_GET ), $success ? array( 'erankly_redirects_notice' => 'deleted' ) : array( 'erankly_redirects_error' => 'delete' ) ) );
 	}
 
 	private function handle_toggle_redirect(): void {
@@ -537,7 +727,7 @@ final class ERankly_Redirects_Admin {
 		check_admin_referer( 'erankly_redirects_toggle_' . $id );
 
 		$success = $this->repository->toggle_active( $id );
-		$this->redirect_after_action( $success ? array( 'erankly_redirects_notice' => 'toggled' ) : array( 'erankly_redirects_error' => 'toggle' ) );
+		$this->redirect_after_action( array_merge( $this->table_state_args( $_GET ), $success ? array( 'erankly_redirects_notice' => 'toggled' ) : array( 'erankly_redirects_error' => 'toggle' ) ) );
 	}
 
 	/**
@@ -558,6 +748,11 @@ final class ERankly_Redirects_Admin {
 		$trailing_slash = isset( $input['trailing_slash'] ) && 'exact' === $input['trailing_slash'] ? 'exact' : 'ignore';
 		$is_active      = ! empty( $input['is_active'] ) ? 1 : 0;
 		$note           = isset( $input['note'] ) ? sanitize_textarea_field( wp_unslash( $input['note'] ) ) : '';
+		$embedded_query = 'regex' === $match_type ? '' : ERankly_Redirects_Normalizer::extract_query( $source_raw );
+		if ( '' !== $embedded_query && '' === $source_query ) {
+			$source_query = sanitize_text_field( $embedded_query );
+			$query_mode   = 'exact';
+		}
 		$source_path    = '' === $match_type ? '' : ERankly_Redirects_Normalizer::normalize_source( $source_raw, 'regex' === $match_type, 'wildcard' === $match_type, (bool) $case_sensitive, $trailing_slash );
 		$is_status_only = ERankly_Redirects_Normalizer::is_status_only_code( $status_code );
 		$target_url     = $is_status_only ? '' : ERankly_Redirects_Normalizer::normalize_target_url( $target_raw );
@@ -611,20 +806,23 @@ final class ERankly_Redirects_Admin {
 	}
 
 	private function redirect_with_error( string $error ): void {
-		$this->redirect_after_action( array( 'erankly_redirects_error' => $error ) );
+		$this->redirect_after_action( array_merge( $this->table_state_args( $_REQUEST ), array( 'erankly_redirects_error' => $error ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- State is read only; mutations verify their action nonce first.
 	}
 
 	/** Redirect to admin page after an action. */
 	private function redirect_after_action( array $args ): void {
-		wp_safe_redirect( add_query_arg( $args, $this->admin_url() ) );
+		wp_safe_redirect( $this->admin_url( $args ) );
 		exit;
 	}
 
-	private function admin_url(): string {
+	private function admin_url( array $args = array() ): string {
 		return add_query_arg(
-			array(
-				'page'        => self::SLUG,
-				'erankly_tab' => 'redirects',
+			array_merge(
+				array(
+					'page'        => self::SLUG,
+					'erankly_tab' => 'redirects',
+				),
+				$args
 			),
 			admin_url( 'options-general.php' )
 		);

@@ -25,7 +25,10 @@
       ER.bindVariablePickers(document);
     }
     bindEach("[data-erankly-linked-defaults]", "bindLinkedDefaults");
-    bindEach("[data-erankly-schema-builder]", "bindSchemaBuilder");
+    bindEach(
+      "[data-erankly-schema-builder], [data-erankly-code-builder]",
+      "bindSchemaBuilder",
+    );
     bindEach("[data-erankly-post-schema]", "bindPostSchemaPanel");
     bindEach("[data-erankly-schema-identity]", "bindSchemaIdentityField");
     bindEach("[data-erankly-user-search-wrap]", "bindUserSearch");
@@ -35,9 +38,8 @@
 
     bindRoot("bindAllSettingsAutosave");
 
-    // Outside-click dismissal is handled per field in bindVariablePicker();
-    // a global click closer here would fire on the very click that focuses a
-    // field and close the menu the instant it opens.
+    // The variables module owns one delegated outside-click listener. Escape
+    // remains here so every picker can also be dismissed from the keyboard.
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape" && typeof ER.closeVariablePicker === "function") {
         document

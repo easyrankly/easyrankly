@@ -7,9 +7,49 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Registers frontend output hooks for custom code snippets. */
 function erankly_custom_code_boot(): void {
+	add_action( 'init', 'erankly_maybe_migrate_legacy_custom_code', 18 );
 	add_action( 'wp_head', 'erankly_render_custom_head_code', 20 );
 	add_action( 'wp_body_open', 'erankly_render_custom_body_open_code', 5 );
 	add_action( 'wp_footer', 'erankly_render_custom_body_close_code', 20 );
+}
+
+/**
+ * Moves pre-block snippets into the repeatable collections before frontend
+ * output. Migration is idempotent and clears a legacy value already present
+ * in a block. A single marked overflow block is permitted when an old site
+ * already has ten snippets, keeping the migration lossless while the UI still
+ * prevents users from adding an eleventh block.
+ */
+function erankly_maybe_migrate_legacy_custom_code(): void {
+	$stored  = erankly_get_stored_settings();
+	$changes = array();
+
+	foreach ( array( 'head_code' => 'head_code_blocks', 'body_open_code' => 'body_open_code_blocks', 'body_close_code' => 'body_close_code_blocks' ) as $legacy_key => $blocks_key ) {
+		$legacy = trim( (string) ( $stored[ $legacy_key ] ?? '' ) );
+		if ( '' === $legacy ) {
+			continue;
+		}
+
+		$blocks    = isset( $stored[ $blocks_key ] ) && is_array( $stored[ $blocks_key ] ) ? array_values( $stored[ $blocks_key ] ) : array();
+		$duplicate = false;
+		foreach ( $blocks as $block ) {
+			$code      = is_array( $block ) ? trim( (string) ( $block['code'] ?? '' ) ) : '';
+			$duplicate = $duplicate || $legacy === $code;
+		}
+
+		if ( $duplicate ) {
+			$changes[ $legacy_key ] = '';
+			continue;
+		}
+
+		$blocks[]              = erankly_custom_code_migrated_block( $legacy );
+		$changes[ $blocks_key ] = $blocks;
+		$changes[ $legacy_key ] = '';
+	}
+
+	if ( array() !== $changes ) {
+		erankly_update_plugin_settings( $changes );
+	}
 }
 
 /**
@@ -50,8 +90,9 @@ function erankly_custom_code_should_output(): bool {
 
 /**
  * Returns the snippets for one location that match the current request.
- * Falls back to the legacy single snippet (pre-block UI) when no blocks
- * exist yet, so upgraded installs keep working before the first resave.
+ * A legacy single snippet is used only as a fail-safe if its atomic migration
+ * could not persist during this request. Successful migrations clear the old
+ * key before frontend output and all ordinary requests use blocks only.
  *
  * @param string $blocks_key One of head_code_blocks, body_open_code_blocks, body_close_code_blocks.
  * @param string $legacy_key One of head_code, body_open_code, body_close_code.
@@ -105,18 +146,6 @@ function erankly_get_matching_custom_code( string $blocks_key, string $legacy_ke
  */
 function erankly_custom_code_block_matches_request( array $block ): bool {
 	return erankly_targeted_block_matches_request( $block );
-}
-
-function erankly_custom_code_matches_post_type_archive( array $block ): bool {
-	return erankly_targeted_block_matches_post_type_archive( $block );
-}
-
-function erankly_custom_code_matches_singular( array $block ): bool {
-	return erankly_targeted_block_matches_singular( $block );
-}
-
-function erankly_custom_code_target_list_contains_post( string $value, int $post_id ): bool {
-	return erankly_target_list_contains_item( $value, 'post', $post_id );
 }
 
 /** Prints the HEAD snippets verbatim (once per request). */

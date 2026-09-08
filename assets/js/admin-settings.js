@@ -90,7 +90,11 @@
       ER.bindVariablePickers(root);
     }
     bindEach(root, "[data-erankly-linked-defaults]", "bindLinkedDefaults");
-    bindEach(root, "[data-erankly-schema-builder]", "bindSchemaBuilder");
+    bindEach(
+      root,
+      "[data-erankly-schema-builder], [data-erankly-code-builder]",
+      "bindSchemaBuilder",
+    );
     bindEach(root, "[data-erankly-post-schema]", "bindPostSchemaPanel");
     bindEach(root, "[data-erankly-schema-identity]", "bindSchemaIdentityField");
     bindEach(root, "[data-erankly-user-search-wrap]", "bindUserSearch");

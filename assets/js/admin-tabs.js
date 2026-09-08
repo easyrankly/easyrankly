@@ -408,6 +408,7 @@
     var status = container.querySelector("[data-erankly-linked-status]");
     var action = container.querySelector("[data-erankly-linked-action]");
     var summary = container.querySelector(".erankly-linked-tabs-summary");
+    var tabList = container.querySelector("[data-erankly-sliding-tabs]");
     var tabs = Array.prototype.slice.call(
       container.querySelectorAll(".erankly-tabs [data-erankly-tab]"),
     );
@@ -429,6 +430,24 @@
       summary.hidden = !isLinked;
     }
 
+    if (tabList) {
+      var summaryId = tabList.getAttribute("data-erankly-linked-summary-id") || "";
+      if (isLinked) {
+        tabList.setAttribute("role", "group");
+        tabList.removeAttribute("aria-label");
+        if (summaryId) {
+          tabList.setAttribute("aria-labelledby", summaryId);
+        }
+      } else {
+        tabList.setAttribute("role", "tablist");
+        tabList.removeAttribute("aria-labelledby");
+        tabList.setAttribute(
+          "aria-label",
+          tabList.getAttribute("data-erankly-tabs-label") || "",
+        );
+      }
+    }
+
     tabs.forEach(function (tab) {
       var isActive =
         !isLinked && tab.getAttribute("data-erankly-tab") === target;
@@ -444,6 +463,22 @@
         tab.setAttribute("tabindex", "-1");
       } else {
         tab.setAttribute("tabindex", isActive ? "0" : "-1");
+      }
+    });
+
+    panels.forEach(function (panel) {
+      var isActive = panel.getAttribute("data-erankly-panel") === target;
+      var relatedTab = tabs.filter(function (tab) {
+        return tab.getAttribute("data-erankly-tab") ===
+          panel.getAttribute("data-erankly-panel");
+      })[0];
+
+      panel.classList.toggle("is-active", isActive);
+      panel.hidden = !isActive;
+      if (isLinked && isActive && summary) {
+        panel.setAttribute("aria-labelledby", summary.id);
+      } else if (relatedTab) {
+        panel.setAttribute("aria-labelledby", relatedTab.id);
       }
     });
 

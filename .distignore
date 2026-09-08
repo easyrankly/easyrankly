@@ -2,6 +2,7 @@
 # Used by `wp dist-archive` and as reference for wordpress.org SVN deployments.
 /.git
 /.gitignore
+/.github
 /.delta
 /.distignore
 /.DS_Store

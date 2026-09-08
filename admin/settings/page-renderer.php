@@ -292,10 +292,10 @@ function erankly_render_settings_page(): void {
 				<?php endif; ?>
 					<input type="hidden" name="<?php echo esc_attr( ERANKLY_OPTION ); ?>[erankly_settings_panel]" value="<?php echo esc_attr( erankly_active_panel_submission_slug( $active_panel ) ); ?>">
 					<?php if ( 'settings-features' === $active_panel ) : ?>
-							<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $custom_code_enabled, $active_panel ); ?>
+							<?php erankly_render_settings_panel_features( $settings, $redirects_enabled, $sitemap_enabled, $custom_code_enabled ); ?>
 					<?php endif; ?>
 					<?php if ( 'settings-general' === $active_panel ) : ?>
-						<?php erankly_render_settings_panel_general( $settings, $schema_person_user_id, $schema_person_user, $show_organization_fields, $active_panel ); ?>
+						<?php erankly_render_settings_panel_general( $settings, $schema_person_user_id, $schema_person_user, $show_organization_fields ); ?>
 					<?php endif; ?>
 					<?php if ( 'settings-social' === $active_panel ) : ?>
 						<?php erankly_render_settings_panel_social( $settings ); ?>
@@ -307,10 +307,10 @@ function erankly_render_settings_page(): void {
 					<?php erankly_render_settings_panel_sitemap( $settings, $sitemap_url ); ?>
 				<?php endif; ?>
 					<?php if ( $custom_code_enabled && 'settings-custom-code' === $active_panel ) : ?>
-						<?php erankly_render_settings_panel_custom_code( $settings, $head_code_blocks, $head_code_name, $body_open_code_blocks, $body_open_code_name, $body_close_code_blocks, $body_close_code_name ); ?>
+						<?php erankly_render_settings_panel_custom_code( $head_code_blocks, $head_code_name, $body_open_code_blocks, $body_open_code_name, $body_close_code_blocks, $body_close_code_name ); ?>
 					<?php endif; ?>
 					<?php if ( 'settings-settings' === $active_panel ) : ?>
-						<?php erankly_render_settings_panel_settings( $settings, $redirects_enabled ); ?>
+						<?php erankly_render_settings_panel_settings( $settings ); ?>
 					<?php endif; ?>
 					<?php if ( 'settings-advanced' === $active_panel ) : ?>
 						<?php erankly_render_settings_panel_advanced( $settings ); ?>
@@ -326,13 +326,13 @@ function erankly_render_settings_page(): void {
 				</form>
 				<?php endif; ?>
 			<?php if ( $show_site_special_tab && 'settings-special-pages' === $active_panel ) : ?>
-			<div class="erankly-tab-panel<?php echo 'settings-special-pages' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-special-pages" role="tabpanel" aria-labelledby="erankly-settings-tab-special-pages" data-erankly-settings-panel="settings-special-pages" data-erankly-standalone-panel <?php echo 'settings-special-pages' === $active_panel ? '' : 'hidden'; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-special-pages" role="region" aria-labelledby="erankly-settings-tab-special-pages" data-erankly-settings-panel="settings-special-pages">
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<?php wp_nonce_field( 'erankly_site_special_meta' ); ?>
 					<input type="hidden" name="action" value="erankly_save_site_special_meta">
 					<div class="erankly-settings-section">
 						<div class="erankly-section-title-row">
-							<h3 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h3>
+							<h2 class="erankly-section-title"><?php esc_html_e( 'Special pages and archives', 'easyrankly' ); ?></h2>
 							<?php erankly_render_section_doc_link( 'special-pages' ); ?>
 						</div>
 						<div class="erankly-card">
@@ -343,12 +343,12 @@ function erankly_render_settings_page(): void {
 			</div>
 			<?php endif; ?>
 			<?php if ( $show_import_export_tab && 'settings-import-export' === $active_panel && function_exists( 'erankly_import_export_render_panel' ) ) : ?>
-			<div class="erankly-tab-panel<?php echo 'settings-import-export' === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-import-export" role="tabpanel" aria-labelledby="erankly-settings-tab-import-export" data-erankly-settings-panel="settings-import-export" <?php echo 'settings-import-export' === $active_panel ? '' : 'hidden'; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-import-export" role="region" aria-labelledby="erankly-settings-tab-import-export" data-erankly-settings-panel="settings-import-export">
 				<?php erankly_import_export_render_panel(); ?>
 			</div>
 			<?php endif; ?>
 			<?php if ( $show_redirects_tab && 'settings-redirects' === $active_panel && function_exists( 'erankly_redirects_render_panel' ) ) : ?>
-			<div class="erankly-tab-panel<?php echo 'settings-redirects' === $active_panel ? ' is-active' : ''; ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-redirects" data-erankly-settings-panel="settings-redirects" <?php echo 'settings-redirects' === $active_panel ? '' : 'hidden'; ?>>
+			<div class="erankly-tab-panel is-active" role="region" aria-labelledby="erankly-settings-tab-redirects" data-erankly-settings-panel="settings-redirects">
 				<?php erankly_redirects_render_panel(); ?>
 			</div>
 			<?php endif; ?>
@@ -362,7 +362,7 @@ function erankly_render_settings_page(): void {
 					continue;
 				}
 				?>
-			<div class="erankly-tab-panel<?php echo $extra_panel === $active_panel ? ' is-active' : ''; ?>" id="erankly-settings-panel-<?php echo esc_attr( $extra_slug ); ?>" role="tabpanel" aria-labelledby="erankly-settings-tab-<?php echo esc_attr( $extra_slug ); ?>" data-erankly-settings-panel="<?php echo esc_attr( $extra_panel ); ?>" data-erankly-standalone-panel <?php echo $extra_panel === $active_panel ? '' : 'hidden'; ?>>
+			<div class="erankly-tab-panel is-active" id="erankly-settings-panel-<?php echo esc_attr( $extra_slug ); ?>" role="region" aria-labelledby="erankly-settings-tab-<?php echo esc_attr( $extra_slug ); ?>" data-erankly-settings-panel="<?php echo esc_attr( $extra_panel ); ?>">
 				<?php
 				do_action( 'erankly_render_settings_tab_' . $extra_slug, $screen_context );
 				?>

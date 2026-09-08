@@ -112,6 +112,77 @@ function erankly_settings_collection_keys(): array {
 }
 
 /**
+ * Registers an add-on checkbox in the Features panel as one atomic pipeline.
+ *
+ * Calling this during plugin loading wires the visible control, the server and
+ * client autosave allowlists, unchecked-toggle handling, refresh behavior and
+ * any repeatable collections owned by the feature. This avoids a control that
+ * renders and submits successfully but is silently discarded by a missing
+ * companion filter.
+ *
+ * The render callback receives the complete settings array and the sanitized
+ * setting key. It must print the checkbox field whose name uses that key.
+ *
+ * @param string              $setting_key    Boolean setting key.
+ * @param callable            $render_callback Callback used by the Features renderer.
+ * @param array<int,string>   $collection_keys Repeatable setting collections owned by the feature.
+ */
+function erankly_register_settings_feature_module( string $setting_key, callable $render_callback, array $collection_keys = array() ): void {
+	$setting_key    = sanitize_key( $setting_key );
+	$collection_keys = array_values( array_filter( array_map( 'sanitize_key', $collection_keys ) ) );
+
+	if ( '' === $setting_key ) {
+		return;
+	}
+
+	add_action(
+		'erankly_settings_features_modules',
+		static function ( array $settings ) use ( $render_callback, $setting_key ): void {
+			call_user_func( $render_callback, $settings, $setting_key );
+		}
+	);
+
+	add_filter(
+		'erankly_settings_toggle_keys',
+		static function ( array $keys ) use ( $setting_key ): array {
+			$keys[] = $setting_key;
+			return array_values( array_unique( $keys ) );
+		}
+	);
+
+	if ( $collection_keys ) {
+		add_filter(
+			'erankly_settings_collection_keys',
+			static function ( array $keys ) use ( $collection_keys ): array {
+				return array_values( array_unique( array_merge( $keys, $collection_keys ) ) );
+			}
+		);
+	}
+
+	add_filter(
+		'erankly_settings_autosave_panels',
+		static function ( array $panels ) use ( $setting_key, $collection_keys ): array {
+			$panels['features']         = isset( $panels['features'] ) && is_array( $panels['features'] ) ? $panels['features'] : array();
+			$panels['features']['keys'] = isset( $panels['features']['keys'] ) && is_array( $panels['features']['keys'] ) ? $panels['features']['keys'] : array();
+			$panels['features']['keys'] = array_values( array_unique( array_merge( $panels['features']['keys'], array( $setting_key ), $collection_keys ) ) );
+			return $panels;
+		}
+	);
+
+	add_filter(
+		'erankly_settings_autosave_client_panels',
+		static function ( array $panels ) use ( $setting_key ): array {
+			$panels['features']                = isset( $panels['features'] ) && is_array( $panels['features'] ) ? $panels['features'] : array();
+			$panels['features']['restUrl']     = $panels['features']['restUrl'] ?? esc_url_raw( rest_url( 'erankly/v1/settings/features' ) );
+			$panels['features']['reloadOnSave'] = true;
+			$refresh_keys                       = isset( $panels['features']['refreshKeys'] ) && is_array( $panels['features']['refreshKeys'] ) ? $panels['features']['refreshKeys'] : array();
+			$panels['features']['refreshKeys']  = array_values( array_unique( array_merge( $refresh_keys, array( $setting_key ) ) ) );
+			return $panels;
+		}
+	);
+}
+
+/**
  * @param string $panel Panel slug such as "features" or "general".
  * @return array<int,string>
  */
@@ -140,7 +211,6 @@ function erankly_settings_panel_keys( string $panel ): array {
 function erankly_merge_settings_submission( array $input, string $panel = '' ): array {
 	$stored   = erankly_get_settings();
 	$panel    = sanitize_key( $panel );
-	$raw_keys = array_keys( $input );
 
 	if ( '' !== $panel ) {
 		$panel_keys      = erankly_settings_panel_keys( $panel );

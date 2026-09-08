@@ -31,6 +31,25 @@ function erankly_filter_document_title_parts( array $parts ): array {
 	return $parts;
 }
 
+/**
+ * Resolves a stored title/description template and normalises the result.
+ *
+ * A template whose variables all resolve to nothing — {{term_description}} on a
+ * term with no description, {{post_excerpt}} on a post with none — has to fall
+ * back exactly like an unset field, so every caller judges emptiness on what
+ * this returns rather than on the raw stored value. Normalising here (not only
+ * at the end) also means a leftover " - " counts as empty.
+ *
+ * @param array<int,string> $exclude Variables that must not resolve for this call.
+ */
+function erankly_resolve_seo_template( string $template, int $post_id = 0, array $exclude = array() ): string {
+	if ( '' === $template ) {
+		return '';
+	}
+
+	return erankly_normalize_seo_text( erankly_replace_variables( $template, $post_id, $exclude ) );
+}
+
 function erankly_get_title(): string {
 	static $resolved = null;
 
@@ -51,19 +70,17 @@ function erankly_get_title(): string {
 				$title = erankly_get_global_post_type_meta( $post_type, 'title' );
 			}
 		}
+		$title = erankly_resolve_seo_template( $title, $post_id, array( 'seo_title' ) );
 
 		if ( '' === $title ) {
 			$title = single_post_title( '', false );
-		} else {
-			$title = erankly_replace_variables( $title, $post_id, array( 'seo_title' ) );
 		}
 	} elseif ( is_home() || is_front_page() ) {
 		$special_key = is_front_page() ? 'homepage' : 'blog';
 		$title       = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
+		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
 
-		if ( '' !== $title ) {
-			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
-		} else {
+		if ( '' === $title ) {
 			$title = get_bloginfo( 'name' );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
@@ -75,10 +92,7 @@ function erankly_get_title(): string {
 			if ( '' === $title ) {
 				$title = erankly_get_global_taxonomy_meta( $term->taxonomy, 'title' );
 			}
-
-			if ( '' !== $title ) {
-				$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
-			}
+			$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
 		}
 
 		if ( '' === $title ) {
@@ -88,10 +102,7 @@ function erankly_get_title(): string {
 		$post_type = get_query_var( 'post_type' );
 		$post_type = is_array( $post_type ) ? reset( $post_type ) : $post_type;
 		$title     = is_string( $post_type ) ? erankly_get_global_post_type_meta( $post_type, 'title' ) : '';
-
-		if ( '' !== $title ) {
-			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
-		}
+		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
 
 		if ( '' === $title ) {
 			$title = get_the_archive_title();
@@ -100,20 +111,18 @@ function erankly_get_title(): string {
 		$special_key = is_author() ? 'author' : 'date';
 		$title       = is_author() ? trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_title', true ) ) : '';
 		$title       = '' !== $title ? $title : erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'title' );
+		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
 
-		if ( '' !== $title ) {
-			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
-		} else {
+		if ( '' === $title ) {
 			$title = get_the_archive_title();
 		}
 	} elseif ( is_archive() ) {
 		$title = get_the_archive_title();
 	} elseif ( is_search() ) {
 		$title = erankly_get_global_entity_meta( 'global_special_meta', 'search', 'title' );
+		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
 
-		if ( '' !== $title ) {
-			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
-		} else {
+		if ( '' === $title ) {
 			$title = sprintf(
 				/* translators: %s: Search query. */
 				__( 'Search results for %s', 'easyrankly' ),
@@ -122,10 +131,9 @@ function erankly_get_title(): string {
 		}
 	} elseif ( is_404() ) {
 		$title = erankly_get_global_entity_meta( 'global_special_meta', '404', 'title' );
+		$title = erankly_resolve_seo_template( $title, 0, array( 'seo_title' ) );
 
-		if ( '' !== $title ) {
-			$title = erankly_replace_variables( $title, 0, array( 'seo_title' ) );
-		} else {
+		if ( '' === $title ) {
 			$title = __( 'Page not found', 'easyrankly' );
 		}
 	}
@@ -170,6 +178,7 @@ function erankly_get_description(): string {
 				$description = erankly_get_global_post_type_meta( $post_type, 'description' );
 			}
 		}
+		$description = erankly_resolve_seo_template( $description, $post_id, array( 'meta_description' ) );
 
 		if ( '' === $description ) {
 			$post = get_post( $post_id );
@@ -178,8 +187,6 @@ function erankly_get_description(): string {
 				$description                    = has_excerpt( $post ) ? get_the_excerpt( $post ) : $post->post_content;
 				$description_generated_fallback = true;
 			}
-		} else {
-			$description = erankly_replace_variables( $description, $post_id, array( 'meta_description' ) );
 		}
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
@@ -190,10 +197,7 @@ function erankly_get_description(): string {
 			if ( '' === $description ) {
 				$description = erankly_get_global_taxonomy_meta( $term->taxonomy, 'description' );
 			}
-
-			if ( '' !== $description ) {
-				$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-			}
+			$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 		}
 
 		if ( '' === $description ) {
@@ -204,45 +208,31 @@ function erankly_get_description(): string {
 		$post_type   = get_query_var( 'post_type' );
 		$post_type   = is_array( $post_type ) ? reset( $post_type ) : $post_type;
 		$description = is_string( $post_type ) ? erankly_get_global_post_type_meta( $post_type, 'description' ) : '';
-
-		if ( '' !== $description ) {
-			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-		}
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 	} elseif ( is_author() ) {
 		$description = trim( (string) get_user_meta( (int) get_queried_object_id(), '_erankly_description', true ) );
 		$description = '' !== $description ? $description : erankly_get_global_entity_meta( 'global_special_meta', 'author', 'description' );
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 
-		if ( '' !== $description ) {
-			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-		} else {
+		if ( '' === $description ) {
 			$description                    = get_the_author_meta( 'description', (int) get_queried_object_id() );
 			$description_generated_fallback = true;
 		}
 	} elseif ( is_date() ) {
 		$description = erankly_get_global_entity_meta( 'global_special_meta', 'date', 'description' );
-
-		if ( '' !== $description ) {
-			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-		}
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 	} elseif ( is_search() ) {
 		$description = erankly_get_global_entity_meta( 'global_special_meta', 'search', 'description' );
-
-		if ( '' !== $description ) {
-			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-		}
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 	} elseif ( is_404() ) {
 		$description = erankly_get_global_entity_meta( 'global_special_meta', '404', 'description' );
-
-		if ( '' !== $description ) {
-			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-		}
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 	} elseif ( is_home() || is_front_page() ) {
 		$special_key = is_front_page() ? 'homepage' : 'blog';
 		$description = erankly_get_global_entity_meta( 'global_special_meta', $special_key, 'description' );
+		$description = erankly_resolve_seo_template( $description, 0, array( 'meta_description' ) );
 
-		if ( '' !== $description ) {
-			$description = erankly_replace_variables( $description, 0, array( 'meta_description' ) );
-		} else {
+		if ( '' === $description ) {
 			$description = get_bloginfo( 'description' );
 		}
 	}

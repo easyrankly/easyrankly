@@ -33,7 +33,6 @@
 		twitter_title: '_erankly_twitter_title',
 		twitter_description: '_erankly_twitter_description',
 		twitter_card_type: '_erankly_twitter_card_type',
-		social_image_url: '_erankly_social_image_url',
 		og_image_url: '_erankly_og_image_url',
 		og_image_id: '_erankly_og_image_id',
 		og_image_alt: '_erankly_og_image_alt',

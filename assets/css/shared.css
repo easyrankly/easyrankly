@@ -48,6 +48,12 @@
 	--erankly-color-error-surface: #fcf0f1;
 	--erankly-color-error-border: #e7b7bd;
 	--erankly-color-danger: #d63638;
+	/* Modern, muted orange for "we can't show this yet" states (e.g. the
+	   {{variable}} preview overlay's unavailable marker). Kept apart from
+	   --erankly-color-warning, which flags something the user should act on. */
+	--erankly-color-orange: #c2410c;
+	--erankly-color-orange-surface: #fdf3ee;
+	--erankly-color-orange-border: #f0c2a8;
 	--erankly-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.12);
 	--erankly-font-mono: Consolas, Monaco, monospace;
 }
@@ -123,6 +129,24 @@
 	overflow-y: auto;
 }
 
+.erankly-variable-group[hidden] {
+	display: none;
+}
+
+.erankly-variable-group + .erankly-variable-group {
+	border-top: 1px solid var(--erankly-color-border);
+}
+
+.erankly-variable-group-label {
+	color: var(--erankly-color-muted);
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	padding: var(--erankly-space-2) var(--erankly-space-3) var(--erankly-space-1);
+	text-transform: uppercase;
+}
+
 .erankly-variable-option {
 	align-items: baseline;
 	background: none;
@@ -160,8 +184,7 @@
 .erankly-settings input[type="number"],
 .erankly-meta-box input[type="number"],
 .erankly-term-meta-box input[type="number"],
-.erankly-panel input[type="number"],
-.erankly-redirects-form input[type="number"] {
+.erankly-panel input[type="number"] {
 	-moz-appearance: textfield;
 	appearance: textfield;
 }
@@ -173,9 +196,7 @@
 .erankly-term-meta-box input[type="number"]::-webkit-outer-spin-button,
 .erankly-term-meta-box input[type="number"]::-webkit-inner-spin-button,
 .erankly-panel input[type="number"]::-webkit-outer-spin-button,
-.erankly-panel input[type="number"]::-webkit-inner-spin-button,
-.erankly-redirects-form input[type="number"]::-webkit-outer-spin-button,
-.erankly-redirects-form input[type="number"]::-webkit-inner-spin-button {
+.erankly-panel input[type="number"]::-webkit-inner-spin-button {
 	-webkit-appearance: none;
 	appearance: none;
 	margin: 0;

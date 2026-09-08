@@ -395,6 +395,7 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 		'fields'    => array( 'erankly-admin-fields', 'admin-fields.js' ),
 		'variables' => array( 'erankly-admin-variables', 'admin-variables.js' ),
 		'schema'    => array( 'erankly-admin-schema', 'admin-schema.js' ),
+		'blocks'    => array( 'erankly-admin-schema', 'admin-schema.js' ),
 		'widgets'   => array( 'erankly-admin-widgets', 'admin-widgets.js' ),
 		'settings'  => array( 'erankly-admin-settings', 'admin-settings.js' ),
 		'panels'    => array( 'erankly-admin-panels', 'admin-panels.js' ),
@@ -411,7 +412,7 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 		list( $handle, $file ) = $registry[ $module ];
 		$module_deps = array();
 
-		if ( 'schema' === $module ) {
+		if ( 'schema' === $module || 'blocks' === $module ) {
 			wp_enqueue_script(
 				'erankly-schema-jsonld',
 				ERANKLY_URL . 'assets/js/schema-jsonld.js',
@@ -447,12 +448,12 @@ function erankly_admin_enqueue_scripts( array $requested_modules ): string {
 /** @return array<int,string> */
 function erankly_admin_asset_modules( string $surface ): array {
 	$settings_modules = array(
-		'general'       => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
+		'general'       => array( 'tabs', 'variables', 'blocks', 'widgets', 'settings' ),
 		'features'      => array( 'tabs', 'settings' ),
 		'social'        => array( 'tabs', 'media', 'variables', 'settings' ),
 		'schema'        => array( 'tabs', 'variables', 'schema', 'widgets', 'settings' ),
 		'sitemap'       => array( 'tabs', 'settings' ),
-		'custom-code'   => array( 'tabs', 'variables', 'schema', 'settings' ),
+		'custom-code'   => array( 'tabs', 'blocks', 'settings' ),
 		'settings'      => array( 'tabs', 'settings', 'reset' ),
 		'advanced'      => array( 'tabs', 'variables', 'settings' ),
 		'import-export' => array( 'tabs', 'fields' ),

@@ -380,9 +380,11 @@ final class ERankly_Redirects_Repository {
 			return array( '', array() );
 		}
 
+		$like = '%' . $wpdb->esc_like( $search ) . '%';
+
 		return array(
-			' WHERE source_path LIKE %s',
-			array( '%' . $wpdb->esc_like( $search ) . '%' ),
+			' WHERE (source_path LIKE %s OR target_url LIKE %s OR COALESCE(note, %s) LIKE %s OR match_type LIKE %s OR query_mode LIKE %s OR CAST(status_code AS CHAR) LIKE %s)',
+			array( $like, $like, '', $like, $like, $like, $like ),
 		);
 	}
 
@@ -399,8 +401,8 @@ final class ERankly_Redirects_Repository {
 	/**
  * List redirects for admin.
  *
- * @param string $search  Search term matched against the source path.
- * @param string $orderby Column to sort by. Must be a key of SORTABLE_COLUMNS; any other
+	 * @param string $search  Search term matched against rule details.
+	 * @param string $orderby Column to sort by. Must be a key of SORTABLE_COLUMNS; any other value uses newest first.
  * @param string $order   Sort direction, `asc` or `desc`.
  * @return array<int,array<string,mixed>>
  */
@@ -435,7 +437,7 @@ final class ERankly_Redirects_Repository {
 		return is_array( $rows ) ? $rows : array();
 	}
 
-	/** @param string $search Search term matched against the source path. */
+	/** @param string $search Search term matched against rule details. */
 	public function count_redirects( string $search = '' ): int {
 		global $wpdb;
 
@@ -614,6 +616,10 @@ final class ERankly_Redirects_Repository {
 		);
 		$data       = array_intersect_key( array_merge( $defaults, $data ), $defaults );
 		$data['match_type']  = $match_type;
+		$data['status_code'] = (int) $data['status_code'];
+		if ( ERankly_Redirects_Normalizer::is_status_only_code( $data['status_code'] ) ) {
+			$data['target_url'] = '';
+		}
 		$data['source_hash'] = ERankly_Redirects_Normalizer::source_hash( ERankly_Redirects_Normalizer::normalize_path( (string) $data['source_path'] ) );
 		$data['rule_hash']   = ERankly_Redirects_Normalizer::rule_hash( $data );
 

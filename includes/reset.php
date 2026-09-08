@@ -66,7 +66,8 @@ function erankly_reset_handle_actions(): void {
 		try {
 			erankly_reset_site_data();
 			erankly_reset_redirect( array( 'erankly_reset_notice' => 'local' ) );
-		} catch ( Throwable ) {
+		} catch ( Throwable $error ) {
+			erankly_reset_debug_log( $error, 'site reset' );
 			erankly_reset_redirect( array( 'erankly_reset_notice' => 'local_failed' ) );
 		}
 	}
@@ -76,13 +77,21 @@ function erankly_reset_handle_actions(): void {
 	if ( 'reset_global' === $action && is_multisite() && is_network_admin() ) {
 		try {
 			$queued = erankly_reset_network();
-		} catch ( Throwable ) {
+		} catch ( Throwable $error ) {
+			erankly_reset_debug_log( $error, 'network reset queue' );
 			$queued = false;
 		}
 
 		erankly_reset_redirect(
 			array( 'erankly_reset_notice' => $queued ? 'global_queued' : 'global_failed' )
 		);
+	}
+}
+
+/** Logs a reset failure without exposing internal details in the admin notice. */
+function erankly_reset_debug_log( Throwable $error, string $context ): void {
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		error_log( sprintf( 'EasyRankly %s failed: %s', $context, $error->getMessage() ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Diagnostic output is gated by WP_DEBUG.
 	}
 }
 
@@ -300,11 +309,19 @@ function erankly_reset_render_panel(): void {
 
 	<div class="erankly-settings-section">
 		<div class="erankly-section-title-row">
-			<h3 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h3>
+			<h2 class="erankly-section-title"><?php esc_html_e( 'Reset', 'easyrankly' ); ?></h2>
 			<?php erankly_render_section_doc_link( 'reset' ); ?>
 		</div>
 		<section class="erankly-card">
-			<p class="description"><?php esc_html_e( 'This permanently deletes all settings, redirects, and SEO metadata. Back up first.', 'easyrankly' ); ?></p>
+			<p class="description">
+				<?php
+				if ( $is_network ) {
+					esc_html_e( 'Choose whether to delete this site’s redirects and SEO metadata only, or reset EasyRankly across the entire network. Back up first.', 'easyrankly' );
+				} else {
+					esc_html_e( 'This permanently deletes all EasyRankly settings, redirects, and SEO metadata on this site. Back up first.', 'easyrankly' );
+				}
+				?>
+			</p>
 			<?php if ( $is_network ) : ?>
 				<p class="description"><?php esc_html_e( 'Local reset cleans up only this Network Admin\'s primary site; network reset wipes the network-wide settings and every site.', 'easyrankly' ); ?></p>
 			<?php endif; ?>
@@ -314,8 +331,8 @@ function erankly_reset_render_panel(): void {
 			 * the Network Admin save form), so these actions cannot be their own
 			 * nested <form>. Browsers do not support nested forms and a button
 			 * inside one would end up submitting the outer settings form instead.
-			 * A confirmation modal opens first (see erankly-confirm-modal in
-			 * admin.js); its own Delete button then assembles and submits a
+				 * A confirmation modal opens first (see [data-erankly-reset-modal] in
+				 * admin-reset.js); its own Delete button then assembles and submits a
 			 * standalone form appended to <body>.
 			 */
 			?>
@@ -348,6 +365,7 @@ function erankly_reset_render_panel(): void {
 					><?php echo esc_html( $global_label ); ?></button>
 				<?php endif; ?>
 			</p>
+			<noscript><p class="notice notice-warning inline"><?php esc_html_e( 'JavaScript is required to open the reset confirmation dialog. Enable JavaScript before using these destructive actions.', 'easyrankly' ); ?></p></noscript>
 		</section>
 	</div>
 
@@ -383,5 +401,9 @@ function erankly_reset_render_notice(): void {
 
 	if ( 'global_failed' === $notice ) {
 		echo '<div class="notice notice-error"><p>' . esc_html__( 'EasyRankly could not start the network reset, so no plugin data was changed. Resolve the database or Cron scheduling issue, then run the reset again.', 'easyrankly' ) . '</p></div>';
+	}
+
+	if ( '' !== $notice ) {
+		echo '<script>if(window.history&&window.history.replaceState){var u=new URL(window.location.href);u.searchParams.delete("erankly_reset_notice");window.history.replaceState({},document.title,u.pathname+u.search+u.hash);}</script>';
 	}
 }

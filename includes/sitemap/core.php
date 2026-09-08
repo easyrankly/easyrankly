@@ -11,6 +11,111 @@ const ERANKLY_SITEMAP_PER_PAGE = 1000;
 // Core wp_sitemaps integration (posts / taxonomies / users).
 
 /**
+ * Caches a native provider URL list after all public WordPress and EasyRankly
+ * entry filters have run. A recursion guard lets the provider build the cache
+ * on a miss without short-circuiting its own query.
+ *
+ * @return array<int,array<string,string>>|null
+ */
+function erankly_cache_core_sitemap_url_list( ?array $url_list, string $provider_name, string $object_subtype, int $page_num ): ?array {
+	if ( null !== $url_list || $page_num < 1 ) {
+		return $url_list;
+	}
+
+	/** @param bool $enabled Whether native post, term and user URL lists should use the EasyRankly transient cache. */
+	if ( ! apply_filters( 'erankly_cache_core_sitemap_url_lists', true ) ) {
+		return null;
+	}
+
+	static $building = array();
+	$build_key       = $provider_name . ':' . $object_subtype . ':' . $page_num;
+
+	if ( ! empty( $building[ $build_key ] ) ) {
+		return null;
+	}
+
+	$cache_key = erankly_get_sitemap_cache_key( 'core_' . $provider_name . '_' . $object_subtype . '_' . $page_num );
+	$cached    = get_transient( $cache_key );
+
+	if ( is_array( $cached ) && isset( $cached['urls'] ) && is_array( $cached['urls'] ) ) {
+		return $cached['urls'];
+	}
+
+	$server   = wp_sitemaps_get_server();
+	$provider = $server->registry->get_provider( $provider_name );
+
+	if ( ! $provider instanceof WP_Sitemaps_Provider ) {
+		return null;
+	}
+
+	$building[ $build_key ] = true;
+	try {
+		$urls = $provider->get_url_list( $page_num, $object_subtype );
+	} finally {
+		unset( $building[ $build_key ] );
+	}
+
+	if ( ! is_array( $urls ) ) {
+		return null;
+	}
+
+	/** @param int $ttl Native sitemap URL-list cache lifetime in seconds. */
+	$ttl = max( 0, (int) apply_filters( 'erankly_core_sitemap_cache_ttl', HOUR_IN_SECONDS ) );
+	if ( $ttl > 0 ) {
+		set_transient( $cache_key, array( 'urls' => $urls ), $ttl );
+	}
+
+	return $urls;
+}
+
+/** @return array<int,array<string,string>>|null */
+function erankly_cache_core_sitemap_posts_url_list( ?array $url_list, string $post_type, int $page_num ): ?array {
+	return erankly_cache_core_sitemap_url_list( $url_list, 'posts', $post_type, $page_num );
+}
+
+/** @return array<int,array<string,string>>|null */
+function erankly_cache_core_sitemap_taxonomies_url_list( ?array $url_list, string $taxonomy, int $page_num ): ?array {
+	return erankly_cache_core_sitemap_url_list( $url_list, 'taxonomies', $taxonomy, $page_num );
+}
+
+/** @return array<int,array<string,string>>|null */
+function erankly_cache_core_sitemap_users_url_list( ?array $url_list, int $page_num ): ?array {
+	return erankly_cache_core_sitemap_url_list( $url_list, 'users', '', $page_num );
+}
+
+/** Starts buffering only native XML sitemap routes, before WordPress renders them. */
+function erankly_start_core_sitemap_output_buffer(): void {
+	if ( '' === (string) get_query_var( 'sitemap' ) || headers_sent() ) {
+		return;
+	}
+
+	ob_start( 'erankly_filter_core_sitemap_response' );
+}
+
+/**
+ * Adds shared-cache headers and conditional ETag handling to native XML
+ * sitemap responses. Non-XML 404 output is left untouched.
+ */
+function erankly_filter_core_sitemap_response( string $body ): string {
+	if ( ! str_starts_with( ltrim( $body ), '<?xml' ) || headers_sent() ) {
+		return $body;
+	}
+
+	$etag = '"' . hash( 'sha256', $body ) . '"';
+	header( 'Cache-Control: public, max-age=300, stale-while-revalidate=60' );
+	header( 'ETag: ' . $etag );
+
+	$requested_etag = isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) ? trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) ) : '';
+	if ( '*' === $requested_etag || in_array( $etag, array_map( 'trim', explode( ',', $requested_etag ) ), true ) ) {
+		status_header( 304 );
+		header_remove( 'Content-Length' );
+		return '';
+	}
+
+	return $body;
+}
+
+/**
  * Injects EasyRankly's per-post exclusion meta_query into core sitemap post queries. Respects the canonical
  * index directive, the legacy noindex flag and the explicit sitemap exclusion setting.
  *
@@ -472,6 +577,15 @@ function erankly_get_non_self_canonical_post_ids( array $post_types = array() ):
 		$canonical = erankly_replace_variables( $canonical, $post_id, array( 'canonical_url' ) );
 		$permalink = (string) get_permalink( $post_id );
 
+		// A template that resolves to nothing (unknown token, unresolvable
+		// link) leaves the front end without a canonical tag at all, which
+		// browsers and crawlers read as self-canonical. Comparing '' against
+		// the self URL never matches, so without this the entry would be
+		// dropped from the sitemap even though it points at itself.
+		if ( '' === trim( $canonical ) ) {
+			continue;
+		}
+
 		if ( erankly_normalize_canonical_comparison_url( $canonical ) !== erankly_normalize_canonical_comparison_url( $permalink ) ) {
 			$excluded[] = $post_id;
 		}
@@ -628,6 +742,15 @@ function erankly_get_non_self_canonical_term_ids( string $taxonomy ): array {
 			$term_link = get_term_link( $term );
 			$term_link = is_wp_error( $term_link ) ? '' : (string) $term_link;
 
+			// A template that resolves to nothing (unknown token, unresolvable
+			// link) leaves the front end without a canonical tag at all, which
+			// browsers and crawlers read as self-canonical. Comparing '' against
+			// the self URL never matches, so without this the entry would be
+			// dropped from the sitemap even though it points at itself.
+			if ( '' === trim( $canonical ) ) {
+				continue;
+			}
+
 			if ( erankly_normalize_canonical_comparison_url( $canonical ) !== erankly_normalize_canonical_comparison_url( $term_link ) ) {
 				$excluded[] = $term_id;
 			}
@@ -668,6 +791,15 @@ function erankly_get_non_self_canonical_user_ids(): array {
 		$canonical = trim( (string) get_user_meta( $user_id, '_erankly_canonical', true ) );
 		$canonical = erankly_replace_sitemap_user_canonical_variables( $canonical, $user );
 		$self      = get_author_posts_url( $user_id );
+
+		// A template that resolves to nothing (unknown token, unresolvable
+		// link) leaves the front end without a canonical tag at all, which
+		// browsers and crawlers read as self-canonical. Comparing '' against
+		// the self URL never matches, so without this the entry would be
+		// dropped from the sitemap even though it points at itself.
+		if ( '' === trim( $canonical ) ) {
+			continue;
+		}
 
 		if ( erankly_normalize_canonical_comparison_url( $canonical ) !== erankly_normalize_canonical_comparison_url( $self ) ) {
 			$excluded[] = $user_id;

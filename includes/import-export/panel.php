@@ -66,7 +66,7 @@ function erankly_import_export_render_panel(): void {
 	?>
 		<div class="erankly-settings-section">
 			<div class="erankly-section-title-row">
-				<h3 class="erankly-section-title"><?php esc_html_e( 'Export', 'easyrankly' ); ?></h3>
+				<h2 class="erankly-section-title"><?php esc_html_e( 'Export', 'easyrankly' ); ?></h2>
 				<?php erankly_render_section_doc_link( 'export' ); ?>
 			</div>
 			<section class="erankly-card">
@@ -80,7 +80,7 @@ function erankly_import_export_render_panel(): void {
 
 		<div class="erankly-settings-section">
 			<div class="erankly-section-title-row">
-				<h3 class="erankly-section-title"><?php esc_html_e( 'Import', 'easyrankly' ); ?></h3>
+				<h2 class="erankly-section-title"><?php esc_html_e( 'Import', 'easyrankly' ); ?></h2>
 				<?php erankly_render_section_doc_link( 'import' ); ?>
 			</div>
 			<section class="erankly-card">
@@ -119,7 +119,7 @@ function erankly_import_export_render_panel(): void {
 		<?php if ( $has_any_source ) : ?>
 		<div class="erankly-settings-section">
 			<div class="erankly-section-title-row">
-				<h3 class="erankly-section-title"><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h3>
+				<h2 class="erankly-section-title"><?php esc_html_e( 'Import from other plugins', 'easyrankly' ); ?></h2>
 				<?php erankly_render_section_doc_link( 'import-other-plugins' ); ?>
 			</div>
 			<section class="erankly-card">

@@ -220,7 +220,8 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	resize: vertical;
 }
 
-.erankly-schema-block {
+.erankly-schema-block,
+.erankly-code-block {
 	background: var(--erankly-color-surface);
 	border: 1px solid var(--erankly-color-border-strong);
 	border-radius: var(--erankly-radius-surface);
@@ -263,7 +264,8 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-settings-details > summary::after,
-.erankly-schema-block-header::after {
+.erankly-schema-block-header::after,
+.erankly-code-block-header::after {
 	border-bottom: 2px solid;
 	border-right: 2px solid;
 	content: "";
@@ -280,7 +282,8 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 }
 
 .erankly-settings-details[open] > summary::after,
-.erankly-schema-block[open] > .erankly-schema-block-header::after {
+.erankly-schema-block[open] > .erankly-schema-block-header::after,
+.erankly-code-block[open] > .erankly-code-block-header::after {
 	transform: rotate(-135deg);
 }
 
@@ -288,7 +291,8 @@ button.erankly-linked-defaults-toggle.erankly-tabs::after {
 	padding: var(--erankly-space-4) var(--erankly-space-4) 1px;
 }
 
-.erankly-schema-panel {
+.erankly-schema-panel,
+.erankly-code-panel {
 	background: var(--erankly-color-surface);
 	padding: var(--erankly-space-4);
 }
@@ -808,6 +812,21 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	z-index: 1;
 }
 
+/* Single inline wrapper for the resolved text so the flex container holds one
+   item: text nodes sitting directly in a flex box would each become their own
+   anonymous item (dropping whitespace-only runs) and lose the ellipsis. */
+.erankly-variable-preview-text {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: inherit;
+}
+
+/* Marker shown in place of a {{token}} that has no example value to preview. */
+.erankly-variable-preview-unavailable {
+	color: var(--erankly-color-orange);
+}
+
 .erankly-variable-field.erankly-is-previewing .erankly-variable-preview {
 	display: flex;
 }
@@ -834,16 +853,19 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	z-index: 10000;
 }
 
-.erankly-schema-blocks {
+.erankly-schema-blocks,
+.erankly-code-blocks {
 	display: grid;
 	gap: var(--erankly-space-2);
 }
 
-.erankly-schema-blocks.is-empty {
+.erankly-schema-blocks.is-empty,
+.erankly-code-blocks.is-empty {
 	display: none;
 }
 
-.erankly-schema-block-header {
+.erankly-schema-block-header,
+.erankly-code-block-header {
 	align-items: center;
 	background: var(--erankly-color-surface);
 	cursor: pointer;
@@ -852,25 +874,30 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	padding: 0 var(--erankly-space-3) 0 var(--erankly-space-4);
 }
 
-.erankly-schema-block-header::after {
+.erankly-schema-block-header::after,
+.erankly-code-block-header::after {
 	flex-shrink: 0;
 	margin-left: auto;
 }
 
-.erankly-schema-block-header::-webkit-details-marker {
+.erankly-schema-block-header::-webkit-details-marker,
+.erankly-code-block-header::-webkit-details-marker {
 	display: none;
 }
 
-.erankly-schema-block[open] > .erankly-schema-block-header {
+.erankly-schema-block[open] > .erankly-schema-block-header,
+.erankly-code-block[open] > .erankly-code-block-header {
 	border-bottom: 1px solid var(--erankly-color-border-strong);
 }
 
-.erankly-schema-targeting {
+.erankly-schema-targeting,
+.erankly-code-targeting {
 	margin: 0 0 var(--erankly-space-field);
 	padding: 0;
 }
 
-.erankly-schema-targeting legend {
+.erankly-schema-targeting legend,
+.erankly-code-targeting legend {
 	font-weight: 600;
 	padding: 0 var(--erankly-space-1);
 }
@@ -878,18 +905,22 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 /* Only toggle/checkbox rows use the tight 4px rhythm; field labels keep
  * the standard label anatomy (8px to the control). */
 .erankly-schema-targeting > label,
-.erankly-schema-targeting-group label {
+.erankly-schema-targeting-group label,
+.erankly-code-targeting > label,
+.erankly-code-targeting-group label {
 	display: block;
 	margin: var(--erankly-space-1) 0;
 }
 
-.erankly-schema-targeting-group {
+.erankly-schema-targeting-group,
+.erankly-code-targeting-group {
 	border: 0;
 	margin: 0;
 	padding: 0;
 }
 
-.erankly-schema-targeting-grid {
+.erankly-schema-targeting-grid,
+.erankly-code-targeting-grid {
 	display: grid;
 	gap: var(--erankly-space-4);
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -897,23 +928,27 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 /* display: grid qui batte lo stylesheet user agent [hidden] { display: none }: serve una regola esplicita per lo stato hidden impostato dal JS. */
-.erankly-schema-targeting-grid[hidden] {
+.erankly-schema-targeting-grid[hidden],
+.erankly-code-targeting-grid[hidden] {
 	display: none;
 }
 
 /* The fieldset's own bottom margin separates it from the next section;
  * field margins inside the grid would double that gap. */
-.erankly-schema-targeting-grid .erankly-field {
+.erankly-schema-targeting-grid .erankly-field,
+.erankly-code-targeting-grid .erankly-field {
 	margin-bottom: 0;
 }
 
 /* widefat textareas are inline-block: WP's line-box descender adds a stray
  * 4px under each one. Block display keeps the panel's vertical rhythm exact. */
-.erankly-schema-panel textarea.widefat {
+.erankly-schema-panel textarea.widefat,
+.erankly-code-panel textarea.widefat {
 	display: block;
 }
 
-.erankly-schema-title {
+.erankly-schema-title,
+.erankly-code-title {
 	font-weight: 600;
 	line-height: 1.4;
 	padding: var(--erankly-space-3) 0;
@@ -921,36 +956,43 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 
 /* Bare panel help text follows the .erankly-field > .description anatomy:
  * 4px after the control, no bottom margin (the Delete row owns the 16px). */
-.erankly-schema-panel > p.description {
+.erankly-schema-panel > p.description,
+.erankly-code-panel > p.description {
 	margin: var(--erankly-space-help) 0 0;
 }
 
 /* .erankly-schema-panel > .button beats WP core's .wp-core-ui .button { margin: 0 }. */
-.erankly-schema-panel > .button.erankly-schema-delete {
+.erankly-schema-panel > .button.erankly-schema-delete,
+.erankly-code-panel > .button.erankly-code-delete {
 	margin: var(--erankly-space-4) 0 0;
 }
 
-.erankly-schema-field {
+.erankly-schema-field,
+.erankly-code-field {
 	display: block;
 	margin: 0;
 	min-width: 0;
 }
 
-.erankly-schema-field > label {
+.erankly-schema-field > label,
+.erankly-code-field > label {
 	color: var(--erankly-color-text);
 	line-height: 1.4;
 }
 
-.erankly-schema-field .widefat {
+.erankly-schema-field .widefat,
+.erankly-code-field .widefat {
 	min-height: 32px;
 }
 
 .erankly-schema-field textarea,
-.erankly-schema-field .erankly-variable-field {
+.erankly-schema-field .erankly-variable-field,
+.erankly-code-field textarea {
 	width: 100%;
 }
 
-.erankly-schema-field textarea.widefat {
+.erankly-schema-field textarea.widefat,
+.erankly-code-field textarea.widefat {
 	min-height: 74px;
 }
 
@@ -958,11 +1000,13 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 	min-height: 190px;
 }
 
-.erankly-schema-actions {
+.erankly-schema-actions,
+.erankly-code-actions {
 	margin: var(--erankly-space-4) 0;
 }
 
-.erankly-schema-blocks.is-empty ~ .erankly-schema-actions {
+.erankly-schema-blocks.is-empty ~ .erankly-schema-actions,
+.erankly-code-blocks.is-empty ~ .erankly-code-actions {
 	margin-top: 0;
 }
 
@@ -983,15 +1027,18 @@ input[type="checkbox"].erankly-toggle:focus-visible {
 }
 
 @media screen and (max-width: 782px) {
-	.erankly-schema-targeting-grid {
+	.erankly-schema-targeting-grid,
+	.erankly-code-targeting-grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
-	.erankly-schema-block-header {
+	.erankly-schema-block-header,
+	.erankly-code-block-header {
 		padding: 0 var(--erankly-space-3) 0 var(--erankly-space-4);
 	}
 
-	.erankly-schema-field > label {
+	.erankly-schema-field > label,
+	.erankly-code-field > label {
 		padding-top: 0;
 	}
 }

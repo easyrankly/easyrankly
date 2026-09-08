@@ -1,0 +1,17 @@
+{
+  "name": "easyrankly/easyrankly",
+  "description": "Development dependencies for the EasyRankly WordPress plugin.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "yoast/phpunit-polyfills": "^1.1"
+  },
+  "scripts": {
+    "test": "phpunit -c phpunit.xml.dist"
+  },
+  "config": {
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}

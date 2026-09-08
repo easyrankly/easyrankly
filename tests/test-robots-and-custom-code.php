@@ -39,4 +39,22 @@ final class ERankly_Robots_And_Custom_Code_Test extends WP_UnitTestCase {
 		$this->assertCount( 1, $blocks );
 		$this->assertSame( $limit, strlen( (string) $blocks[0]['code'] ) );
 	}
+
+	public function test_one_marked_legacy_block_can_survive_the_ten_block_ui_limit(): void {
+		$input = array_fill(
+			0,
+			erankly_custom_code_max_blocks(),
+			array(
+				'enabled'         => 1,
+				'code'            => '<meta name="probe" content="1">',
+				'target_contexts' => array( 'singular' ),
+			)
+		);
+		$input[] = erankly_custom_code_migrated_block( '<meta name="legacy" content="1">' );
+
+		$blocks = erankly_sanitize_custom_code_blocks( $input );
+
+		$this->assertCount( erankly_custom_code_max_blocks() + 1, $blocks );
+		$this->assertSame( 1, $blocks[ erankly_custom_code_max_blocks() ]['legacy_migrated'] );
+	}
 }

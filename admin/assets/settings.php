@@ -83,6 +83,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'resolvePlaceholders' => (bool) erankly_get_setting( 'resolve_placeholders', 1 ),
 				'siteDescription'     => get_bloginfo( 'description' ),
 				'siteName'            => get_bloginfo( 'name' ),
+				'unavailableLabel'    => __( 'Preview not available', 'easyrankly' ),
 			)
 		);
 	}
@@ -96,7 +97,7 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 			)
 		);
 	}
-	if ( in_array( 'schema', $asset_modules, true ) ) {
+	if ( in_array( 'schema', $asset_modules, true ) || in_array( 'blocks', $asset_modules, true ) ) {
 		wp_localize_script(
 			'erankly-admin',
 			'eranklySchemaBuilder',
@@ -127,7 +128,10 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 					array_filter(
 						array(
 							'general'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/general' ) ) ),
-							'advanced'      => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ) ),
+							'advanced'      => array(
+								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/advanced' ) ),
+								'reloadOnSave' => true,
+							),
 							'sitemap'       => array( 'restUrl' => esc_url_raw( rest_url( 'erankly/v1/settings/sitemap' ) ) ),
 							'features'      => array(
 								'restUrl'      => esc_url_raw( rest_url( 'erankly/v1/settings/features' ) ),
@@ -172,9 +176,16 @@ function erankly_admin_enqueue_assets( string $hook_suffix ): void {
 				'restUrlDelete' => esc_url_raw( rest_url( 'erankly/v1/redirects/delete' ) ),
 				'restUrlTest'   => esc_url_raw( rest_url( 'erankly/v1/redirects/test' ) ),
 				'nonce'         => wp_create_nonce( 'wp_rest' ),
-				'deleteConfirm' => __( 'Delete this redirect?', 'easyrankly' ),
+				'statusCodes'   => ERankly_Redirects_Admin::status_code_labels(),
+				'statusOnlyCodes' => array_map( 'strval', ERankly_Redirects_Normalizer::STATUS_ONLY_CODES ),
+				/* translators: %s: Redirect source path. */
+				'deleteConfirm' => __( 'The redirect from %s will be permanently deleted.', 'easyrankly' ),
 				'enableLabel'   => __( 'Enable', 'easyrankly' ),
 				'disableLabel'  => __( 'Disable', 'easyrankly' ),
+				/* translators: %s: Redirect source path. */
+				'enableAria'    => __( 'Enable redirect from %s', 'easyrankly' ),
+				/* translators: %s: Redirect source path. */
+				'disableAria'   => __( 'Disable redirect from %s', 'easyrankly' ),
 				'activeYes'     => __( 'Yes', 'easyrankly' ),
 				'activeNo'      => __( 'No', 'easyrankly' ),
 				'toggleError'   => __( 'The redirect status could not be changed.', 'easyrankly' ),

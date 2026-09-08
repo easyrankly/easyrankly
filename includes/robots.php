@@ -484,6 +484,22 @@ function erankly_filter_robots_txt( string $output, bool $is_public ): string {
 }
 
 /**
+ * Builds the same robots.txt body that WordPress passes through the public
+ * `robots_txt` filter, without sending frontend headers from the admin screen.
+ *
+ * The `do_robotstxt` action is intentionally not fired here: callbacks on that
+ * action may print directly or perform request-only side effects. The settings
+ * UI calls this limitation out beside the preview.
+ */
+function erankly_get_robots_txt_preview(): string {
+	$output  = "User-agent: *\n";
+	$output .= 'Disallow: ' . wp_parse_url( admin_url(), PHP_URL_PATH ) . "\n";
+	$output .= 'Allow: ' . wp_parse_url( admin_url( 'admin-ajax.php' ), PHP_URL_PATH ) . "\n";
+
+	return (string) apply_filters( 'robots_txt', $output, (bool) get_option( 'blog_public' ) );
+}
+
+/**
  * Splits robots.txt lines into User-agent groups plus file-level directives.
  *
  * robots.txt is positional: every rule belongs to the User-agent header above it. Deduplicating the flat line
