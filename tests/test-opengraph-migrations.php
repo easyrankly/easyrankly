@@ -3,6 +3,19 @@
 
 final class ERankly_Opengraph_Migrations_Test extends WP_UnitTestCase {
 
+	/**
+	 * Loads the Open Graph module. It is required lazily from
+	 * erankly_bootstrap_frontend_modules() on the `wp` action, which never fires under PHPUnit,
+	 * so the attachment helpers would otherwise be undefined.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		erankly_load_default_helpers();
+		erankly_load_content_helpers();
+		require_once ERANKLY_PATH . 'includes/opengraph.php';
+	}
+
 	public function test_legacy_shared_image_is_migrated_to_both_network_fields(): void {
 		$post_id = self::factory()->post->create();
 		$url     = 'https://example.test/legacy-social.jpg';

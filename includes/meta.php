@@ -572,7 +572,7 @@ function erankly_sanitize_schema_blocks( mixed $value, bool $is_global = false, 
 			}
 		}
 
-		$incoming_json = isset( $block['fields']['custom_json'] ) ? erankly_sanitize_textarea( $block['fields']['custom_json'] ) : '';
+		$incoming_json = isset( $block['fields']['custom_json'] ) ? erankly_sanitize_json_ld( $block['fields']['custom_json'] ) : '';
 		$previous_json = '';
 
 		if ( isset( $previous[ $index ]['fields']['custom_json'] ) ) {

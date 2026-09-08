@@ -21,6 +21,22 @@ function erankly_sanitize_textarea( mixed $value ): string {
 	return sanitize_textarea_field( (string) $value );
 }
 
+/**
+ * Sanitizes a raw JSON-LD document without stripping markup. sanitize_textarea_field() runs
+ * wp_strip_all_tags(), which deletes `<script>…</script>` together with its contents and would
+ * silently corrupt legitimate JSON string values. The document is validated by
+ * erankly_validate_custom_json_ld() before it is stored and re-encoded with JSON_HEX_TAG on
+ * output, so the raw text is safe to keep here. Expects an already-unslashed value.
+ */
+function erankly_sanitize_json_ld( mixed $value ): string {
+	$value = wp_check_invalid_utf8( (string) $value );
+	$value = str_replace( array( "\r\n", "\r" ), "\n", $value );
+	// Strip control characters that are never valid inside a JSON document, keeping tab and newline.
+	$value = (string) preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $value );
+
+	return trim( $value );
+}
+
 /** @param mixed $value Raw handle or profile URL. */
 function erankly_sanitize_twitter_handle( mixed $value ): string {
 	$value = trim( erankly_sanitize_text( $value ) );

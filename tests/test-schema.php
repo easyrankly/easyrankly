@@ -6,6 +6,11 @@ final class ERankly_Schema_Test extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// WP_UnitTestCase::tear_down() calls unregister_all_meta_keys(), which drops the meta the
+		// plugin registered once on `init`. Without this the REST responses lose
+		// _erankly_schema_blocks from the second test in the run onwards.
+		erankly_register_meta();
+
 		erankly_load_default_helpers();
 		erankly_load_content_helpers();
 		require_once ERANKLY_PATH . 'includes/canonical.php';
